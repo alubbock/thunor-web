@@ -1,0 +1,16 @@
+{% extends "../base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Welcome to PyHTS : High Throughput Screening{% endblock %}
+
+{% block content %}
+    <div class="row">
+    <div class="col-lg-6 col-lg-offset-3 col-md-8 col-md-offset-2 col-sm-12">
+          <form class="form-signin" action="{% url 'pyhts:home' %}"
+                method="post">
+        <h2 class="form-signin-heading">Please sign in</h2>
+              {% crispy form %}
+      </form>
+    </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,62 @@
+{%  extends "base.html" %}
+
+{% block title %}HTS Plate Designer{% endblock %}
+
+{% block content %}
+
+            <div class="row">
+                <div class="col-lg-9 col-md-9">
+
+<ol id="selectable">
+  <li>&nbsp;</li>
+    {% for col in cols %}
+  <li>{{ col }}</li>
+    {% endfor %}
+    {% for row in rows %}
+    <li>{{ row }}</li>
+      {% for col in cols %}
+  <li class="ui-state-default well"></li>
+      {% endfor %}
+    {% endfor %}
+</ol>
+                </div>
+
+                <div class="row">
+                    <div class="col-lg-3 col-md-3">
+
+                        <div class="panel panel-default">
+  <div class="panel-heading"><h3 class="panel-title">Cell Line</h3></div>
+  <div class="panel-body">
+<select class="form-control">
+    <option value="one">HL60</option>
+    <option value="two">LOLcells</option>
+    <option value="three">Etc.</option>
+</select>
+      <button type="button" class="btn btn-primary">Add Cell Line...</button>
+      <button type="button" class="btn btn-success">Apply</button>
+      </div>
+     <div class="panel-heading"><h3 class="panel-title">Drug</h3></div>
+                            <div class="panel-body">
+<select class="form-control">
+    <option value="one">ATRA</option>
+    <option value="two">Imatinib</option>
+    <option value="three">Etc.</option>
+</select>
+      <select class="form-control">
+    <option value="one">10nM</option>
+    <option value="two">100nM</option>
+    <option value="three">Etc.</option>
+</select>
+       <button type="button" class="btn btn-primary">Add Drug...</button>
+      <button type="button" class="btn btn-success">Apply</button>
+      </div>
+                            </div>
+
+
+
+                    </div>
+                </div>
+
+
+            </div>
+{% endblock %}
