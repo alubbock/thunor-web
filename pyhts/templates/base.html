@@ -34,11 +34,14 @@
       <style>
   #page-wrapper {margin:0;}
 
-  #feedback { font-size: 1.4em; }
-  #selectable .ui-selecting { background: #FECA40; }
-  #selectable .ui-selected { background: #F39814; color: white; }
-  #selectable { list-style-type: none; margin: 0; padding: 0; width: 50em; }
-  #selectable li { margin: 0; padding: 0; float: left; width: 2em;
+  #selectable-wells .ui-selecting { background: #FECA40; }
+  #selectable-wells .ui-selected { background: #F39814; color: white; }
+  .welllist { list-style-type: none;
+      margin: 0;
+      padding: 0; }
+  #rowlabels { width: 2em; float:left; }
+  #wells {width: 50em;}
+  .welllist li { margin: 0; padding: 0; float: left; width: 2em;
       height: 2em; font-size: 1em; text-align: center; cursor: default; }
  .ui-selectable-helper { display:none }
   </style>
@@ -322,12 +325,7 @@
     <!-- Custom Theme JavaScript -->
     <script src="{% static 'dist/js/sb-admin-2.js' %}"></script>
 
-      <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-    <script>
-          $( function() {
-    $( "#selectable" ).selectable();
-  } );
-    </script>
+    {% block tailscript %}{% endblock %}
 
 </body>
 

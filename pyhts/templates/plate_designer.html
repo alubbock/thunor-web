@@ -1,62 +1,127 @@
-{%  extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}HTS Plate Designer{% endblock %}
 
 {% block content %}
 
-            <div class="row">
-                <div class="col-lg-9 col-md-9">
+    <div class="row">
+        <div class="col-lg-9 col-md-9 col-sm-12 col-xs-12">
 
-<ol id="selectable">
-  <li>&nbsp;</li>
-    {% for col in cols %}
-  <li>{{ col }}</li>
-    {% endfor %}
-    {% for row in rows %}
-    <li>{{ row }}</li>
-      {% for col in cols %}
-  <li class="ui-state-default well"></li>
-      {% endfor %}
-    {% endfor %}
-</ol>
+            <div style="width: 50em;">
+
+                <ol id="selectable-well-all" class="welllist" data-last="">
+                    <li id="well-all">&nbsp;</li>
+                </ol>
+
+                <ol id="selectable-well-cols" class="welllist">
+                    {% for col in cols %}
+                        <li data-col="{{ col }}" class="col">{{ col }}</li>
+                    {% endfor %}
+                </ol>
+
+                <div id="rowlabels">
+                    <ol id="selectable-well-rows" class="welllist">
+                        {% for row in rows %}
+                            <li id="data{{ row }}" data-row="{{ row }}"
+                            class="row"
+                            >{{ row }}</li>
+                        {% endfor %}
+                    </ol>
                 </div>
 
-                <div class="row">
-                    <div class="col-lg-3 col-md-3">
-
-                        <div class="panel panel-default">
-  <div class="panel-heading"><h3 class="panel-title">Cell Line</h3></div>
-  <div class="panel-body">
-<select class="form-control">
-    <option value="one">HL60</option>
-    <option value="two">LOLcells</option>
-    <option value="three">Etc.</option>
-</select>
-      <button type="button" class="btn btn-primary">Add Cell Line...</button>
-      <button type="button" class="btn btn-success">Apply</button>
-      </div>
-     <div class="panel-heading"><h3 class="panel-title">Drug</h3></div>
-                            <div class="panel-body">
-<select class="form-control">
-    <option value="one">ATRA</option>
-    <option value="two">Imatinib</option>
-    <option value="three">Etc.</option>
-</select>
-      <select class="form-control">
-    <option value="one">10nM</option>
-    <option value="two">100nM</option>
-    <option value="three">Etc.</option>
-</select>
-       <button type="button" class="btn btn-primary">Add Drug...</button>
-      <button type="button" class="btn btn-success">Apply</button>
-      </div>
-                            </div>
-
-
-
-                    </div>
-                </div>
-
+                <ol id="selectable-wells" class="welllist">
+                    {% for row in rows %}
+                        {% for col in cols %}
+                            <li data-row="{{ row }}"
+                                data-col="{{ col }}"
+                                class="ui-state-default well"></li>
+                        {% endfor %}
+                    {% endfor %}
+                </ol>
 
             </div>
+
+        </div>
+
+        <div class="col-lg-3 col-md-3">
+
+            <div class="panel panel-default">
+                <div class="panel-heading"><h3 class="panel-title">Cell
+                    Line</h3></div>
+                <div class="panel-body">
+                    <select class="form-control">
+                        <option value="one">HL60</option>
+                        <option value="two">LOLcells</option>
+                        <option value="three">Etc.</option>
+                    </select>
+                    <button type="button" class="btn btn-primary">Add Cell
+                        Line...
+                    </button>
+                    <button type="button" class="btn btn-success">Apply
+                    </button>
+                </div>
+                <div class="panel-heading"><h3 class="panel-title">
+                    Drug</h3></div>
+                <div class="panel-body">
+                    <select class="form-control">
+                        <option value="one">ATRA</option>
+                        <option value="two">Imatinib</option>
+                        <option value="three">Etc.</option>
+                    </select>
+                    <select class="form-control">
+                        <option value="one">10nM</option>
+                        <option value="two">100nM</option>
+                        <option value="three">Etc.</option>
+                    </select>
+                    <button type="button" class="btn btn-primary">Add
+                        Drug...
+                    </button>
+                    <button type="button" class="btn btn-success">Apply
+                    </button>
+                </div>
+            </div>
+
+
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block tailscript %}
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script>
+        $(function () {
+            $("#well-all").click(function() {
+                if($('#well-all').hasClass('ui-selected')) {
+                    $('#well-all,.well').removeClass('ui-selected');
+                } else {
+                    $('#well-all,.well').addClass('ui-selected');
+                }
+            });
+
+            $('#selectable-well-rows').selectable({
+               selecting: function( event, ui ) {
+                   $('*[data-row="'+$(ui.selecting).data('row')+'"]')
+                           .addClass('ui-selected');
+               },
+               unselecting: function( event, ui ) {
+                   $('*[data-row="'+$(ui.unselecting).data('row')+'"]')
+                           .removeClass('ui-selected');
+               }
+            });
+
+            $('#selectable-well-cols').selectable({
+               selecting: function( event, ui ) {
+                   $('*[data-col="'+$(ui.selecting).data('col')+'"]')
+                           .addClass('ui-selected');
+               },
+               unselecting: function( event, ui ) {
+                   $('*[data-col="'+$(ui.unselecting).data('col')+'"]')
+                           .removeClass('ui-selected');
+               }
+            });
+
+            $("#selectable-wells").selectable();
+        });
+    </script>
 {% endblock %}
