@@ -1,146 +1,273 @@
 {% extends "base.html" %}
 
-{% block title %}HTS Plate Designer{% endblock %}
+{% block title %}Annotate Plates{% endblock %}
 
 {% block content %}
+{# Plate Designer #}
+<div class="row">
+    <div class="col-lg-9 col-md-9 col-sm-12 col-xs-12">
+    <div class="panel panel-default" style="width:52em;">
+    <div class="panel-heading">
+    <div class="btn-group pull-right" role="group">
+        <button type="button" class="btn btn-default"
+                                style="display:none">
+                          <span class="glyphicon glyphicon-arrow-left"
+                                aria-hidden="true"></span> Previous
+                    </button>
+    <button type="button" class="btn btn-default"
+                                style="padding:3px 12px;">Next
+                          <span class="glyphicon glyphicon-arrow-right"
+                                aria-hidden="true"></span>
+                    </button>
+    </div>
 
-    <div class="row">
-        <div class="col-lg-9 col-md-9 col-sm-12 col-xs-12">
-
-            <div style="width: 50em;">
-
-                <ol id="selectable-well-all" class="welllist" data-last="">
-                    <li id="well-all">&nbsp;</li>
-                </ol>
-
-                <ol id="selectable-well-cols" class="welllist">
-                    {% for col in cols %}
-                        <li data-col="{{ col }}" class="col">{{ col }}</li>
-                    {% endfor %}
-                </ol>
-
-                <div id="rowlabels">
-                    <ol id="selectable-well-rows" class="welllist">
-                        {% for row in rows %}
-                            <li id="data{{ row }}" data-row="{{ row }}"
-                            class="row"
-                            >{{ row }}</li>
-                        {% endfor %}
-                    </ol>
-                </div>
-
-                <ol id="selectable-wells" class="welllist">
-                    {% for row in rows %}
-                        {% for col in cols %}
-                            <li data-row="{{ row }}"
-                                data-col="{{ col }}"
-                                class="ui-state-default well"></li>
-                        {% endfor %}
-                    {% endfor %}
-                </ol>
-
-            </div>
-
+        <div class="dropdown">
+            <button class="btn btn-default dropdown-toggle" type="button"
+                    id="hts-select-platefile" data-toggle="dropdown"
+                    aria-haspopup="true" aria-expanded="true">
+                <span class="glyphicon glyphicon-file"
+                      aria-hidden="true"></span>
+                <span id="hts-current-file">
+                    {{ plate_files.0.file.name }}</span>
+                <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu" id="hts-platefile-list"
+                aria-labelledby="hts-select-platefile">
+                {% for pf in plate_files %}
+                <li data-id="{{ pf.id }}">
+                    <a href="#">{{ pf.file.name }}</a>
+                </li>
+                {% endfor %}
+            </ul>
         </div>
 
-        <div class="col-lg-3 col-md-3">
-
-            <div class="panel panel-default">
-                <div class="panel-heading"><h3 class="panel-title">Cell
-                    Line</h3></div>
-                <div class="panel-body">
-                    <select class="form-control">
-                        <option value="one">HL60</option>
-                        <option value="two">LOLcells</option>
-                        <option value="three">Etc.</option>
-                    </select>
-                    <button type="button" class="btn btn-primary">Add Cell
-                        Line...
-                    </button>
-                    <button type="button" class="btn btn-success">Apply
-                    </button>
-                </div>
-                <div class="panel-heading"><h3 class="panel-title">
-                    Drug</h3></div>
-                <div class="panel-body">
-                    <select class="form-control">
-                        <option value="one">ATRA</option>
-                        <option value="two">Imatinib</option>
-                        <option value="three">Etc.</option>
-                    </select>
-                    <select class="form-control">
-                        <option value="one">10nM</option>
-                        <option value="two">100nM</option>
-                        <option value="three">Etc.</option>
-                    </select>
-                    <button type="button" class="btn btn-primary">Add
-                        Drug...
-                    </button>
-                    <button type="button" class="btn btn-success">Apply
-                    </button>
-                </div>
-            </div>
-
-
+        <div class="dropdown">
+            <button class="btn btn-default dropdown-toggle" type="button"
+                    id="hts-select-plate" data-toggle="dropdown"
+                    aria-haspopup="true" aria-expanded="true">
+                <span class="glyphicon glyphicon-th"
+                      aria-hidden="true"></span>
+                <span id="hts-current-plate">
+                    {{ plates.0 }}</span>
+                <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu" id="hts-plate-list"
+                aria-labelledby="hts-select-plate">
+                {% for p in plates %}
+                <li><a href="#">{{ p }}</a></li>
+                {% endfor %}
+            </ul>
         </div>
     </div>
 
+    <ul class="nav nav-tabs">
+        <li role="presentation" class="active"><a href="#">Cell Lines</a></li>
+        <li role="presentation"><a href="#">Drug</a></li>
+        <li role="presentation"><a href="#">Dose</a></li>
+    </ul>
+
+    <div class="panel-body" style="width:52em;padding:1em">
+
+            <ol id="selectable-well-all" class="welllist" data-last="">
+                <li id="well-all" class="well ui-state-default">&nbsp;</li>
+            </ol>
+
+            <ol id="selectable-well-cols" class="welllist">
+                {% for col in cols %}
+                    <li data-col="{{ col }}" class="col">{{ col }}</li>
+                {% endfor %}
+            </ol>
+
+            <div id="rowlabels">
+                <ol id="selectable-well-rows" class="welllist">
+                    {% for row in rows %}
+                        <li id="data{{ row }}" data-row="{{ row }}"
+                        class="row"
+                        >{{ row }}</li>
+                    {% endfor %}
+                </ol>
+            </div>
+
+            <ol id="selectable-wells" class="welllist">
+                {% for row in rows %}
+                    {% for col in cols %}
+                        <li data-row="{{ row }}"
+                            data-col="{{ col }}"
+                            class="ui-state-default well"></li>
+                    {% endfor %}
+                {% endfor %}
+            </ol>
+    </div>
+    </div>
+    </div>
+
+    <div class="col-lg-3 col-md-3 col-sm-12 col-xs-12">
+
+        <div class="panel panel-default">
+            <div class="panel-heading"><h3 class="panel-title">Cell
+                Line</h3></div>
+            <div class="panel-body">
+                <input type="text" class="form-control" id="cellline-typeahead"
+                       placeholder="Cell Line"/>
+                <button type="button" class="btn btn-primary">Add Cell
+                    Line...
+                </button>
+                <button type="button" class="btn btn-success">Apply
+                </button>
+            </div>
+            <div class="panel-heading"><h3 class="panel-title">
+                Drug</h3></div>
+            <div class="panel-body">
+                <select class="form-control">
+                    <option value="one">ATRA</option>
+                    <option value="two">Imatinib</option>
+                    <option value="three">Etc.</option>
+                </select>
+                <select class="form-control">
+                    <option value="one">10nM</option>
+                    <option value="two">100nM</option>
+                    <option value="three">Etc.</option>
+                </select>
+                <button type="button" class="btn btn-primary">Add
+                    Drug...
+                </button>
+                <button type="button" class="btn btn-success">Apply
+                </button>
+            </div>
+        </div>
+
+
+    </div>
+</div>
 {% endblock %}
 
-{% block tailscript %}
-    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-    <script>
-        $(function () {
-            var pyHTS = {
-                last_edited: null
-            };
+{% block tailscript %}{% load static %}
+<script src="//code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<script src="{% static 'vendor/typeahead/typeahead.js' %}"></script>
+<script>
+$(function () {
+    'use strict';
+    var substringMatcher = function(strs) {
+  return function findMatches(q, cb) {
+    var matches, substringRegex;
 
-            $("#well-all").click(function() {
-                if($('.well.ui-selected').length) {
-                    $('#well-all,.well').removeClass('ui-selected');
-                } else {
-                    $('#well-all,.well').addClass('ui-selected');
-                }
-                pyHTS.last_edited = 'all';
-            });
+    // an array that will be populated with substring matches
+    matches = [];
 
-            $('#selectable-well-rows').selectable({
-               start: function( event, ui ) {
-                   if(pyHTS.last_edited != 'row')
-                    $('.well').removeClass('ui-selected');
-                   pyHTS.last_edited = 'row';
-               },
-               selecting: function( event, ui ) {
-                   $('*[data-row="'+$(ui.selecting).data('row')+'"]')
-                           .addClass('ui-selected');
-               },
-               unselecting: function( event, ui ) {
-                   $('*[data-row="'+$(ui.unselecting).data('row')+'"]')
-                           .removeClass('ui-selected');
-               }
-            });
+    // regex used to determine if a string contains the substring `q`
+    var substrRegex = new RegExp(q, 'i');
 
-            $('#selectable-well-cols').selectable({
-               start: function( event, ui ) {
-                   if(pyHTS.last_edited != 'col')
-                    $('.well').removeClass('ui-selected');
-                   pyHTS.last_edited = 'col';
-               },
-               selecting: function( event, ui ) {
-                   $('*[data-col="'+$(ui.selecting).data('col')+'"]')
-                           .addClass('ui-selected');
-               },
-               unselecting: function( event, ui ) {
-                   $('*[data-col="'+$(ui.unselecting).data('col')+'"]')
-                           .removeClass('ui-selected');
-               }
-            });
+    // iterate through the pool of strings and for any string that
+    // contains the substring `q`, add it to the `matches` array
+    $.each(strs, function(i, str) {
+      if (substrRegex.test(str)) {
+        matches.push(str);
+      }
+    });
 
-            $("#selectable-wells").selectable({
-                start: function (event, ui) {
-                    pyHTS.last_edited = 'cell';
-                }
-            });
+    cb(matches);
+  };
+};
+
+    var pyHTS = {
+        last_edited: null,
+        plate_names:
+                ['{{  plates|join:"','" }}'],
+    };
+
+    $('#hts-platefile-list li').click(function(e){
+        e.preventDefault();
+        $('#hts-current-file').text($(this).text());
+
+        var id = $(this).data('id');
+        console.log($(this));
+
+        $('#hts-current-plate').html('<emph>Loading...</emph>');
+        $('#hts-select-plate').addClass('disabled');
+
+        $.getJSON('/ajax/plate/'+id, function(data) {
+           var items = [];
+           $.each(data.names, function(key, val) {
+            items.push('<li><a href="#">'+val+'</a></li>');
+           });
+           $('#hts-plate-list').html(items.join(""));
+            attach_plate_li_click();
+            $('#hts-plate-list li').first().click();
+           $('#hts-select-plate').removeClass('disabled');
         });
-    </script>
+    });
+
+    var attach_plate_li_click = function() {
+        $('#hts-plate-list li').click(function(e) {
+            e.preventDefault();
+            $('#hts-current-plate').text($(this).text());
+
+            // Load the plate map
+
+        });
+    };
+    attach_plate_li_click();
+
+    $('#cellline-typeahead').typeahead({
+        hint: true,
+        highlight: true,
+        minLength: 0
+    },
+            {
+      name: 'celllines',
+      source: substringMatcher(['HL60', 'LOLcells'])
+    }).keyup(function (e) {
+        if (e.which == 13) {
+            $(".tt-suggestion:first-child").trigger('click');
+        }
+    });
+
+    $("#well-all").click(function () {
+        if ($('.well.ui-selected').length) {
+            $('#well-all,.well').removeClass('ui-selected');
+        } else {
+            $('#well-all,.well').addClass('ui-selected');
+        }
+        pyHTS.last_edited = 'all';
+    });
+
+    $('#selectable-well-rows').selectable({
+        start: function (event, ui) {
+            if (pyHTS.last_edited != 'row')
+                $('.well').removeClass('ui-selected');
+            pyHTS.last_edited = 'row';
+        },
+        selecting: function (event, ui) {
+            $('*[data-row="' + $(ui.selecting).data('row') + '"]')
+                    .addClass('ui-selected');
+        },
+        unselecting: function (event, ui) {
+            $('*[data-row="' + $(ui.unselecting).data('row') + '"]')
+                    .removeClass('ui-selected');
+        }
+    });
+
+    $('#selectable-well-cols').selectable({
+        start: function (event, ui) {
+            if (pyHTS.last_edited != 'col')
+                $('.well').removeClass('ui-selected');
+            pyHTS.last_edited = 'col';
+        },
+        selecting: function (event, ui) {
+            $('*[data-col="' + $(ui.selecting).data('col') + '"]')
+                    .addClass('ui-selected');
+        },
+        unselecting: function (event, ui) {
+            $('*[data-col="' + $(ui.unselecting).data('col') + '"]')
+                    .removeClass('ui-selected');
+        }
+    });
+
+    $("#selectable-wells").selectable({
+        start: function (event, ui) {
+            pyHTS.last_edited = 'cell';
+        }
+    });
+});
+</script>
 {% endblock %}

@@ -2,6 +2,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Field, Submit, Layout
 from crispy_forms.bootstrap import FormActions
 from django.contrib.auth.forms import AuthenticationForm
+from django import forms
 
 
 class CentredAuthForm(AuthenticationForm):
@@ -18,3 +19,8 @@ class CentredAuthForm(AuthenticationForm):
             )
         )
         self.helper.form_show_labels = False
+
+
+class PlateFileForm(forms.Form):
+    file_field = forms.FileField(widget=forms.ClearableFileInput(attrs=
+                                 {'multiple': True}))

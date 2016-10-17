@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Plate{% endblock %}
+
+{% block content %}
+{# Plate File Upload #}
+<div class="row">
+    <div>
+        <div class="container">
+            <div class="panel panel-default">
+                <div class="panel-heading inline-headers clearfix">
+                    <span class="h3">Upload Plates</span>
+{#                        <small>Tab-separated plate files</small>#}
+                    <a href="{% url 'pyhts:plate_designer' %}"
+                       class="hts-next pull-right" style="display:none">
+                        <button type="button" class="btn btn-success"
+                                style="padding:3px 12px;">Next
+                          <span class="glyphicon glyphicon-arrow-right"
+                                aria-hidden="true"></span>
+                    </button></a>
+                    <div class="clearfix"></div>
+                </div>
+                <div class="panel-body">
+
+                    <!-- Standard Form -->
+                    <h4>Select files from your computer</h4>
+                    <form action="" method="post"
+                          enctype="multipart/form-data"
+                          id="js-upload-form">
+                        <div class="form-inline">
+                            <div class="form-group">
+                                <input type="file" name="file_field[]"
+                                       id="js-upload-files" multiple>
+                            </div>
+                            <button type="submit"
+                                    class="btn btn-sm btn-primary"
+                                    id="js-upload-submit">Upload files
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Drop Zone -->
+                    <h4>Or drag and drop files below</h4>
+                    <div class="upload-drop-zone" id="drop-zone">
+                        Just drag and drop files here
+                    </div>
+
+{#                        <!-- Progress Bar -->#}
+{#                        <div class="progress">#}
+{#                            <div class="progress-bar" role="progressbar"#}
+{#                                 aria-valuenow="60" aria-valuemin="0"#}
+{#                                 aria-valuemax="100" style="width: 60%;">#}
+{#                                <span class="sr-only">60% Complete</span>#}
+{#                            </div>#}
+{#                        </div>#}
+
+                    <!-- Upload Finished -->
+                    <div class="js-upload-finished" style="display:none">
+                        <h3>Uploaded files</h3>
+                        <div class="list-group">
+                            <ul id="fup-results">
+                            <li
+                                    class="fup-success list-group-item
+                            list-group-item-success"
+                                    style="display:none">
+                                <span
+                                    class="badge alert-success
+                                    pull-right">Success</span>
+                                <h5
+                                    class="list-group-item-heading"></h5>
+                                <span class="list-group-item-text"></span>
+                            </li>
+                            <li class="fup-failure list-group-item
+                               list-group-item-danger"
+                                    style="display:none">
+                                <span class="badge alert-danger
+                                    pull-right">Failed</span>
+                                <h5
+                                    class="list-group-item-heading"></h5>
+                                <span class="list-group-item-text"></span>
+                            </li>
+                                </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div> <!-- /container -->
+    </div>
+</div>
+{% endblock %}
+
+{% block tailscript %}
+<script>
+    $(function () {
+        'use strict';
+        var dropZone = document.getElementById('drop-zone');
+        var uploadForm = document.getElementById('js-upload-form');
+
+        var startUpload = function(files) {
+            var formData = new FormData();
+            for (var i=0; i<files.length; i++) {
+                formData.append('file_field', files[i])
+            }
+            $.ajax({
+                url: $(uploadForm).attr('action'),
+                type: $(uploadForm).attr('method'),
+                headers: {
+                  'X-CSRFToken': '{{ csrf_token }}'
+                },
+                data: formData,
+                cache: false,
+                processData: false,
+                contentType: false,
+                success: function(data) {
+                    if(data.success) {
+                        $.each(data.files, function(ind, e) {
+                            var baseEl = '.fup-failure';
+                            if(e.success) {
+                                baseEl = '.fup-success';
+                                $('.hts-next,.js-upload-finished').show();
+                            }
+                            var newEl = $(baseEl).first().clone().show();
+                            newEl.find('.list-group-item-heading')
+                                    .html(e.name);
+                            newEl.find('.list-group-item-text')
+                                    .html(e.message);
+                            newEl.appendTo('#fup-results');
+                        });
+                    } else {
+                        alert('None of the uploaded files appears to be ' +
+                                'in the correct format');
+                    }
+                }
+            });
+            return false;
+        };
+
+        uploadForm.addEventListener('submit', function(e) {
+            var uploadFiles = document.getElementById('js-upload-files')
+                    .files;
+            e.preventDefault();
+
+            startUpload(uploadFiles);
+        });
+
+        dropZone.ondrop = function(e) {
+            e.preventDefault();
+            this.className = 'upload-drop-zone';
+
+            startUpload(e.dataTransfer.files);
+        };
+
+        dropZone.ondragover = function() {
+            this.className = 'upload-drop-zone drop';
+            return false;
+        };
+
+        dropZone.ondragleave = function() {
+            this.className = 'upload-drop-zone';
+            return false;
+        };
+    });
+</script>
+{% endblock %}
