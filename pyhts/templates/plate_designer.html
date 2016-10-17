@@ -3,6 +3,26 @@
 {% block title %}Annotate Plates{% endblock %}
 
 {% block content %}
+    {#  Confirmation modal #}
+    <div class="modal fade" id="modal-ok-cancel" tabindex="-1" role="dialog"
+         aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="font-size: 20pt">
+                ...
+            </div>
+            <div class="modal-body">
+                ...
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-cancel btn-default"
+                        data-dismiss="modal">Cancel</button>
+                <button class="btn btn-success btn-ok">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {# Plate Designer #}
 <div class="row">
     <div class="col-lg-9 col-md-9 col-sm-12 col-xs-12">
@@ -108,31 +128,31 @@
                 Line</h3></div>
             <div class="panel-body">
                 <input type="text" class="form-control" id="cellline-typeahead"
-                       placeholder="Cell Line"/>
-                <button type="button" class="btn btn-primary">Add Cell
-                    Line...
-                </button>
-                <button type="button" class="btn btn-success">Apply
-                </button>
+                       placeholder="Cell line"/>
             </div>
             <div class="panel-heading"><h3 class="panel-title">
                 Drug</h3></div>
             <div class="panel-body">
-                <select class="form-control">
-                    <option value="one">ATRA</option>
-                    <option value="two">Imatinib</option>
-                    <option value="three">Etc.</option>
-                </select>
-                <select class="form-control">
-                    <option value="one">10nM</option>
-                    <option value="two">100nM</option>
-                    <option value="three">Etc.</option>
-                </select>
-                <button type="button" class="btn btn-primary">Add
-                    Drug...
-                </button>
-                <button type="button" class="btn btn-success">Apply
-                </button>
+                <input type="text" class="form-control" id="cellline-typeahead"
+                       placeholder="Drug name"/>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="dose"
+                           placeholder="Dose"/>
+                    <div class="input-group-btn">
+                        <button type="button" class="btn btn-default
+                        dropdown-toggle" data-toggle="dropdown"
+                                aria-haspopup="true"
+                                aria-expanded="false"><span
+                                id="hts-active-dose-unit">nM</span> <span
+                                class="caret"></span></button>
+                        <ul id="hts-dose-select" class="dropdown-menu">
+                          <li><a href="#">pM</a></li>
+                          <li><a href="#">nM</a></li>
+                          <li><a href="#">&mu;M</a></li>
+                          <li><a href="#">mM</a></li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -149,10 +169,8 @@ $(function () {
     'use strict';
     var substringMatcher = function(strs) {
   return function findMatches(q, cb) {
-    var matches, substringRegex;
-
     // an array that will be populated with substring matches
-    matches = [];
+    var matches = [];
 
     // regex used to determine if a string contains the substring `q`
     var substrRegex = new RegExp(q, 'i');
@@ -169,10 +187,59 @@ $(function () {
   };
 };
 
+    var createCellLine = function(name) {
+        $.ajax({type: 'POST',
+                url: '/ajax/cellline/create',
+                headers: {
+                  'X-CSRFToken': '{{ csrf_token }}'
+                },
+                data: {'name' : name},
+                success: function(data) {
+                    pyHTS.cell_lines = data.names;
+                    $('#cellline-typeahead').data('ttTypeahead').menu
+                            .datasets[0].source = substringMatcher(pyHTS
+                            .cell_lines);
+                },
+                dataType: 'json'});
+    };
+
+    var okCancelModal = function(title, text, success_callback,
+                                 cancel_callback, closed_callback) {
+        var mok = '#modal-ok-cancel';
+        if(cancel_callback !== undefined) {
+            $(mok).find('.btn-cancel').show();
+        } else {
+            $(mok).find('.btn-cancel').hide();
+        }
+        $(mok).find('.modal-header').text(title);
+        $(mok).find('.modal-body').html(text);
+        $(mok).data('success', false);
+        $('#modal-ok-cancel .btn-ok').off('click').on('click', function (e) {
+            $(mok).data('success', true);
+            $('#modal-ok-cancel').modal('hide');
+        });
+        $(mok).off('shown.bs.model').on('shown.bs.modal', function() {
+            $('#modal-ok-cancel .btn-ok').focus();
+        }).off('hide.bs.modal').on('hide.bs.modal', function(e) {
+            if(success_callback !== undefined && $(mok).data('success')) {
+                success_callback(e);
+            } else if(cancel_callback !== undefined && cancel_callback !==
+                    null) {
+                cancel_callback(e);
+            }
+        }).off('hidden.bs.modal').on('hidden.bs.modal', function(e) {
+            closed_callback(e);
+        }).modal();
+    };
+
+    var okModal = function(title, text, closed_callback) {
+        okCancelModal(title, text, undefined, undefined, closed_callback);
+    };
+
     var pyHTS = {
         last_edited: null,
-        plate_names:
-                ['{{  plates|join:"','" }}'],
+        plate_names: ['{{  plates|join:"','" }}'],
+        cell_lines: ['{{ cell_lines|join:"','" }}']
     };
 
     $('#hts-platefile-list li').click(function(e){
@@ -180,7 +247,6 @@ $(function () {
         $('#hts-current-file').text($(this).text());
 
         var id = $(this).data('id');
-        console.log($(this));
 
         $('#hts-current-plate').html('<emph>Loading...</emph>');
         $('#hts-select-plate').addClass('disabled');
@@ -213,14 +279,49 @@ $(function () {
         highlight: true,
         minLength: 0
     },
-            {
+    {
       name: 'celllines',
-      source: substringMatcher(['HL60', 'LOLcells'])
+      source: substringMatcher(pyHTS.cell_lines)
     }).keyup(function (e) {
         if (e.which == 13) {
-            $(".tt-suggestion:first-child").trigger('click');
+            if($('#selectable-wells .ui-selected').length === 0) {
+                okModal('Error', 'Please select some wells first',
+                        function() {$('#cellline-typeahead').focus();});
+                return;
+            }
+            if($(this).val() == '') {
+                okModal('Error', 'Please enter a cell line name');
+                return;
+            }
+            //$(".tt-suggestion:first-child").trigger('click');
+            if($.inArray($(this).val(), pyHTS.cell_lines) != -1) {
+
+            } else {
+                var name = $(this).val();
+                okCancelModal('Create cell line',
+                          'Cell line "'+name+'" ' +
+                          'was not found. Create it?<br /><br />If you meant' +
+                          ' to ' +
+                          'autocomplete a suggestion use <kbd>Tab</kbd> ' +
+                          'instead.',
+                          function() {createCellLine(name);},
+                          null,
+                          function() {$('#cellline-typeahead').focus();}
+                         );
+
+            }
         }
     });
+
+    $('#hts-dose-select li').click(function(e) {
+        e.preventDefault();
+       $('#hts-active-dose-unit').text($(this).text());
+    });
+
+
+
+
+
 
     $("#well-all").click(function () {
         if ($('.well.ui-selected').length) {

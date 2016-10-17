@@ -3,8 +3,8 @@ from django.template.response import TemplateResponse
 from django.contrib import auth
 from .forms import CentredAuthForm, PlateFileForm
 from django.views.generic.edit import FormView
-from django.http import JsonResponse
-from .models import PlateFile
+from django.http import JsonResponse, HttpResponseBadRequest
+from .models import PlateFile, CellLine
 import re
 
 
@@ -131,14 +131,28 @@ def ajax_get_plates(request, file_id):
     return JsonResponse({'names': _plates_names_file_id(request, file_id)})
 
 
+def ajax_create_cellline(request):
+    name = request.POST.get('name')
+    if not name:
+        return HttpResponseBadRequest()
+    cl = CellLine.objects.get_or_create(name=name)
+    all_cls = CellLine.objects.order_by('name').values_list('name', flat=True)
+    return JsonResponse({'names': list(all_cls)})
+
+
 def plate_designer(request):
     pf = PlateFile.objects.filter(process_date=None)
     #plates = _handle_platefile(pf.first().file)
+
+    # @TODO: Handle case where pf is None
+
     plates = _plates_names_file_id(request, file_id=pf.first().id)
     response = TemplateResponse(request, 'plate_designer.html', {
         'rows': map(chr, range(65, 65+18)),
         'cols': range(1, 25),
         'plate_files': pf,
-        'plates': plates
+        'plates': plates,
+        'cell_lines': CellLine.objects.order_by('name').values_list('name',
+                                                                    flat=True)
     })
     return response

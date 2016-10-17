@@ -8,3 +8,7 @@ class PlateFile(models.Model):
     upload_date = models.DateTimeField(auto_now_add=True)
     process_date = models.DateTimeField(null=True, blank=True)
     file = models.FileField()
+
+
+class CellLine(models.Model):
+    name = models.TextField(unique=True)

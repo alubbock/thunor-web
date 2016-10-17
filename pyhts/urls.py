@@ -10,5 +10,7 @@ urlpatterns = [
     url(r'^annotate$', views.plate_designer, name='plate_designer'),
 
     url(r'^ajax/plate/(?P<file_id>\d+)$', views.ajax_get_plates,
-        name='ajax_plate_names')
+        name='ajax_plate_names'),
+    url(r'^ajax/cellline/create', views.ajax_create_cellline,
+        name='ajax_create_cellline')
 ]
