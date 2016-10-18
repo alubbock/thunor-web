@@ -12,3 +12,17 @@ class PlateFile(models.Model):
 
 class CellLine(models.Model):
     name = models.TextField(unique=True)
+
+    @classmethod
+    def name_list(cls):
+        return list(cls.objects.order_by('name').values_list('name',
+                                                             flat=True))
+
+
+class Drug(models.Model):
+    name = models.TextField(unique=True)
+
+    @classmethod
+    def name_list(cls):
+        return list(cls.objects.order_by('name').values_list('name',
+                                                             flat=True))

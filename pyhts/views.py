@@ -4,7 +4,7 @@ from django.contrib import auth
 from .forms import CentredAuthForm, PlateFileForm
 from django.views.generic.edit import FormView
 from django.http import JsonResponse, HttpResponseBadRequest
-from .models import PlateFile, CellLine
+from .models import PlateFile, CellLine, Drug
 import re
 
 
@@ -136,8 +136,17 @@ def ajax_create_cellline(request):
     if not name:
         return HttpResponseBadRequest()
     cl = CellLine.objects.get_or_create(name=name)
-    all_cls = CellLine.objects.order_by('name').values_list('name', flat=True)
+    all_cls = CellLine.name_list()
     return JsonResponse({'names': list(all_cls)})
+
+
+def ajax_create_drug(request):
+    name = request.POST.get('name')
+    if not name:
+        return HttpResponseBadRequest()
+    dr = Drug.objects.get_or_create(name=name)
+    all_drugs = Drug.name_list()
+    return JsonResponse({'names': list(all_drugs)})
 
 
 def plate_designer(request):
@@ -152,7 +161,7 @@ def plate_designer(request):
         'cols': range(1, 25),
         'plate_files': pf,
         'plates': plates,
-        'cell_lines': CellLine.objects.order_by('name').values_list('name',
-                                                                    flat=True)
+        'cell_lines': CellLine.name_list(),
+        'drugs': Drug.name_list()
     })
     return response

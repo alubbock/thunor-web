@@ -81,9 +81,10 @@
     </div>
 
     <ul class="nav nav-tabs">
-        <li role="presentation" class="active"><a href="#">Cell Lines</a></li>
-        <li role="presentation"><a href="#">Drug</a></li>
-        <li role="presentation"><a href="#">Dose</a></li>
+        <li role="presentation" class="active"><a href="#">Overview</a></li>
+        <li role="presentation"><a href="#">Cell Lines</a></li>
+        <li role="presentation"><a href="#">Drugs</a></li>
+        <li role="presentation"><a href="#">Doses</a></li>
     </ul>
 
     <div class="panel-body" style="width:52em;padding:1em">
@@ -108,7 +109,7 @@
                 </ol>
             </div>
 
-            <ol id="selectable-wells" class="welllist">
+            <ol id="selectable-wells" class="welllist hts-overview">
                 {% for row in rows %}
                     {% for col in cols %}
                         <li data-row="{{ row }}"
@@ -133,7 +134,7 @@
             <div class="panel-heading"><h3 class="panel-title">
                 Drug</h3></div>
             <div class="panel-body">
-                <input type="text" class="form-control" id="cellline-typeahead"
+                <input type="text" class="form-control" id="drug-typeahead"
                        placeholder="Drug name"/>
                 <div class="input-group">
                     <input type="text" class="form-control" id="dose"
@@ -143,16 +144,66 @@
                         dropdown-toggle" data-toggle="dropdown"
                                 aria-haspopup="true"
                                 aria-expanded="false"><span
-                                id="hts-active-dose-unit">nM</span> <span
+                                id="hts-active-dose-unit"
+                                data-dose="1e-9">nM</span>
+                            <span
                                 class="caret"></span></button>
-                        <ul id="hts-dose-select" class="dropdown-menu">
-                          <li><a href="#">pM</a></li>
-                          <li><a href="#">nM</a></li>
-                          <li><a href="#">&mu;M</a></li>
-                          <li><a href="#">mM</a></li>
+                        <ul id="hts-dose-select" class="dropdown-menu
+                        dropdown-menu-right" style="min-width:0;width:100%">
+                          <li data-dose="1e-12"><a href="#">pM</a></li>
+                          <li data-dose="1e-9"><a href="#">nM</a></li>
+                          <li data-dose="1e-6"><a href="#">&mu;M</a></li>
+                          <li data-dose="1e-3"><a href="#">mM</a></li>
                         </ul>
                     </div>
                 </div>
+            </div>
+        </div>
+
+{#        Legend #}
+        <div class="panel panel-default">
+            <div class="panel-heading"><h3 class="panel-title">
+                Legend</h3><small>Colour indicates annotation</small>
+            </div>
+            <div class="panel-body hts-overview">
+                <ol class="welllist well-legend">
+                    <li class="well ui-state-default"></li>
+                        Unannotated
+                    </ol>
+                <ol class="welllist well-legend">
+                    <li class="well ui-state-default hts-cell-line"></li>
+                        Cell Line
+                </ol>
+                <ol class="welllist well-legend">
+                    <li class="well ui-state-default hts-drug"></li>
+                        Drug
+                </ol>
+                <ol class="welllist well-legend">
+                    <li class="well ui-state-default hts-dose"></li>
+                        Dose
+                </ol>
+                <ol class="welllist well-legend">
+                    <li class="well ui-state-default hts-cell-line
+                    hts-drug"></li>
+                        Cell Line and Drug<br />
+                        <small>(dose missing)</small>
+                </ol>
+                <ol class="welllist well-legend">
+                    <li class="well ui-state-default hts-cell-line
+                    hts-dose"></li>
+                        Cell Line and Dose<br />
+                        <small>(drug missing)</small>
+                </ol>
+                <ol class="welllist well-legend">
+                    <li class="well ui-state-default hts-drug hts-dose"></li>
+                        Drug and Dose<br />
+                        <small>(cell line missing)</small>
+                </ol>
+                <ol class="welllist well-legend">
+                    <li class="well ui-state-default hts-cell-line
+                    hts-drug hts-dose"></li>
+                        Fully annotated
+                </ol>
             </div>
         </div>
 
@@ -203,6 +254,22 @@ $(function () {
                 dataType: 'json'});
     };
 
+    var createDrug = function(name) {
+        $.ajax({type: 'POST',
+                url: '/ajax/drug/create',
+                headers: {
+                  'X-CSRFToken': '{{ csrf_token }}'
+                },
+                data: {'name' : name},
+                success: function(data) {
+                    pyHTS.drugs = data.names;
+                    $('#drug-typeahead').data('ttTypeahead').menu
+                            .datasets[0].source = substringMatcher(pyHTS
+                            .drugs);
+                },
+                dataType: 'json'});
+    };
+
     var okCancelModal = function(title, text, success_callback,
                                  cancel_callback, closed_callback) {
         var mok = '#modal-ok-cancel';
@@ -223,13 +290,11 @@ $(function () {
         }).off('hide.bs.modal').on('hide.bs.modal', function(e) {
             if(success_callback !== undefined && $(mok).data('success')) {
                 success_callback(e);
-            } else if(cancel_callback !== undefined && cancel_callback !==
-                    null) {
+            } else if(cancel_callback !== undefined &&
+                      cancel_callback !== null) {
                 cancel_callback(e);
             }
-        }).off('hidden.bs.modal').on('hidden.bs.modal', function(e) {
-            closed_callback(e);
-        }).modal();
+        }).off('hidden.bs.modal').on('hidden.bs.modal', closed_callback).modal();
     };
 
     var okModal = function(title, text, closed_callback) {
@@ -239,7 +304,8 @@ $(function () {
     var pyHTS = {
         last_edited: null,
         plate_names: ['{{  plates|join:"','" }}'],
-        cell_lines: ['{{ cell_lines|join:"','" }}']
+        cell_lines: ['{{ cell_lines|join:"','" }}'],
+        drugs: ['{{ drugs|join:"','" }}']
     };
 
     $('#hts-platefile-list li').click(function(e){
@@ -274,48 +340,97 @@ $(function () {
     };
     attach_plate_li_click();
 
-    $('#cellline-typeahead').typeahead({
-        hint: true,
-        highlight: true,
-        minLength: 0
-    },
-    {
-      name: 'celllines',
-      source: substringMatcher(pyHTS.cell_lines)
-    }).keyup(function (e) {
-        if (e.which == 13) {
-            if($('#selectable-wells .ui-selected').length === 0) {
-                okModal('Error', 'Please select some wells first',
-                        function() {$('#cellline-typeahead').focus();});
-                return;
-            }
-            if($(this).val() == '') {
-                okModal('Error', 'Please enter a cell line name');
-                return;
-            }
-            //$(".tt-suggestion:first-child").trigger('click');
-            if($.inArray($(this).val(), pyHTS.cell_lines) != -1) {
+    var applyToWells = function(data_type, value) {
+        $('#selectable-wells .ui-selected').data(data_type, value)
+                .removeClass('ui-selected').addClass('hts-'+data_type);
+    };
 
-            } else {
-                var name = $(this).val();
-                okCancelModal('Create cell line',
-                          'Cell line "'+name+'" ' +
-                          'was not found. Create it?<br /><br />If you meant' +
-                          ' to ' +
-                          'autocomplete a suggestion use <kbd>Tab</kbd> ' +
-                          'instead.',
-                          function() {createCellLine(name);},
-                          null,
-                          function() {$('#cellline-typeahead').focus();}
-                         );
+    var create_typeahead = function(input_el, data_source, readable_name,
+                                    create_data_fn, css_type) {
+        $(input_el).typeahead({
+                    hint: true,
+                    highlight: true,
+                    minLength: 0
+                },
+                {
+                    name: 'celllines',
+                    source: substringMatcher(data_source)
+                }).keyup(function (e) {
+            if (e.which == 13) {
+                if ($('#selectable-wells .ui-selected').length === 0) {
+                    okModal('Error', 'Please select some wells first',
+                            function () {
+                                $(input_el).focus();
+                            });
+                    return;
+                }
+                if ($(this).val() == '') {
+                    okModal('Error', 'Please enter a '+readable_name +' ' +
+                            'name', function () {
+                                $(input_el).focus();
+                            });
+                    return;
+                }
+                //$(".tt-suggestion:first-child").trigger('click');
+                if ($.inArray($(this).val(), data_source) != -1) {
+                    applyToWells(css_type, $(input_el).val());
+                } else {
+                    var name = $(this).val();
+                    okCancelModal('Create ' + readable_name,
+                            readable_name + ' "' + name + '" ' +
+                            'was not found. Create it?<br /><br />If you meant' +
+                            ' to ' +
+                            'autocomplete a suggestion use <kbd>Tab</kbd> ' +
+                            'instead.',
+                            function () {
+                                create_data_fn(name);
+                                applyToWells(css_type,
+                                        $(input_el).val());
+                            },
+                            null,
+                            function () {
+                                $(input_el).focus();
+                            }
+                    );
 
+                }
             }
-        }
+        });
+    };
+    create_typeahead('#cellline-typeahead', pyHTS.cell_lines, 'Cell line',
+            createCellLine, 'cell-line');
+    create_typeahead('#drug-typeahead', pyHTS.drugs, 'Drug', createDrug,
+            'drug');
+
+    $('#dose').keyup(function(e) {
+       if(e.which != 13) {
+           return;
+       }
+
+       if ($('#selectable-wells .ui-selected').length === 0) {
+           okModal('Error', 'Please select some wells first',
+                   function () {
+                       $('#dose').focus();
+                   });
+           return;
+       }
+
+       var val = $(this).val();
+       if(!$.isNumeric(val)) {
+           okModal('Error', 'Dose must be numeric', function() { $('#dose')
+                   .focus(); });
+       }
+
+       // convert dose to Moles
+       var dose = val * parseFloat($('#hts-active-dose-unit').data('dose'));
+
+       applyToWells('dose', dose);
     });
 
     $('#hts-dose-select li').click(function(e) {
         e.preventDefault();
-       $('#hts-active-dose-unit').text($(this).text());
+       $('#hts-active-dose-unit').data('dose', $(this).data('dose'))
+                                 .text($(this).text());
     });
 
 
