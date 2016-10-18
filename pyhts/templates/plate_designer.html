@@ -80,11 +80,13 @@
         </div>
     </div>
 
-    <ul class="nav nav-tabs">
-        <li role="presentation" class="active"><a href="#">Overview</a></li>
-        <li role="presentation"><a href="#">Cell Lines</a></li>
-        <li role="presentation"><a href="#">Drugs</a></li>
-        <li role="presentation"><a href="#">Doses</a></li>
+    <ul id="hts-well-nav" class="nav nav-tabs">
+        <li id="hts-well-overview" role="presentation" class="active"><a
+                href="#">Overview</a></li>
+        <li id="hts-well-celllines" role="presentation"><a href="#">Cell
+        Lines</a></li>
+        <li id="hts-well-drugs" role="presentation"><a href="#">Drugs</a></li>
+        <li id="hts-well-doses" role="presentation"><a href="#">Doses</a></li>
     </ul>
 
     <div class="panel-body" style="width:52em;padding:1em">
@@ -165,11 +167,15 @@
             <div class="panel-heading"><h3 class="panel-title">
                 Legend</h3><small>Colour indicates annotation</small>
             </div>
-            <div class="panel-body hts-overview">
+            <div id="hts-legend-container" class="panel-body hts-overview">
                 <ol class="welllist well-legend">
                     <li class="well ui-state-default"></li>
-                        Unannotated
+                        <span class="legend-label">Unannotated</span>
                     </ol>
+                <div id="legend-cell-lines"></div>
+                <div id="legend-drugs"></div>
+                <div id="legend-doses"></div>
+                <div id="legend-overview">
                 <ol class="welllist well-legend">
                     <li class="well ui-state-default hts-cell-line"></li>
                         Cell Line
@@ -204,6 +210,7 @@
                     hts-drug hts-dose"></li>
                         Fully annotated
                 </ol>
+                </div>
             </div>
         </div>
 
@@ -305,7 +312,22 @@ $(function () {
         last_edited: null,
         plate_names: ['{{  plates|join:"','" }}'],
         cell_lines: ['{{ cell_lines|join:"','" }}'],
-        drugs: ['{{ drugs|join:"','" }}']
+        drugs: ['{{ drugs|join:"','" }}'],
+        num_css_unique_colours: 25,
+        drugs_used: [],
+        celllines_used: [],
+        doses_used: []
+    };
+
+    var insertNextFree = function(arr, name) {
+        for(var i=0; i<arr.length; i++) {
+            if(typeof arr[i] == 'undefined') {
+                arr[i] = name;
+                return i;
+            }
+        }
+        arr[arr.length] = name;
+        return (arr.length - 1);
     };
 
     $('#hts-platefile-list li').click(function(e){
@@ -335,14 +357,36 @@ $(function () {
             $('#hts-current-plate').text($(this).text());
 
             // Load the plate map
-
+            // @TODO: Load new plate maps
         });
     };
     attach_plate_li_click();
 
     var applyToWells = function(data_type, value) {
+        var dstruct = null;
+        if(data_type == 'cell-line') {
+            dstruct = pyHTS.celllines_used;
+        } else if (data_type == 'drug') {
+            dstruct = pyHTS.drugs_used;
+        } else if (data_type == 'dose') {
+            dstruct = pyHTS.doses_used;
+        }
+
+        var n = $.inArray(value, dstruct);
+        if(n == -1) {
+            n = insertNextFree(dstruct, value) % pyHTS.num_css_unique_colours;
+            var lgnd = $('.well-legend:first').clone();
+            $(lgnd).children('li').addClass('hts-'+data_type+'-'+n);
+            $(lgnd).find('.legend-label').text(value);
+            $(lgnd).appendTo('#legend-'+data_type+'s')
+        } else {
+            n %= pyHTS.num_css_unique_colours;
+        }
+
+        $('#selectable-wells .ui-selected').addClass('hts-'+data_type+'-'+n);
         $('#selectable-wells .ui-selected').data(data_type, value)
-                .removeClass('ui-selected').addClass('hts-'+data_type);
+                .removeClass('ui-selected').addClass('hts-'+data_type)
+                .addClass('hts-'+data_type+'-'+n);
     };
 
     var create_typeahead = function(input_el, data_source, readable_name,
@@ -435,9 +479,26 @@ $(function () {
 
 
 
+    {# Change plate view #}
+    $('#hts-well-overview').click(function(e) { setWellView(e,'overview'); });
+    $('#hts-well-celllines').click(function(e) { setWellView(e,'celllines');});
+    $('#hts-well-drugs').click(function(e) { setWellView(e,'drugs'); });
+    $('#hts-well-doses').click(function(e) { setWellView(e,'doses'); });
+
+    var setWellView = function(e, view) {
+        e.preventDefault();
+        $('#hts-well-nav li').removeClass('active');
+        $('#hts-well-'+view).addClass('active');
+        $('#selectable-wells,#hts-legend-container')
+                .removeClass('hts-overview hts-celllines hts-drugs hts-doses')
+                .addClass('hts-'+view);
+    };
 
 
 
+
+
+    {# Well selection #}
     $("#well-all").click(function () {
         if ($('.well.ui-selected').length) {
             $('#well-all,.well').removeClass('ui-selected');
