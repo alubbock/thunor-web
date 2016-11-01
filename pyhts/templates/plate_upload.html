@@ -1,23 +1,42 @@
 {% extends "base.html" %}
 
-{% block title %}Upload Plate{% endblock %}
+{% block title %}Create Dataset{% endblock %}
 
 {% block content %}
 {# Plate File Upload #}
 <div class="row">
     <div>
         <div class="container">
-            <div class="panel panel-default">
-                <div class="panel-heading inline-headers clearfix">
-                    <span class="h3">Upload Plates</span>
-{#                        <small>Tab-separated plate files</small>#}
-                    <a href="{% url 'pyhts:plate_designer' %}"
-                       class="hts-next pull-right" style="display:none">
-                        <button type="button" class="btn btn-success"
-                                style="padding:3px 12px;">Next
+            <div id="hts-dataset-upload-1" class="panel panel-default">
+                <div class="panel-heading">
+                    <span class="h3">1. Specify Details</span>
+                    <button id="hts-next-1" type="button" class="btn
+                    btn-success
+                    pull-right"
+                                style="display:none;padding:3px 12px;">Next
                           <span class="glyphicon glyphicon-arrow-right"
                                 aria-hidden="true"></span>
-                    </button></a>
+                    </button>
+                </div>
+                <div class="panel-body">
+                    <label for="dataset-name">Dataset Name</label>
+                    <input type="text" name="dataset-name"
+                           class="form-control" />
+                </div>
+            </div>
+
+            <div id="hts-dataset-upload-2" style="display:none" class="panel
+                 panel-default">
+                <div class="panel-heading inline-headers clearfix">
+                    <span class="h3">2. Upload Plates</span>
+{#                        <small>Tab-separated plate files</small>#}
+                    <button id="hts-next-2" type="button" class="btn
+                    btn-success
+                    pull-right"
+                                style="display:none;padding:3px 12px;">Next
+                          <span class="glyphicon glyphicon-arrow-right"
+                                aria-hidden="true"></span>
+                    </button>
                     <div class="clearfix"></div>
                 </div>
                 <div class="panel-body">
@@ -29,6 +48,7 @@
                           id="js-upload-form">
                         <div class="form-inline">
                             <div class="form-group">
+                                <input type="hidden" name="dataset-id" value="">
                                 <input type="file" name="file_field[]"
                                        id="js-upload-files" multiple>
                             </div>
@@ -84,6 +104,41 @@
                     </div>
                 </div>
             </div>
+
+            <div id="hts-dataset-upload-3" style="display:none" class="panel
+                 panel-default">
+                <div class="panel-heading">
+                    <span class="h3">3. Specify Time Points</span>
+                    <button id="hts-next-3" type="button" class="btn
+                    btn-success
+                    pull-right"
+                                style="display:none;padding:3px 12px;">Next
+                          <span class="glyphicon glyphicon-arrow-right"
+                                aria-hidden="true"></span>
+                    </button>
+                </div>
+                <div class="panel-body">
+                    <form name="hts-time-points">
+                        <div class="hts-dataset">
+                            <h2></h2>
+                            <div class="hts-dataset-plate row">
+                            <div class="col-md-4 col-lg-3">
+                                <h3 style="margin-top:4px"></h3>
+                            </div>
+                            <div class="btn-group col-md-8 col-lg-9"
+                                 data-toggle="buttons">
+                                <label class="btn btn-primary">
+                                    <input type="radio" name="options"
+                                           value="0"
+                                           autocomplete="off"><span>0 hr</span>
+                                </label>
+                            </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
         </div> <!-- /container -->
     </div>
 </div>
@@ -96,8 +151,74 @@
         var dropZone = document.getElementById('drop-zone');
         var uploadForm = document.getElementById('js-upload-form');
 
+        pyHTS.ajax.createDataset = function(name) {
+            if(name == '') {
+                pyHTS.ui.okModal('Error creating dataset',
+                                 'Please enter a name for this dataset',
+                                 function() {$('input[name=dataset-name]')
+                                         .focus()});
+                return false;
+            }
+            $.ajax({type: 'POST',
+                    url: '/ajax/dataset/create',
+                    headers: {
+                      'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    data: {'name' : name},
+                    success: function(data) {
+                         if(data.id) {
+                             $('input[name=dataset-id]').val(data.id);
+                             $('#hts-dataset-upload-1').slideUp();
+                             $('#hts-dataset-upload-2').slideDown();
+                         } else {
+                             pyHTS.ui.okModal('Error','Unknown Error');
+                         }
+                    },
+                    {# TODO: Add error callback #}
+                    dataType: 'json'});
+        };
+
+        $('#hts-next-1').click(function(e) {
+           pyHTS.ajax.createDataset($('input[name=dataset-name]').val());
+        });
+
+        $('input[name=dataset-name]').keyup(function (e) {
+            var btn_selected = $('#hts-next-1');
+            if($(this).val() == '') {
+                btn_selected.hide();
+            } else {
+                btn_selected.show();
+            }
+            if(e.which == 13) {
+                btn_selected.click();
+            }
+        }).focus();
+
+        var validateFileForm = function(xhr, settings) {
+            var errors = [];
+            if(settings.data.get('dataset_id') == '') {
+                errors.push('No dataset ID is present');
+            }
+            if(settings.data.get('file_field') == null) {
+                errors.push('Please supply at least one file for upload');
+            }
+            if(errors.length > 0) {
+                pyHTS.ui.okModal('Error creating dataset',
+                        'The following errors were detected with the ' +
+                        'form:<ul><li>' + errors.join('</li><li>') +
+                        '</li></ul>'
+                );
+                return false;
+            }
+            return true;
+        };
+
+        pyHTS.plateFiles = {};
+
         var startUpload = function(files) {
             var formData = new FormData();
+            formData.append('dataset_id', $('input[name=dataset-id]')
+                    .val());
             for (var i=0; i<files.length; i++) {
                 formData.append('file_field', files[i])
             }
@@ -109,6 +230,7 @@
                 },
                 data: formData,
                 cache: false,
+                beforeSend: validateFileForm,
                 processData: false,
                 contentType: false,
                 success: function(data) {
@@ -117,7 +239,14 @@
                             var baseEl = '.fup-failure';
                             if(e.success) {
                                 baseEl = '.fup-success';
-                                $('.hts-next,.js-upload-finished').show();
+                                pyHTS.plateFiles[e.name] = [];
+                                for(var pl=0; pl<e.plates.length; pl++) {
+                                    var pl_obj = e.plates[pl];
+                                    pyHTS.plateFiles[e.name].push
+                                    ([pl_obj['name'],
+                                      pl_obj['timepoint_guess_hrs']]);
+                                }
+                                $('#hts-next-2,.js-upload-finished').show();
                             }
                             var newEl = $(baseEl).first().clone().show();
                             newEl.find('.list-group-item-heading')
@@ -127,9 +256,18 @@
                             newEl.appendTo('#fup-results');
                         });
                     } else {
-                        alert('None of the uploaded files appears to be ' +
-                                'in the correct format');
+                        pyHTS.ui.okModal('Error creating dataset',
+                                'None of the uploaded files appears to be ' +
+                                'in the correct format</p><p><small>Full ' +
+                                'response ' +
+                                'from server:<br />' +
+                                JSON.stringify(data) + '</small></p>');
                     }
+                },
+                error: function(data, textStatus, errorThrown) {
+                    pyHTS.ui.okModal('Error creating dataset',
+                        'The following error occurred: ' + textStatus + '<br' +
+                        ' />Further details: ' + errorThrown);
                 }
             });
             return false;
@@ -159,6 +297,72 @@
             this.className = 'upload-drop-zone';
             return false;
         };
+
+        $('#hts-next-2').click(function(e) {
+            // Get plate file names
+            var plateFileNames = [];
+            for(var pf in pyHTS.plateFiles) {
+                if(pyHTS.plateFiles.hasOwnProperty(pf)) {
+                    plateFileNames.push(pf);
+                }
+            }
+
+            // Get time points
+            var timePoints = [0];
+            for(var i=0; i<plateFileNames.length; i++) {
+                var pFileName = plateFileNames[i];
+                for(var j=0; j<pyHTS.plateFiles[pFileName].length; j++) {
+                    if(pyHTS.util.indexOf(pyHTS.plateFiles[pFileName][j][1],
+                                    timePoints)
+                            == -1) {
+                        timePoints.push(pyHTS.plateFiles[pFileName][j][1]);
+                    }
+                }
+            }
+            timePoints.sort();
+
+            // Build radio buttons for the time points
+            // Start at 1 because we already have time=0
+            var lastRadioLabel = $('.hts-dataset label:last');
+            var radioContainer = lastRadioLabel.closest('div');
+            for(var tp=1; tp<timePoints.length; tp++) {
+                var new_radio = lastRadioLabel.clone();
+                new_radio.find('input').val(timePoints[tp]);
+                new_radio.find('span').text(timePoints[tp] + ' hr')
+                new_radio.appendTo(radioContainer);
+            }
+
+            // Replicate for each platefile and plate
+            var plateFileEl = $('.hts-dataset:first');
+            var plateFileContainer = plateFileEl.parent();
+            for(var i=0; i<plateFileNames.length; i++) {
+                var pfile = plateFileEl.clone();
+                var pFileName = plateFileNames[i];
+                $(pfile).find('h2').text(pFileName);
+                var plateEl = pfile.find('.hts-dataset-plate:first');
+                for(var j=0; j<pyHTS.plateFiles[pFileName].length; j++) {
+                    var newPlateEl = plateEl.clone();
+                    // Set plate name
+                    $(newPlateEl).find('h3').text(pyHTS
+                            .plateFiles[pFileName][j][0]);
+                    // Set radio button name
+                    $(newPlateEl).find('input[type=radio]')
+                              .attr('name', pyHTS.plateFiles[pFileName][j][0]);
+                    // Set default active button
+                    $(newPlateEl).find('input[type=radio][value='+
+                                       pyHTS.plateFiles[pFileName][j][1]+']')
+                            .prop('checked', true)
+                            .closest('label').addClass('active');
+                    $(newPlateEl).appendTo(pfile);
+                }
+                plateEl.remove();
+                $(pfile).appendTo(plateFileContainer);
+            }
+            plateFileEl.remove();
+
+            $('#hts-dataset-upload-2').slideUp();
+            $('#hts-dataset-upload-3').slideDown();
+        });
     });
 </script>
 {% endblock %}

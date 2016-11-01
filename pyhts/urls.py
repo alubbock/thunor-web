@@ -11,6 +11,9 @@ urlpatterns = [
 
     url(r'^ajax/plate/(?P<file_id>\d+)$', views.ajax_get_plates,
         name='ajax_plate_names'),
+
+    url(r'^ajax/dataset/create', views.ajax_create_dataset,
+        name='ajax_create_dataset'),
     url(r'^ajax/cellline/create', views.ajax_create_cellline,
         name='ajax_create_cellline'),
     url(r'^ajax/drug/create', views.ajax_create_drug,

@@ -22,5 +22,6 @@ class CentredAuthForm(AuthenticationForm):
 
 
 class PlateFileForm(forms.Form):
+    dataset_id = forms.IntegerField()
     file_field = forms.FileField(widget=forms.ClearableFileInput(attrs=
                                  {'multiple': True}))

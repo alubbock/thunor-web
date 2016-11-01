@@ -3,26 +3,6 @@
 {% block title %}Annotate Plates{% endblock %}
 
 {% block content %}
-    {#  Confirmation modal #}
-    <div class="modal fade" id="modal-ok-cancel" tabindex="-1" role="dialog"
-         aria-labelledby="myModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header" style="font-size: 20pt">
-                ...
-            </div>
-            <div class="modal-body">
-                ...
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-cancel btn-default"
-                        data-dismiss="modal">Cancel</button>
-                <button class="btn btn-success btn-ok">OK</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 {# Plate Designer #}
 <div class="row">
     <div class="col-lg-9 col-md-9 col-sm-12 col-xs-12">
@@ -95,14 +75,14 @@
             </ol>
 
             <ol id="selectable-well-cols" class="welllist">
-                {% for col in cols %}
+                {% for col in cols_range %}
                     <li data-col="{{ col }}" class="col">{{ col }}</li>
                 {% endfor %}
             </ol>
 
             <div id="rowlabels">
                 <ol id="selectable-well-rows" class="welllist">
-                    {% for row in rows %}
+                    {% for row in rows_range %}
                         <li id="data{{ row }}" data-row="{{ row }}"
                         class="row"
                         >{{ row }}</li>
@@ -111,12 +91,11 @@
             </div>
 
             <ol id="selectable-wells" class="welllist hts-overview">
-                {% for row in rows %}
-                    {% for col in cols %}
-                        <li data-row="{{ row }}"
-                            data-col="{{ col }}"
-                            class="ui-state-default well"></li>
-                    {% endfor %}
+                {% for well in wells %}
+                    <li data-well="{{ well.well }}"
+                        data-col="{{ well.col }}"
+                        data-row="{{ well.row }}"
+                        class="ui-state-default well"></li>
                 {% endfor %}
             </ol>
     </div>
@@ -135,33 +114,40 @@
             <div class="panel-heading"><h3 class="panel-title">
                 Drug</h3></div>
             <div class="panel-body">
-                <input type="text" class="form-control" id="drug-typeahead"
-                       placeholder="Drug name"/>
-                <div class="input-group">
-                    <input type="text" class="form-control" id="dose"
-                           placeholder="Dose"/>
-                    <div class="input-group-btn">
-                        <button type="button" class="btn btn-default
-                        dropdown-toggle" data-toggle="dropdown"
-                                aria-haspopup="true"
-                                aria-expanded="false"><span
-                                id="hts-active-dose-unit"
-                                data-dose="1e-9">nM</span>
-                            <span
-                                class="caret"></span></button>
-                        <ul id="hts-dose-select" class="dropdown-menu
-                        dropdown-menu-right" style="min-width:0;width:100%">
-                          <li data-dose="1e-12"><a href="#">pM</a></li>
-                          <li data-dose="1e-9"><a href="#">nM</a></li>
-                          <li data-dose="1e-6"><a href="#">&mu;M</a></li>
-                          <li data-dose="1e-3"><a href="#">mM</a></li>
-                        </ul>
+                <div class="hts-drug-entry">
+                    <label class="hts-drug-num-label">Drug <span
+                            class="hts-drug-num">1</span></label>
+                    <input type="text" class="form-control hts-drug-typeahead"
+                           data-drug-num="1" placeholder="Drug name"/>
+                    <div class="input-group">
+                        <input type="text" class="form-control hts-dose-input"
+                               data-drug-num="1" placeholder="Dose"/>
+                        <div class="input-group-btn">
+                            <button type="button" class="btn btn-default
+                            dropdown-toggle" data-toggle="dropdown"
+                                    aria-haspopup="true"
+                                    aria-expanded="false"><span
+                                    class="hts-active-dose-unit"
+                                    data-dose="1e-9">nM</span>
+                                <span
+                                    class="caret"></span></button>
+                            <ul class="hts-dose-select dropdown-menu
+                            dropdown-menu-right" style="min-width:0;width:100%">
+                              <li data-dose="1e-12"><a href="#">pM</a></li>
+                              <li data-dose="1e-9"><a href="#">nM</a></li>
+                              <li data-dose="1e-6"><a href="#">&mu;M</a></li>
+                              <li data-dose="1e-3"><a href="#">mM</a></li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
+                <button type="button" class="btn btn-default"
+                        id="hts-add-drug" style="margin-top:5px">Add another
+                    drug</button>
             </div>
         </div>
 
-{#        Legend #}
+        {# Legend #}
         <div class="panel panel-default">
             <div class="panel-heading"><h3 class="panel-title">
                 Legend</h3><small>Colour indicates annotation</small>
@@ -224,27 +210,27 @@
 <script>
 $(function () {
     'use strict';
-    var substringMatcher = function(strs) {
-  return function findMatches(q, cb) {
-    // an array that will be populated with substring matches
-    var matches = [];
 
-    // regex used to determine if a string contains the substring `q`
-    var substrRegex = new RegExp(q, 'i');
+    pyHTS.plateMap = new pyHTS.classes.PlateMap({{ num_wells }});
 
-    // iterate through the pool of strings and for any string that
-    // contains the substring `q`, add it to the `matches` array
-    $.each(strs, function(i, str) {
-      if (substrRegex.test(str)) {
-        matches.push(str);
-      }
-    });
+{#    /**#}
+{#     * Insert a string into the next free entry in an array#}
+{#     * @param arr An array#}
+{#     * @param name A string#}
+{#     * @returns {number} The position that "name" was inserted into "arr"#}
+{#     */#}
+{#    pyHTS.util.insertNextFree = function(arr, name) {#}
+{#        for(var i=0; i<arr.length; i++) {#}
+{#            if(typeof arr[i] == 'undefined') {#}
+{#                arr[i] = name;#}
+{#                return i;#}
+{#            }#}
+{#        }#}
+{#        arr[arr.length] = name;#}
+{#        return (arr.length - 1);#}
+{#    };#}
 
-    cb(matches);
-  };
-};
-
-    var createCellLine = function(name) {
+    pyHTS.ajax.createCellLine = function(name) {
         $.ajax({type: 'POST',
                 url: '/ajax/cellline/create',
                 headers: {
@@ -260,7 +246,7 @@ $(function () {
                 dataType: 'json'});
     };
 
-    var createDrug = function(name) {
+    pyHTS.ajax.createDrug = function(name) {
         $.ajax({type: 'POST',
                 url: '/ajax/drug/create',
                 headers: {
@@ -269,66 +255,14 @@ $(function () {
                 data: {'name' : name},
                 success: function(data) {
                     pyHTS.drugs = data.names;
-                    $('#drug-typeahead').data('ttTypeahead').menu
-                            .datasets[0].source = substringMatcher(pyHTS
-                            .drugs);
+                    $('.hts-drug-typeahead.tt-input').data('ttTypeahead')
+                            .menu.datasets[0].source =
+                                pyHTS.util.substringMatcher(pyHTS.drugs);
                 },
                 dataType: 'json'});
     };
 
-    var okCancelModal = function(title, text, success_callback,
-                                 cancel_callback, closed_callback) {
-        var mok = '#modal-ok-cancel';
-        if(cancel_callback !== undefined) {
-            $(mok).find('.btn-cancel').show();
-        } else {
-            $(mok).find('.btn-cancel').hide();
-        }
-        $(mok).find('.modal-header').text(title);
-        $(mok).find('.modal-body').html(text);
-        $(mok).data('success', false);
-        $('#modal-ok-cancel .btn-ok').off('click').on('click', function (e) {
-            $(mok).data('success', true);
-            $('#modal-ok-cancel').modal('hide');
-        });
-        $(mok).off('shown.bs.model').on('shown.bs.modal', function() {
-            $('#modal-ok-cancel .btn-ok').focus();
-        }).off('hide.bs.modal').on('hide.bs.modal', function(e) {
-            if(success_callback !== undefined && $(mok).data('success')) {
-                success_callback(e);
-            } else if(cancel_callback !== undefined &&
-                      cancel_callback !== null) {
-                cancel_callback(e);
-            }
-        }).off('hidden.bs.modal').on('hidden.bs.modal', closed_callback).modal();
-    };
-
-    var okModal = function(title, text, closed_callback) {
-        okCancelModal(title, text, undefined, undefined, closed_callback);
-    };
-
-    var pyHTS = {
-        last_edited: null,
-        plate_names: ['{{  plates|join:"','" }}'],
-        cell_lines: ['{{ cell_lines|join:"','" }}'],
-        drugs: ['{{ drugs|join:"','" }}'],
-        num_css_unique_colours: 25,
-        drugs_used: [],
-        celllines_used: [],
-        doses_used: []
-    };
-
-    var insertNextFree = function(arr, name) {
-        for(var i=0; i<arr.length; i++) {
-            if(typeof arr[i] == 'undefined') {
-                arr[i] = name;
-                return i;
-            }
-        }
-        arr[arr.length] = name;
-        return (arr.length - 1);
-    };
-
+    {# Plate selector #}
     $('#hts-platefile-list li').click(function(e){
         e.preventDefault();
         $('#hts-current-file').text($(this).text());
@@ -361,34 +295,136 @@ $(function () {
     };
     attach_plate_li_click();
 
-    var applyToWells = function(data_type, value) {
-        var dstruct = null;
+    var refreshLegend = function(selectedWells, wellIds, data_type) {
+        var oldLegendEntries, newLegendEntries;
+        var oldLegendEntriesDescriptor = data_type.replace(/-/g, '_') +
+                's_used';
+        oldLegendEntries = pyHTS[oldLegendEntriesDescriptor];
         if(data_type == 'cell-line') {
-            dstruct = pyHTS.celllines_used;
+            newLegendEntries = pyHTS.plateMap.getUsedCellLines();
         } else if (data_type == 'drug') {
-            dstruct = pyHTS.drugs_used;
+            newLegendEntries = pyHTS.plateMap.getUsedDrugs();
         } else if (data_type == 'dose') {
-            dstruct = pyHTS.doses_used;
+            newLegendEntries = pyHTS.plateMap.getUsedDoses();
+        }
+        //compare old with new (this could be done more efficiently - this
+        //scans the arrays twice
+        var removed = pyHTS.util.arrayDiffPositions(oldLegendEntries,
+                newLegendEntries);
+        var added = pyHTS.util.arrayDiffPositions(newLegendEntries, oldLegendEntries);
+
+        var elsToRemove = [];
+        $.each(removed, function(i, key) {
+            oldLegendEntries[key] = null;
+            elsToRemove.push('#legend-'+data_type+
+                             's .well-legend:eq('+key+')');
+        });
+        if(removed.length > 0) {
+            $(elsToRemove.join(', ')).remove();
         }
 
-        var n = $.inArray(value, dstruct);
-        if(n == -1) {
-            n = insertNextFree(dstruct, value) % pyHTS.num_css_unique_colours;
+        $.each(added, function(i, key) {
+            var arrayInsertPos = oldLegendEntries.length;
+            var unusedArrayPos = $.inArray(null, oldLegendEntries);
+            if(unusedArrayPos >= 0) {
+                //reuse a deleted legend colour
+                arrayInsertPos = unusedArrayPos;
+            }
+
+            var newArrayEntry = newLegendEntries[key];
+            if($.isArray(newArrayEntry)) {
+                newArrayEntry = newArrayEntry.slice();
+            }
+            oldLegendEntries[arrayInsertPos] = newArrayEntry;
+
+            // Update the legend
+            var n = arrayInsertPos % pyHTS.num_css_unique_colours;
             var lgnd = $('.well-legend:first').clone();
+            var legendText = newArrayEntry.toString()
+                    .replace(',', ' & ');
+            if(data_type == 'dose') {
+                legendText = pyHTS.util.doseFormatter(legendText);
+            }
+
             $(lgnd).children('li').addClass('hts-'+data_type+'-'+n);
-            $(lgnd).find('.legend-label').text(value);
-            $(lgnd).appendTo('#legend-'+data_type+'s')
-        } else {
-            n %= pyHTS.num_css_unique_colours;
+            $(lgnd).find('.legend-label').text(legendText);
+            $(lgnd).appendTo('#legend-'+data_type+'s');
+        });
+
+        if(added.length > 0 || removed.length > 0) {
+            pyHTS[oldLegendEntriesDescriptor] = oldLegendEntries;
         }
 
-        $('#selectable-wells .ui-selected').addClass('hts-'+data_type+'-'+n);
-        $('#selectable-wells .ui-selected').data(data_type, value)
-                .removeClass('ui-selected').addClass('hts-'+data_type)
-                .addClass('hts-'+data_type+'-'+n);
+        // Update the wells
+        selectedWells.each(function(i, ele) {
+            var wellId = wellIds[i];
+            for (var n = 0; n < pyHTS.num_css_unique_colours; n++) {
+                $(ele).removeClass('hts-' + data_type + '-' + n);
+            }
+            var this_value;
+            if (data_type == "cell-line") {
+                this_value = pyHTS.plateMap.wells[wellId].cellLine;
+            } else if (data_type == "drug") {
+                this_value = pyHTS.plateMap.wells[wellId].drugs;
+            } else if (data_type == "dose") {
+                this_value = pyHTS.plateMap.wells[wellId].doses;
+            }
+            var loc = pyHTS.util.indexOf(this_value,
+                    pyHTS[oldLegendEntriesDescriptor]);
+            if(loc >= 0) {
+                var n = loc % pyHTS.num_css_unique_colours;
+                $(ele).addClass('hts-'+data_type+'-'+n)
+                    .addClass('hts-'+data_type);
+            }
+        });
     };
 
-    var create_typeahead = function(input_el, data_source, readable_name,
+    var applyToWells = function(data_type, value, position) {
+        var selected_wells = $('#selectable-wells .ui-selected');
+
+        var wellIds = [];
+        $.each(selected_wells, function(i, well) {
+            wellIds.push($(well).data('well'));
+        });
+
+        if(data_type == 'cell-line') {
+            $.each(wellIds, function(i, well) {
+                pyHTS.plateMap.wells[well].setCellLine(value);
+            });
+        } else if (data_type == 'drug') {
+            $.each(wellIds, function(i, well) {
+                pyHTS.plateMap.wells[well].setDrug(value, position);
+            });
+            // TODO: Check if this drug has been applied in any other position
+        } else if (data_type == 'dose') {
+            $.each(wellIds, function(i, well) {
+                pyHTS.plateMap.wells[well].setDose(value, position);
+            });
+        }
+
+        refreshLegend(selected_wells, wellIds, data_type);
+
+        selected_wells.removeClass('ui-selected');
+
+{#        if(n == -1) {#}
+{##}
+{#            var lgnd = $('.well-legend:first').clone();#}
+{#            $(lgnd).children('li').addClass('hts-'+data_type+'-'+n);#}
+{#            $(lgnd).find('.legend-label').text(value);#}
+{#            $(lgnd).appendTo('#legend-'+data_type+'s');#}
+{#        } else {#}
+{#            n %= pyHTS.num_css_unique_colours;#}
+{#        }#}
+{##}
+{#        selected_wells#}
+{#                .addClass('hts-'+data_type+'-'+n)#}
+{#                .removeClass('ui-selected')#}
+{#                .addClass('hts-'+data_type)#}
+{#                .addClass('hts-'+data_type+'-'+n);#}
+    };
+
+    var create_typeahead = function(input_el, data_source,
+                                           readable_name,
                                     create_data_fn, css_type) {
         $(input_el).typeahead({
                     hint: true,
@@ -396,30 +432,33 @@ $(function () {
                     minLength: 0
                 },
                 {
-                    name: 'celllines',
-                    source: substringMatcher(data_source)
+                    name: css_type,
+                    source: pyHTS.util.substringMatcher(data_source)
                 }).keyup(function (e) {
             if (e.which == 13) {
+                var calling_el = this;
                 if ($('#selectable-wells .ui-selected').length === 0) {
-                    okModal('Error', 'Please select some wells first',
+                    pyHTS.ui.okModal('Error', 'Please select some wells first',
                             function () {
-                                $(input_el).focus();
+                                $(calling_el).focus();
                             });
                     return;
                 }
                 if ($(this).val() == '') {
-                    okModal('Error', 'Please enter a '+readable_name +' ' +
+                    pyHTS.ui.okModal('Error', 'Please enter a '+readable_name
+                            +' ' +
                             'name', function () {
-                                $(input_el).focus();
+                                $(calling_el).focus();
                             });
                     return;
                 }
                 //$(".tt-suggestion:first-child").trigger('click');
                 if ($.inArray($(this).val(), data_source) != -1) {
-                    applyToWells(css_type, $(input_el).val());
+                    applyToWells(css_type, $(calling_el).val(), $
+                    (calling_el).data('drug-num') - 1);
                 } else {
                     var name = $(this).val();
-                    okCancelModal('Create ' + readable_name,
+                    pyHTS.ui.okCancelModal('Create ' + readable_name,
                             readable_name + ' "' + name + '" ' +
                             'was not found. Create it?<br /><br />If you meant' +
                             ' to ' +
@@ -428,11 +467,12 @@ $(function () {
                             function () {
                                 create_data_fn(name);
                                 applyToWells(css_type,
-                                        $(input_el).val());
+                                        $(calling_el).val(),
+                                $(calling_el).data('drug-num') - 1);
                             },
                             null,
                             function () {
-                                $(input_el).focus();
+                                $(calling_el).focus();
                             }
                     );
 
@@ -441,42 +481,65 @@ $(function () {
         });
     };
     create_typeahead('#cellline-typeahead', pyHTS.cell_lines, 'Cell line',
-            createCellLine, 'cell-line');
-    create_typeahead('#drug-typeahead', pyHTS.drugs, 'Drug', createDrug,
-            'drug');
+            pyHTS.ajax.createCellLine, 'cell-line');
 
-    $('#dose').keyup(function(e) {
-       if(e.which != 13) {
-           return;
-       }
+    var activateDrugInputs = function() {
+        create_typeahead('.hts-drug-typeahead:last', pyHTS
+                        .drugs, 'Drug',
+                pyHTS.ajax.createDrug, 'drug');
 
-       if ($('#selectable-wells .ui-selected').length === 0) {
-           okModal('Error', 'Please select some wells first',
-                   function () {
-                       $('#dose').focus();
-                   });
-           return;
-       }
+        $('.hts-dose-input:last').keyup(function (e) {
+            if (e.which != 13) {
+                return;
+            }
+            var caller = this;
 
-       var val = $(this).val();
-       if(!$.isNumeric(val)) {
-           okModal('Error', 'Dose must be numeric', function() { $('#dose')
-                   .focus(); });
-       }
+            if ($('#selectable-wells .ui-selected').length === 0) {
+                pyHTS.ui.okModal('Error', 'Please select some wells first',
+                        function () {
+                            $(caller).focus();
+                        });
+                return;
+            }
 
-       // convert dose to Moles
-       var dose = val * parseFloat($('#hts-active-dose-unit').data('dose'));
+            var val = $(this).val();
+            if (!$.isNumeric(val)) {
+                pyHTS.ui.okModal('Error', 'Dose must be numeric', function () {
+                    $(caller).focus();
+                });
+            }
 
-       applyToWells('dose', dose);
+            // convert dose to molarity
+            var dose_multiplier = $(this).parent('.input-group')
+                    .find('.hts-active-dose-unit').data('dose');
+
+            var dose = val * parseFloat(dose_multiplier);
+
+            applyToWells('dose', dose, $(this).data('drug-num') - 1);
+        });
+
+        $('.hts-dose-select:last li').click(function (e) {
+            e.preventDefault();
+            $(this).closest('.input-group-btn').find('.hts-active-dose-unit')
+                    .data('dose', $(this).data('dose')).text($(this).text());
+        });
+    };
+    activateDrugInputs();
+
+    $('#hts-add-drug').click(function (e) {
+        var orig_el = $('.hts-drug-entry:last');
+        var new_el = orig_el.clone();
+        new_el.find('.hts-drug-num:last').text(function (i, val) {
+            return +val + 1;
+        });
+        new_el.find('[data-drug-num]').each(function() {
+            $(this).data('drug-num', $(this).data('drug-num') + 1);
+        });
+
+        new_el.insertAfter(orig_el);
+        $('.hts-drug-num-label').show();
+        activateDrugInputs();
     });
-
-    $('#hts-dose-select li').click(function(e) {
-        e.preventDefault();
-       $('#hts-active-dose-unit').data('dose', $(this).data('dose'))
-                                 .text($(this).text());
-    });
-
-
 
     {# Change plate view #}
     $('#hts-well-overview').click(function(e) { setWellView(e,'overview'); });

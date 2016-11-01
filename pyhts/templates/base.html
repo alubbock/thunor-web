@@ -113,15 +113,36 @@ user-select: none;}
 }
 .hts-overview .hts-cell-line.hts-drug {
     background-color: #a6e1ec;
+    background: repeating-linear-gradient(
+  45deg,
+  #a1aec7,
+  #a1aec7 6px,
+  #ebccd1 6px,
+  #ebccd1 12px
+    );
 }
 .hts-overview .hts-cell-line.hts-dose {
     background-color: #adadad;
+    background: repeating-linear-gradient(
+  45deg,
+  #a1aec7,
+  #a1aec7 6px,
+  #f7ecb5 6px,
+  #f7ecb5 12px
+    );
 }
 .hts-overview .hts-drug.hts-dose {
     background-color: #f0e8ff;
+    background: repeating-linear-gradient(
+  45deg,
+  #ebccd1,
+  #ebccd1 6px,
+  #f7ecb5 6px,
+  #f7ecb5 12px
+    );
 }
 .hts-overview .hts-cell-line.hts-drug.hts-dose {
-    background-color: #67b168;
+    background: #000;
 }
 .welllist.well-legend {
     display: block;
@@ -198,7 +219,15 @@ user-select: none;}
     background-color: #990000; }
 .hts-celllines .hts-cell-line-24,.hts-drugs .hts-drug-24,.hts-doses .hts-dose-24 {
     background-color: #FFFF80; }
-
+.twitter-typeahead {
+    width: 100%
+}
+.hts-drug-entry {
+    margin-bottom: 15px;
+}
+.hts-drug-num-label {
+    display: none;
+}
   </style>
 
 
@@ -460,6 +489,26 @@ user-select: none;}
         </div>
         <!-- /#page-wrapper -->
 
+        {#  Confirmation modal #}
+        <div class="modal fade" id="modal-ok-cancel" tabindex="-1" role="dialog"
+             aria-labelledby="myModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header" style="font-size: 20pt">
+                        ...
+                    </div>
+                    <div class="modal-body">
+                        ...
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-cancel btn-default"
+                                data-dismiss="modal">Cancel</button>
+                        <button class="btn btn-success btn-ok">OK</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
     <!-- /#wrapper -->
 
@@ -478,7 +527,8 @@ user-select: none;}
 {#    <script src="{% static 'data/morris-data.js' %}"></script>#}
 
     <!-- Custom Theme JavaScript -->
-    <script src="{% static 'dist/js/sb-admin-2.js' %}"></script>
+{#    <script src="{% static 'dist/js/sb-admin-2.js' %}"></script>#}
+    <script src="{% static 'pyhts/js/pyhts.js' %}"></script>
 
     {% block tailscript %}{% endblock %}
 
