@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 
-{% block title %}Annotate Plates{% endblock %}
+{% block title %}Annotate Plates
+    <em class="pull-right">{{ dataset_name }}</em>
+{% endblock %}
 
 {% block content %}
 {# Plate Designer #}
@@ -47,13 +49,13 @@
                 <span class="glyphicon glyphicon-th"
                       aria-hidden="true"></span>
                 <span id="hts-current-plate">
-                    {{ plates.0 }}</span>
+                    {{ plates.0.name }}</span>
                 <span class="caret"></span>
             </button>
             <ul class="dropdown-menu" id="hts-plate-list"
                 aria-labelledby="hts-select-plate">
                 {% for p in plates %}
-                <li><a href="#">{{ p }}</a></li>
+                <li><a href="#">{{ p.name }}</a></li>
                 {% endfor %}
             </ul>
         </div>
@@ -66,9 +68,11 @@
         Lines</a></li>
         <li id="hts-well-drugs" role="presentation"><a href="#">Drugs</a></li>
         <li id="hts-well-doses" role="presentation"><a href="#">Doses</a></li>
+        <li id="hts-well-table" role="presentation"><a href="#">Table
+            View</a></li>
     </ul>
 
-    <div class="panel-body" style="width:52em;padding:1em">
+    <div id="hts-well-plate" class="panel-body" style="width:52em;padding:1em">
 
             <ol id="selectable-well-all" class="welllist" data-last="">
                 <li id="well-all" class="well ui-state-default">&nbsp;</li>
@@ -99,6 +103,8 @@
                 {% endfor %}
             </ol>
     </div>
+
+    <div id="hts-well-table-view" class="panel-body"></div>
     </div>
     </div>
 
@@ -204,14 +210,27 @@
 </div>
 {% endblock %}
 
-{% block tailscript %}{% load static %}
+{% load static %}
+{% block stylesheets %}
+    <link rel="stylesheet" href="{% static 'vendor/datatables/css/dataTables.bootstrap.min.css' %}">
+{% endblock %}
+
+{% block tailscript %}
 <script src="//code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
 <script src="{% static 'vendor/typeahead/typeahead.js' %}"></script>
+<script src="{% static 'vendor/datatables/js/jquery.dataTables.min.js' %}">
+</script>
+<script src="{% static 'vendor/datatables/js/dataTables.bootstrap.min.js' %}">
+</script>
 <script>
 $(function () {
     'use strict';
 
-    pyHTS.plateMap = new pyHTS.classes.PlateMap({{ num_wells }});
+    pyHTS.plateMap = new pyHTS.classes.PlateMap({{ num_rows}}, {{ num_cols }});
+
+    pyHTS.plate_names = ['{{ plates|join:"','" }}'];
+    pyHTS.cell_lines = ['{{ cell_lines|join:"','" }}'];
+    pyHTS.drugs = ['{{ drugs|join:"','" }}'];
 
 {#    /**#}
 {#     * Insert a string into the next free entry in an array#}
@@ -546,19 +565,44 @@ $(function () {
     $('#hts-well-celllines').click(function(e) { setWellView(e,'celllines');});
     $('#hts-well-drugs').click(function(e) { setWellView(e,'drugs'); });
     $('#hts-well-doses').click(function(e) { setWellView(e,'doses'); });
+    $('#hts-well-table').click(function(e) {
+        // deselect any selected wells
+        $('.well.ui-selected').removeClass('ui-selected');
+        //TODO: Better loading indicator?
+        $('#hts-well-table-view').html('<em>Loading...</em>');
+        $.ajax({
+            url: '/ajax/plate/table_view',
+            data: JSON.stringify(pyHTS.plateMap),
+            type: 'POST',
+            headers: {
+                  'X-CSRFToken': '{{ csrf_token }}'
+            },
+            success: function(data) {
+                $('#hts-well-table-view').html(data).find('table').DataTable
+                ({'paging':false, columnDefs: [ {type: 'doses', targets: 3}]});
+            }
+        });
+        setWellView(e, 'table');
+    });
 
     var setWellView = function(e, view) {
         e.preventDefault();
+        if(view == 'table') {
+            $('#hts-well-table-view').show();
+            $('#hts-well-plate').hide();
+        } else {
+            $('#hts-well-table-view').hide();
+            $('#hts-well-plate').show();
+        }
         $('#hts-well-nav li').removeClass('active');
         $('#hts-well-'+view).addClass('active');
         $('#selectable-wells,#hts-legend-container')
-                .removeClass('hts-overview hts-celllines hts-drugs hts-doses')
+                .removeClass('hts-overview hts-celllines hts-drugs hts-doses' +
+                        ' hts-table')
                 .addClass('hts-'+view);
     };
 
-
-
-
+    $.extend( $.fn.dataTableExt.oSort, pyHTS.util.doseSorter );
 
     {# Well selection #}
     $("#well-all").click(function () {

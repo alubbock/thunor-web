@@ -1,0 +1,21 @@
+{% load pyhts_tags %}
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Well</th>
+            <th>Cell Line</th>
+            <th>Drug</th>
+            <th>Dose</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for well in wells %}
+    <tr>
+        <td>{{ well.wellName }}</td>
+        <td>{{ well.cellLine|default_if_none:"" }}</td>
+        <td>{{ well.drugs|default_if_none:""|join:"<br/>" }}</td>
+        <td>{{ well.doses|default_if_none:""|formatdose|join:"<br/>" }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>

@@ -6,11 +6,12 @@ from django.contrib.auth.decorators import login_required
 from .forms import CentredAuthForm, PlateFileForm
 from django.views.generic.edit import FormView
 from django.http import JsonResponse, HttpResponseBadRequest
-from .models import HTSDataset, PlateFile, CellLine, Drug
+from django.core.exceptions import ObjectDoesNotExist
+from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, PlateMap
 import re
-from math import sqrt
-from itertools import cycle
-from numpy import repeat
+import json
+
+HOURS_TO_SECONDS = 3600
 
 
 def _handle_login(request):
@@ -131,6 +132,15 @@ class PlateUpload(FormView):
                     plates = _handle_platefile(f)
                     tpf = PlateFile(dataset=dataset, file=f)
                     tpf.save()
+                    # TODO: Replace with bulk_create
+                    for p in plates:
+                        plate = Plate(plate_file=tpf,
+                                      name=p['name'],
+                                      width=p['well_cols'],
+                                      height=p['well_rows'])
+                        plate.save()
+                        p['id'] = plate.id
+
                     response['success'] = True
                     file_status[tpf.id] = {'success': True,
                                            'name': f.name,
@@ -150,17 +160,29 @@ class PlateUpload(FormView):
 
 
 def _plates_names_file_id(request, file_id):
-    pf = PlateFile.objects.get(id=file_id)
-    if not pf or pf.owner_id != request.user.id:
-        raise Http404
-    pdata = _handle_platefile(pf.file)
-    pnames = [p['name'] for p in pdata]
-    return pnames
+    pf = Plate.objects.filter(plate_file_id=file_id,
+                              plate_file__dataset__owner_id=request.user.id)
+    return [p['name'] for p in pf.values('name')]
 
 
 @login_required
 def ajax_get_plates(request, file_id):
     return JsonResponse({'names': _plates_names_file_id(request, file_id)})
+
+
+@login_required
+def ajax_table_view(request):
+    plate_data = json.loads(request.body)
+    well_iterator = PlateMap(width=int(plate_data['numCols']),
+                             height=int(plate_data['numRows'])).well_iterator()
+    wells = plate_data['wells']
+
+    for well in well_iterator:
+        wells[well['well']]['wellName'] = '{}{:02d}'.format(well['row'],
+                                                            well['col'])
+
+    return TemplateResponse(request, 'plate_table_view.html',
+                            {'wells': wells})
 
 
 @login_required
@@ -191,36 +213,66 @@ def ajax_create_drug(request):
     all_drugs = Drug.name_list()
     return JsonResponse({'names': list(all_drugs)})
 
+
 @login_required
-def plate_designer(request):
-    pf = PlateFile.objects.filter(process_date=None)
-    #plates = _handle_platefile(pf.first().file)
+def ajax_set_timepoints(request):
+    # TODO: Respond with appropriate JSON responses under error conditions
+    try:
+        HTSDataset.objects.get(id=request.POST.get('dataset-id', None),
+                                  owner_id=request.user.id)
+    except ObjectDoesNotExist:
+        return Http404()
 
-    # @TODO: Handle case where pf is None
+    plate_prefix = 'plate_'
 
-    plates = _plates_names_file_id(request, file_id=pf.first().id)
+    plates_to_update = {key[len(plate_prefix):]: value for (key, value) in
+                        request.POST.items()
+                        if key.startswith(plate_prefix)}
 
-    # @TODO: Handle other plate sizes
-    num_wells = 384
-    num_rows = int(sqrt(num_wells / 1.5))
-    num_cols = int(num_wells / num_rows)
+    # count = Plate.objects.filter(id__in=plates_to_update.keys(),
+    #                      plate_file__dataset__owner_id=request.user.id
+    #                      ).count()
+    #
+    # if count < len(plates_to_update):
+    #     # Some of those plates don't exist or are owned by a different user
+    #     return Http404()
 
-    row_iterator = map(chr, range(65, 65 + num_rows))
-    col_iterator = range(1, num_cols + 1)
+    for pl_id, pl_timepoint in plates_to_update.items():
+        updated = Plate.objects.filter(id=pl_id,
+                          plate_file__dataset__owner_id=request.user.id
+                          ).update(timepoint_secs=float(pl_timepoint) *
+                                                  HOURS_TO_SECONDS)
+        if not updated:
+            return Http404()
 
-    def well_generator(number_of_wells):
-        row_it = iter(repeat(row_iterator, num_cols))
-        col_it = cycle(col_iterator)
-        for i in range(number_of_wells):
-            yield {'well': i,
-                   'row': row_it.next(),
-                   'col': col_it.next()}
+    return JsonResponse({'success': True})
+
+
+@login_required
+def plate_designer(request, dataset_id):
+    dataset_name = HTSDataset.objects.get(id=dataset_id,
+                                          owner_id=request.user.id).name
+
+    pf = PlateFile.objects.filter(dataset_id=dataset_id,
+                                  dataset__owner_id=request.user.id,
+                                  process_date=None)
+
+    if not pf:
+        return Http404()
+
+    plates = pf.first().plate_set.all()
+
+    current_plate = plates.first()
 
     response = TemplateResponse(request, 'plate_designer.html', {
-        'num_wells': num_wells,
-        'wells': well_generator(num_wells),
-        'rows_range': row_iterator,
-        'cols_range': col_iterator,
+        'dataset_id': dataset_id,
+        'dataset_name': dataset_name,
+        'num_wells': current_plate.num_wells,
+        'num_cols': current_plate.width,
+        'num_rows': current_plate.height,
+        'wells': current_plate.well_iterator(),
+        'rows_range': current_plate.row_iterator(),
+        'cols_range': current_plate.col_iterator(),
         'plate_files': pf,
         'plates': plates,
         'cell_lines': CellLine.name_list(),

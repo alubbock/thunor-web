@@ -1,8 +1,5 @@
 window.pyHTS = {
     last_edited: null,
-    plate_names: ['{{ plates|join:"','" }}'],
-    cell_lines: ['{{ cell_lines|join:"','" }}'],
-    drugs: ['{{ drugs|join:"','" }}'],
     num_css_unique_colours: 25,
 
     plateMap: null,
@@ -88,10 +85,7 @@ pyHTS.util.doseUnits = [[1e-12, 'p'],
                          [1e-3, 'm'],
                          [1, '']];
 
-pyHTS.util.doseFormatter = function(dose, numberPrecision) {
-    if(numberPrecision === undefined) {
-        numberPrecision = 3;
-    }
+pyHTS.util.doseFormatter = function(dose) {
     var doseMultiplier = 1;
     var doseSuffix = '';
     for(var i=0; i<pyHTS.util.doseUnits.length; i++) {
@@ -100,12 +94,35 @@ pyHTS.util.doseFormatter = function(dose, numberPrecision) {
             doseSuffix = pyHTS.util.doseUnits[i][1];
         }
     }
-    console.log(dose);
-    console.log(doseMultiplier);
-    console.log(doseSuffix);
 
-    return ((dose / doseMultiplier).toPrecision(numberPrecision) + ' ' +
+    return ((dose / doseMultiplier) + ' ' +
            doseSuffix + 'M');
+};
+
+pyHTS.util.doseParser = function(dose) {
+    var doseParts = dose.split(" ");
+    var multiplier = 1;
+    if(doseParts[1] === undefined)
+        return doseParts[0];
+    if(doseParts[1].length == 2) {
+        for(var i=0; i<pyHTS.util.doseUnits.length; i++) {
+            if(doseParts[1][0] == pyHTS.util.doseUnits[i][1]) {
+                multiplier = pyHTS.util.doseUnits[i][0];
+                break;
+            }
+        }
+    }
+    var val = parseFloat(doseParts[0]) * multiplier;
+    // console.log(dose + ' parsed as ' + val);
+    return val;
+};
+
+pyHTS.util.doseSorter = {
+   "doses-pre": function(dose) {
+       //TODO: Sort when multiple doses are present
+       dose = dose.split('<br>');
+       return pyHTS.util.doseParser(dose[0]);
+   }
 };
 
 pyHTS.classes.Well = function() {
@@ -128,9 +145,11 @@ pyHTS.classes.Well.prototype = {
     }
 };
 
-pyHTS.classes.PlateMap = function(numWells) {
+pyHTS.classes.PlateMap = function(numRows, numCols) {
+    this.numRows = numRows;
+    this.numCols = numCols;
     this.wells = [];
-    for (var w = 0; w < numWells; w++) {
+    for (var w = 0; w < (numRows * numCols); w++) {
         this.wells.push(new pyHTS.classes.Well());
     }
 };

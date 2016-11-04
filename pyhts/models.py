@@ -1,6 +1,8 @@
 from __future__ import unicode_literals
 from django.db import models
 from django.conf import settings
+from itertools import cycle
+from numpy import repeat
 
 
 class HTSDataset(models.Model):
@@ -34,15 +36,40 @@ class Drug(models.Model):
                                                              flat=True))
 
 
-class Plate(models.Model):
-    class Meta:
-        unique_together = (("dataset", "plate_file"), )
+class PlateMap(object):
+    def __init__(self, *args, **kwargs):
+        if 'width' in kwargs:
+            self.width = kwargs['width']
+        if 'height' in kwargs:
+            self.height = kwargs['height']
 
-    dataset = models.ForeignKey(HTSDataset)
+    @property
+    def num_wells(self):
+        return self.width * self.height
+
+    def row_iterator(self):
+        if self.height > 26:
+            raise Exception('Cannot currently handle well plates > 26 rows')
+        return map(chr, range(65, 65 + self.height))
+
+    def col_iterator(self):
+        return range(1, self.width + 1)
+
+    def well_iterator(self):
+        row_it = iter(repeat(self.row_iterator(), self.width))
+        col_it = cycle(self.col_iterator())
+        for i in range(self.num_wells):
+            yield {'well': i,
+                   'row': row_it.next(),
+                   'col': col_it.next()}
+
+
+class Plate(models.Model, PlateMap):
     plate_file = models.ForeignKey(PlateFile)
-    plate_name = models.TextField()
-    plate_size = models.IntegerField()
-    timepoint_secs = models.IntegerField()
+    name = models.TextField()
+    width = models.IntegerField()
+    height = models.IntegerField()
+    timepoint_secs = models.IntegerField(null=True)
 
 
 class PlateAssay(models.Model):
