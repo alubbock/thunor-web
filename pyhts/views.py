@@ -7,7 +7,9 @@ from .forms import CentredAuthForm, PlateFileForm
 from django.views.generic.edit import FormView
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.core.exceptions import ObjectDoesNotExist
-from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, PlateMap
+from django.db import IntegrityError
+from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, PlateMap, \
+    Well, WellMeasurement, DrugInWell
 import re
 import json
 
@@ -183,6 +185,66 @@ def ajax_table_view(request):
 
     return TemplateResponse(request, 'plate_table_view.html',
                             {'wells': wells})
+
+
+@login_required
+def ajax_save_plate(request):
+    plate_data = json.loads(request.body)
+    plate_id = int(plate_data['plateId'])
+    wells = plate_data['wells']
+
+    # Check permissions
+    try:
+        Plate.objects.get(id=plate_id,
+                          plate_file__dataset__owner_id=request.user.id)
+    except ObjectDoesNotExist:
+        return Http404()
+
+    # Save wells
+    # TODO: More efficient?
+    wells_to_create = []
+    well_drugs_to_create = []
+    for i, well in enumerate(wells):
+        cl = None
+        try:
+            if well['cellLine']:
+                cl = CellLine.objects.get(name=well['cellLine'])
+        except ObjectDoesNotExist:
+            pass
+        wells_to_create.append(Well(plate_id=plate_id,
+                                    well_no=i,
+                                    cell_line=cl))
+
+    Well.objects.bulk_create(wells_to_create)
+
+    well_ids = [w['id'] for w in Well.objects.filter(
+        plate_id=plate_id).order_by('well_no').values('id')]
+
+    assert len(well_ids) == len(wells)
+    # print(well_ids)
+
+    for i, well in enumerate(wells):
+        if well['drugs']:
+            for drug_idx, drug in enumerate(well['drugs']):
+                try:
+                    if drug:
+                        drug = Drug.objects.get(name=drug)
+                except ObjectDoesNotExist:
+                    pass
+                try:
+                    dose = well['doses'][drug_idx]
+                except (TypeError, IndexError):
+                    continue
+                if not dose:
+                    continue
+                well_drugs_to_create.append(DrugInWell(
+                    well_id=well_ids[i],
+                    drug=drug,
+                    dose=dose
+                ))
+
+    # print(well_drugs_to_create)
+    DrugInWell.objects.bulk_create(well_drugs_to_create)
 
 
 @login_required

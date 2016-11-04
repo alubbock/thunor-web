@@ -145,7 +145,8 @@ pyHTS.classes.Well.prototype = {
     }
 };
 
-pyHTS.classes.PlateMap = function(numRows, numCols) {
+pyHTS.classes.PlateMap = function(plateId, numRows, numCols) {
+    this.plateId = plateId;
     this.numRows = numRows;
     this.numCols = numCols;
     this.wells = [];

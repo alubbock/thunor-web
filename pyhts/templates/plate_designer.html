@@ -16,7 +16,8 @@
                               <span class="glyphicon glyphicon-arrow-left"
                                     aria-hidden="true"></span> Previous
                         </button>
-        <button type="button" class="btn btn-default">Next
+        <button id="hts-next-dataset" type="button" class="btn
+        btn-default">Next
                               <span class="glyphicon glyphicon-arrow-right"
                                     aria-hidden="true"></span>
                         </button>
@@ -226,7 +227,7 @@
 $(function () {
     'use strict';
 
-    pyHTS.plateMap = new pyHTS.classes.PlateMap({{ num_rows}}, {{ num_cols }});
+    pyHTS.plateMap = new pyHTS.classes.PlateMap({{ plates.0.id }}, {{ num_rows}}, {{ num_cols }});
 
     pyHTS.plate_names = ['{{ plates|join:"','" }}'];
     pyHTS.cell_lines = ['{{ cell_lines|join:"','" }}'];
@@ -259,7 +260,8 @@ $(function () {
                 success: function(data) {
                     pyHTS.cell_lines = data.names;
                     $('#cellline-typeahead').data('ttTypeahead').menu
-                            .datasets[0].source = substringMatcher(pyHTS
+                            .datasets[0].source =
+                            pyHTS.util.substringMatcher(pyHTS
                             .cell_lines);
                 },
                 dataType: 'json'});
@@ -650,6 +652,26 @@ $(function () {
         start: function (event, ui) {
             pyHTS.last_edited = 'cell';
         }
+    });
+
+    // Loading and saving plates
+    pyHTS.ajax.savePlate = function() {
+        $.ajax({
+            url: '/ajax/plate/save',
+            data: JSON.stringify(pyHTS.plateMap),
+            type: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            success: function (data) {
+                console.log('savePlate success');
+                console.log(data);
+            }
+        });
+    };
+
+    $('#hts-next-dataset').click(function(e) {
+       pyHTS.ajax.savePlate();
     });
 });
 </script>
