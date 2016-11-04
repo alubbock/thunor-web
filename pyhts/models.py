@@ -72,22 +72,26 @@ class Plate(models.Model, PlateMap):
     timepoint_secs = models.IntegerField(null=True)
 
 
-class PlateAssay(models.Model):
+class Well(models.Model):
+    __slots__ = ('plate', 'well_no')
+
     class Meta:
-        unique_together = (("plate", "assay"), )
+        unique_together = (("plate", "well_no"), )
 
     plate = models.ForeignKey(Plate)
-    assay = models.TextField()
+    well_no = models.IntegerField()
+    cell_line = models.ForeignKey(CellLine, null=True)
 
 
-class Well(models.Model):
-    __slots__ = ('plate_assay', 'well_no')
+class WellMeasurement(models.Model):
+    __slots__ = ('well', 'assay', 'value')
 
     class Meta:
-        unique_together = (("plate_assay", "well_no"), )
+        unique_together = (("well", "assay"), )
 
-    plate_assay = models.ForeignKey(PlateAssay)
-    well_no = models.IntegerField()
+    well = models.ForeignKey(Well)
+    assay = models.TextField()
+    value = models.FloatField()
 
 
 class DrugInWell(models.Model):
