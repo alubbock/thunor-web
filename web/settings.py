@@ -88,11 +88,12 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ATOMIC_REQUESTS': True
     }
 }
 
 AUTH_USER_MODEL = 'custom_user.EmailUser'
-
+LOGIN_URL = '/'
 
 # Password validation
 # https://docs.djangoproject.com/en/1.10/ref/settings/#auth-password-validators

@@ -3,6 +3,8 @@ from django.db import models
 from django.conf import settings
 from itertools import cycle
 from numpy import repeat
+from helpers import guess_timepoint_hrs
+from plate_parsers import parse_platefile_readerX
 
 
 class HTSDataset(models.Model):
@@ -17,23 +19,22 @@ class PlateFile(models.Model):
     process_date = models.DateTimeField(null=True, blank=True)
     file = models.FileField()
 
+    def read(self, quick_parse=False):
+        self.file.seek(0)
+        pd = self.file.read()
+        file_timepoint_guess = guess_timepoint_hrs(self.file.name)
+        return parse_platefile_readerX(pd,
+                                       quick_parse=quick_parse,
+                                       file_timepoint_guess_hrs=file_timepoint_guess,
+                                       )
+
 
 class CellLine(models.Model):
     name = models.TextField(unique=True)
 
-    @classmethod
-    def name_list(cls):
-        return list(cls.objects.order_by('name').values_list('name',
-                                                             flat=True))
-
 
 class Drug(models.Model):
     name = models.TextField(unique=True)
-
-    @classmethod
-    def name_list(cls):
-        return list(cls.objects.order_by('name').values_list('name',
-                                                             flat=True))
 
 
 class PlateMap(object):
@@ -72,34 +73,36 @@ class Plate(models.Model, PlateMap):
     timepoint_secs = models.IntegerField(null=True)
 
 
-class Well(models.Model):
-    __slots__ = ('plate', 'well_no')
+class WellCellLine(models.Model):
+    __slots__ = ('plate', 'well')
 
     class Meta:
-        unique_together = (("plate", "well_no"), )
+        unique_together = (("plate", "well"), )
 
     plate = models.ForeignKey(Plate)
-    well_no = models.IntegerField()
+    well = models.IntegerField()
     cell_line = models.ForeignKey(CellLine, null=True)
 
 
 class WellMeasurement(models.Model):
-    __slots__ = ('well', 'assay', 'value')
+    __slots__ = ('plate', 'well', 'assay', 'value')
 
     class Meta:
-        unique_together = (("well", "assay"), )
+        unique_together = (("plate", "well", "assay"), )
 
-    well = models.ForeignKey(Well)
+    plate = models.ForeignKey(Plate)
+    well = models.IntegerField()
     assay = models.TextField()
     value = models.FloatField()
 
 
-class DrugInWell(models.Model):
-    __slots__ = ('well', 'drug', 'dose')
+class WellDrug(models.Model):
+    __slots__ = ('plate', 'well', 'drug', 'dose')
 
     class Meta:
-        unique_together = (("well", "drug"), )
+        unique_together = (("plate", "well", "drug"), )
 
-    well = models.ForeignKey(Well)
+    plate = models.ForeignKey(Plate)
+    well = models.IntegerField()
     drug = models.ForeignKey(Drug)
     dose = models.FloatField()

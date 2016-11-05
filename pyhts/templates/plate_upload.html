@@ -79,8 +79,20 @@
                         <h3>Uploaded files</h3>
                         <div class="list-group">
                             <ul id="fup-results">
-                            <li
-                                    class="fup-success list-group-item
+                            <li class="fup-pending list-group-item
+                            list-group-item-warning"
+                                    style="display:none">
+                                <span class="glyphicon glyphicon-refresh
+                                spinning pull-right"></span>
+                                <span
+                                    class="badge alert-warning
+                                    pull-right">Processing</span>
+                                <h5
+                                    class="list-group-item-heading">Processing
+                                    upload</h5>
+                                <span class="list-group-item-text"></span>
+                            </li>
+                            <li class="fup-success list-group-item
                             list-group-item-success"
                                     style="display:none">
                                 <span
@@ -161,6 +173,7 @@
         'use strict';
         var dropZone = document.getElementById('drop-zone');
         var uploadForm = document.getElementById('js-upload-form');
+        var uploadCounter = 0;
 
         pyHTS.ajax.createDataset = function(name) {
             if(name == '') {
@@ -221,7 +234,25 @@
                 );
                 return false;
             }
+
+            // Add loading indicator
+            $('.js-upload-finished').show();
+            var origPending = $('.fup-pending:first');
+            origPending.clone().attr('id',
+                    'fup-pending-'+uploadCounter).show().insertAfter
+            (origPending);
+            uploadCounter++;
+            $('#hts-next-2').hide();
+
             return true;
+        };
+
+        var fileUploadComplete = function() {
+            if($('.fup-pending').not(this).length == 1
+                    && $('.fup-success').length) {
+                $('#hts-next-2').show();
+            }
+            $(this).remove();
         };
 
         pyHTS.plateFiles = {};
@@ -233,6 +264,7 @@
             for (var i=0; i<files.length; i++) {
                 formData.append('file_field', files[i])
             }
+            var uploadNo = uploadCounter;
             $.ajax({
                 url: $(uploadForm).attr('action'),
                 type: $(uploadForm).attr('method'),
@@ -245,6 +277,7 @@
                 processData: false,
                 contentType: false,
                 success: function(data) {
+                    $('#fup-pending-'+uploadNo).slideUp(400, fileUploadComplete);
                     if(data.success) {
                         $.each(data.files, function(ind, e) {
                             var baseEl = '.fup-failure';
@@ -259,7 +292,6 @@
                                       timepoint:
                                               pl_obj['timepoint_guess_hrs']});
                                 }
-                                $('#hts-next-2,.js-upload-finished').show();
                             }
                             var newEl = $(baseEl).first().clone().show();
                             newEl.find('.list-group-item-heading')
@@ -278,6 +310,7 @@
                     }
                 },
                 error: function(data, textStatus, errorThrown) {
+                    $('#fup-pending-'+uploadNo).slideUp(400, fileUploadComplete);
                     pyHTS.ui.okModal('Error creating dataset',
                         'The following error occurred: ' + textStatus + '<br' +
                         ' />Further details: ' + errorThrown);

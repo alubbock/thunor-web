@@ -9,9 +9,10 @@ from django.http import JsonResponse, HttpResponseBadRequest
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
 from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, PlateMap, \
-    Well, WellMeasurement, DrugInWell
-import re
+    WellCellLine, WellMeasurement, WellDrug
 import json
+from helpers import guess_timepoint_hrs
+from plate_parsers import parse_platefile_readerX
 
 HOURS_TO_SECONDS = 3600
 
@@ -27,69 +28,13 @@ def _handle_login(request):
     return render(request, 'registration/login.html', {'form': form})
 
 
-def _quickparse_platefile(pd, file_timepoint_guess_hrs=None):
-    """
-    Extracts high-level metadata from a platefile
-
-    Data includes number of plates, assay types, plate names, number of well
-    rows and cols.
-    """
-    plates = pd.split('Field Group\n\nBarcode:')
-    plate_json = []
-
-    for p in plates:
-        if len(p.strip()) == 0:
-            continue
-        barcode_and_rest = p.split('\n', 1)
-        barcode = barcode_and_rest[0].strip()
-
-        plate_timepoint = _guess_timepoint_hrs(barcode) or file_timepoint_guess_hrs
-
-        # Each plate can have multiple assays
-        assays = re.split('\n\s*\n', barcode_and_rest[1])
-        assay_names = []
-
-        well_cols = 0
-        well_rows = 0
-
-        for a in assays:
-            a_strp = a.strip()
-            if len(a_strp) == 0:
-                continue
-
-            well_lines = a.split('\n')
-            assay_names.append(well_lines[0].strip())
-            # @TODO: Throw an error if well rows and cols not same for all
-            # assays
-            well_cols = len(well_lines[1].split())
-            # Minus 2: One for assay name, one for column headers
-            well_rows = len(well_lines) - 2
-
-        plate_json.append({'well_cols': well_cols,
-                           'well_rows': well_rows,
-                           'name': barcode,
-                           'timepoint_guess_hrs': plate_timepoint,
-                           'assays': assay_names})
-
-    if not plate_json:
-        raise ValueError('File contains no readable plates')
-
-    return plate_json
-
-
-def _guess_timepoint_hrs(string):
-    tp_guess = re.search(r'(?i)([0-9]+)[-_\s]*(h\W|hr|hour)', string)
-    return int(tp_guess.group(1)) if tp_guess else None
-
-
-def _handle_platefile(pf):
+def parse_platefile(pf):
     # TODO: Ensure file isn't too big, check filetype etc.
+    file_timepoint_guess = guess_timepoint_hrs(pf.name)
 
-    file_timepoint_guess = _guess_timepoint_hrs(pf.name)
-
-    pd = pf.read().replace('\r\n', '\n')
-    return _quickparse_platefile(pd,
-                                 file_timepoint_guess_hrs=file_timepoint_guess)
+    pd = pf.read()
+    return parse_platefile_readerX(pd, quick_parse=False,
+                                   file_timepoint_guess_hrs=file_timepoint_guess)
 
 
 def home(request):
@@ -113,6 +58,10 @@ class PlateUpload(FormView):
         return super(PlateUpload, self).dispatch(*args, **kwargs)
 
     def post(self, request, *args, **kwargs):
+        from datetime import datetime
+
+        print('start '+str(datetime.now()))
+
         form_class = self.get_form_class()
         form = self.get_form(form_class)
         dataset_id = request.POST.get('dataset_id')
@@ -131,17 +80,34 @@ class PlateUpload(FormView):
             file_status = {}
             for f in files:
                 try:
-                    plates = _handle_platefile(f)
+                    plates = parse_platefile(f)
                     tpf = PlateFile(dataset=dataset, file=f)
                     tpf.save()
-                    # TODO: Replace with bulk_create
+                    # TODO: Replace with bulk_create?
                     for p in plates:
+                        print('processing plate '+p['name'] + ' ' +
+                              str(datetime.now()))
                         plate = Plate(plate_file=tpf,
                                       name=p['name'],
                                       width=p['well_cols'],
                                       height=p['well_rows'])
                         plate.save()
                         p['id'] = plate.id
+
+                        # Create wells
+                        well_measurements = []
+                        for assay_name, values in p['well_values'].items():
+                            for pos, wv in enumerate(values):
+                                well_measurements.append(WellMeasurement(
+                                    plate_id=plate.id,
+                                    well=pos,
+                                    assay=assay_name,
+                                    value=wv
+                                ))
+
+                        del p['well_values']
+
+                    WellMeasurement.objects.bulk_create(well_measurements)
 
                     response['success'] = True
                     file_status[tpf.id] = {'success': True,
@@ -150,26 +116,25 @@ class PlateUpload(FormView):
                                                       .format(len(plates)),
                                            'plates': plates
                                            }
-                except ValueError as ve:
-                    file_status['_failed'] = {'success': False,
-                                              'name': f.name,
-                                              'message': ve.message}
+                finally:
+                    pass
+                # except ValueError as ve:
+                #     file_status['_failed'] = {'success': False,
+                #                               'name': f.name,
+                #                               'message': ve.message}
             response['files'] = file_status
+            print('returning response ' + str(datetime.now()))
             return JsonResponse(response)
         else:
             return JsonResponse({'success': False, 'errors':
                                 form.errors.as_json()})
 
 
-def _plates_names_file_id(request, file_id):
-    pf = Plate.objects.filter(plate_file_id=file_id,
-                              plate_file__dataset__owner_id=request.user.id)
-    return [p['name'] for p in pf.values('name')]
-
-
 @login_required
 def ajax_get_plates(request, file_id):
-    return JsonResponse({'names': _plates_names_file_id(request, file_id)})
+    pf = Plate.objects.filter(plate_file_id=file_id,
+                              plate_file__dataset__owner_id=request.user.id)
+    return JsonResponse({'plates': list(pf.values('id', 'name'))})
 
 
 @login_required
@@ -200,51 +165,63 @@ def ajax_save_plate(request):
     except ObjectDoesNotExist:
         return Http404()
 
-    # Save wells
-    # TODO: More efficient?
-    wells_to_create = []
+    # Get the used cell lines and drugs
+    # TODO: Maybe add a permission model to these
+    # cell_line_ids = set([well['cellLine'] for well in wells])
+    # cell_lines = dict(CellLine.objects.filter(
+    #     id__in=cell_line_ids).values_list(
+    #     'name', 'id'))
+    #
+    # drug_ids = set()
+    # for well in wells:
+    #     if well['drugs'] is None:
+    #         continue
+    #     for drug in well['drugs']:
+    #         drug_ids.add(drug)
+    # drugs = dict(Drug.objects.filter(
+    #     ids__in=drug_ids).values_list(
+    #     'name', 'id'))
+
+    # Add the cell lines
+    wells_celllines_to_create = []
     well_drugs_to_create = []
     for i, well in enumerate(wells):
-        cl = None
-        try:
-            if well['cellLine']:
-                cl = CellLine.objects.get(name=well['cellLine'])
-        except ObjectDoesNotExist:
-            pass
-        wells_to_create.append(Well(plate_id=plate_id,
-                                    well_no=i,
-                                    cell_line=cl))
+        # cell_line_id = None
+        # if well['cellLine']:
+        #     cell_line_id = cell_lines[well['cellLine']]
+        if not well['cellLine']:
+            continue
+        wells_celllines_to_create.append(
+            WellCellLine(plate_id=plate_id,
+                         well=i,
+                         cell_line_id=well['cellLine']))
 
-    Well.objects.bulk_create(wells_to_create)
-
-    well_ids = [w['id'] for w in Well.objects.filter(
-        plate_id=plate_id).order_by('well_no').values('id')]
-
-    assert len(well_ids) == len(wells)
-    # print(well_ids)
+    WellCellLine.objects.bulk_create(wells_celllines_to_create)
 
     for i, well in enumerate(wells):
         if well['drugs']:
-            for drug_idx, drug in enumerate(well['drugs']):
-                try:
-                    if drug:
-                        drug = Drug.objects.get(name=drug)
-                except ObjectDoesNotExist:
-                    pass
+            for drug_idx, drug_id in enumerate(well['drugs']):
+                if not drug_id:
+                    continue
                 try:
                     dose = well['doses'][drug_idx]
                 except (TypeError, IndexError):
                     continue
                 if not dose:
                     continue
-                well_drugs_to_create.append(DrugInWell(
-                    well_id=well_ids[i],
-                    drug=drug,
+                well_drugs_to_create.append(WellDrug(
+                    plate_id=plate_id,
+                    well=i,
+                    drug_id=drug_id,
                     dose=dose
                 ))
 
-    # print(well_drugs_to_create)
-    DrugInWell.objects.bulk_create(well_drugs_to_create)
+    WellDrug.objects.bulk_create(well_drugs_to_create)
+
+    return JsonResponse({'success': True})
+
+    # TODO: Loading new plates
+    # TODO: Validate received PlateMap
 
 
 @login_required
@@ -261,9 +238,9 @@ def ajax_create_cellline(request):
     name = request.POST.get('name')
     if not name:
         return HttpResponseBadRequest()
-    cl = CellLine.objects.get_or_create(name=name)
-    all_cls = CellLine.name_list()
-    return JsonResponse({'names': list(all_cls)})
+    CellLine.objects.get_or_create(name=name)
+    cell_lines = CellLine.objects.order_by('name').values('id', 'name')
+    return JsonResponse({'cellLines': list(cell_lines)})
 
 
 @login_required
@@ -271,9 +248,9 @@ def ajax_create_drug(request):
     name = request.POST.get('name')
     if not name:
         return HttpResponseBadRequest()
-    dr = Drug.objects.get_or_create(name=name)
-    all_drugs = Drug.name_list()
-    return JsonResponse({'names': list(all_drugs)})
+    Drug.objects.get_or_create(name=name)
+    drugs = Drug.objects.order_by('name').values('id', 'name')
+    return JsonResponse({'drugs': list(drugs)})
 
 
 @login_required
@@ -337,7 +314,7 @@ def plate_designer(request, dataset_id):
         'cols_range': current_plate.col_iterator(),
         'plate_files': pf,
         'plates': plates,
-        'cell_lines': CellLine.name_list(),
-        'drugs': Drug.name_list()
+        'cell_lines': list(CellLine.objects.all().values('id', 'name')),
+        'drugs': list(Drug.objects.all().values('id', 'name'))
     })
     return response

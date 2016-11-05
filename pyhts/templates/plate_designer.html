@@ -105,9 +105,15 @@
             </ol>
     </div>
 
-    <div id="hts-well-table-view" class="panel-body"></div>
+    <div id="hts-well-table-view" class="panel-body">
+        <div class="loading-indicator">
+            <span class="glyphicon glyphicon-refresh spinning"></span>
+            <span>Loading...</span>
+        </div>
+        <table class="table table-bordered" style="width:100%"></table>
     </div>
     </div>
+</div>
 
     <div class="col-lg-3 col-md-3 col-sm-12 col-xs-12">
 
@@ -212,6 +218,7 @@
 {% endblock %}
 
 {% load static %}
+{% load pyhts_tags %}
 {% block stylesheets %}
     <link rel="stylesheet" href="{% static 'vendor/datatables/css/dataTables.bootstrap.min.css' %}">
 {% endblock %}
@@ -230,8 +237,8 @@ $(function () {
     pyHTS.plateMap = new pyHTS.classes.PlateMap({{ plates.0.id }}, {{ num_rows}}, {{ num_cols }});
 
     pyHTS.plate_names = ['{{ plates|join:"','" }}'];
-    pyHTS.cell_lines = ['{{ cell_lines|join:"','" }}'];
-    pyHTS.drugs = ['{{ drugs|join:"','" }}'];
+    pyHTS.cell_lines = {{ cell_lines|jsonify }};
+    pyHTS.drugs = {{ drugs|jsonify }};
 
 {#    /**#}
 {#     * Insert a string into the next free entry in an array#}
@@ -250,7 +257,7 @@ $(function () {
 {#        return (arr.length - 1);#}
 {#    };#}
 
-    pyHTS.ajax.createCellLine = function(name) {
+    pyHTS.ajax.createCellLine = function(name, successCallback) {
         $.ajax({type: 'POST',
                 url: '/ajax/cellline/create',
                 headers: {
@@ -258,16 +265,19 @@ $(function () {
                 },
                 data: {'name' : name},
                 success: function(data) {
-                    pyHTS.cell_lines = data.names;
+                    pyHTS.cell_lines = data.cellLines;
                     $('#cellline-typeahead').data('ttTypeahead').menu
                             .datasets[0].source =
-                            pyHTS.util.substringMatcher(pyHTS
-                            .cell_lines);
+                            pyHTS.util.substringMatcher(
+                                    pyHTS.util.getAttributeFromObjects(
+                                            pyHTS.cell_lines, 'name'
+                                    ));
+                    successCallback();
                 },
                 dataType: 'json'});
     };
 
-    pyHTS.ajax.createDrug = function(name) {
+    pyHTS.ajax.createDrug = function(name, successCallback) {
         $.ajax({type: 'POST',
                 url: '/ajax/drug/create',
                 headers: {
@@ -275,10 +285,14 @@ $(function () {
                 },
                 data: {'name' : name},
                 success: function(data) {
-                    pyHTS.drugs = data.names;
+                    pyHTS.drugs = data.drugs;
                     $('.hts-drug-typeahead.tt-input').data('ttTypeahead')
                             .menu.datasets[0].source =
-                                pyHTS.util.substringMatcher(pyHTS.drugs);
+                                pyHTS.util.substringMatcher(
+                                        pyHTS.util.getAttributeFromObjects(
+                                                pyHTS.drugs, 'name'
+                                        ));
+                    successCallback();
                 },
                 dataType: 'json'});
     };
@@ -295,8 +309,8 @@ $(function () {
 
         $.getJSON('/ajax/plate/'+id, function(data) {
            var items = [];
-           $.each(data.names, function(key, val) {
-            items.push('<li><a href="#">'+val+'</a></li>');
+           $.each(data.plates, function(key, val) {
+            items.push('<li><a href="#">'+val.name+'</a></li>');
            });
            $('#hts-plate-list').html(items.join(""));
             attach_plate_li_click();
@@ -361,10 +375,17 @@ $(function () {
             // Update the legend
             var n = arrayInsertPos % pyHTS.num_css_unique_colours;
             var lgnd = $('.well-legend:first').clone();
-            var legendText = newArrayEntry.toString()
-                    .replace(',', ' & ');
-            if(data_type == 'dose') {
-                legendText = pyHTS.util.doseFormatter(legendText);
+            var legendText;
+            if(data_type == 'cell-line') {
+                legendText = pyHTS.cell_lines[newArrayEntry]['name'];
+            } else if(data_type == 'drug') {
+                legendText = $.map(newArrayEntry, function(elem) {
+                    return pyHTS.util.filterObjectsAttr(elem, pyHTS.drugs,
+                            'id', 'name').replace(/^-1$/, 'None');
+                }).join(' & ');
+            } else if(data_type == 'dose') {
+                legendText = $.map(newArrayEntry, pyHTS.util.doseFormatter)
+                        .join(' & ');
             }
 
             $(lgnd).children('li').addClass('hts-'+data_type+'-'+n);
@@ -444,7 +465,7 @@ $(function () {
 {#                .addClass('hts-'+data_type+'-'+n);#}
     };
 
-    var create_typeahead = function(input_el, data_source,
+    var create_typeahead = function(input_el, data_source_name,
                                            readable_name,
                                     create_data_fn, css_type) {
         $(input_el).typeahead({
@@ -454,10 +475,17 @@ $(function () {
                 },
                 {
                     name: css_type,
-                    source: pyHTS.util.substringMatcher(data_source)
+                    source: pyHTS.util.substringMatcher(
+                            pyHTS.util.getAttributeFromObjects
+                            (pyHTS[data_source_name],
+                                    'name')
+                    )
                 }).keyup(function (e) {
             if (e.which == 13) {
                 var calling_el = this;
+                var names_list = pyHTS.util.getAttributeFromObjects(
+                                    pyHTS[data_source_name],
+                                    'name');
                 if ($('#selectable-wells .ui-selected').length === 0) {
                     pyHTS.ui.okModal('Error', 'Please select some wells first',
                             function () {
@@ -467,18 +495,19 @@ $(function () {
                 }
                 if ($(this).val() == '') {
                     pyHTS.ui.okModal('Error', 'Please enter a '+readable_name
-                            +' ' +
-                            'name', function () {
+                            +' name', function () {
                                 $(calling_el).focus();
                             });
                     return;
                 }
                 //$(".tt-suggestion:first-child").trigger('click');
-                if ($.inArray($(this).val(), data_source) != -1) {
-                    applyToWells(css_type, $(calling_el).val(), $
-                    (calling_el).data('drug-num') - 1);
+                var name = $(this).val();
+                var itemId = pyHTS.util.filterObjectsAttr(name,
+                        pyHTS[data_source_name], 'name', 'id');
+                if (itemId != -1) {
+                    applyToWells(css_type, itemId,
+                                 $(calling_el).data('drug-num') - 1);
                 } else {
-                    var name = $(this).val();
                     pyHTS.ui.okCancelModal('Create ' + readable_name,
                             readable_name + ' "' + name + '" ' +
                             'was not found. Create it?<br /><br />If you meant' +
@@ -486,10 +515,13 @@ $(function () {
                             'autocomplete a suggestion use <kbd>Tab</kbd> ' +
                             'instead.',
                             function () {
-                                create_data_fn(name);
-                                applyToWells(css_type,
-                                        $(calling_el).val(),
-                                $(calling_el).data('drug-num') - 1);
+                                create_data_fn(name, function() {
+                                    applyToWells(css_type,
+                                            pyHTS.util.filterObjectsAttr(name,
+                                                    pyHTS[data_source_name],
+                                                    'name', 'id'),
+                                            $(calling_el).data('drug-num') - 1);
+                                });
                             },
                             null,
                             function () {
@@ -501,12 +533,15 @@ $(function () {
             }
         });
     };
-    create_typeahead('#cellline-typeahead', pyHTS.cell_lines, 'Cell line',
+    create_typeahead('#cellline-typeahead',
+            'cell_lines',
+            'Cell line',
             pyHTS.ajax.createCellLine, 'cell-line');
 
     var activateDrugInputs = function() {
-        create_typeahead('.hts-drug-typeahead:last', pyHTS
-                        .drugs, 'Drug',
+        create_typeahead('.hts-drug-typeahead:last',
+                'drugs',
+                'Drug',
                 pyHTS.ajax.createDrug, 'drug');
 
         $('.hts-dose-input:last').keyup(function (e) {
@@ -571,20 +606,39 @@ $(function () {
         // deselect any selected wells
         $('.well.ui-selected').removeClass('ui-selected');
         //TODO: Better loading indicator?
-        $('#hts-well-table-view').html('<em>Loading...</em>');
-        $.ajax({
-            url: '/ajax/plate/table_view',
-            data: JSON.stringify(pyHTS.plateMap),
-            type: 'POST',
-            headers: {
-                  'X-CSRFToken': '{{ csrf_token }}'
-            },
-            success: function(data) {
-                $('#hts-well-table-view').html(data).find('table').DataTable
-                ({'paging':false, columnDefs: [ {type: 'doses', targets: 3}]});
-            }
+        //$('#hts-well-table-view').html('<em>Loading...</em>');
+{#        $.ajax({#}
+{#            url: '/ajax/plate/table_view',#}
+{#            data: JSON.stringify(pyHTS.plateMap),#}
+{#            type: 'POST',#}
+{#            headers: {#}
+{#                  'X-CSRFToken': '{{ csrf_token }}'#}
+{#            },#}
+{#            success: function(data) {#}
+{#                $('#hts-well-table-view').html(data).find('table').DataTable#}
+{#                ({'paging':false, columnDefs: [ {type: 'doses', targets: 3}]});#}
+{#            }#}
+{#        });#}
+        $('#hts-well-table-view .loading-indicator').show();
+
+        $('#hts-well-table-view table').DataTable({
+            data: pyHTS.plateMap.asDataTable(),
+            columns: [
+                {title: 'Well'},
+                {title: 'Cell Line'},
+                {title: 'Drugs'},
+                {title: 'Doses'}
+            ],
+            destroy: true,
+            paging: false,
+            columnDefs: [
+                {type: 'doses',
+                 targets: 3}
+            ]
         });
+
         setWellView(e, 'table');
+        $('#hts-well-table-view .loading-indicator').hide();
     });
 
     var setWellView = function(e, view) {

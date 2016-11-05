@@ -1,6 +1,9 @@
 from django import template
-from django.template.defaultfilters import stringfilter
 import pyhts.helpers
+from django.core.serializers import serialize
+from django.db.models.query import QuerySet
+import json
+from django.utils.safestring import mark_safe
 
 register = template.Library()
 
@@ -11,3 +14,10 @@ def formatdose(value):
         return ''
 
     return pyhts.helpers.format_dose(value)
+
+
+@register.filter
+def jsonify(object):
+    if isinstance(object, QuerySet):
+        return serialize('json', object)
+    return mark_safe(json.dumps(object))

@@ -15,6 +15,14 @@ window.pyHTS = {
 
 var pyHTS = window.pyHTS;
 
+pyHTS.util.getAttributeFromObjects = function(listOfObjects, attrName) {
+    var attrList = [];
+    for(var i=0; i<listOfObjects.length; i++) {
+        attrList.push(listOfObjects[i][attrName]);
+    }
+    return attrList;
+};
+
 pyHTS.util.substringMatcher = function(strs) {
     return function findMatches(q, cb) {
         // an array that will be populated with substring matches
@@ -86,6 +94,7 @@ pyHTS.util.doseUnits = [[1e-12, 'p'],
                          [1, '']];
 
 pyHTS.util.doseFormatter = function(dose) {
+    if(dose === undefined) return 'None';
     var doseMultiplier = 1;
     var doseSuffix = '';
     for(var i=0; i<pyHTS.util.doseUnits.length; i++) {
@@ -95,7 +104,7 @@ pyHTS.util.doseFormatter = function(dose) {
         }
     }
 
-    return ((dose / doseMultiplier) + ' ' +
+    return (parseFloat((dose / doseMultiplier).toPrecision(16)) + ' ' +
            doseSuffix + 'M');
 };
 
@@ -123,6 +132,22 @@ pyHTS.util.doseSorter = {
        dose = dose.split('<br>');
        return pyHTS.util.doseParser(dose[0]);
    }
+};
+
+pyHTS.util.filterObjectsAttr = function(name, dataSource,
+                                        searchAttribute, returnAttribute) {
+    for(var i=0; i<dataSource.length; i++) {
+        if(dataSource[i][searchAttribute] == name) {
+            return dataSource[i][returnAttribute];
+        }
+    }
+    return -1;
+};
+
+pyHTS.util.padNum = function(num, size) {
+    var s = num + '';
+    while (s.length < size) s = '0' + s;
+    return s;
 };
 
 pyHTS.classes.Well = function() {
@@ -177,6 +202,26 @@ pyHTS.classes.PlateMap.prototype = {
     },
     getUsedDoses: function() {
         return this.getUsedEntries('doses');
+    },
+    wellNumToName: function(wellNum) {
+        return String.fromCharCode(65 + Math.floor(wellNum / this.numCols)) +
+               pyHTS.util.padNum(((wellNum % this.numCols) + 1), 2);
+    },
+    asDataTable: function() {
+        var wells = [];
+        for(var w=0; w<this.wells.length; w++) {
+            wells.push([
+               this.wellNumToName(w),
+               pyHTS.util.filterObjectsAttr(this.wells[w].cellLine,
+                                            pyHTS.cell_lines,
+                                            'id', 'name').toString().replace(/^-1$/, ''),
+               $.map(this.wells[w].drugs, function(drug) {
+                   return pyHTS.util.filterObjectsAttr(drug, pyHTS.drugs, 'id', 'name').toString().replace(/^-1$/, 'None');
+               }).join('<br>'),
+               $.map(this.wells[w].doses, pyHTS.util.doseFormatter).join('<br>')
+            ]);
+        }
+        return wells;
     }
 };
 
