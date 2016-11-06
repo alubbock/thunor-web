@@ -104,7 +104,7 @@ pyHTS.util.doseFormatter = function(dose) {
         }
     }
 
-    return (parseFloat((dose / doseMultiplier).toPrecision(16)) + ' ' +
+    return (parseFloat((dose / doseMultiplier).toPrecision(12)) + ' ' +
            doseSuffix + 'M');
 };
 
