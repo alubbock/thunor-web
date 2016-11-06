@@ -506,6 +506,7 @@ $(function () {
                     .data('drug-num') - 1;
                 if (itemId != -1) {
                     applyToWells(css_type, itemId, drugDosePos);
+                    $(calling_el).typeahead('val','').blur();
                 } else {
                     pyHTS.ui.okCancelModal('Create ' + readable_name,
                             readable_name + ' "' + name + '" ' +
@@ -520,6 +521,7 @@ $(function () {
                                                     pyHTS[data_source_name],
                                                     'name', 'id'),
                                             drugDosePos);
+                                    $(calling_el).typeahead('val','').blur();
                                 });
                             },
                             null,
@@ -573,6 +575,7 @@ $(function () {
 
             applyToWells('dose', dose, $(this).closest('.hts-drug-entry')
                     .data('drug-num') - 1);
+            $(this).val('').blur();
         });
 
         $('.hts-dose-select:last li').click(function (e) {
@@ -710,6 +713,7 @@ $(function () {
     $('.welllist .well').mouseenter(function(e) {
         var well = $(this).data('well');
         var wellData = pyHTS.plateMap.wells[well];
+        if(wellData == null) return;
         $('#cellline-typeahead').attr('placeholder',
                 wellData.cellLine == null ? '' :
                 pyHTS.util.filterObjectsAttr(wellData.cellLine,
