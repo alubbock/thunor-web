@@ -156,6 +156,11 @@
                 <button type="button" class="btn btn-default"
                         id="hts-add-drug" style="margin-top:5px">Add another
                     drug</button>
+                <hr>
+{#                <button type="button" class="btn btn-success"#}
+{#                        id="hts-apply-annotation">Apply to wells</button>#}
+                <button type="button" class="btn btn-danger"
+                        id="hts-clear-annotation">Clear wells</button>
             </div>
         </div>
 
@@ -329,6 +334,21 @@ $(function () {
     };
     attach_plate_li_click();
 
+    pyHTS.ui.refreshViewAll = function() {
+      var wellIds = [];
+      for(var i=0;i<pyHTS.plateMap.wells.length;i++) {
+          wellIds.push(i);
+      }
+      var selectedWells = $('#selectable-wells .well');
+      refreshView(selectedWells, wellIds);
+    };
+
+    var refreshView = function(selectedWells, wellIds) {
+        refreshLegend(selectedWells, wellIds, 'cell-line');
+        refreshLegend(selectedWells, wellIds, 'drug');
+        refreshLegend(selectedWells, wellIds, 'dose');
+    };
+
     var refreshLegend = function(selectedWells, wellIds, data_type) {
         var oldLegendEntries, newLegendEntries;
         var oldLegendEntriesDescriptor = data_type.replace(/-/g, '_') +
@@ -412,12 +432,16 @@ $(function () {
             } else if (data_type == "dose") {
                 this_value = pyHTS.plateMap.wells[wellId].doses;
             }
-            var loc = pyHTS.util.indexOf(this_value,
-                    pyHTS[oldLegendEntriesDescriptor]);
-            if(loc >= 0) {
-                var n = loc % pyHTS.num_css_unique_colours;
-                $(ele).addClass('hts-'+data_type+'-'+n)
-                    .addClass('hts-'+data_type);
+            if(this_value == null) {
+                $(ele).removeClass('hts-' + data_type);
+            } else {
+                var loc = pyHTS.util.indexOf(this_value,
+                        pyHTS[oldLegendEntriesDescriptor]);
+                if(loc >= 0) {
+                    var n = loc % pyHTS.num_css_unique_colours;
+                    $(ele).addClass('hts-' + data_type + '-' + n)
+                            .addClass('hts-' + data_type);
+                }
             }
         });
     };
@@ -709,8 +733,24 @@ $(function () {
         }
     });
 
+    $('#hts-clear-annotation').click(function() {
+        if ($('#selectable-wells .ui-selected').length === 0) {
+            pyHTS.ui.okModal('Error', 'Please select some wells first');
+            return;
+        }
+
+        var selected_wells = $('#selectable-wells .ui-selected');
+
+        $.each(selected_wells, function(i, well) {
+            pyHTS.plateMap.wells[$(well).data('well')] = new pyHTS.classes.Well();
+        });
+
+        pyHTS.ui.refreshViewAll();
+        selected_wells.removeClass('ui-selected');
+    });
+
     // Mouseovers
-    $('.welllist .well').mouseenter(function(e) {
+    $('#selectable-wells .well').mouseenter(function(e) {
         var well = $(this).data('well');
         var wellData = pyHTS.plateMap.wells[well];
         if(wellData == null) return;
