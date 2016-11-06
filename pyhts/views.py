@@ -7,12 +7,13 @@ from .forms import CentredAuthForm, PlateFileForm
 from django.views.generic.edit import FormView
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.core.exceptions import ObjectDoesNotExist
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, PlateMap, \
     WellCellLine, WellMeasurement, WellDrug
 import json
 from helpers import guess_timepoint_hrs
 from plate_parsers import parse_platefile_readerX
+import numpy as np
 
 HOURS_TO_SECONDS = 3600
 
@@ -189,14 +190,32 @@ def ajax_save_plate(request):
         # cell_line_id = None
         # if well['cellLine']:
         #     cell_line_id = cell_lines[well['cellLine']]
-        if not well['cellLine']:
-            continue
+        # if not well['cellLine']:
+        #     continue
         wells_celllines_to_create.append(
             WellCellLine(plate_id=plate_id,
                          well=i,
                          cell_line_id=well['cellLine']))
 
-    WellCellLine.objects.bulk_create(wells_celllines_to_create)
+    try:
+        with transaction.atomic():
+            WellCellLine.objects.bulk_create(wells_celllines_to_create)
+    except IntegrityError:
+        # Do update instead
+        cell_line_ids = [well['cellLine'] for well in wells]
+        (unq_cl, cl_which) = np.unique(cell_line_ids, return_inverse=True)
+        for idx, cl_id in enumerate(unq_cl):
+            WellCellLine.objects.filter(
+                plate_id=plate_id,
+                well__in=np.where(cl_which == idx)[0]).update(cell_line_id=
+                                                                 cl_id)
+
+    # Since we don't know how many drugs in each well there were previously
+    # in the case of an update, the easy
+    # solution is just to delete/reinsert. The alternative would be select
+    # for update, then delete/update/insert as appropriate, which would
+    # probably be slower anyway due to the extra queries.
+    WellDrug.objects.filter(plate_id=plate_id).delete()
 
     for i, well in enumerate(wells):
         if well['drugs']:
