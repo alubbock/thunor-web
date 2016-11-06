@@ -706,6 +706,41 @@ $(function () {
         }
     });
 
+    // Mouseovers
+    $('.welllist .well').mouseenter(function(e) {
+        var well = $(this).data('well');
+        var wellData = pyHTS.plateMap.wells[well];
+        $('#cellline-typeahead').attr('placeholder',
+                wellData.cellLine == null ? '' :
+                pyHTS.util.filterObjectsAttr(wellData.cellLine,
+                                            pyHTS.cell_lines,
+                                            'id', 'name'));
+        $('.hts-drug-typeahead').not('.tt-hint').attr('placeholder', '');
+        if(wellData.drugs != null) {
+            for(var i=0; i<wellData.drugs.length; i++) {
+                if(wellData.drugs[i] == null) continue;
+                $('.hts-drug-entry:eq('+i+') ' +
+                        '.hts-drug-typeahead').not('.tt-hint')
+                        .attr('placeholder',
+                pyHTS.util.filterObjectsAttr(wellData.drugs[i], pyHTS.drugs,
+                        'id', 'name'));
+            }
+        }
+        $('.hts-dose-input').attr('placeholder', '');
+        if(wellData.doses != null) {
+            for(var i=0; i<wellData.doses.length; i++) {
+                if(wellData.doses[i] == null) continue;
+                $('.hts-drug-entry:eq('+i+') ' +
+                        '.hts-dose-input').attr('placeholder',
+                        pyHTS.util.doseFormatter(wellData.doses[i]));
+            }
+        }
+    }).mouseleave(function() {
+        $('#cellline-typeahead').attr('placeholder', 'Cell line');
+        $('.hts-drug-typeahead').not('.tt-hint').attr('placeholder', 'Drug name');
+        $('.hts-dose-input').attr('placeholder', 'Dose');
+    });
+
     // Loading and saving plates
     pyHTS.ajax.savePlate = function() {
         $.ajax({
