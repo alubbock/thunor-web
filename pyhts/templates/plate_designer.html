@@ -264,6 +264,13 @@ $(function () {
 {#        return (arr.length - 1);#}
 {#    };#}
 
+    window.onbeforeunload = function() {
+      if(pyHTS.unsaved_changes) {
+          return 'The plate map has unsaved changes. Are you sure you want ' +
+                  'to leave the page?';
+      }
+    };
+
     pyHTS.ajax.createCellLine = function(name, successCallback) {
         $.ajax({type: 'POST',
                 url: '/ajax/cellline/create',
@@ -774,6 +781,49 @@ $(function () {
     });
 
     // Loading and saving plates
+    var plateLoadedCallback = function (data) {
+        if(data.success) {
+            if(data.plateNames) {
+                var plateName = null;
+                var items = [];
+                $.each(data.plateNames, function(key, val) {
+                    var activeClass = '';
+                    if(val.id == data.plateMap.plateId) {
+                        plateName = val.name;
+                        activeClass = ' class="active"';
+                    }
+                    items.push('<li data-id="'+val.id+'"'+activeClass+'><a ' +
+                            'href="#">'+val.name+'</a></li>');
+                });
+                $('#hts-plate-list').html(items.join(""));
+                attach_plate_li_click();
+
+                $('#hts-current-plate').data('id', data.plateMap.plateId).text(plateName);
+                $('#hts-select-plate').removeClass('disabled');
+            }
+            pyHTS.unsaved_changes = false;
+            pyHTS.plateMap = new pyHTS.classes.PlateMap(
+                    data.plateMap.plateId,
+                    data.plateMap.numRows,
+                    data.plateMap.numCols,
+                    data.plateMap.wells
+            );
+            pyHTS.ui.refreshViewAll();
+        }
+    };
+
+    pyHTS.ajax.loadPlate = function(plateId, getPlateNames) {
+        $.ajax({
+            url: '/ajax/plate/load/'+plateId+
+                        (getPlateNames ? "?getPlateNames" : ""),
+            type: 'GET',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            success: plateLoadedCallback
+        })
+    };
+
     pyHTS.ajax.savePlate = function(nextPlateToLoad, getPlateNames) {
         if(getPlateNames === undefined) {
             getPlateNames = false;
@@ -787,35 +837,7 @@ $(function () {
             headers: {
                 'X-CSRFToken': '{{ csrf_token }}'
             },
-            success: function (data) {
-                if(data.success) {
-                    if(data.plateNames) {
-                        var plateName = null;
-                        var items = [];
-                        $.each(data.plateNames, function(key, val) {
-                            var activeClass = '';
-                            if(val.id == data.plateMap.plateId) {
-                                plateName = val.name;
-                                activeClass = ' class="active"';
-                            }
-                            items.push('<li data-id="'+val.id+'"'+activeClass+'><a ' +
-                                    'href="#">'+val.name+'</a></li>');
-                        });
-                        $('#hts-plate-list').html(items.join(""));
-                        attach_plate_li_click();
-
-                        $('#hts-current-plate').data('id', data.plateMap.plateId).text(plateName);
-                        $('#hts-select-plate').removeClass('disabled');
-                    }
-                    pyHTS.plateMap = new pyHTS.classes.PlateMap(
-                            data.plateMap.plateId,
-                            data.plateMap.numRows,
-                            data.plateMap.numCols,
-                            data.plateMap.wells
-                    );
-                    pyHTS.ui.refreshViewAll();
-                }
-            }
+            success: plateLoadedCallback
         });
         delete pyHTS.plateMap.loadNext;
         delete pyHTS.plateMap.getPlateNames;
@@ -864,7 +886,11 @@ $(function () {
             $('#hts-current-plate').data('id', plateId).text(plateName);
         }
 
-        pyHTS.ajax.savePlate(plateId, getPlateNames);
+        if(pyHTS.unsaved_changes) {
+            pyHTS.ajax.savePlate(plateId, getPlateNames);
+        } else {
+            pyHTS.ajax.loadPlate(plateId, getPlateNames);
+        }
 
         if(prevPlatePos() != null) {
             $('#hts-prev-dataset').show();

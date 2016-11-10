@@ -15,6 +15,8 @@ urlpatterns = [
 
     url(r'^ajax/plate/table_view', views.ajax_table_view,
         name='ajax_table_view'),
+    url(r'^ajax/plate/load/(?P<plate_id>\d+)', views.ajax_load_plate,
+        name='ajax_load_plate'),
     url(r'^ajax/plate/save', views.ajax_save_plate,
         name='ajax_save_plate'),
 

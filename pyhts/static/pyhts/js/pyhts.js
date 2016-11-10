@@ -1,6 +1,7 @@
 window.pyHTS = {
     last_edited: null,
     num_css_unique_colours: 25,
+    unsaved_changes: false,
 
     plateMap: null,
     cell_lines_used: [],
@@ -168,13 +169,16 @@ pyHTS.classes.Well.prototype = {
     setDrug: function(drug, position) {
         if(this.drugs == null) this.drugs = [];
         this.drugs[position] = drug;
+        pyHTS.unsaved_changes = true;
     },
     setDose: function(dose, position) {
         if(this.doses == null) this.doses = [];
         this.doses[position] = dose;
+        pyHTS.unsaved_changes = true;
     },
     setCellLine: function(cellLine) {
         this.cellLine = cellLine;
+        pyHTS.unsaved_changes = true;
     }
 };
 

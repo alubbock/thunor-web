@@ -245,12 +245,13 @@ def ajax_save_plate(request):
     else:
         return JsonResponse({'success': True})
 
-    # TODO: Loading new plates
     # TODO: Validate received PlateMap
 
 
 @login_required
 def ajax_load_plate(request, plate_id, get_plate_names=False):
+    if 'getPlateNames' in request.GET:
+        get_plate_names = True
     p = Plate.objects.get(id=plate_id,
                           plate_file__dataset__owner_id=request.user.id)
     if not p:
