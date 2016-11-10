@@ -356,16 +356,17 @@ def ajax_set_timepoints(request):
 
 @login_required
 def plate_designer(request, dataset_id):
-    # TODO: Access control
-    dataset_name = HTSDataset.objects.get(id=dataset_id,
-                                          owner_id=request.user.id).name
+    dset = HTSDataset.objects.get(id=dataset_id, owner_id=request.user.id)
+    if not dset:
+        raise Http404()
+    dataset_name = dset.name
 
     pf = list(PlateFile.objects.filter(dataset_id=dataset_id,
-                                  dataset__owner_id=request.user.id,
-                                  process_date=None).order_by('id'))
+                                       dataset__owner_id=request.user.id,
+                                       process_date=None).order_by('id'))
 
-    plates = list(Plate.objects.filter(plate_file__dataset_id=dataset_id).order_by(
-        'plate_file_id', 'id'))
+    plates = list(Plate.objects.filter(plate_file__dataset_id=dataset_id).
+                  order_by('plate_file_id', 'id'))
 
     last_platefile = plates[0].plate_file_id
     all_plates = [{'id': p.id, 'name': p.name,

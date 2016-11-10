@@ -29,8 +29,7 @@
                     aria-haspopup="true" aria-expanded="true">
                 <span class="glyphicon glyphicon-file"
                       aria-hidden="true"></span>
-                <span id="hts-current-file" data-id="{{ plate_files.0.id }}">
-                    {{ plate_files.0.file.name }}</span>
+                <span id="hts-current-file" data-id=""></span>
                 <span class="caret"></span>
             </button>
             <ul class="dropdown-menu" id="hts-platefile-list"
@@ -55,9 +54,9 @@
             </button>
             <ul class="dropdown-menu" id="hts-plate-list"
                 aria-labelledby="hts-select-plate">
-                {% for p in plates %}
-                <li data-id="{{ p.id }}"><a href="#">{{ p.name }}</a></li>
-                {% endfor %}
+{#                {% for p in plates %}#}
+{#                <li data-id="{{ p.id }}"><a href="#">{{ p.name }}</a></li>#}
+{#                {% endfor %}#}
             </ul>
         </div>
     </div><!-- panel-heading -->
@@ -321,7 +320,6 @@ $(function () {
     var attach_plate_li_click = function() {
         $('#hts-plate-list li').click(function(e) {
             e.preventDefault();
-            $('#hts-current-plate').text($(this).text());
 
             // Load the plate map
             setPlate($('#hts-current-file').data('id'), $(this).data('id'));
@@ -953,6 +951,9 @@ $(function () {
         setPlate(pyHTS.plateFiles[pf_pl_pos[0]],
                  pyHTS.plates[pf_pl_pos[0]][pf_pl_pos[1]]);
     });
+
+    // TODO: Loading indicator
+    setPlate({{ current_plate.plate_file_id }}, {{ current_plate.id }});
 });
 </script>
 {% endblock %}

@@ -46,9 +46,9 @@ INSTALLED_APPS = [
 MIDDLEWARE = []
 
 if DEBUG:
-    INSTALLED_APPS += ['debug_toolbar', 'debug_panel']
-    #MIDDLEWARE += ['debug_toolbar.middleware.DebugToolbarMiddleware']
-    MIDDLEWARE += ['debug_panel.middleware.DebugPanelMiddleware']
+    INSTALLED_APPS += ['debug_toolbar']
+    MIDDLEWARE += ['debug_toolbar.middleware.DebugToolbarMiddleware']
+    # MIDDLEWARE += ['debug_panel.middleware.DebugPanelMiddleware']
 
 MIDDLEWARE += [
     'django.middleware.security.SecurityMiddleware',
