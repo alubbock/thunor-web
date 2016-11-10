@@ -80,14 +80,14 @@
             </ol>
 
             <ol id="selectable-well-cols" class="welllist">
-                {% for col in cols_range %}
+                {% for col in current_plate.col_iterator %}
                     <li data-col="{{ col }}" class="col">{{ col }}</li>
                 {% endfor %}
             </ol>
 
             <div id="rowlabels">
                 <ol id="selectable-well-rows" class="welllist">
-                    {% for row in rows_range %}
+                    {% for row in current_plate.row_iterator %}
                         <li id="data{{ row }}" data-row="{{ row }}"
                         class="row">{{ row }}</li>
                     {% endfor %}
@@ -95,7 +95,7 @@
             </div>
 
             <ol id="selectable-wells" class="welllist hts-overview">
-                {% for well in wells %}
+                {% for well in current_plate.well_iterator %}
                     <li data-well="{{ well.well }}"
                         data-col="{{ well.col }}"
                         data-row="{{ well.row }}"
@@ -238,14 +238,14 @@
 $(function () {
     'use strict';
 
-    pyHTS.plateMap = new pyHTS.classes.PlateMap({{ plates.0.id }}, {{ num_rows}}, {{ num_cols }});
+    pyHTS.plateMap = new pyHTS.classes.PlateMap({{ current_plate.id }},
+    {{ current_plate.height }}, {{ current_plate.width }});
 
-{#    pyHTS.plate_names = ['{{ plates|join:"','" }}'];#}
     pyHTS.cell_lines = {{ cell_lines|jsonify }};
     pyHTS.drugs = {{ drugs|jsonify }};
 
     pyHTS.plateFiles = [{% for pf in plate_files %}{{ pf.id }}{% if not forloop.last %},{% endif %}{% endfor %}];
-    pyHTS.plates = [{% for pf in plate_files %}[{% for pl in pf.plate_set.all %}{{ pl.id }}{% if not forloop.last %},{% endif %}{% endfor %}]{% if not forloop.last %},{% endif %}{% endfor %}];
+    pyHTS.plates = [[{% for pl in plates %}{{ pl.id }}{% if pl.change_file %}],[{% elif not forloop.last %},{% endif %}{% endfor %}]];
 
 {#    /**#}
 {#     * Insert a string into the next free entry in an array#}

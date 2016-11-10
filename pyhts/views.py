@@ -356,31 +356,35 @@ def ajax_set_timepoints(request):
 
 @login_required
 def plate_designer(request, dataset_id):
+    # TODO: Access control
     dataset_name = HTSDataset.objects.get(id=dataset_id,
                                           owner_id=request.user.id).name
 
-    pf = PlateFile.objects.filter(dataset_id=dataset_id,
+    pf = list(PlateFile.objects.filter(dataset_id=dataset_id,
                                   dataset__owner_id=request.user.id,
-                                  process_date=None).order_by('id')
+                                  process_date=None).order_by('id'))
 
-    if not pf:
-        return Http404()
+    plates = list(Plate.objects.filter(plate_file__dataset_id=dataset_id).order_by(
+        'plate_file_id', 'id'))
 
-    plates = pf.first().plate_set.order_by('plate_file_id', 'id').all()
+    last_platefile = plates[0].plate_file_id
+    all_plates = [{'id': p.id, 'name': p.name,
+                   'plate_file_id': p.plate_file_id} for p in plates]
+    for i, pl in enumerate(all_plates):
+        if pl['plate_file_id'] != last_platefile:
+            pl['change_file'] = True
+            last_platefile = pl['plate_file_id']
 
-    current_plate = plates.first()
+    print(all_plates)
+
+    current_plate = plates[0]
 
     response = TemplateResponse(request, 'plate_designer.html', {
         'dataset_id': dataset_id,
         'dataset_name': dataset_name,
-        'num_wells': current_plate.num_wells,
-        'num_cols': current_plate.width,
-        'num_rows': current_plate.height,
-        'wells': current_plate.well_iterator(),
-        'rows_range': current_plate.row_iterator(),
-        'cols_range': current_plate.col_iterator(),
+        'current_plate': current_plate,
         'plate_files': pf,
-        'plates': plates,
+        'plates': all_plates,
         'cell_lines': list(CellLine.objects.all().values('id', 'name')),
         'drugs': list(Drug.objects.all().values('id', 'name'))
     })
