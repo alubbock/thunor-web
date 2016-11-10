@@ -12,6 +12,16 @@ class HTSDataset(models.Model):
     name = models.TextField()
     creation_date = models.DateTimeField(auto_now_add=True)
 
+    @staticmethod
+    def get_plate_file_ids(id):
+        return [p['id'] for p in Plate.objects.filter(
+            plate_file__dataset_id=id).order_by(
+            'plate_file_id', 'id').values('id')]
+
+    @property
+    def plate_file_ids(self):
+        return self.get_plate_file_ids(self.id)
+
 
 class PlateFile(models.Model):
     dataset = models.ForeignKey(HTSDataset)
@@ -71,6 +81,12 @@ class Plate(models.Model, PlateMap):
     width = models.IntegerField()
     height = models.IntegerField()
     timepoint_secs = models.IntegerField(null=True)
+
+    @property
+    def next_plate_id(self):
+        pf_ids = HTSDataset.get_plate_file_ids(self.plate_file.dataset_id)
+        idx = pf_ids.index(self.id) + 1
+        return idx if idx < (len(pf_ids) - 1) else None
 
 
 class WellCellLine(models.Model):

@@ -8,6 +8,7 @@ from django.views.generic.edit import FormView
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError, transaction
+from django.db.models import F
 from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, PlateMap, \
     WellCellLine, WellMeasurement, WellDrug
 import json
@@ -58,6 +59,7 @@ class PlateUpload(FormView):
     def dispatch(self, *args, **kwargs):
         return super(PlateUpload, self).dispatch(*args, **kwargs)
 
+    @transaction.atomic
     def post(self, request, *args, **kwargs):
         from datetime import datetime
 
@@ -80,11 +82,10 @@ class PlateUpload(FormView):
 
             file_status = {}
             for f in files:
-                try:
                     plates = parse_platefile(f)
                     tpf = PlateFile(dataset=dataset, file=f)
                     tpf.save()
-                    # TODO: Replace with bulk_create?
+                    well_measurements = []
                     for p in plates:
                         print('processing plate '+p['name'] + ' ' +
                               str(datetime.now()))
@@ -94,9 +95,9 @@ class PlateUpload(FormView):
                                       height=p['well_rows'])
                         plate.save()
                         p['id'] = plate.id
+                        print(plate.id)
 
                         # Create wells
-                        well_measurements = []
                         for assay_name, values in p['well_values'].items():
                             for pos, wv in enumerate(values):
                                 well_measurements.append(WellMeasurement(
@@ -117,8 +118,6 @@ class PlateUpload(FormView):
                                                       .format(len(plates)),
                                            'plates': plates
                                            }
-                finally:
-                    pass
                 # except ValueError as ve:
                 #     file_status['_failed'] = {'success': False,
                 #                               'name': f.name,
@@ -131,11 +130,11 @@ class PlateUpload(FormView):
                                 form.errors.as_json()})
 
 
-@login_required
-def ajax_get_plates(request, file_id):
-    pf = Plate.objects.filter(plate_file_id=file_id,
-                              plate_file__dataset__owner_id=request.user.id)
-    return JsonResponse({'plates': list(pf.values('id', 'name'))})
+# @login_required
+# def ajax_get_plates(request, file_id):
+#     pf = Plate.objects.filter(plate_file_id=file_id,
+#                               plate_file__dataset__owner_id=request.user.id)
+#     return JsonResponse({'plates': list(pf.values('id', 'name'))})
 
 
 @login_required
@@ -154,6 +153,7 @@ def ajax_table_view(request):
 
 
 @login_required
+@transaction.atomic
 def ajax_save_plate(request):
     plate_data = json.loads(request.body)
     plate_id = int(plate_data['plateId'])
@@ -161,7 +161,7 @@ def ajax_save_plate(request):
 
     # Check permissions
     try:
-        Plate.objects.get(id=plate_id,
+        p = Plate.objects.get(id=plate_id,
                           plate_file__dataset__owner_id=request.user.id)
     except ObjectDoesNotExist:
         return Http404()
@@ -237,10 +237,56 @@ def ajax_save_plate(request):
 
     WellDrug.objects.bulk_create(well_drugs_to_create)
 
-    return JsonResponse({'success': True})
+    if plate_data.get('loadNext', None):
+        next_plate_id = plate_data['loadNext']
+        get_plate_names = plate_data.get('getPlateNames', False)
+        return ajax_load_plate(request, plate_id=next_plate_id,
+                               get_plate_names=get_plate_names)
+    else:
+        return JsonResponse({'success': True})
 
     # TODO: Loading new plates
     # TODO: Validate received PlateMap
+
+
+@login_required
+def ajax_load_plate(request, plate_id, get_plate_names=False):
+    p = Plate.objects.get(id=plate_id,
+                          plate_file__dataset__owner_id=request.user.id)
+    if not p:
+        # TODO: Replace 404 with JSON
+        raise Http404()
+
+    cell_lines = WellCellLine.objects.filter(plate_id=plate_id).order_by(
+        'well').values('cell_line_id')
+    drugs = WellDrug.objects.filter(plate_id=plate_id).order_by('well').values(
+        'well', 'drug_id', 'dose')
+
+    wells = []
+    for cl in range(p.num_wells):
+        wells += [{'cellLine': cell_lines[cl]['cell_line_id'] if cell_lines
+                else None,
+                   'drugs': [], 'doses': []}]
+
+    assert len(wells) == p.num_wells
+
+    for dr in drugs:
+        wells[dr['well']]['drugs'].append(dr['drug_id'])
+        wells[dr['well']]['doses'].append(dr['dose'])
+
+    plate = {'plateId': p.id,
+             'plateFileId': p.plate_file_id,
+             'numCols': p.width,
+             'numRows': p.height,
+             'wells': wells}
+
+    return_dict = {'success': True, 'plateMap': plate}
+
+    if get_plate_names:
+        pf = Plate.objects.filter(plate_file_id=p.plate_file_id)
+        return_dict['plateNames'] = list(pf.values('id', 'name'))
+
+    return JsonResponse(return_dict)
 
 
 @login_required
@@ -273,6 +319,7 @@ def ajax_create_drug(request):
 
 
 @login_required
+@transaction.atomic
 def ajax_set_timepoints(request):
     # TODO: Respond with appropriate JSON responses under error conditions
     try:
@@ -313,12 +360,12 @@ def plate_designer(request, dataset_id):
 
     pf = PlateFile.objects.filter(dataset_id=dataset_id,
                                   dataset__owner_id=request.user.id,
-                                  process_date=None)
+                                  process_date=None).order_by('id')
 
     if not pf:
         return Http404()
 
-    plates = pf.first().plate_set.all()
+    plates = pf.first().plate_set.order_by('plate_file_id', 'id').all()
 
     current_plate = plates.first()
 

@@ -17,9 +17,9 @@ var pyHTS = window.pyHTS;
 
 pyHTS.util.getAttributeFromObjects = function(listOfObjects, attrName) {
     var attrList = [];
-    for(var i=0; i<listOfObjects.length; i++) {
-        attrList.push(listOfObjects[i][attrName]);
-    }
+    $.each(listOfObjects, function(index, object) {
+        attrList.push(object[attrName]);
+    });
     return attrList;
 };
 
@@ -29,7 +29,7 @@ pyHTS.util.substringMatcher = function(strs) {
         var matches = [];
 
         // regex used to determine if a string contains the substring `q`
-        var substrRegex = new RegExp(q, 'i');
+        var substrRegex = new RegExp(q, "i");
 
         // iterate through the pool of strings and for any string that
         // contains the substring `q`, add it to the `matches` array
@@ -48,7 +48,9 @@ pyHTS.util.arrayDiffPositions = function(x, y) {
     var pos = [];
     $.each(x, function(i, el) {
        var this_pos = pyHTS.util.indexOf(el, y);
-       if(this_pos < 0) pos.push(i);
+       if(this_pos < 0) {
+           pos.push(i);
+       }
     });
     return pos;
 };
@@ -56,15 +58,15 @@ pyHTS.util.arrayDiffPositions = function(x, y) {
 pyHTS.util.deepEqual = function (x, y) {
     if ((typeof x == "object" && x != null) &&
             (typeof y == "object" && y != null)) {
-        if (Object.keys(x).length != Object.keys(y).length)
+        if (Object.keys(x).length != Object.keys(y).length) {
             return false;
+        }
 
         for (var prop in x) {
             if (y.hasOwnProperty(prop)) {
                 if (!pyHTS.util.deepEqual(x[prop], y[prop]))
                     return false;
-            }
-            else
+            } else
                 return false;
         }
 
@@ -87,16 +89,16 @@ pyHTS.util.indexOf = function(needle, haystack) {
     }
 };
 
-pyHTS.util.doseUnits = [[1e-12, 'p'],
-                         [1e-9, 'n'],
-                         [1e-6, 'μ'],
-                         [1e-3, 'm'],
-                         [1, '']];
+pyHTS.util.doseUnits = [[1e-12, "p"],
+                         [1e-9, "n"],
+                         [1e-6, "μ"],
+                         [1e-3, "m"],
+                         [1, ""]];
 
 pyHTS.util.doseFormatter = function(dose) {
-    if(dose === undefined) return 'None';
+    if(dose === undefined) return "None";
     var doseMultiplier = 1;
-    var doseSuffix = '';
+    var doseSuffix = "";
     for(var i=0; i<pyHTS.util.doseUnits.length; i++) {
         if(dose >= pyHTS.util.doseUnits[i][0]) {
             doseMultiplier = pyHTS.util.doseUnits[i][0];
@@ -104,8 +106,8 @@ pyHTS.util.doseFormatter = function(dose) {
         }
     }
 
-    return (parseFloat((dose / doseMultiplier).toPrecision(12)) + ' ' +
-           doseSuffix + 'M');
+    return (parseFloat((dose / doseMultiplier).toPrecision(12)) + " " +
+           doseSuffix + "M");
 };
 
 pyHTS.util.doseParser = function(dose) {
@@ -122,14 +124,14 @@ pyHTS.util.doseParser = function(dose) {
         }
     }
     var val = parseFloat(doseParts[0]) * multiplier;
-    // console.log(dose + ' parsed as ' + val);
+    // console.log(dose + " parsed as " + val);
     return val;
 };
 
 pyHTS.util.doseSorter = {
    "doses-pre": function(dose) {
        //TODO: Sort when multiple doses are present
-       dose = dose.split('<br>');
+       dose = dose.split("<br>");
        return pyHTS.util.doseParser(dose[0]);
    }
 };
@@ -145,15 +147,21 @@ pyHTS.util.filterObjectsAttr = function(name, dataSource,
 };
 
 pyHTS.util.padNum = function(num, size) {
-    var s = num + '';
-    while (s.length < size) s = '0' + s;
+    var s = num + "";
+    while (s.length < size) s = "0" + s;
     return s;
 };
 
-pyHTS.classes.Well = function() {
-    this.cellLine = null;
-    this.drugs = null;
-    this.doses = null;
+pyHTS.classes.Well = function(well) {
+    if(well === undefined) {
+        this.cellLine = null;
+        this.drugs = null;
+        this.doses = null;
+    } else {
+        this.cellLine = well.cellLine;
+        this.drugs = well.drugs;
+        this.doses = well.doses;
+    }
 };
 pyHTS.classes.Well.prototype = {
     constructor: pyHTS.classes.Well,
@@ -170,13 +178,14 @@ pyHTS.classes.Well.prototype = {
     }
 };
 
-pyHTS.classes.PlateMap = function(plateId, numRows, numCols) {
+pyHTS.classes.PlateMap = function(plateId, numRows, numCols, wells) {
     this.plateId = plateId;
     this.numRows = numRows;
     this.numCols = numCols;
     this.wells = [];
     for (var w = 0; w < (numRows * numCols); w++) {
-        this.wells.push(new pyHTS.classes.Well());
+        this.wells.push(wells === undefined ?
+            new pyHTS.classes.Well() : new pyHTS.classes.Well(wells[w]));
     }
 };
 pyHTS.classes.PlateMap.prototype = {
@@ -186,7 +195,9 @@ pyHTS.classes.PlateMap.prototype = {
 
         for(var i=0; i<this.wells.length; i++) {
             var ent = this.wells[i][entry_list];
-            if(ent == null) continue;
+            if (ent == null || (typeof ent == "object" && !ent.length)) {
+               continue;
+            }
 
             if(pyHTS.util.indexOf(ent, usedEntries) == -1) {
                 usedEntries.push(ent);
@@ -195,13 +206,13 @@ pyHTS.classes.PlateMap.prototype = {
         return usedEntries;
     },
     getUsedCellLines: function() {
-        return this.getUsedEntries('cellLine');
+        return this.getUsedEntries("cellLine");
     },
     getUsedDrugs: function() {
-        return this.getUsedEntries('drugs');
+        return this.getUsedEntries("drugs");
     },
     getUsedDoses: function() {
-        return this.getUsedEntries('doses');
+        return this.getUsedEntries("doses");
     },
     wellNumToName: function(wellNum) {
         return String.fromCharCode(65 + Math.floor(wellNum / this.numCols)) +
@@ -214,11 +225,11 @@ pyHTS.classes.PlateMap.prototype = {
                this.wellNumToName(w),
                pyHTS.util.filterObjectsAttr(this.wells[w].cellLine,
                                             pyHTS.cell_lines,
-                                            'id', 'name').toString().replace(/^-1$/, ''),
+                                            "id", "name").toString().replace(/^-1$/, ""),
                $.map(this.wells[w].drugs, function(drug) {
-                   return pyHTS.util.filterObjectsAttr(drug, pyHTS.drugs, 'id', 'name').toString().replace(/^-1$/, 'None');
-               }).join('<br>'),
-               $.map(this.wells[w].doses, pyHTS.util.doseFormatter).join('<br>')
+                   return pyHTS.util.filterObjectsAttr(drug, pyHTS.drugs, "id", "name").toString().replace(/^-1$/, "None");
+               }).join("<br>"),
+               $.map(this.wells[w].doses, pyHTS.util.doseFormatter).join("<br>")
             ]);
         }
         return wells;
@@ -227,29 +238,29 @@ pyHTS.classes.PlateMap.prototype = {
 
 pyHTS.ui.okCancelModal = function(title, text, success_callback,
                              cancel_callback, closed_callback) {
-    var mok = '#modal-ok-cancel';
+    var mok = "#modal-ok-cancel";
     if(cancel_callback !== undefined) {
-        $(mok).find('.btn-cancel').show();
+        $(mok).find(".btn-cancel").show();
     } else {
-        $(mok).find('.btn-cancel').hide();
+        $(mok).find(".btn-cancel").hide();
     }
-    $(mok).find('.modal-header').text(title);
-    $(mok).find('.modal-body').html(text);
-    $(mok).data('success', false);
-    $('#modal-ok-cancel .btn-ok').off('click').on('click', function (e) {
-        $(mok).data('success', true);
-        $('#modal-ok-cancel').modal('hide');
+    $(mok).find(".modal-header").text(title);
+    $(mok).find(".modal-body").html(text);
+    $(mok).data("success", false);
+    $("#modal-ok-cancel .btn-ok").off("click").on("click", function (e) {
+        $(mok).data("success", true);
+        $("#modal-ok-cancel").modal("hide");
     });
-    $(mok).off('shown.bs.model').on('shown.bs.modal', function() {
-        $('#modal-ok-cancel .btn-ok').focus();
-    }).off('hide.bs.modal').on('hide.bs.modal', function(e) {
-        if(success_callback !== undefined && $(mok).data('success')) {
+    $(mok).off("shown.bs.model").on("shown.bs.modal", function() {
+        $("#modal-ok-cancel .btn-ok").focus();
+    }).off("hide.bs.modal").on("hide.bs.modal", function(e) {
+        if(success_callback !== undefined && $(mok).data("success")) {
             success_callback(e);
         } else if(cancel_callback !== undefined &&
                   cancel_callback !== null) {
             cancel_callback(e);
         }
-    }).off('hidden.bs.modal').on('hidden.bs.modal', closed_callback).modal();
+    }).off("hidden.bs.modal").on("hidden.bs.modal", closed_callback).modal();
 };
 
 pyHTS.ui.okModal = function(title, text, closed_callback) {

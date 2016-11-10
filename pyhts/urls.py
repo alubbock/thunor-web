@@ -10,8 +10,9 @@ urlpatterns = [
     url(r'^annotate/(?P<dataset_id>\d+)$', views.plate_designer,
         name='plate_designer'),
 
-    url(r'^ajax/plate/(?P<file_id>\d+)$', views.ajax_get_plates,
-        name='ajax_plate_names'),
+    # url(r'^ajax/plate_file/(?P<file_id>\d+)$', views.ajax_get_plates,
+    #     name='ajax_plate_names'),
+
     url(r'^ajax/plate/table_view', views.ajax_table_view,
         name='ajax_table_view'),
     url(r'^ajax/plate/save', views.ajax_save_plate,
