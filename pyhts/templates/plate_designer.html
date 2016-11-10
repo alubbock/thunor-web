@@ -8,7 +8,7 @@
 {# Plate Designer #}
 <div class="row">
     <div class="col-lg-9 col-md-9 col-sm-12 col-xs-12">
-    <div class="panel panel-default" style="width:52em;">
+    <div class="panel panel-default" id="hts-plate-panel">
     <div class="panel-heading">
         <div class="pull-right" role="group">
             <button id="hts-prev-dataset" type="button" class="btn btn-default"
@@ -72,10 +72,10 @@
             View</a></li>
     </ul>
 
-    <div id="hts-well-plate" class="panel-body" style="width:52em;padding:1em">
-
+    <div id="hts-well-plate" class="panel-body">
+        <div id="hts-well-plate-inner">
             <ol id="selectable-well-all" class="welllist" data-last="">
-                <li id="well-all" class="well ui-state-default">&nbsp;</li>
+                <li id="well-all" class="hts-well ui-state-default">&nbsp;</li>
             </ol>
 
             <ol id="selectable-well-cols" class="welllist">
@@ -84,23 +84,24 @@
                 {% endfor %}
             </ol>
 
-            <div id="rowlabels">
-                <ol id="selectable-well-rows" class="welllist">
-                    {% for row in current_plate.row_iterator %}
-                        <li id="data{{ row }}" data-row="{{ row }}"
-                        class="row">{{ row }}</li>
-                    {% endfor %}
-                </ol>
-            </div>
+{#            <div id="rowlabels">#}
+            <ol id="selectable-well-rows" class="welllist">
+                {% for row in current_plate.row_iterator %}
+                    <li id="data{{ row }}" data-row="{{ row }}"
+                    class="row">{{ row }}</li>
+                {% endfor %}
+            </ol>
+{#            </div>#}
 
             <ol id="selectable-wells" class="welllist hts-overview">
                 {% for well in current_plate.well_iterator %}
                     <li data-well="{{ well.well }}"
                         data-col="{{ well.col }}"
                         data-row="{{ well.row }}"
-                        class="ui-state-default well"></li>
+                        class="ui-state-default hts-well"></li>
                 {% endfor %}
             </ol>
+        </div>
     </div>
 
     <div id="hts-well-table-view" class="panel-body">
@@ -170,7 +171,7 @@
             </div>
             <div id="hts-legend-container" class="panel-body hts-overview">
                 <ol class="welllist well-legend">
-                    <li class="well ui-state-default"></li>
+                    <li class="hts-well ui-state-default"></li>
                         <span class="legend-label">Unannotated</span>
                     </ol>
                 <div id="legend-cell-lines"></div>
@@ -178,36 +179,37 @@
                 <div id="legend-doses"></div>
                 <div id="legend-overview">
                 <ol class="welllist well-legend">
-                    <li class="well ui-state-default hts-cell-line"></li>
+                    <li class="hts-well ui-state-default hts-cell-line"></li>
                         Cell Line
                 </ol>
                 <ol class="welllist well-legend">
-                    <li class="well ui-state-default hts-drug"></li>
+                    <li class="hts-well ui-state-default hts-drug"></li>
                         Drug
                 </ol>
                 <ol class="welllist well-legend">
-                    <li class="well ui-state-default hts-dose"></li>
+                    <li class="hts-well ui-state-default hts-dose"></li>
                         Dose
                 </ol>
                 <ol class="welllist well-legend">
-                    <li class="well ui-state-default hts-cell-line
+                    <li class="hts-well ui-state-default hts-cell-line
                     hts-drug"></li>
                         Cell Line and Drug<br />
                         <small>(dose missing)</small>
                 </ol>
                 <ol class="welllist well-legend">
-                    <li class="well ui-state-default hts-cell-line
+                    <li class="hts-well ui-state-default hts-cell-line
                     hts-dose"></li>
                         Cell Line and Dose<br />
                         <small>(drug missing)</small>
                 </ol>
                 <ol class="welllist well-legend">
-                    <li class="well ui-state-default hts-drug hts-dose"></li>
+                    <li class="hts-well ui-state-default hts-drug
+                    hts-dose"></li>
                         Drug and Dose<br />
                         <small>(cell line missing)</small>
                 </ol>
                 <ol class="welllist well-legend">
-                    <li class="well ui-state-default hts-cell-line
+                    <li class="hts-well ui-state-default hts-cell-line
                     hts-drug hts-dose"></li>
                         Fully annotated
                 </ol>
@@ -332,7 +334,7 @@ $(function () {
       for(var i=0;i<pyHTS.plateMap.wells.length;i++) {
           wellIds.push(i);
       }
-      var selectedWells = $('#selectable-wells .well');
+      var selectedWells = $('#selectable-wells .hts-well');
       refreshView(selectedWells, wellIds);
     };
 
@@ -680,10 +682,10 @@ $(function () {
 
     {# Well selection #}
     $("#well-all").click(function () {
-        if ($('.well.ui-selected').length) {
-            $('#well-all,.well').removeClass('ui-selected');
+        if ($('.hts-well.ui-selected').length) {
+            $('#well-all,.hts-well').removeClass('ui-selected');
         } else {
-            $('#well-all,.well').addClass('ui-selected');
+            $('#well-all,.hts-well').addClass('ui-selected');
         }
         pyHTS.last_edited = 'all';
     });
@@ -691,7 +693,7 @@ $(function () {
     $('#selectable-well-rows').selectable({
         start: function (event, ui) {
             if (pyHTS.last_edited != 'row')
-                $('.well').removeClass('ui-selected');
+                $('.hts-well').removeClass('ui-selected');
             pyHTS.last_edited = 'row';
         },
         selecting: function (event, ui) {
@@ -707,7 +709,7 @@ $(function () {
     $('#selectable-well-cols').selectable({
         start: function (event, ui) {
             if (pyHTS.last_edited != 'col')
-                $('.well').removeClass('ui-selected');
+                $('.hts-well').removeClass('ui-selected');
             pyHTS.last_edited = 'col';
         },
         selecting: function (event, ui) {
@@ -743,7 +745,7 @@ $(function () {
     });
 
     // Mouseovers
-    $('#selectable-wells .well').mouseenter(function(e) {
+    $('#selectable-wells .hts-well').mouseenter(function(e) {
         var well = $(this).data('well');
         var wellData = pyHTS.plateMap.wells[well];
         if(wellData == null) return;
