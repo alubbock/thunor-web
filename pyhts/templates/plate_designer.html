@@ -23,7 +23,7 @@
                         </button>
         </div>
 
-        <div class="dropdown" style="display:inline-block">
+        <div class="dropdown" style="display:inline-block" id="hts-platefile-dropdown">
             <button class="btn btn-default dropdown-toggle" type="button"
                     id="hts-select-platefile" data-toggle="dropdown"
                     aria-haspopup="true" aria-expanded="true">
@@ -34,6 +34,8 @@
             </button>
             <ul class="dropdown-menu" id="hts-platefile-list"
                 aria-labelledby="hts-select-platefile">
+                <li data-id="MASTER" class="bg-success"><a href="#">Master
+                    template</a></li>
                 {% for pf in plate_files %}
                 <li data-id="{{ pf.id }}">
                     <a href="#">{{ pf.file.name }}</a>
@@ -42,7 +44,7 @@
             </ul>
         </div>
 
-        <div class="dropdown" style="display:inline-block">
+        <div class="dropdown" style="display:inline-block" id="hts-plate-dropdown">
             <button class="btn btn-default dropdown-toggle" type="button"
                     id="hts-select-plate" data-toggle="dropdown"
                     aria-haspopup="true" aria-expanded="true">
@@ -241,6 +243,9 @@ $(function () {
 
     pyHTS.plateMap = new pyHTS.classes.PlateMap({{ current_plate.id }},
     {{ current_plate.height }}, {{ current_plate.width }});
+
+    pyHTS.plateMapMaster = new pyHTS.classes.PlateMap("MASTER",
+            {{ current_plate.height }}, {{ current_plate.width }});
 
     pyHTS.cell_lines = {{ cell_lines|jsonify }};
     pyHTS.drugs = {{ drugs|jsonify }};
@@ -780,6 +785,27 @@ $(function () {
         $('.hts-dose-input').attr('placeholder', 'Dose');
     });
 
+    var wellDataIsEmpty = function(wellData) {
+        for(var w=0; w<wellData.length; w++) {
+            if(wellData[w].cellLine != null ||
+               (wellData[w].drugs != null && wellData[w].drugs.length > 0) ||
+               (wellData[w].doses != null && wellData[w].doses.length > 0)) {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    var populateWellDataFromTemplate = function(wellData) {
+        for(var w=0; w<wellData.length; w++) {
+            wellData[w].cellLine = pyHTS.plateMapMaster.wells[w].cellLine;
+            wellData[w].drugs = pyHTS.plateMapMaster.wells[w].drugs != null ?
+                    pyHTS.plateMapMaster.wells[w].drugs.slice() : null;
+            wellData[w].doses = pyHTS.plateMapMaster.wells[w].doses != null ?
+                    pyHTS.plateMapMaster.wells[w].doses.slice() : null;
+        }
+    };
+
     // Loading and saving plates
     var plateLoadedCallback = function (data) {
         if(data.success) {
@@ -800,6 +826,9 @@ $(function () {
 
                 $('#hts-current-plate').data('id', data.plateMap.plateId).text(plateName);
                 $('#hts-select-plate').removeClass('disabled');
+            }
+            if(wellDataIsEmpty(data.plateMap.wells)) {
+                populateWellDataFromTemplate(data.plateMap.wells);
             }
             pyHTS.unsaved_changes = false;
             pyHTS.plateMap = new pyHTS.classes.PlateMap(
@@ -847,37 +876,23 @@ $(function () {
         var plateFileName = $('#hts-platefile-list ' +
                 'li[data-id='+plateFileId+']').find('a').text();
         var getPlateNames = false;
-        if($('#hts-current-file').data('id') != plateFileId) {
-            getPlateNames = true;
+        var currentPlateFileId = $('#hts-current-file').data('id');
+        if(currentPlateFileId != plateFileId) {
             $('#hts-current-file').data('id', plateFileId).text(plateFileName);
             $('#hts-platefile-list li').removeClass('active').filter
             ('[data-id='+plateFileId+']').addClass('active');
 
-            $('#hts-current-plate').html('<emph>Loading...</emph>');
-            $('#hts-select-plate').addClass('disabled');
-
-{#            $.getJSON('/ajax/plate_file/'+plateFileId, function(data) {#}
-{#                if(plateId == null) {#}
-{#                  plateId = data.plates[0].id;#}
-{#                }#}
-{#                var plateName = null;#}
-{#                var items = [];#}
-{#                $.each(data.plates, function(key, val) {#}
-{#                    var activeClass = '';#}
-{#                    if(val.id == plateId) {#}
-{#                        plateName = val.name;#}
-{#                        activeClass = ' class="active"';#}
-{#                    }#}
-{#                    items.push('<li data-id="'+val.id+'"'+activeClass+'><a ' +#}
-{#                            'href="#">'+val.name+'</a></li>');#}
-{#                });#}
-{#                $('#hts-plate-list').html(items.join(""));#}
-{#                attach_plate_li_click();#}
-{##}
-{#                $('#hts-current-plate').text(data.plates[0].name);#}
-{#                $('#hts-select-plate').removeClass('disabled');#}
-{#             });#}
-        } else {
+            if(plateFileId != 'MASTER') {
+                getPlateNames = true;
+                $('#hts-select-platefile').removeClass('btn-success');
+                $('#hts-plate-dropdown').show();
+                $('#hts-current-plate').html('<emph>Loading...</emph>');
+                $('#hts-select-plate').addClass('disabled');
+            } else {
+                $('#hts-select-platefile').addClass('btn-success');
+                $('#hts-plate-dropdown').hide();
+            }
+        } else if (plateFileId != 'MASTER') {
             // we're on the correct platefile
             $('#hts-plate-list li').removeClass('active').filter
             ('[data-id='+plateId+']').addClass('active');
@@ -886,21 +901,28 @@ $(function () {
             $('#hts-current-plate').data('id', plateId).text(plateName);
         }
 
-        if(pyHTS.unsaved_changes) {
+        if (currentPlateFileId != 'MASTER' && pyHTS.unsaved_changes) {
             pyHTS.ajax.savePlate(plateId, getPlateNames);
-        } else {
+        } else if (plateFileId != 'MASTER') {
             pyHTS.ajax.loadPlate(plateId, getPlateNames);
         }
 
-        if(prevPlatePos() != null) {
-            $('#hts-prev-dataset').show();
+        if (plateFileId == 'MASTER') {
+            pyHTS.unsaved_changes = false;
+            pyHTS.plateMap = pyHTS.plateMapMaster;
+            pyHTS.ui.refreshViewAll();
+            $('#hts-prev-dataset,#hts-next-dataset').hide();
         } else {
-            $('#hts-prev-dataset').hide();
-        }
-        if(nextPlatePos() != null) {
-            $('#hts-next-dataset').show();
-        } else {
-            $('#hts-next-dataset').hide();
+            if (prevPlatePos() != null) {
+                $('#hts-prev-dataset').show();
+            } else {
+                $('#hts-prev-dataset').hide();
+            }
+            if (nextPlatePos() != null) {
+                $('#hts-next-dataset').show();
+            } else {
+                $('#hts-next-dataset').hide();
+            }
         }
     };
 
@@ -916,6 +938,9 @@ $(function () {
     };
 
     var firstPlatePos = function(plateFileId) {
+        if(plateFileId == 'MASTER') {
+            return -1;
+        }
         var plateFileIndex = $.inArray(plateFileId, pyHTS.plateFiles);
         return pyHTS.plates[plateFileIndex][0];
     };
