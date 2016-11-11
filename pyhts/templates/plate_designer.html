@@ -251,7 +251,7 @@ $(function () {
     pyHTS.drugs = {{ drugs|jsonify }};
 
     pyHTS.plateFiles = [{% for pf in plate_files %}{{ pf.id }}{% if not forloop.last %},{% endif %}{% endfor %}];
-    pyHTS.plates = [[{% for pl in plates %}{{ pl.id }}{% if pl.change_file %}],[{% elif not forloop.last %},{% endif %}{% endfor %}]];
+    pyHTS.plates = [{% for pf in plates_nested %}[{% for pl in pf %}{{ pl.id }}{% if not forloop.last %},{% endif %}{% endfor %}]{% if not forloop.last %},{% endif %}{% endfor %}];
 
 {#    /**#}
 {#     * Insert a string into the next free entry in an array#}
@@ -321,7 +321,7 @@ $(function () {
     $('#hts-platefile-list li').click(function(e){
         e.preventDefault();
         var plateFileId = $(this).data('id');
-        setPlate(plateFileId, firstPlatePos(plateFileId));
+        setPlate(plateFileId, firstPlateId(plateFileId));
     });
 
     var attach_plate_li_click = function() {
@@ -972,7 +972,7 @@ $(function () {
         alert('Plate position not found! Plate ID: ' + currentPlateId);
     };
 
-    var firstPlatePos = function(plateFileId) {
+    var firstPlateId = function(plateFileId) {
         if(plateFileId == 'MASTER') {
             return -1;
         }

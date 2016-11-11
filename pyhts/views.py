@@ -168,6 +168,7 @@ def ajax_save_plate(request):
 
     # Get the used cell lines and drugs
     # TODO: Maybe add a permission model to these
+    # TODO: Validate supplied cell line and drug IDs?
     # cell_line_ids = set([well['cellLine'] for well in wells])
     # cell_lines = dict(CellLine.objects.filter(
     #     id__in=cell_line_ids).values_list(
@@ -368,15 +369,21 @@ def plate_designer(request, dataset_id):
     plates = list(Plate.objects.filter(plate_file__dataset_id=dataset_id).
                   order_by('plate_file_id', 'id'))
 
-    last_platefile = plates[0].plate_file_id
     all_plates = [{'id': p.id, 'name': p.name,
                    'plate_file_id': p.plate_file_id} for p in plates]
+
+    # build a list of plates nested by plate file
+    plates_nested = []
+    plates_level = []
+    last_platefile = all_plates[0]['plate_file_id']
     for i, pl in enumerate(all_plates):
         if pl['plate_file_id'] != last_platefile:
-            pl['change_file'] = True
             last_platefile = pl['plate_file_id']
-
-    print(all_plates)
+            plates_nested.append(plates_level)
+            plates_level = []
+        plates_level.append(pl)
+    # final append
+    plates_nested.append(plates_level)
 
     current_plate = plates[0]
 
@@ -386,6 +393,7 @@ def plate_designer(request, dataset_id):
         'current_plate': current_plate,
         'plate_files': pf,
         'plates': all_plates,
+        'plates_nested': plates_nested,
         'cell_lines': list(CellLine.objects.all().values('id', 'name')),
         'drugs': list(Drug.objects.all().values('id', 'name'))
     })
