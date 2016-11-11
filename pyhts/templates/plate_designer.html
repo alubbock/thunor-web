@@ -151,6 +151,7 @@
                               <li data-dose="1e-9"><a href="#">nM</a></li>
                               <li data-dose="1e-6"><a href="#">&mu;M</a></li>
                               <li data-dose="1e-3"><a href="#">mM</a></li>
+                              <li data-dose="1"><a href="#">M</a></li>
                             </ul>
                         </div>
                     </div>
@@ -658,20 +659,7 @@ $(function () {
     $('#hts-well-table').click(function(e) {
         // deselect any selected wells
         $('.hts-well.ui-selected').removeClass('ui-selected');
-        //TODO: Better loading indicator?
         //$('#hts-well-table-view').html('<em>Loading...</em>');
-{#        $.ajax({#}
-{#            url: '/ajax/plate/table_view',#}
-{#            data: JSON.stringify(pyHTS.plateMap),#}
-{#            type: 'POST',#}
-{#            headers: {#}
-{#                  'X-CSRFToken': '{{ csrf_token }}'#}
-{#            },#}
-{#            success: function(data) {#}
-{#                $('#hts-well-table-view').html(data).find('table').DataTable#}
-{#                ({'paging':false, columnDefs: [ {type: 'doses', targets: 3}]});#}
-{#            }#}
-{#        });#}
         $('#hts-well-table-view .loading-indicator').show();
 
         $('#hts-well-table-view table').DataTable({
@@ -714,11 +702,77 @@ $(function () {
     $.extend( $.fn.dataTableExt.oSort, pyHTS.util.doseSorter );
 
     {# Well selection #}
+        var updateInputsWithWellData = function() {
+        var i;
+        var cellLines = [], drugs = [], doses = [];
+        var $cellLineTypeahead = $('#cellline-typeahead');
+        var $drugTypeahead = $('.hts-drug-typeahead').not('.tt-hint');
+        var numDrugs = $drugTypeahead.length;
+        for(i=0; i<numDrugs; i++) {
+            drugs.push([]);
+        }
+        var $doseInput = $('.hts-dose-input');
+        var numDoses = $doseInput.length;
+        for(i=0; i<numDoses; i++) {
+            doses.push([]);
+        }
+
+        $('#selectable-wells').find('.ui-selected').each(function(i, ele){
+            var well = pyHTS.plateMap.wells[$(ele).data('well')];
+            cellLines.push(well.cellLine);
+            for(i=0; i<numDrugs; i++) {
+                drugs[i].push(well.drugs ? well.drugs[i] : null);
+            }
+            for(i=0; i<numDoses; i++) {
+                doses[i].push(well.doses ? well.doses[i] : null);
+            }
+        });
+        cellLines = pyHTS.util.unique(cellLines);
+
+        $cellLineTypeahead.typeahead('val', '');
+        if(cellLines.length == 1 && cellLines[0] != null) {
+            $cellLineTypeahead.typeahead('val', pyHTS.util
+                    .filterObjectsAttr(cellLines[0], pyHTS.cell_lines,
+                            'id', 'name'));
+        } else if(cellLines.length > 1) {
+            $cellLineTypeahead.attr('placeholder', '[Multiple]');
+        }
+
+        $drugTypeahead.typeahead('val', '');
+        for(i=0; i<numDrugs; i++) {
+            var drugsI = pyHTS.util.unique(drugs[i]);
+            if(drugsI.length == 1 && drugsI[0] != null) {
+                $drugTypeahead.filter(':eq('+i+')').typeahead('val',
+                        pyHTS.util.filterObjectsAttr(drugsI[0], pyHTS.drugs, 'id', 'name'));
+            } else if(drugs[i].length > 1) {
+                $drugTypeahead.filter(':eq('+i+')').attr('placeholder', '[Multiple]');
+            }
+        }
+
+        $doseInput.val('');
+        for(i=0; i<numDoses; i++) {
+            var dosesI = pyHTS.util.unique(doses[i]);
+            if(dosesI.length == 1 && dosesI[0] != null) {
+                var doseSplit = pyHTS.util.doseSplitter(dosesI[0]);
+                $doseInput.filter(':eq('+i+')').val(doseSplit[0]);
+                $('.hts-active-dose-unit:eq('+i+')').data('dose',
+                        doseSplit[1]).text(doseSplit[2]);
+            } else {
+                $('.hts-active-dose-unit:eq('+i+')').data('dose', 1e-9).text('nM');
+            }
+
+            if(drugs[i].length > 1) {
+                $drugTypeahead.filter(':eq('+i+')').attr('placeholder', '[Multiple]');
+            }
+        }
+    };
+
     $("#well-all").click(function () {
         if ($('.hts-well.ui-selected').length) {
             $('#well-all,.hts-well').removeClass('ui-selected');
         } else {
             $('#well-all,.hts-well').addClass('ui-selected');
+            updateInputsWithWellData();
         }
         pyHTS.last_edited = 'all';
     });
@@ -736,7 +790,8 @@ $(function () {
         unselecting: function (event, ui) {
             $('*[data-row="' + $(ui.unselecting).data('row') + '"]')
                     .removeClass('ui-selected');
-        }
+        },
+        stop: updateInputsWithWellData
     });
 
     $('#selectable-well-cols').selectable({
@@ -752,13 +807,15 @@ $(function () {
         unselecting: function (event, ui) {
             $('*[data-col="' + $(ui.unselecting).data('col') + '"]')
                     .removeClass('ui-selected');
-        }
+        },
+        stop: updateInputsWithWellData
     });
 
     $("#selectable-wells").selectable({
         start: function (event, ui) {
             pyHTS.last_edited = 'cell';
-        }
+        },
+        stop: updateInputsWithWellData
     });
 
     $('#hts-clear-annotation').click(function() {
@@ -903,6 +960,13 @@ $(function () {
 
     var setPlate = function(plateFileId, plateId) {
         if(plateFileId != 'MASTER') {
+            var plateErrors = pyHTS.plateMap.validate();
+            if(plateErrors) {
+                pyHTS.ui.okModal('Error validating plate map', 'Errors were ' +
+                        'found while validating the plate map: <ul><li>' +
+                        plateErrors.join("</li><li>") + '</li></ul>');
+                return false;
+            }
             pyHTS.ui.loadingModal.show();
         }
         var plateFileName = $('#hts-platefile-list ' +

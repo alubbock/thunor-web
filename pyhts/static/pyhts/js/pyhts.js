@@ -90,6 +90,14 @@ pyHTS.util.indexOf = function(needle, haystack) {
     }
 };
 
+var onlyUnique = function(value, index, self) {
+    return self.indexOf(value) === index;
+};
+
+pyHTS.util.unique = function(array) {
+    return array.filter(onlyUnique);
+};
+
 pyHTS.util.doseUnits = [[1e-12, "p"],
                          [1e-9, "n"],
                          [1e-6, "μ"],
@@ -109,6 +117,25 @@ pyHTS.util.doseFormatter = function(dose) {
 
     return (parseFloat((dose / doseMultiplier).toPrecision(12)) + " " +
            doseSuffix + "M");
+};
+
+/**
+ * Converts a dose to modified number and multiplier
+ * @param dose
+ * @returns {*}
+ */
+pyHTS.util.doseSplitter = function(dose) {
+    if(dose === undefined) return [null, null];
+    var doseMultiplier = 1;
+    var doseSuffix = "";
+    for(var i=0; i<pyHTS.util.doseUnits.length; i++) {
+        if(dose >= pyHTS.util.doseUnits[i][0]) {
+            doseMultiplier = pyHTS.util.doseUnits[i][0];
+            doseSuffix = pyHTS.util.doseUnits[i][1];
+        }
+    }
+
+    return [parseFloat((dose / doseMultiplier).toPrecision(12)), doseMultiplier, doseSuffix + "M"];
 };
 
 pyHTS.util.doseParser = function(dose) {
@@ -247,6 +274,53 @@ pyHTS.classes.PlateMap.prototype = {
             ]);
         }
         return wells;
+    },
+    validate: function() {
+        var wellsWithDrugButNotDose = [], wellsWithDoseButNotDrug = [], errors=[];
+        for(var w=0; w<this.wells.length; w++) {
+            if(this.wells[w].drugs == null && this.wells[w].doses == null) {
+                continue;
+            }
+            if(this.wells[w].drugs != null && this.wells[w].doses == null) {
+                wellsWithDoseButNotDrug.push(this.wellNumToName(w));
+                continue;
+            }
+            if(this.wells[w].drugs == null && this.wells[w].doses != null) {
+                wellsWithDrugButNotDose.push(this.wellNumToName(w));
+                continue;
+            }
+            if(this.wells[w].drugs.length > this.wells[w].doses.length) {
+                wellsWithDrugButNotDose.push(this.wellNumToName(w));
+                continue;
+            }
+            if(this.wells[w].drugs.length < this.wells[w].doses.length) {
+                wellsWithDoseButNotDrug.push(this.wellNumToName(w));
+                continue;
+            }
+            for(var pos=0; pos<this.wells[w].drugs.length; pos++) {
+                if(this.wells[w].drugs[pos] == null && this.wells[w].doses[pos] == null) {
+                    continue;
+                }
+                if(this.wells[w].drugs[pos] != null && this.wells[w].doses[pos] == null) {
+                    wellsWithDrugButNotDose.push(this.wellNumToName(w));
+                }
+                if(this.wells[w].drugs[pos] == null && this.wells[w].doses[pos] != null) {
+                    wellsWithDoseButNotDrug.push(this.wellNumToName(w));
+                }
+            }
+        }
+        if(wellsWithDoseButNotDrug.length > 0) {
+            errors.push("The following wells have one or more doses without" +
+                " a drug: " + wellsWithDoseButNotDrug.join(", "));
+        }
+        if(wellsWithDrugButNotDose.length > 0) {
+            errors.push("The following wells have one or more drugs without" +
+                " a dose: " + wellsWithDrugButNotDose.join(", "));
+        }
+        if(errors.length > 0) {
+            return errors;
+        }
+        return false;
     }
 };
 
