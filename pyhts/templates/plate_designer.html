@@ -340,6 +340,8 @@ $(function () {
           wellIds.push(i);
       }
       var selectedWells = $('#selectable-wells .hts-well');
+
+      pyHTS.ui.setNumberDrugInputs(pyHTS.plateMap.maxDrugsDosesUsed());
       refreshView(selectedWells, wellIds);
     };
 
@@ -432,7 +434,7 @@ $(function () {
             } else if (data_type == "dose") {
                 this_value = pyHTS.plateMap.wells[wellId].doses;
             }
-            if(this_value == null) {
+            if(this_value == null || this_value.length == 0) {
                 $(ele).removeClass('hts-' + data_type);
             } else {
                 var loc = pyHTS.util.indexOf(this_value,
@@ -610,7 +612,7 @@ $(function () {
     };
     activateDrugInputs();
 
-    $('#hts-add-drug').click(function (e) {
+    pyHTS.ui.addDrugInput = function() {
         var orig_el = $('.hts-drug-entry:last');
         var new_el = orig_el.clone(true, false);
         new_el.data().drugNum++;
@@ -620,6 +622,32 @@ $(function () {
         new_el.insertAfter(orig_el);
         $('.hts-drug-num-label').show();
         activateDrugInputs();
+    };
+
+    pyHTS.ui.removeDrugInput = function() {
+        var $drugEntries = $('.hts-drug-entry');
+        var numEntries = $drugEntries.length;
+        if(numEntries > 1) {
+            $drugEntries.filter(':last').remove();
+        }
+        if(numEntries == 2) {
+            $('.hts-drug-num-label').hide();
+        }
+    };
+
+    pyHTS.ui.setNumberDrugInputs = function(numInputs) {
+        var requiredInputs = numInputs - $('.hts-drug-entry').length;
+        for(var i=0; i<Math.abs(requiredInputs); i++) {
+            if (requiredInputs < 0) {
+                pyHTS.ui.removeDrugInput();
+            } else if (requiredInputs > 0) {
+                pyHTS.ui.addDrugInput();
+            }
+        }
+    };
+
+    $('#hts-add-drug').click(function (e) {
+        pyHTS.ui.addDrugInput();
     });
 
     {# Change plate view #}
@@ -629,7 +657,7 @@ $(function () {
     $('#hts-well-doses').click(function(e) { setWellView(e,'doses'); });
     $('#hts-well-table').click(function(e) {
         // deselect any selected wells
-        $('.well.ui-selected').removeClass('ui-selected');
+        $('.hts-well.ui-selected').removeClass('ui-selected');
         //TODO: Better loading indicator?
         //$('#hts-well-table-view').html('<em>Loading...</em>');
 {#        $.ajax({#}
@@ -838,6 +866,7 @@ $(function () {
                     data.plateMap.wells
             );
             pyHTS.ui.refreshViewAll();
+            pyHTS.ui.loadingModal.hide();
         }
     };
 
@@ -873,11 +902,15 @@ $(function () {
     };
 
     var setPlate = function(plateFileId, plateId) {
+        if(plateFileId != 'MASTER') {
+            pyHTS.ui.loadingModal.show();
+        }
         var plateFileName = $('#hts-platefile-list ' +
                 'li[data-id='+plateFileId+']').find('a').text();
         var getPlateNames = false;
         var currentPlateFileId = $('#hts-current-file').data('id');
         if(currentPlateFileId != plateFileId) {
+            // change the plate file
             $('#hts-current-file').data('id', plateFileId).text(plateFileName);
             $('#hts-platefile-list li').removeClass('active').filter
             ('[data-id='+plateFileId+']').addClass('active');
@@ -901,12 +934,14 @@ $(function () {
             $('#hts-current-plate').data('id', plateId).text(plateName);
         }
 
+        // save current data if necessary
         if (currentPlateFileId != 'MASTER' && pyHTS.unsaved_changes) {
             pyHTS.ajax.savePlate(plateId, getPlateNames);
         } else if (plateFileId != 'MASTER') {
             pyHTS.ajax.loadPlate(plateId, getPlateNames);
         }
 
+        // update the UI
         if (plateFileId == 'MASTER') {
             pyHTS.unsaved_changes = false;
             pyHTS.plateMap = pyHTS.plateMapMaster;
