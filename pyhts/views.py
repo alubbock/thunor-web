@@ -7,14 +7,15 @@ from .forms import CentredAuthForm, PlateFileForm
 from django.views.generic.edit import FormView
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.core.exceptions import ObjectDoesNotExist
-from django.db import IntegrityError, transaction
+from django.db.utils import IntegrityError
+from django.db import transaction
 from django.db.models import F
-from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, PlateMap, \
+from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, \
     WellCellLine, WellMeasurement, WellDrug
 import json
-from helpers import guess_timepoint_hrs
-from plate_parsers import parse_platefile_readerX
+from .plate_parsers import parse_platefile, PlateFileParseException
 import numpy as np
+from datetime import timedelta
 
 HOURS_TO_SECONDS = 3600
 
@@ -28,15 +29,6 @@ def _handle_login(request):
     else:
         form = CentredAuthForm()
     return render(request, 'registration/login.html', {'form': form})
-
-
-def parse_platefile(pf):
-    # TODO: Ensure file isn't too big, check filetype etc.
-    file_timepoint_guess = guess_timepoint_hrs(pf.name)
-
-    pd = pf.read()
-    return parse_platefile_readerX(pd, quick_parse=False,
-                                   file_timepoint_guess_hrs=file_timepoint_guess)
 
 
 def home(request):
@@ -80,48 +72,22 @@ class PlateUpload(FormView):
                 return JsonResponse({'success': False, 'errors':
                                     form.errors.as_json()})
 
-            file_status = {}
+            file_status = []
             for f in files:
-                    plates = parse_platefile(f)
-                    tpf = PlateFile(dataset=dataset, file=f)
-                    tpf.save()
-                    well_measurements = []
-                    for p in plates:
-                        print('processing plate '+p['name'] + ' ' +
-                              str(datetime.now()))
-                        plate = Plate(plate_file=tpf,
-                                      name=p['name'],
-                                      width=p['well_cols'],
-                                      height=p['well_rows'])
-                        plate.save()
-                        p['id'] = plate.id
-                        print(plate.id)
-
-                        # Create wells
-                        for assay_name, values in p['well_values'].items():
-                            for pos, wv in enumerate(values):
-                                well_measurements.append(WellMeasurement(
-                                    plate_id=plate.id,
-                                    well=pos,
-                                    assay=assay_name,
-                                    value=wv
-                                ))
-
-                        del p['well_values']
-
-                    WellMeasurement.objects.bulk_create(well_measurements)
-
+                try:
+                    parse_platefile(f, dataset=dataset)
                     response['success'] = True
-                    file_status[tpf.id] = {'success': True,
-                                           'name': f.name,
-                                           'message': '{} plates detected'
-                                                      .format(len(plates)),
-                                           'plates': plates
-                                           }
-                # except ValueError as ve:
-                #     file_status['_failed'] = {'success': False,
-                #                               'name': f.name,
-                #                               'message': ve.message}
+                    file_status.append({'success': True,
+                                        # 'id': -1,
+                                        'name': f.name,
+                                        'message': 'File loaded successfully'
+                                        })
+                except PlateFileParseException as pfpe:
+                    file_status.append({'success': False,
+                                        'name': f.name,
+                                        'message': str(pfpe)})
+                    continue
+
             response['files'] = file_status
             print('returning response ' + str(datetime.now()))
             return JsonResponse(response)
@@ -137,37 +103,35 @@ class PlateUpload(FormView):
 #     return JsonResponse({'plates': list(pf.values('id', 'name'))})
 
 
+# @login_required
+# def ajax_table_view(request):
+#     plate_data = json.loads(request.body)
+#     well_iterator = PlateMap(width=int(plate_data['numCols']),
+#                              height=int(plate_data['numRows'])).well_iterator()
+#     wells = plate_data['wells']
+#
+#     for well in well_iterator:
+#         wells[well['well']]['wellName'] = '{}{:02d}'.format(well['row'],
+#                                                             well['col'])
+#
+#     return TemplateResponse(request, 'plate_table_view.html',
+#                             {'wells': wells})
+
+
 @login_required
-def ajax_table_view(request):
-    plate_data = json.loads(request.body)
-    well_iterator = PlateMap(width=int(plate_data['numCols']),
-                             height=int(plate_data['numRows'])).well_iterator()
-    wells = plate_data['wells']
-
-    for well in well_iterator:
-        wells[well['well']]['wellName'] = '{}{:02d}'.format(well['row'],
-                                                            well['col'])
-
-    return TemplateResponse(request, 'plate_table_view.html',
-                            {'wells': wells})
-
-
-@login_required
-@transaction.atomic
 def ajax_save_plate(request):
-    plate_data = json.loads(request.body)
+    plate_data = json.loads(request.body.decode(request.encoding))
     plate_id = int(plate_data['plateId'])
     wells = plate_data['wells']
 
     # Check permissions
     try:
         p = Plate.objects.get(id=plate_id,
-                          plate_file__dataset__owner_id=request.user.id)
+                              dataset__owner_id=request.user.id)
     except ObjectDoesNotExist:
         return Http404()
 
     # Get the used cell lines and drugs
-    # TODO: Maybe add a permission model to these
     # TODO: Validate supplied cell line and drug IDs?
     # cell_line_ids = set([well['cellLine'] for well in wells])
     # cell_lines = dict(CellLine.objects.filter(
@@ -204,12 +168,12 @@ def ajax_save_plate(request):
     except IntegrityError:
         # Do update instead
         cell_line_ids = [well['cellLine'] for well in wells]
-        (unq_cl, cl_which) = np.unique(cell_line_ids, return_inverse=True)
-        for idx, cl_id in enumerate(unq_cl):
+        for cl_id in set(cell_line_ids):
             WellCellLine.objects.filter(
                 plate_id=plate_id,
-                well__in=np.where(cl_which == idx)[0]).update(cell_line_id=
-                                                                 cl_id)
+                well__in=np.where([this_id == cl_id for this_id in
+                                   cell_line_ids])[0]).update(
+                                                        cell_line_id=cl_id)
 
     # Since we don't know how many drugs in each well there were previously
     # in the case of an update, the easy
@@ -240,9 +204,7 @@ def ajax_save_plate(request):
 
     if plate_data.get('loadNext', None):
         next_plate_id = plate_data['loadNext']
-        get_plate_names = plate_data.get('getPlateNames', False)
-        return ajax_load_plate(request, plate_id=next_plate_id,
-                               get_plate_names=get_plate_names)
+        return ajax_load_plate(request, plate_id=next_plate_id)
     else:
         return JsonResponse({'success': True})
 
@@ -254,7 +216,7 @@ def ajax_load_plate(request, plate_id, get_plate_names=False):
     if 'getPlateNames' in request.GET:
         get_plate_names = True
     p = Plate.objects.get(id=plate_id,
-                          plate_file__dataset__owner_id=request.user.id)
+                          dataset__owner_id=request.user.id)
     if not p:
         # TODO: Replace 404 with JSON
         raise Http404()
@@ -362,38 +324,34 @@ def plate_designer(request, dataset_id):
         raise Http404()
     dataset_name = dset.name
 
-    pf = list(PlateFile.objects.filter(dataset_id=dataset_id,
-                                       dataset__owner_id=request.user.id,
-                                       process_date=None).order_by('id'))
+    # pf = list(PlateFile.objects.filter(dataset_id=dataset_id,
+    #                                    dataset__owner_id=request.user.id,
+    #                                    process_date=None).order_by('id'))
 
-    plates = list(Plate.objects.filter(plate_file__dataset_id=dataset_id).
-                  order_by('plate_file_id', 'id'))
+    plates = list(Plate.objects.filter(dataset_id=dataset_id).order_by('id'))
 
-    all_plates = [{'id': p.id, 'name': p.name,
-                   'plate_file_id': p.plate_file_id} for p in plates]
+#    all_plates = [{'id': p.id, 'name': p.name} for p in plates]
 
     # build a list of plates nested by plate file
-    plates_nested = []
-    plates_level = []
-    last_platefile = all_plates[0]['plate_file_id']
-    for i, pl in enumerate(all_plates):
-        if pl['plate_file_id'] != last_platefile:
-            last_platefile = pl['plate_file_id']
-            plates_nested.append(plates_level)
-            plates_level = []
-        plates_level.append(pl)
-    # final append
-    plates_nested.append(plates_level)
-
-    current_plate = plates[0]
+    # plates_nested = []
+    # plates_level = []
+    # last_platefile = all_plates[0]['plate_file_id']
+    # for i, pl in enumerate(all_plates):
+    #     if pl['plate_file_id'] != last_platefile:
+    #         last_platefile = pl['plate_file_id']
+    #         plates_nested.append(plates_level)
+    #         plates_level = []
+    #     plates_level.append(pl)
+    # # final append
+    # plates_nested.append(plates_level)
 
     response = TemplateResponse(request, 'plate_designer.html', {
         'dataset_id': dataset_id,
         'dataset_name': dataset_name,
-        'current_plate': current_plate,
-        'plate_files': pf,
-        'plates': all_plates,
-        'plates_nested': plates_nested,
+        # 'current_plate': current_plate,
+        # 'plate_files': pf,
+        'plates': plates,
+        # 'plates_nested': plates_nested,
         'cell_lines': list(CellLine.objects.all().values('id', 'name')),
         'drugs': list(Drug.objects.all().values('id', 'name'))
     })

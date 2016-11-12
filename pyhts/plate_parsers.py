@@ -1,19 +1,49 @@
-from helpers import guess_timepoint_hrs
 import re
+from django.core.files.uploadedfile import UploadedFile
+from datetime import timedelta
+from .models import PlateFile, Plate, WellMeasurement
+from django.db import IntegrityError, transaction
 
 
-def parse_platefile_readerX(pd, quick_parse=False,
-                            file_timepoint_guess_hrs=None):
+class PlateFileParseException(Exception):
+    pass
+
+
+_RE_TIME_HOURS = r'(?P<time_hours>[0-9]+)[-_\s]*(h\W|hr|hour)'
+_RE_PLATE_TIME_HOURS = r'(?P<plate_id>.+)-' + _RE_TIME_HOURS
+regexes = {'time_hours': re.compile(_RE_TIME_HOURS, re.IGNORECASE),
+           'plate_id_time_hours': re.compile(_RE_PLATE_TIME_HOURS,
+                                             re.IGNORECASE)}
+
+
+def extract_timepoint(string):
+    """
+    Tries to extract a numeric time point from a string
+    """
+    tp = regexes['time_hours'].search(string)
+    return timedelta(hours=int(tp.group('time_hours'))) if tp else None
+
+
+def extract_plate_and_timepoint(string):
+    """
+    Tries to extract a plate name and time point from a string
+    """
+    tp = regexes['plate_id_time_hours'].match(string)
+    return {'plate': tp.group('plate_id'),
+            'timepoint': timedelta(hours=int(tp.group('time_hours')))} if tp \
+        else None
+
+
+def parse_platefile_readerX(pd, platefile, dataset, file_timepoint=None):
     """
     Extracts high-level metadata from a platefile
 
     Data includes number of plates, assay types, plate names, number of well
     rows and cols.
     """
-    pd = pd.replace('\r\n', '\n')
-
     plates = pd.split('Field Group\n\nBarcode:')
-    plate_json = []
+
+    wells = []
 
     for p in plates:
         if len(p.strip()) == 0:
@@ -21,16 +51,23 @@ def parse_platefile_readerX(pd, quick_parse=False,
         barcode_and_rest = p.split('\n', 1)
         barcode = barcode_and_rest[0].strip()
 
-        plate_timepoint = guess_timepoint_hrs(barcode) or \
-                          file_timepoint_guess_hrs
+        plate_and_timepoint = extract_plate_and_timepoint(barcode)
+
+        if not plate_and_timepoint:
+            raise PlateFileParseException('Unable to parse timepoint for '
+                                          'barcode {} or from plate file '
+                                          'name'.format(barcode))
+
+        plate_name = plate_and_timepoint['plate']
+        plate_timepoint = plate_and_timepoint['timepoint']
 
         # Each plate can have multiple assays
         assays = re.split('\n\s*\n', barcode_and_rest[1])
-        assay_names = []
 
         well_cols = 0
         well_rows = 0
-        well_values = {}
+
+        plate = None
 
         for a in assays:
             a_strp = a.strip()
@@ -39,33 +76,74 @@ def parse_platefile_readerX(pd, quick_parse=False,
 
             well_lines = a.split('\n')
             assay_name = well_lines[0].strip()
-            assay_names.append(assay_name)
-            # @TODO: Throw an error if well rows and cols not same for all
+            # TODO: Throw an error if well rows and cols not same for all
             # assays
             well_cols = len(well_lines[1].split())
             # Minus 2: One for assay name, one for column headers
             well_rows = len(well_lines) - 2
 
-            if not quick_parse:
-                well_values[assay_name] = []
-                # Read the actual well values
-                for row in range(2, len(well_lines)):
-                    well_values[assay_name] += [float(val) for val
-                                                in well_lines[row].split(
-                                                '\t')[1:-1]]
+            if plate is None:
+                plate, _ = Plate.objects.update_or_create(
+                    dataset=dataset,
+                    name=plate_name,
+                    defaults={'plate_file': platefile, 'width': well_cols,
+                              'height': well_rows})
 
-        plate_dict = {'well_cols': well_cols,
-                      'well_rows': well_rows,
-                      'name': barcode,
-                      'timepoint_guess_hrs': plate_timepoint,
-                      'assays': assay_names}
+            # Read the actual well values
+            well_id = 0
+            for row in range(2, len(well_lines)):
+                for val in well_lines[row].split('\t')[1:-1]:
+                    float(val)
+                    wells.append(WellMeasurement(plate=plate,
+                                                 well=well_id,
+                                                 timepoint=plate_timepoint,
+                                                 assay=assay_name,
+                                                 value=float(val)
+                                                 ))
+                    well_id += 1
 
-        if not quick_parse:
-            plate_dict['well_values'] = well_values
+        if not wells:
+            raise PlateFileParseException('File contains no readable plates')
 
-        plate_json.append(plate_dict)
+        if len(wells) % (well_cols * well_rows) !=0:
+            raise PlateFileParseException('Extracted an unexpected number of '
+                                          'wells from plate (plate: %s, wells:'
+                                          ' %d)'.format(plate_name,
+                                                        len(wells)))
 
-    if not plate_json:
-        raise ValueError('File contains no readable plates')
+    WellMeasurement.objects.bulk_create(wells)
 
-    return plate_json
+
+def _str_universal_newlines(a_string):
+    return a_string.replace('\r\n', '\n').replace('\r', '\n')
+
+
+def parse_platefile(pf, dataset):
+    # TODO: Ensure file isn't too big, check filetype etc.
+    timepoint = extract_timepoint(pf.name)
+
+    if isinstance(pf, UploadedFile):
+        try:
+            pf.open()
+            pd = _str_universal_newlines(pf.read().decode('utf-8'))
+        except UnicodeDecodeError:
+            raise PlateFileParseException('Error opening file with UTF-8 '
+                                          'encoding (does file contain '
+                                          'invalid characters?)')
+    else:
+        raise PlateFileParseException('Cannot parse object of type: '
+                                      '{}'.format(type(pf)))
+
+    platefile = PlateFile(file=pf)
+    platefile.save()
+
+    try:
+        with transaction.atomic():
+            return parse_platefile_readerX(pd,
+                                           platefile=platefile,
+                                           dataset=dataset,
+                                           file_timepoint=timepoint)
+    except IntegrityError:
+        raise PlateFileParseException('A file with the same plate and '
+                                      'timepoints has been uploaded to this '
+                                      'dataset before')

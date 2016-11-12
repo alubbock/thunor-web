@@ -3,9 +3,6 @@ from django.db import models
 from django.conf import settings
 from itertools import cycle
 from numpy import repeat
-from helpers import guess_timepoint_hrs
-from plate_parsers import parse_platefile_readerX
-
 
 class HTSDataset(models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL)
@@ -24,19 +21,9 @@ class HTSDataset(models.Model):
 
 
 class PlateFile(models.Model):
-    dataset = models.ForeignKey(HTSDataset)
     upload_date = models.DateTimeField(auto_now_add=True)
     process_date = models.DateTimeField(null=True, blank=True)
     file = models.FileField()
-
-    def read(self, quick_parse=False):
-        self.file.seek(0)
-        pd = self.file.read()
-        file_timepoint_guess = guess_timepoint_hrs(self.file.name)
-        return parse_platefile_readerX(pd,
-                                       quick_parse=quick_parse,
-                                       file_timepoint_guess_hrs=file_timepoint_guess,
-                                       )
 
 
 class CellLine(models.Model):
@@ -67,26 +54,47 @@ class PlateMap(object):
         return range(1, self.width + 1)
 
     def well_iterator(self):
-        row_it = iter(repeat(self.row_iterator(), self.width))
+        row_it = iter(repeat(list(self.row_iterator()), self.width))
+        # print(row_it)
+        # print(next(next(row_it)))
         col_it = cycle(self.col_iterator())
         for i in range(self.num_wells):
             yield {'well': i,
-                   'row': row_it.next(),
-                   'col': col_it.next()}
+                   'row': next(row_it),
+                   'col': next(col_it)}
+
+    def well_list(self):
+        return list(self.well_iterator())
 
 
 class Plate(models.Model, PlateMap):
+    class Meta:
+        unique_together = (("dataset", "name"), )
+
+    dataset = models.ForeignKey(HTSDataset)
     plate_file = models.ForeignKey(PlateFile)
     name = models.TextField()
     width = models.IntegerField()
     height = models.IntegerField()
-    timepoint_secs = models.IntegerField(null=True)
 
     @property
     def next_plate_id(self):
-        pf_ids = HTSDataset.get_plate_file_ids(self.plate_file.dataset_id)
+        pf_ids = HTSDataset.get_plate_file_ids(self.dataset_id)
         idx = pf_ids.index(self.id) + 1
         return idx if idx < (len(pf_ids) - 1) else None
+
+
+class WellMeasurement(models.Model):
+    __slots__ = ('plate', 'well', 'assay', 'timepoint_secs', 'value')
+
+    class Meta:
+        unique_together = (("plate", "well", "assay", "timepoint"), )
+
+    plate = models.ForeignKey(Plate)
+    well = models.IntegerField()
+    assay = models.TextField()
+    timepoint = models.DurationField()
+    value = models.FloatField()
 
 
 class WellCellLine(models.Model):
@@ -98,18 +106,6 @@ class WellCellLine(models.Model):
     plate = models.ForeignKey(Plate)
     well = models.IntegerField()
     cell_line = models.ForeignKey(CellLine, null=True)
-
-
-class WellMeasurement(models.Model):
-    __slots__ = ('plate', 'well', 'assay', 'value')
-
-    class Meta:
-        unique_together = (("plate", "well", "assay"), )
-
-    plate = models.ForeignKey(Plate)
-    well = models.IntegerField()
-    assay = models.TextField()
-    value = models.FloatField()
 
 
 class WellDrug(models.Model):

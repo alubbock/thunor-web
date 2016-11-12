@@ -1,7 +1,6 @@
 window.pyHTS = {
     last_edited: null,
     num_css_unique_colours: 25,
-    unsaved_changes: false,
 
     plateMap: null,
     cell_lines_used: [],
@@ -196,20 +195,21 @@ pyHTS.classes.Well.prototype = {
     setDrug: function(drug, position) {
         if(this.drugs == null) this.drugs = [];
         this.drugs[position] = drug;
-        pyHTS.unsaved_changes = true;
+        this.setUnsavedChanges();
     },
     setDose: function(dose, position) {
         if(this.doses == null) this.doses = [];
         this.doses[position] = dose;
-        pyHTS.unsaved_changes = true;
+        this.setUnsavedChanges();
     },
     setCellLine: function(cellLine) {
         this.cellLine = cellLine;
-        pyHTS.unsaved_changes = true;
+        this.setUnsavedChanges();
     }
 };
 
 pyHTS.classes.PlateMap = function(plateId, numRows, numCols, wells) {
+    this.unsaved_changes = false;
     this.plateId = plateId;
     this.numRows = numRows;
     this.numCols = numCols;
@@ -217,6 +217,7 @@ pyHTS.classes.PlateMap = function(plateId, numRows, numCols, wells) {
     for (var w = 0; w < (numRows * numCols); w++) {
         this.wells.push(wells === undefined ?
             new pyHTS.classes.Well() : new pyHTS.classes.Well(wells[w]));
+        this.wells[w].setUnsavedChanges = this.setUnsavedChanges.bind(this);
     }
 };
 pyHTS.classes.PlateMap.prototype = {
@@ -236,6 +237,9 @@ pyHTS.classes.PlateMap.prototype = {
         }
         return usedEntries;
     },
+    setUnsavedChanges: function() {
+        this.unsaved_changes = true;
+    },
     getUsedCellLines: function() {
         return this.getUsedEntries("cellLine");
     },
@@ -249,7 +253,7 @@ pyHTS.classes.PlateMap.prototype = {
         var maxUsed = 0;
         for(var i=0; i<this.wells.length; i++) {
             var numDrugsUsed = 0, numDosesUsed = 0;
-            if(this.wells[i].drugs != null) numDrugsUsed =  this.wells[i].doses.length;
+            if(this.wells[i].drugs != null) numDrugsUsed =  this.wells[i].drugs.length;
             if(this.wells[i].doses != null) numDosesUsed =  this.wells[i].doses.length;
             maxUsed = Math.max(maxUsed, numDrugsUsed, numDosesUsed);
         }

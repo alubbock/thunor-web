@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import collections
 import re
+from datetime import timedelta
 
 
 def format_dose(num):
@@ -25,9 +26,3 @@ def format_dose(num):
     return '{0} {1}M'.format(num/multiplier, _prefix[multiplier])
 
 
-def guess_timepoint_hrs(string):
-    """
-    Tries to extract a numeric time point from a string
-    """
-    tp_guess = re.search(r'(?i)([0-9]+)[-_\s]*(h\W|hr|hour)', string)
-    return int(tp_guess.group(1)) if tp_guess else None
