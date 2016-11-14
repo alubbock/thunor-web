@@ -232,27 +232,7 @@ $(function () {
     pyHTS.cell_lines = {{ cell_lines|jsonify }};
     pyHTS.drugs = {{ drugs|jsonify }};
 
-{#    pyHTS.plateFiles = [{% for pf in plate_files %}{{ pf.id }}{% if not forloop.last %},{% endif %}{% endfor %}];#}
-{#    pyHTS.plates = [{% for pf in plates_nested %}[{% for pl in pf %}{{ pl.id }}{% if not forloop.last %},{% endif %}{% endfor %}]{% if not forloop.last %},{% endif %}{% endfor %}];#}
-    pyHTS.plates = [{% for p in plates %}{{ p.id }}
-        {% if not forloop.last %},{% endif %}{% endfor %}];
-
-{#    /**#}
-{#     * Insert a string into the next free entry in an array#}
-{#     * @param arr An array#}
-{#     * @param name A string#}
-{#     * @returns {number} The position that "name" was inserted into "arr"#}
-{#     */#}
-{#    pyHTS.util.insertNextFree = function(arr, name) {#}
-{#        for(var i=0; i<arr.length; i++) {#}
-{#            if(typeof arr[i] == 'undefined') {#}
-{#                arr[i] = name;#}
-{#                return i;#}
-{#            }#}
-{#        }#}
-{#        arr[arr.length] = name;#}
-{#        return (arr.length - 1);#}
-{#    };#}
+    pyHTS.plates = [{% for p in plates %}{{ p.id }}{% if not forloop.last %},{% endif %}{% endfor %}];
 
     window.onbeforeunload = function() {
       if(pyHTS.unsaved_changes) {
@@ -560,9 +540,10 @@ $(function () {
                 return;
             }
 
-            var val = $(this).val();
-            if (!$.isNumeric(val)) {
-                pyHTS.ui.okModal('Error', 'Dose must be numeric', function () {
+            var val = parseFloat($(this).val());
+            if (isNaN(val) || val < 0) {
+                pyHTS.ui.okModal('Error', 'Dose must be numeric and ' +
+                        'non-negative', function () {
                     $(caller).focus();
                 });
                 return;
@@ -922,8 +903,7 @@ $(function () {
         if(currentId != 'MASTER') {
             var plateErrors = pyHTS.plateMap.validate();
             if (plateErrors) {
-                pyHTS.ui.okModal('Error validating plate map', 'Errors were ' +
-                        'found while validating the plate map: <ul><li>' +
+                pyHTS.ui.okModal('Error validating plate map', '<ul><li>' +
                         plateErrors.join("</li><li>") + '</li></ul>');
                 return false;
             }

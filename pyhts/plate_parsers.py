@@ -1,6 +1,6 @@
 import re
 from django.core.files.uploadedfile import UploadedFile
-from datetime import timedelta
+from datetime import timedelta, datetime
 from .models import PlateFile, Plate, WellMeasurement
 from django.db import IntegrityError, transaction
 
@@ -36,7 +36,7 @@ def extract_plate_and_timepoint(string):
 
 def parse_platefile_readerX(pd, platefile, dataset, file_timepoint=None):
     """
-    Extracts high-level metadata from a platefile
+    Extracts data from a platefile
 
     Data includes number of plates, assay types, plate names, number of well
     rows and cols.
@@ -93,7 +93,6 @@ def parse_platefile_readerX(pd, platefile, dataset, file_timepoint=None):
             well_id = 0
             for row in range(2, len(well_lines)):
                 for val in well_lines[row].split('\t')[1:-1]:
-                    float(val)
                     wells.append(WellMeasurement(plate=plate,
                                                  well=well_id,
                                                  timepoint=plate_timepoint,
@@ -105,7 +104,7 @@ def parse_platefile_readerX(pd, platefile, dataset, file_timepoint=None):
         if not wells:
             raise PlateFileParseException('File contains no readable plates')
 
-        if len(wells) % (well_cols * well_rows) !=0:
+        if len(wells) % (well_cols * well_rows) != 0:
             raise PlateFileParseException('Extracted an unexpected number of '
                                           'wells from plate (plate: %s, wells:'
                                           ' %d)'.format(plate_name,

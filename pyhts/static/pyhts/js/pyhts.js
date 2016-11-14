@@ -173,6 +173,22 @@ pyHTS.util.filterObjectsAttr = function(name, dataSource,
     return -1;
 };
 
+pyHTS.util.hasDuplicates = function(array, ignoreNull) {
+    if(ignoreNull === undefined) {
+        ignoreNull = true;
+    }
+    var valuesSoFar = Object.create(null);
+    for (var i = 0; i < array.length; i++) {
+        var value = array[i];
+        if(value == null && ignoreNull) continue;
+        if (value in valuesSoFar) {
+            return true;
+        }
+        valuesSoFar[value] = true;
+    }
+    return false;
+};
+
 pyHTS.util.padNum = function(num, size) {
     var s = num + "";
     while (s.length < size) s = "0" + s;
@@ -280,39 +296,43 @@ pyHTS.classes.PlateMap.prototype = {
         return wells;
     },
     validate: function() {
-        var wellsWithDrugButNotDose = [], wellsWithDoseButNotDrug = [], errors=[];
+        var wellsWithDrugButNotDose = [], wellsWithDoseButNotDrug = [],
+            wellsWithDuplicateDrug = [], wellsWithDrugButNoCellLine = [],
+            errors=[];
+
         for(var w=0; w<this.wells.length; w++) {
-            if(this.wells[w].drugs == null && this.wells[w].doses == null) {
+            var well = this.wells[w];
+            if(well.drugs == null && well.doses == null) {
                 continue;
             }
-            if(this.wells[w].drugs != null && this.wells[w].doses == null) {
-                wellsWithDoseButNotDrug.push(this.wellNumToName(w));
-                continue;
-            }
-            if(this.wells[w].drugs == null && this.wells[w].doses != null) {
-                wellsWithDrugButNotDose.push(this.wellNumToName(w));
-                continue;
-            }
-            if(this.wells[w].drugs.length > this.wells[w].doses.length) {
-                wellsWithDrugButNotDose.push(this.wellNumToName(w));
-                continue;
-            }
-            if(this.wells[w].drugs.length < this.wells[w].doses.length) {
-                wellsWithDoseButNotDrug.push(this.wellNumToName(w));
-                continue;
-            }
-            for(var pos=0; pos<this.wells[w].drugs.length; pos++) {
-                if(this.wells[w].drugs[pos] == null && this.wells[w].doses[pos] == null) {
-                    continue;
+            if(well.drugs.length > 0) {
+                if(well.cellLine == null) {
+                    wellsWithDrugButNoCellLine.push(this.wellNumToName(w));
                 }
-                if(this.wells[w].drugs[pos] != null && this.wells[w].doses[pos] == null) {
-                    wellsWithDrugButNotDose.push(this.wellNumToName(w));
+                if(pyHTS.util.hasDuplicates(well.drugs)) {
+                    wellsWithDuplicateDrug.push(this.wellNumToName(w));
                 }
-                if(this.wells[w].drugs[pos] == null && this.wells[w].doses[pos] != null) {
-                    wellsWithDoseButNotDrug.push(this.wellNumToName(w));
+            }
+
+            if(well.drugs.length > well.doses.length) {
+                wellsWithDrugButNotDose.push(this.wellNumToName(w));
+            } else if (well.drugs.length < well.doses.length) {
+                wellsWithDoseButNotDrug.push(this.wellNumToName(w));
+            } else {
+                for(var pos = 0; pos < well.drugs.length; pos++) {
+                    if(well.drugs[pos] == null && well.doses[pos] == null) {
+                        continue;
+                    }
+                    if(well.drugs[pos] != null && well.doses[pos] == null) {
+                        wellsWithDrugButNotDose.push(this.wellNumToName(w));
+                    }
+                    if(well.drugs[pos] == null && well.doses[pos] != null) {
+                        wellsWithDoseButNotDrug.push(this.wellNumToName(w));
+                    }
                 }
             }
         }
+
         if(wellsWithDoseButNotDrug.length > 0) {
             errors.push("The following wells have one or more doses without" +
                 " a drug: " + wellsWithDoseButNotDrug.join(", "));
@@ -320,6 +340,14 @@ pyHTS.classes.PlateMap.prototype = {
         if(wellsWithDrugButNotDose.length > 0) {
             errors.push("The following wells have one or more drugs without" +
                 " a dose: " + wellsWithDrugButNotDose.join(", "));
+        }
+        if(wellsWithDuplicateDrug.length > 0) {
+            errors.push("The following wells have the same drug more than" +
+                " once: " + wellsWithDuplicateDrug.join(", "));
+        }
+        if(wellsWithDrugButNoCellLine.length > 0) {
+            errors.push("The following wells have a drug defined but no" +
+                " cell line: " + wellsWithDrugButNoCellLine.join(", "));
         }
         if(errors.length > 0) {
             return errors;

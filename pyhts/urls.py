@@ -22,8 +22,8 @@ urlpatterns = [
 
     url(r'^ajax/dataset/create', views.ajax_create_dataset,
         name='ajax_create_dataset'),
-    url(r'^ajax/dataset/set_timepoints', views.ajax_set_timepoints,
-        name='ajax_set_timepoints'),
+    # url(r'^ajax/dataset/set_timepoints', views.ajax_set_timepoints,
+    #     name='ajax_set_timepoints'),
     url(r'^ajax/cellline/create', views.ajax_create_cellline,
         name='ajax_create_cellline'),
     url(r'^ajax/drug/create', views.ajax_create_drug,
