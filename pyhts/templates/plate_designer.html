@@ -290,17 +290,18 @@ $(function () {
     });
 
     pyHTS.ui.refreshViewAll = function() {
-      var wellIds = [];
-      for(var i=0;i<pyHTS.plateMap.wells.length;i++) {
-          wellIds.push(i);
-      }
-      var selectedWells = $('#selectable-wells .hts-well');
+        var wellIds = [];
+        for(var i=0;i<pyHTS.plateMap.wells.length;i++) {
+            wellIds.push(i);
+        }
+        var selectedWells = $('#selectable-wells').find('.hts-well');
 
-      pyHTS.ui.setNumberDrugInputs(pyHTS.plateMap.maxDrugsDosesUsed());
-      refreshView(selectedWells, wellIds);
-    };
+        pyHTS.ui.setNumberDrugInputs(pyHTS.plateMap.maxDrugsDosesUsed());
 
-    var refreshView = function(selectedWells, wellIds) {
+        if($('#hts-well-table').hasClass('active')) {
+            refreshDataTable();
+        }
+
         refreshLegend(selectedWells, wellIds, 'cell-line');
         refreshLegend(selectedWells, wellIds, 'drug');
         refreshLegend(selectedWells, wellIds, 'dose');
@@ -319,7 +320,7 @@ $(function () {
             newLegendEntries = pyHTS.plateMap.getUsedDoses();
         }
         //compare old with new (this could be done more efficiently - this
-        //scans the arrays twice
+        //scans the arrays twice)
         var removed = pyHTS.util.arrayDiffPositions(oldLegendEntries,
                 newLegendEntries);
         var added = pyHTS.util.arrayDiffPositions(newLegendEntries, oldLegendEntries);
@@ -327,8 +328,7 @@ $(function () {
         var elsToRemove = [];
         $.each(removed, function(i, key) {
             oldLegendEntries[key] = null;
-            elsToRemove.push('#legend-'+data_type+
-                             's .well-legend:eq('+key+')');
+            elsToRemove.push('#legend-'+data_type+'s .well-legend:eq('+key+')');
         });
         if(removed.length > 0) {
             $(elsToRemove.join(', ')).remove();
@@ -409,7 +409,7 @@ $(function () {
         $(input_el).typeahead({
                     hint: true,
                     highlight: true,
-                    minLength: 0
+                    minLength: 1
                 },
                 {
                     name: css_type,
@@ -596,18 +596,8 @@ $(function () {
         pyHTS.ui.addDrugInput();
     });
 
-    {# Change plate view #}
-    $('#hts-well-overview').click(function(e) { setWellView(e,'overview'); });
-    $('#hts-well-celllines').click(function(e) { setWellView(e,'celllines');});
-    $('#hts-well-drugs').click(function(e) { setWellView(e,'drugs'); });
-    $('#hts-well-doses').click(function(e) { setWellView(e,'doses'); });
-    $('#hts-well-table').click(function(e) {
-        // deselect any selected wells
-        $('.hts-well.ui-selected').removeClass('ui-selected');
-        //$('#hts-well-table-view').html('<em>Loading...</em>');
-        $('#hts-well-table-view .loading-indicator').show();
-
-        $('#hts-well-table-view table').DataTable({
+    var refreshDataTable = function() {
+        $('#hts-well-table-view').find('table').DataTable({
             data: pyHTS.plateMap.asDataTable(),
             columns: [
                 {title: 'Well'},
@@ -622,9 +612,25 @@ $(function () {
                  targets: 3}
             ]
         });
+    };
+
+    {# Change plate view #}
+    $('#hts-well-overview').click(function(e) { setWellView(e,'overview'); });
+    $('#hts-well-celllines').click(function(e) { setWellView(e,'celllines');});
+    $('#hts-well-drugs').click(function(e) { setWellView(e,'drugs'); });
+    $('#hts-well-doses').click(function(e) { setWellView(e,'doses'); });
+    $('#hts-well-table').click(function(e) {
+        // deselect any selected wells
+        $('.hts-well.ui-selected').removeClass('ui-selected');
+        //$('#hts-well-table-view').html('<em>Loading...</em>');
+
+        var $loadingIndicator = $('#hts-well-table-view')
+                .find('.loading-indicator').show();
+
+        refreshDataTable();
 
         setWellView(e, 'table');
-        $('#hts-well-table-view .loading-indicator').hide();
+        $loadingIndicator.hide();
     });
 
     var setWellView = function(e, view) {
