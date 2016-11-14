@@ -403,50 +403,6 @@ $(function () {
         });
     };
 
-    var applyToWells = function(data_type, value, position) {
-        var selected_wells = $('#selectable-wells .ui-selected');
-
-        var wellIds = [];
-        $.each(selected_wells, function(i, well) {
-            wellIds.push($(well).data('well'));
-        });
-
-        if(data_type == 'cell-line') {
-            $.each(wellIds, function(i, well) {
-                pyHTS.plateMap.wells[well].setCellLine(value);
-            });
-        } else if (data_type == 'drug') {
-            $.each(wellIds, function(i, well) {
-                pyHTS.plateMap.wells[well].setDrug(value, position);
-            });
-            // TODO: Check if this drug has been applied in any other position
-        } else if (data_type == 'dose') {
-            $.each(wellIds, function(i, well) {
-                pyHTS.plateMap.wells[well].setDose(value, position);
-            });
-        }
-
-        refreshLegend(selected_wells, wellIds, data_type);
-
-        selected_wells.removeClass('ui-selected');
-
-{#        if(n == -1) {#}
-{##}
-{#            var lgnd = $('.well-legend:first').clone();#}
-{#            $(lgnd).children('li').addClass('hts-'+data_type+'-'+n);#}
-{#            $(lgnd).find('.legend-label').text(value);#}
-{#            $(lgnd).appendTo('#legend-'+data_type+'s');#}
-{#        } else {#}
-{#            n %= pyHTS.num_css_unique_colours;#}
-{#        }#}
-{##}
-{#        selected_wells#}
-{#                .addClass('hts-'+data_type+'-'+n)#}
-{#                .removeClass('ui-selected')#}
-{#                .addClass('hts-'+data_type)#}
-{#                .addClass('hts-'+data_type+'-'+n);#}
-    };
-
     var create_typeahead = function(input_el, data_source_name,
                                            readable_name,
                                     create_data_fn, css_type) {
@@ -464,54 +420,7 @@ $(function () {
                     )
                 }).keyup(function (e) {
             if (e.which == 13) {
-                var calling_el = this;
-                if ($('#selectable-wells .ui-selected').length === 0) {
-                    pyHTS.ui.okModal('Error', 'Please select some wells first',
-                            function () {
-                                $(calling_el).focus();
-                            });
-                    return;
-                }
-                if ($(this).val() == '') {
-                    pyHTS.ui.okModal('Error', 'Please enter a '+readable_name
-                            +' name', function () {
-                                $(calling_el).focus();
-                            });
-                    return;
-                }
-                //$(".tt-suggestion:first-child").trigger('click');
-                var name = $(this).val();
-                var itemId = pyHTS.util.filterObjectsAttr(name,
-                        pyHTS[data_source_name], 'name', 'id');
-                var drugDosePos = $(calling_el).closest('.hts-drug-entry')
-                    .data('drug-num') - 1;
-                if (itemId != -1) {
-                    applyToWells(css_type, itemId, drugDosePos);
-                    $(calling_el).typeahead('val','').blur();
-                } else {
-                    pyHTS.ui.okCancelModal('Create ' + readable_name,
-                            readable_name + ' "' + name + '" ' +
-                            'was not found. Create it?<br /><br />If you meant' +
-                            ' to ' +
-                            'autocomplete a suggestion use <kbd>Tab</kbd> ' +
-                            'instead.',
-                            function () {
-                                create_data_fn(name, function() {
-                                    applyToWells(css_type,
-                                            pyHTS.util.filterObjectsAttr(name,
-                                                    pyHTS[data_source_name],
-                                                    'name', 'id'),
-                                            drugDosePos);
-                                    $(calling_el).typeahead('val','').blur();
-                                });
-                            },
-                            null,
-                            function () {
-                                $(calling_el).focus();
-                            }
-                    );
-
-                }
+                submitToWells(this);
             }
         });
     };
@@ -520,6 +429,115 @@ $(function () {
             'Cell line',
             pyHTS.ajax.createCellLine, 'cell-line');
 
+    var submitToWells = function(caller) {
+        // called when enter is pressed
+
+        //non-callback validation
+        var $selectedWells = $('#selectable-wells').find('.ui-selected');
+        if ($selectedWells.length === 0) {
+            pyHTS.ui.okModal('Error', 'Please select some wells first',
+                function () {
+                    $(caller).focus();
+                });
+            return;
+        }
+
+        var allDosesValid = true;
+        var doses = [];
+        var $doseInputs = $('.hts-dose-input');
+        $doseInputs.each(function() {
+            var valTxt = $(this).val();
+            var val = parseFloat(valTxt);
+            if (valTxt != '' && (isNaN(val) || val < 0)) {
+                if(allDosesValid) {
+                    pyHTS.ui.okModal('Error', 'Dose must be numeric and ' +
+                            'non-negative', function () {
+                        $(obj).focus();
+                    });
+                }
+                allDosesValid = false;
+            } else {
+                if(valTxt == '') {
+                    doses.push(null);
+                } else {
+                    var dose_multiplier = $(this).parent('.input-group')
+                            .find('.hts-active-dose-unit').data('dose');
+                    doses.push(val * parseFloat(dose_multiplier));
+                }
+            }
+        });
+
+        if(!allDosesValid) {
+            return;
+        }
+
+        // Check that the cell line exists
+        var $cellLineTypeahead = $('#cellline-typeahead');
+        var cl = $cellLineTypeahead.typeahead('val');
+        var cl_id = pyHTS.util.filterObjectsAttr(cl, pyHTS.cell_lines,
+                'name', 'id');
+        if(cl != '' && cl_id == -1) {
+            pyHTS.ui.okCancelModal('Create cell line',
+                    'Cell line "' + cl + '" ' +
+                'was not found. Create it?<br /><br />If you meant to ' +
+                'autocomplete a suggestion use <kbd>Tab</kbd> instead.',
+                function() { pyHTS.ajax.createCellLine(cl, submitToWells); },
+                function() { $('#cellline-typeahead').focus(); });
+            return;
+        }
+
+        // Check all drugs exist
+        var $drugTypeaheads = $('.hts-drug-typeahead').not('.tt-hint');
+        var drugIds = [];
+        for(var i=0; i<$drugTypeaheads.length; i++) {
+            var drug = $($drugTypeaheads[i]).typeahead('val');
+            var dr_id = pyHTS.util.filterObjectsAttr(drug, pyHTS.drugs,
+                    'name', 'id');
+            drugIds.push(dr_id);
+            if(drug != '' && dr_id == -1) {
+                pyHTS.ui.okCancelModal('Create drug',
+                'Drug "' + drug + '" was not found. Create it?<br /><br />'
+                + 'If you meant to autocomplate a suggestion use ' +
+                '<kbd>Tab</kbd> instead.',
+                function() { pyHTS.ajax.createDrug(drug, submitToWells); },
+                function() { $($drugTypeaheads[i]).focus(); });
+                return;
+            }
+        }
+
+        // Validations succeeded, apply attributes to wells
+        var wellIds = [];
+        $.each($selectedWells, function(i, well) {
+            var wellId = $(well).data('well');
+            wellIds.push(wellId);
+            if(cl_id != -1) {
+                pyHTS.plateMap.wells[wellId].setCellLine(cl_id);
+            }
+            for(var j=0; j<drugIds.length; j++) {
+                if(drugIds[j] != -1) {
+                    pyHTS.plateMap.wells[wellId].setDrug(drugIds[j], j);
+                }
+                if(doses[j] != null) {
+                    pyHTS.plateMap.wells[wellId].setDose(doses[j], j);
+                }
+            }
+        });
+
+        // Clear inputs and lose focus
+        $cellLineTypeahead.typeahead('val', '');
+        $drugTypeaheads.typeahead('val', '');
+        $doseInputs.val('');
+        $(caller).blur();
+
+        // Refresh legend
+        refreshLegend($selectedWells, wellIds, 'cell-line');
+        refreshLegend($selectedWells, wellIds, 'drug');
+        refreshLegend($selectedWells, wellIds, 'dose');
+
+        // Deselect wells
+        $selectedWells.removeClass('ui-selected');
+    };
+
     var activateDrugInputs = function() {
         create_typeahead('.hts-drug-typeahead:last',
                 'drugs',
@@ -527,37 +545,9 @@ $(function () {
                 pyHTS.ajax.createDrug, 'drug');
 
         $('.hts-dose-input:last').keyup(function (e) {
-            if (e.which != 13) {
-                return;
+            if (e.which == 13) {
+                submitToWells(this);
             }
-            var caller = this;
-
-            if ($('#selectable-wells .ui-selected').length === 0) {
-                pyHTS.ui.okModal('Error', 'Please select some wells first',
-                        function () {
-                            $(caller).focus();
-                        });
-                return;
-            }
-
-            var val = parseFloat($(this).val());
-            if (isNaN(val) || val < 0) {
-                pyHTS.ui.okModal('Error', 'Dose must be numeric and ' +
-                        'non-negative', function () {
-                    $(caller).focus();
-                });
-                return;
-            }
-
-            // convert dose to molarity
-            var dose_multiplier = $(this).parent('.input-group')
-                    .find('.hts-active-dose-unit').data('dose');
-
-            var dose = val * parseFloat(dose_multiplier);
-
-            applyToWells('dose', dose, $(this).closest('.hts-drug-entry')
-                    .data('drug-num') - 1);
-            $(this).val('').blur();
         });
 
         $('.hts-dose-select:last li').click(function (e) {
@@ -782,7 +772,7 @@ $(function () {
         var selected_wells = $('#selectable-wells .ui-selected');
 
         $.each(selected_wells, function(i, well) {
-            pyHTS.plateMap.wells[$(well).data('well')] = new pyHTS.classes.Well();
+            pyHTS.plateMap.wells[$(well).data('well')].clear();
             pyHTS.plateMap.unsaved_changes = true;
         });
 

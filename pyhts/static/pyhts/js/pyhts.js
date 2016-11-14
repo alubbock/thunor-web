@@ -221,6 +221,11 @@ pyHTS.classes.Well.prototype = {
     setCellLine: function(cellLine) {
         this.cellLine = cellLine;
         this.setUnsavedChanges();
+    },
+    clear: function() {
+        this.cellLine = null;
+        this.drugs = null;
+        this.doses = null;
     }
 };
 
@@ -367,25 +372,25 @@ pyHTS.ui.okCancelModal = function(title, text, success_callback,
     $(mok).find(".modal-header").text(title);
     $(mok).find(".modal-body").html(text);
     $(mok).data("success", false);
-    $("#modal-ok-cancel .btn-ok").off("click").on("click", function (e) {
-        $(mok).data("success", true);
-        $("#modal-ok-cancel").modal("hide");
+    $(mok).find(".btn-ok").off("click").on("click", function (e) {
+        $(mok).data("success", true).modal("hide");
     });
     $(mok).off("shown.bs.model").on("shown.bs.modal", function() {
-        $("#modal-ok-cancel .btn-ok").focus();
-    }).off("hide.bs.modal").on("hide.bs.modal", function(e) {
-        if(success_callback !== undefined && $(mok).data("success")) {
+        $(mok).find(".btn-ok").focus();
+    }).off("hidden.bs.modal").on("hidden.bs.modal", function(e) {
+        if(closed_callback != null) {
+            closed_callback(e);
+        }
+        if(success_callback != null && $(mok).data("success")) {
             success_callback(e);
-        } else if(cancel_callback !== undefined &&
-                  cancel_callback !== null) {
+        } else if(cancel_callback != null) {
             cancel_callback(e);
         }
-    }).off("hidden.bs.modal").on("hidden.bs.modal", closed_callback).modal();
+    }).modal();
 };
 
 pyHTS.ui.okModal = function(title, text, closed_callback) {
-    pyHTS.ui.okCancelModal(title, text, undefined, undefined,
-            closed_callback);
+    pyHTS.ui.okCancelModal(title, text, null, null, closed_callback);
 };
 
 /**
