@@ -23,7 +23,6 @@ class HTSDataset(models.Model):
 
 class PlateFile(models.Model):
     upload_date = models.DateTimeField(auto_now_add=True)
-    process_date = models.DateTimeField(null=True, blank=True)
     file = models.FileField()
 
 
@@ -75,6 +74,7 @@ class Plate(models.Model, PlateMap):
     dataset = models.ForeignKey(HTSDataset)
     plate_file = models.ForeignKey(PlateFile)
     name = models.TextField()
+    last_annotated = models.DateTimeField(null=True)
     width = models.IntegerField()
     height = models.IntegerField()
 

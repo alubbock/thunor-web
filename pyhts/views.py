@@ -16,7 +16,9 @@ import json
 from .plate_parsers import PlateFileParser, PlateFileParseException
 import numpy as np
 from datetime import timedelta
+from django.utils import timezone
 from django.utils.encoding import smart_text
+from operator import itemgetter
 
 HOURS_TO_SECONDS = 3600
 
@@ -115,16 +117,17 @@ class PlateUpload(FormView):
 
 
 @login_required
+@transaction.atomic
 def ajax_save_plate(request):
     plate_data = json.loads(request.body.decode(request.encoding))
     plate_id = int(plate_data['plateId'])
     wells = plate_data['wells']
 
     # Check permissions
-    try:
-        p = Plate.objects.get(id=plate_id,
-                              dataset__owner_id=request.user.id)
-    except ObjectDoesNotExist:
+    n_updated = Plate.objects.filter(id=plate_id,
+                             dataset__owner_id=request.user.id).update(
+        last_annotated=timezone.now())
+    if n_updated != 1:
         return Http404()
 
     # Get the used cell lines and drugs
@@ -208,9 +211,7 @@ def ajax_save_plate(request):
 
 
 @login_required
-def ajax_load_plate(request, plate_id, get_plate_names=False):
-    if 'getPlateNames' in request.GET:
-        get_plate_names = True
+def ajax_load_plate(request, plate_id):
     p = Plate.objects.get(id=plate_id,
                           dataset__owner_id=request.user.id)
     if not p:
@@ -241,10 +242,6 @@ def ajax_load_plate(request, plate_id, get_plate_names=False):
              'wells': wells}
 
     return_dict = {'success': True, 'plateMap': plate}
-
-    if get_plate_names:
-        pf = Plate.objects.filter(plate_file_id=p.plate_file_id)
-        return_dict['plateNames'] = list(pf.values('id', 'name'))
 
     return JsonResponse(return_dict)
 
@@ -320,34 +317,27 @@ def plate_designer(request, dataset_id):
         raise Http404()
     dataset_name = dset.name
 
-    # pf = list(PlateFile.objects.filter(dataset_id=dataset_id,
-    #                                    dataset__owner_id=request.user.id,
-    #                                    process_date=None).order_by('id'))
-
     plates = list(Plate.objects.filter(dataset_id=dataset_id).order_by('id'))
 
-#    all_plates = [{'id': p.id, 'name': p.name} for p in plates]
+    plate_sizes = []
+    for plate in plates:
+        plate_size_exists = False
+        for pl in plate_sizes:
+            if pl['numCols'] == plate.width and pl['numRows'] == \
+                    plate.height and pl['numWells'] == plate.num_wells:
+                plate_size_exists = True
+        if not plate_size_exists:
+            plate_sizes.append({'numCols': plate.width,
+                                'numRows': plate.height,
+                                'numWells': plate.num_wells})
 
-    # build a list of plates nested by plate file
-    # plates_nested = []
-    # plates_level = []
-    # last_platefile = all_plates[0]['plate_file_id']
-    # for i, pl in enumerate(all_plates):
-    #     if pl['plate_file_id'] != last_platefile:
-    #         last_platefile = pl['plate_file_id']
-    #         plates_nested.append(plates_level)
-    #         plates_level = []
-    #     plates_level.append(pl)
-    # # final append
-    # plates_nested.append(plates_level)
+    plate_sizes = sorted(plate_sizes, key=itemgetter('numWells'))
 
     response = TemplateResponse(request, 'plate_designer.html', {
         'dataset_id': dataset_id,
         'dataset_name': dataset_name,
-        # 'current_plate': current_plate,
-        # 'plate_files': pf,
+        'plate_sizes': plate_sizes,
         'plates': plates,
-        # 'plates_nested': plates_nested,
         'cell_lines': list(CellLine.objects.all().values('id', 'name')),
         'drugs': list(Drug.objects.all().values('id', 'name'))
     })

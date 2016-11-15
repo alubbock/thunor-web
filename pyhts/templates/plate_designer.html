@@ -21,6 +21,8 @@
                               <span class="glyphicon glyphicon-arrow-right"
                                     aria-hidden="true"></span>
                         </button>
+        <button id="hts-finish-platemap" type="button" class="btn
+        btn-success" style="display:none">Finish</button>
         </div>
 
         <div class="dropdown" style="display:inline-block" id="hts-plate-dropdown">
@@ -35,8 +37,12 @@
             </button>
             <ul class="dropdown-menu scrollable-menu" id="hts-plate-list"
                 aria-labelledby="hts-select-plate">
-                <li data-id="MASTER" class="bg-success"><a href="#">Master
-                        template</a></li>
+            {% for plate_size in plate_sizes %}
+                <li data-id="MASTER" data-template="{{ plate_size.numCols }}x{{ plate_size.numRows }}"
+                    class="bg-success"><a href="#">Master
+                    template {% if plate_sizes|length > 1 %}[{{ plate_size.numWells }}
+                    well]{% endif %}</a></li>
+            {% endfor %}
                 {% for p in plates %}
                 <li data-id="{{ p.id }}"><a href="#">{{ p.name }}</a></li>
                 {% endfor %}
@@ -76,8 +82,7 @@
 
             <ol id="selectable-wells" class="welllist hts-overview">
                 {% for well in plates.0.well_list %}
-                    <li data-well="{{ well.well }}"
-                        class="ui-state-default hts-well"></li>
+                    <li data-well="{{ well.well }}" class="ui-state-default hts-well"></li>
                 {% endfor %}
             </ol>
         </div>
@@ -222,16 +227,25 @@ $(function () {
     pyHTS.plateMap = new pyHTS.classes.PlateMap({{ plates.0.id }},
     {{ plates.0.height }}, {{ plates.0.width }});
 
-    pyHTS.plateMapMaster = new pyHTS.classes.PlateMap("MASTER",
-            {{ plates.0.height }}, {{ plates.0.width }});
+    pyHTS.plateMapTemplates = {
+        {% for plate_size in plate_sizes %}
+            '{{ plate_size.numCols }}x{{ plate_size.numRows }}':
+                    new pyHTS.classes.PlateMap("MASTER",
+                    {{ plate_size.numRows}}, {{ plate_size.numCols }})
+            {% if not forloop.last %},{% endif %}
+        {% endfor %}
+    };
+
+    pyHTS.completeFlag = false;
 
     pyHTS.cell_lines = {{ cell_lines|jsonify }};
     pyHTS.drugs = {{ drugs|jsonify }};
 
     pyHTS.plates = [{% for p in plates %}{{ p.id }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    pyHTS.savedPlates = [{% for p in plates %}{% if p.last_annotated %}{{ p.id }},{% endif %}{% endfor %}];
 
     window.onbeforeunload = function() {
-      if(pyHTS.unsaved_changes) {
+      if(pyHTS.plateMap.unsaved_changes) {
           return 'The plate map has unsaved changes. Are you sure you want ' +
                   'to leave the page?';
       }
@@ -282,7 +296,12 @@ $(function () {
         e.preventDefault();
 
         // Load the plate map
-        setPlate($(this).data('id'));
+        var plateId = $(this).data('id');
+        var templateId = undefined;
+        if(plateId == 'MASTER') {
+            templateId = $(this).data('template');
+        }
+        setPlate(plateId, templateId);
     });
 
     pyHTS.ui.refreshViewAll = function() {
@@ -579,6 +598,12 @@ $(function () {
 
         // Deselect wells
         $selectedWells.removeClass('ui-selected');
+
+        // Show finish button if appropriate
+        if(pyHTS.savedPlates.length == (pyHTS.plates.length - 1)
+           && ($.inArray(pyHTS.plateMap.plateId, pyHTS.savedPlates) == -1)) {
+            $('#hts-finish-platemap').show();
+        }
     };
 
     var activateDrugInputs = function() {
@@ -889,23 +914,30 @@ $(function () {
         return true;
     };
 
-    var populateWellDataFromTemplate = function(wellData) {
+    var populateWellDataFromTemplate = function(wellData, templateId) {
+        var templateWells = pyHTS.plateMapTemplates[templateId].wells;
         for(var w=0; w<wellData.length; w++) {
-            wellData[w].cellLine = pyHTS.plateMapMaster.wells[w].cellLine;
-            wellData[w].drugs = pyHTS.plateMapMaster.wells[w].drugs != null ?
-                    pyHTS.plateMapMaster.wells[w].drugs.slice() : null;
-            wellData[w].doses = pyHTS.plateMapMaster.wells[w].doses != null ?
-                    pyHTS.plateMapMaster.wells[w].doses.slice() : null;
+            wellData[w].cellLine = templateWells[w].cellLine;
+            wellData[w].drugs = templateWells[w].drugs != null ?
+                    templateWells[w].drugs.slice() : null;
+            wellData[w].doses = templateWells[w].doses != null ?
+                    templateWells[w].doses.slice() : null;
         }
     };
 
     // Loading and saving plates
     var plateLoadedCallback = function (data) {
+        if(pyHTS.completeFlag) {
+            window.location = '{% url 'pyhts:home' %}';
+        }
         if(data.success && data.plateMap) {
-            var loadFromTemplate = pyHTS.plateMapMaster.unsaved_changes
+            var templateId = pyHTS.plateMap.numCols + 'x' + pyHTS.plateMap
+                            .numRows;
+            var loadFromTemplate = pyHTS.plateMapTemplates[templateId]
+                    .unsaved_changes
                     && wellDataIsEmpty(data.plateMap.wells);
             if(loadFromTemplate) {
-                populateWellDataFromTemplate(data.plateMap.wells);
+                populateWellDataFromTemplate(data.plateMap.wells, templateId);
             }
             pyHTS.plateMap = new pyHTS.classes.PlateMap(
                     data.plateMap.plateId,
@@ -946,13 +978,17 @@ $(function () {
         delete pyHTS.plateMap.loadNext;
     };
 
-    var setPlate = function(plateId) {
+    var setPlate = function(plateId, templateId) {
         var $currentPlate = $('#hts-current-plate');
         var currentId = $currentPlate.data('id');
-        var plateName = $('#hts-plate-list li[data-id='+plateId+']').find('a').text();
+        var $plateEl = $('#hts-plate-list').find('li[data-id='+plateId+']');
+        if(plateId == 'MASTER') {
+            $plateEl = $plateEl.filter('[data-template='+templateId+']');
+        }
+        var plateName = $plateEl.find('a').text();
         $currentPlate.data('id', plateId).text(plateName);
-        $('#hts-plate-list').find('li').removeClass('active')
-                .filter('[data-id='+plateId+']').addClass('active');
+        $('#hts-plate-list').find('li').removeClass('active');
+        $plateEl.addClass('active');
         if(currentId != 'MASTER') {
             var plateErrors = pyHTS.plateMap.validate();
             if (plateErrors) {
@@ -966,11 +1002,12 @@ $(function () {
                 pyHTS.ui.loadingModal.show();
             }
         } else {
+            // currently on a master template
+            if(wellDataIsEmpty(pyHTS.plateMap.wells)) {
+                pyHTS.plateMap.unsaved_changes = false;
+            }
             if(plateId != 'MASTER') {
                 $('#hts-select-plate').removeClass('btn-success');
-                if(wellDataIsEmpty(pyHTS.plateMapMaster.wells)) {
-                    pyHTS.plateMapMaster.unsaved_changes = false;
-                }
             }
         }
 
@@ -983,10 +1020,18 @@ $(function () {
 
         // update the UI
         if (plateId == 'MASTER') {
-            pyHTS.plateMap = pyHTS.plateMapMaster;
+            pyHTS.plateMap = pyHTS.plateMapTemplates[templateId];
             pyHTS.ui.refreshViewAll();
             $('#hts-prev-dataset,#hts-next-dataset').hide();
         } else {
+            if($.inArray(pyHTS.plateMap.plateId, pyHTS.savedPlates) == -1) {
+                pyHTS.savedPlates.push(pyHTS.plateMap.plateId);
+            }
+            if(pyHTS.savedPlates.length == pyHTS.plates.length
+               || (pyHTS.savedPlates.length == (pyHTS.plates.length - 1)
+                   && $.inArray(plateId, pyHTS.savedPlates) == -1)) {
+                    $('#hts-finish-platemap').show();
+            }
             if (prevPlatePos() != null) {
                 $('#hts-prev-dataset').show();
             } else {
@@ -1011,7 +1056,7 @@ $(function () {
 
     var nextPlatePos = function() {
         var pos = currentPlatePos();
-        return pos < (pyHTS.plates.length - 2) ? pyHTS.plates[pos + 1] : null;
+        return pos < (pyHTS.plates.length - 1) ? pyHTS.plates[pos + 1] : null;
     };
 
     $('#hts-next-dataset').click(function(e) {
@@ -1020,6 +1065,17 @@ $(function () {
 
     $('#hts-prev-dataset').click(function(e) {
         setPlate(prevPlatePos());
+    });
+
+    $('#hts-finish-platemap').click(function(e) {
+        pyHTS.ui.loadingModal.show();
+        pyHTS.completeFlag = true;
+        if ($('#hts-current-plate').data('id') != 'MASTER' &&
+                pyHTS.plateMap.unsaved_changes) {
+            pyHTS.ajax.savePlate(null);
+        } else {
+            plateLoadedCallback();
+        }
     });
 
     setPlate({{ plates.0.id }});
