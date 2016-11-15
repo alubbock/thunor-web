@@ -364,7 +364,7 @@ pyHTS.classes.PlateMap.prototype = {
 pyHTS.ui.okCancelModal = function(title, text, success_callback,
                              cancel_callback, closed_callback) {
     var mok = "#modal-ok-cancel";
-    if(cancel_callback !== undefined) {
+    if(cancel_callback != null) {
         $(mok).find(".btn-cancel").show();
     } else {
         $(mok).find(".btn-cancel").hide();
