@@ -13,9 +13,10 @@ from django.db.models import F
 from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, \
     WellCellLine, WellMeasurement, WellDrug
 import json
-from .plate_parsers import parse_platefile, PlateFileParseException
+from .plate_parsers import PlateFileParser, PlateFileParseException
 import numpy as np
 from datetime import timedelta
+from django.utils.encoding import smart_text
 
 HOURS_TO_SECONDS = 3600
 
@@ -71,7 +72,7 @@ class PlateUpload(FormView):
             file_status = []
             for f in files:
                 try:
-                    parse_platefile(f, dataset=dataset)
+                    PlateFileParser(f, dataset=dataset).parse_platefile()
                     response['success'] = True
                     file_status.append({'success': True,
                                         # 'id': -1,
