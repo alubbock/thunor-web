@@ -67,20 +67,16 @@
                 {% endfor %}
             </ol>
 
-{#            <div id="rowlabels">#}
             <ol id="selectable-well-rows" class="welllist">
                 {% for row in plates.0.row_iterator %}
-                    <li id="data{{ row }}" data-row="{{ row }}"
+                    <li data-row="{{ forloop.counter }}"
                     class="row">{{ row }}</li>
                 {% endfor %}
             </ol>
-{#            </div>#}
 
             <ol id="selectable-wells" class="welllist hts-overview">
                 {% for well in plates.0.well_list %}
                     <li data-well="{{ well.well }}"
-                        data-col="{{ well.col }}"
-                        data-row="{{ well.row }}"
                         class="ui-state-default hts-well"></li>
                 {% endfor %}
             </ol>
@@ -295,6 +291,45 @@ $(function () {
             wellIds.push(i);
         }
         var selectedWells = $('#selectable-wells').find('.hts-well');
+        selectedWells.removeClass('ui-selected');
+        var tgtNumWells = wellIds.length;
+        if(selectedWells.length > tgtNumWells) {
+            // remove wells
+            selectedWells.filter(':gt('+(tgtNumWells-1)+')').remove();
+
+            $('#selectable-well-cols').find('li').filter(':gt(' +
+                    (pyHTS.plateMap.numCols-1)+')').remove();
+
+            $('#selectable-well-rows').find('li').filter(':gt' +
+                    '('+(pyHTS.plateMap.numRows-1)+')')
+                    .remove();
+
+            selectedWells = $('#selectable-wells').find('.hts-well');
+        } else if (selectedWells.length < tgtNumWells) {
+            // add wells
+            var lastWell = selectedWells.filter(':last');
+            var selectableWells = $('#selectable-wells');
+            for(var w=selectedWells.length; w<tgtNumWells; w++) {
+                lastWell.clone().data('well', w).appendTo(selectableWells);
+            }
+
+            var selectableCols = $('#selectable-well-cols');
+            var cols = selectableCols.find('li');
+            var lastCol = cols.filter(':last');
+            for(var c=cols.length; c<pyHTS.plateMap.numCols; c++) {
+                lastCol.clone().data('col', c).text(c+1)
+                       .appendTo(selectableCols);
+            }
+
+            var selectableRows = $('#selectable-well-rows');
+            var rows = selectableRows.find('li');
+            var lastRow = rows.filter(':last');
+            for(var r=rows.length; r<pyHTS.plateMap.numRows; r++) {
+                lastRow.clone().data('row', r)
+                        .text(String.fromCharCode(65 + r))
+                        .appendTo(selectableRows);
+            }
+        }
 
         pyHTS.ui.setNumberDrugInputs(pyHTS.plateMap.maxDrugsDosesUsed());
 
@@ -302,6 +337,14 @@ $(function () {
             refreshDataTable();
         }
 
+        // resize the wells
+        var wellWidthPercent = (100 / (pyHTS.plateMap.numCols + 1)) + '%';
+        $('.welllist').not('#selectable-well-rows').not('.well-legend')
+                .find('li').css('width', wellWidthPercent)
+                     .css('padding-bottom', wellWidthPercent);
+        $('#selectable-well-rows').css('width', wellWidthPercent);
+
+        // refresh the legend and well CSS classes
         refreshLegend(selectedWells, wellIds, 'cell-line');
         refreshLegend(selectedWells, wellIds, 'drug');
         refreshLegend(selectedWells, wellIds, 'dose');
@@ -735,12 +778,20 @@ $(function () {
             pyHTS.last_edited = 'row';
         },
         selecting: function (event, ui) {
-            $('*[data-row="' + $(ui.selecting).data('row') + '"]')
-                    .addClass('ui-selected');
+            var rowNo = $(ui.selecting).data('row');
+            $('#selectable-wells').find('li').filter(function() {
+                return $(this).data('well') >
+                        ((pyHTS.plateMap.numCols * (rowNo - 1)) - 1)
+                && $(this).data('well') < (pyHTS.plateMap.numCols * rowNo);
+            }).addClass('ui-selected');
         },
         unselecting: function (event, ui) {
-            $('*[data-row="' + $(ui.unselecting).data('row') + '"]')
-                    .removeClass('ui-selected');
+            var rowNo = $(ui.unselecting).data('row');
+            $('#selectable-wells').find('li').filter(function() {
+                return $(this).data('well') >
+                        ((pyHTS.plateMap.numCols * (rowNo - 1)) - 1)
+                && $(this).data('well') < (pyHTS.plateMap.numCols * rowNo);
+            }).removeClass('ui-selected');
         },
         stop: updateInputsWithWellData
     });
@@ -752,12 +803,18 @@ $(function () {
             pyHTS.last_edited = 'col';
         },
         selecting: function (event, ui) {
-            $('*[data-col="' + $(ui.selecting).data('col') + '"]')
-                    .addClass('ui-selected');
+            var colNo = $(ui.selecting).data('col');
+            $('#selectable-wells').find('li').filter(function() {
+                return $(this).data('well') % pyHTS.plateMap.numCols ==
+                        (colNo - 1);
+            }).addClass('ui-selected');
         },
         unselecting: function (event, ui) {
-            $('*[data-col="' + $(ui.unselecting).data('col') + '"]')
-                    .removeClass('ui-selected');
+            var colNo = $(ui.unselecting).data('col');
+            $('#selectable-wells').find('li').filter(function() {
+                return $(this).data('well') % pyHTS.plateMap.numCols ==
+                        (colNo - 1);
+            }).removeClass('ui-selected');
         },
         stop: updateInputsWithWellData
     });
@@ -770,24 +827,23 @@ $(function () {
     });
 
     $('#hts-clear-annotation').click(function() {
-        if ($('#selectable-wells .ui-selected').length === 0) {
+        var selectedWells = $('#selectable-wells').find('.ui-selected');
+
+        if (selectedWells.length === 0) {
             pyHTS.ui.okModal('Error', 'Please select some wells first');
             return;
         }
 
-        var selected_wells = $('#selectable-wells .ui-selected');
-
-        $.each(selected_wells, function(i, well) {
+        $.each(selectedWells, function(i, well) {
             pyHTS.plateMap.wells[$(well).data('well')].clear();
             pyHTS.plateMap.unsaved_changes = true;
         });
 
         pyHTS.ui.refreshViewAll();
-        selected_wells.removeClass('ui-selected');
     });
 
     // Mouseovers
-    $('#selectable-wells .hts-well').mouseenter(function(e) {
+    $('#selectable-wells').find('.hts-well').mouseenter(function(e) {
         var well = $(this).data('well');
         var wellData = pyHTS.plateMap.wells[well];
         if(wellData == null) return;
@@ -895,7 +951,8 @@ $(function () {
         var currentId = $currentPlate.data('id');
         var plateName = $('#hts-plate-list li[data-id='+plateId+']').find('a').text();
         $currentPlate.data('id', plateId).text(plateName);
-        $('#hts-plate-list li').removeClass('active').filter('[data-id='+plateId+']').addClass('active');
+        $('#hts-plate-list').find('li').removeClass('active')
+                .filter('[data-id='+plateId+']').addClass('active');
         if(currentId != 'MASTER') {
             var plateErrors = pyHTS.plateMap.validate();
             if (plateErrors) {

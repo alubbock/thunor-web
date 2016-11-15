@@ -51,8 +51,7 @@ class PlateFileParser(object):
         self._plate_data = None
 
     def _create_db_platefile(self):
-        self._db_platefile = PlateFile(file=self.plate_file)
-        self._db_platefile.save()
+        self._db_platefile = PlateFile.objects.create(file=self.plate_file)
 
     def _read_plate_data(self):
         # TODO: Ensure file isn't too big, check filetype etc.
@@ -215,23 +214,23 @@ class PlateFileParser(object):
                 assay_name = None
                 while (assay_name is None or assay_name == '') and \
                                 col < (ws.ncols - 1):
-                    assay_name = str(ws.cell(row, col).value)
+                    assay_name = ws.cell(row, col).value
                     col += 1
                 if assay_name is None or assay_name == '':
                     raise PlateFileParseException('No assay name detected')
                 continue
 
             if cell0_val == 'Plate ID':
-                plate_name = ws.cell(row, 1).value
+                plate_name = str(ws.cell(row, 1).value)
                 continue
 
             if cell0_val == '' and ws.cell(row, 1).value == 1:
                 scanning_wells = True
                 scan_row = row + 1
-                while scan_row < (ws.nrows - 1) and ws.cell(scan_row,
-                                                            0) != 'Barcode':
+                while scan_row < (ws.nrows) and \
+                                ws.cell(scan_row, 0).value != 'Barcode':
                     scan_row += 1
-                well_rows = scan_row - row
+                well_rows = scan_row - row - 1
                 if plate is None:
                     plate, _ = Plate.objects.update_or_create(
                         dataset=self.dataset,
@@ -243,11 +242,17 @@ class PlateFileParser(object):
 
             if scanning_wells:
                 for col in range(1, ws.ncols):
+                    val = ws.cell(row, col).value
+                    if val == '':
+                        val = None
+                    print(self.dataset.id, self._db_platefile.id, plate.id,
+                          well_id,
+                          file_timepoint, assay_name)
                     wells.append(WellMeasurement(plate=plate,
                                                  well=well_id,
                                                  timepoint=file_timepoint,
                                                  assay=assay_name,
-                                                 value=ws.cell(row, col).value
+                                                 value=val
                                                  ))
                     well_id += 1
 
@@ -255,7 +260,8 @@ class PlateFileParser(object):
             raise PlateFileParseException('File contains no readable '
                                           'plates')
 
-        WellMeasurement.objects.bulk_create(wells)
+        print(len(wells))
+        # WellMeasurement.objects.bulk_create(wells)
 
     def parse_platefile(self):
         """

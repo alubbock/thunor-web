@@ -4,6 +4,7 @@ from django.conf import settings
 from itertools import cycle
 from numpy import repeat
 
+
 class HTSDataset(models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL)
     name = models.TextField()
@@ -85,7 +86,7 @@ class Plate(models.Model, PlateMap):
 
 
 class WellMeasurement(models.Model):
-    __slots__ = ('plate', 'well', 'assay', 'timepoint_secs', 'value')
+    __slots__ = ('plate', 'well', 'assay', 'timepoint', 'value')
 
     class Meta:
         unique_together = (("plate", "well", "assay", "timepoint"), )
@@ -94,7 +95,7 @@ class WellMeasurement(models.Model):
     well = models.IntegerField()
     assay = models.TextField()
     timepoint = models.DurationField()
-    value = models.FloatField()
+    value = models.FloatField(null=True)
 
 
 class WellCellLine(models.Model):

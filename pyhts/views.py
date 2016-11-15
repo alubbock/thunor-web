@@ -61,7 +61,7 @@ class PlateUpload(FormView):
         if form.is_valid():
             response = {'success': False}
 
-            dataset = HTSDataset(owner=request.user, id=dataset_id)
+            dataset = HTSDataset.objects.get(owner=request.user, id=dataset_id)
             if not dataset:
                 form.add_error('dataset_id', 'Dataset %s does not exist or '
                                              'you do not have access' %
