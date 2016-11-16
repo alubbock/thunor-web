@@ -260,8 +260,7 @@ class PlateFileParser(object):
             raise PlateFileParseException('File contains no readable '
                                           'plates')
 
-        print(len(wells))
-        # WellMeasurement.objects.bulk_create(wells)
+        WellMeasurement.objects.bulk_create(wells)
 
     def parse_platefile(self):
         """

@@ -203,15 +203,16 @@ def ajax_save_plate(request):
 
     if plate_data.get('loadNext', None):
         next_plate_id = plate_data['loadNext']
-        return ajax_load_plate(request, plate_id=next_plate_id)
+        return ajax_load_plate(request, plate_id=next_plate_id,
+                               saved_plate_id=plate_id)
     else:
-        return JsonResponse({'success': True})
+        return JsonResponse({'success': True, 'savedPlateId': plate_id})
 
     # TODO: Validate received PlateMap
 
 
 @login_required
-def ajax_load_plate(request, plate_id):
+def ajax_load_plate(request, plate_id, saved_plate_id=None):
     p = Plate.objects.get(id=plate_id,
                           dataset__owner_id=request.user.id)
     if not p:
@@ -242,6 +243,9 @@ def ajax_load_plate(request, plate_id):
              'wells': wells}
 
     return_dict = {'success': True, 'plateMap': plate}
+
+    if saved_plate_id:
+        return_dict['savedPlateId'] = saved_plate_id
 
     return JsonResponse(return_dict)
 

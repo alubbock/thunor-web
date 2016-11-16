@@ -198,8 +198,8 @@ pyHTS.util.padNum = function(num, size) {
 pyHTS.classes.Well = function(well) {
     if(well === undefined) {
         this.cellLine = null;
-        this.drugs = null;
-        this.doses = null;
+        this.drugs = [];
+        this.doses = [];
     } else {
         this.cellLine = well.cellLine;
         this.drugs = well.drugs;
@@ -391,6 +391,11 @@ pyHTS.ui.okCancelModal = function(title, text, success_callback,
 
 pyHTS.ui.okModal = function(title, text, closed_callback) {
     pyHTS.ui.okCancelModal(title, text, null, null, closed_callback);
+};
+
+pyHTS.ui.glyphiconHtml = function(iconName) {
+    return '<span class="pull-right glyphicon glyphicon-'+iconName+
+                      '" aria-hidden="true"></span>';
 };
 
 /**
