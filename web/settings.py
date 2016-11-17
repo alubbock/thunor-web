@@ -143,6 +143,8 @@ CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
 STATIC_URL = '/static/'
 
+MEDIA_ROOT = os.path.join(BASE_DIR, 'uploads')
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': True,
