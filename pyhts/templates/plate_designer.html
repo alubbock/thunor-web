@@ -227,6 +227,7 @@
 $(function () {
     'use strict';
 
+    pyHTS.csrfToken = '{{ csrf_token }}';
     pyHTS.plateMap = new pyHTS.classes.PlateMap({{ plates.0.id }},
     {{ plates.0.height }}, {{ plates.0.width }});
 
@@ -257,9 +258,7 @@ $(function () {
     pyHTS.ajax.createCellLine = function(name, successCallback) {
         $.ajax({type: 'POST',
                 url: '/ajax/cellline/create',
-                headers: {
-                  'X-CSRFToken': '{{ csrf_token }}'
-                },
+                headers: { 'X-CSRFToken': pyHTS.csrfToken },
                 data: {'name' : name},
                 success: function(data) {
                     pyHTS.cell_lines = data.cellLines;
@@ -271,15 +270,14 @@ $(function () {
                                     ));
                     successCallback();
                 },
+                error: pyHTS.ajax.ajaxErrorCallback,
                 dataType: 'json'});
     };
 
     pyHTS.ajax.createDrug = function(name, successCallback) {
         $.ajax({type: 'POST',
                 url: '/ajax/drug/create',
-                headers: {
-                  'X-CSRFToken': '{{ csrf_token }}'
-                },
+                headers: { 'X-CSRFToken': pyHTS.csrfToken },
                 data: {'name' : name},
                 success: function(data) {
                     pyHTS.drugs = data.drugs;
@@ -291,6 +289,7 @@ $(function () {
                                         ));
                     successCallback();
                 },
+                error: pyHTS.ajax.ajaxErrorCallback,
                 dataType: 'json'});
     };
 
@@ -418,7 +417,6 @@ $(function () {
             var lgnd = $('.well-legend:first').clone();
             var legendText;
             if(data_type == 'cell-line') {
-{#                legendText = pyHTS.cell_lines[newArrayEntry]['name'];#}
                 legendText = pyHTS.util.filterObjectsAttr(newArrayEntry,
                         pyHTS.cell_lines, 'id', 'name');
             } else if(data_type == 'drug') {
@@ -468,21 +466,15 @@ $(function () {
         });
     };
 
-    var create_typeahead = function(input_el, data_source_name,
-                                           readable_name,
-                                    create_data_fn, css_type) {
-        $(input_el).typeahead({
+    var create_typeahead = function($input, dataSource) {
+        $($input).typeahead({
                     hint: true,
                     highlight: true,
                     minLength: 1
                 },
                 {
-                    name: css_type,
-                    source: pyHTS.util.substringMatcher(
-                            pyHTS.util.getAttributeFromObjects
-                            (pyHTS[data_source_name],
-                                    'name')
-                    )
+{#                    name: name,#}
+                    source: pyHTS.util.substringMatcher(dataSource)
                 }).keyup(function (e) {
             if (e.which == 13) {
                 submitToWells(this);
@@ -490,9 +482,7 @@ $(function () {
         });
     };
     create_typeahead('#cellline-typeahead',
-            'cell_lines',
-            'Cell line',
-            pyHTS.ajax.createCellLine, 'cell-line');
+            pyHTS.util.getAttributeFromObjects(pyHTS.cell_lines, 'name'));
 
     var submitToWells = function(caller) {
         // called when enter is pressed
@@ -611,9 +601,7 @@ $(function () {
 
     var activateDrugInputs = function() {
         create_typeahead('.hts-drug-typeahead:last',
-                'drugs',
-                'Drug',
-                pyHTS.ajax.createDrug, 'drug');
+                pyHTS.util.getAttributeFromObjects(pyHTS.drugs, 'name'));
 
         $('.hts-dose-input:last').keyup(function (e) {
             if (e.which == 13) {
@@ -970,7 +958,6 @@ $(function () {
                     pyHTS.plateMap.unsaved_changes = true;
                 }
                 pyHTS.ui.refreshViewAll();
-                pyHTS.ui.loadingModal.hide();
             }
         }
     };
@@ -979,10 +966,11 @@ $(function () {
         $.ajax({
             url: '/ajax/plate/load/'+plateId,
             type: 'GET',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            success: plateLoadedCallback
+            success: plateLoadedCallback,
+            error: pyHTS.ajax.ajaxErrorCallback,
+            complete: function() {
+                pyHTS.ui.loadingModal.hide();
+            }
         })
     };
 
@@ -992,10 +980,12 @@ $(function () {
             url: '/ajax/plate/save',
             data: JSON.stringify(pyHTS.plateMap),
             type: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            success: plateLoadedCallback
+            headers: { 'X-CSRFToken': pyHTS.csrfToken },
+            success: plateLoadedCallback,
+            error: pyHTS.ajax.ajaxErrorCallback,
+            complete: function() {
+                pyHTS.ui.loadingModal.hide();
+            }
         });
         delete pyHTS.plateMap.loadNext;
     };

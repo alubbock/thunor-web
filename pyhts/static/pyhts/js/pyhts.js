@@ -1,4 +1,6 @@
 window.pyHTS = {
+    csrfToken: null,
+
     last_edited: null,
     num_css_unique_colours: 25,
 
@@ -463,3 +465,32 @@ pyHTS.ui.loadingModal = (function () {
     };
 
 })();
+
+pyHTS.ajax.ajaxErrorCallback = function(jqXHR,textStatus,thrownError) {
+    var message = 'Communication with the server timed ' +
+        'out (perhaps the connection was lost?';
+    if(textStatus == "error" ||
+        textStatus == "parsererror") {
+        if(Raven != null) {
+            Raven.captureMessage(thrownError || jqXHR.statusText, {
+                extra: {
+                    type: this.type,
+                    url: this.url,
+                    data: this.data,
+                    status: jqXHR.status,
+                    error: thrownError || jqXHR.statusText,
+                    response: jqXHR.responseText.substring(0, 100)
+                }
+            });
+        }
+        message = 'An unknown error occurred with the ' +
+            'server and has been logged. Please bear' +
+            ' with us while we look into it.<br><br>'
+            + 'Reference number: '+ Raven.lastEventId();
+    } else if (textStatus == 'abort') {
+        message = 'Communication with the server was ' +
+            'aborted.';
+    }
+    pyHTS.ui.okModal('Error communicating with server',
+        message);
+};

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Internal Server Error{% endblock %}
+
+{% block content %}
+<div class="row">
+<div class="col-lg-12">
+    <p class="lead">An error occurred with your request and
+        unfortunately it could not be completed.</p>
+    {% if request.sentry.id %}
+    <p class="text-muted">If you need assistance with this error,
+        please save this reference number:
+        <strong>{{ request.sentry.id }}</strong></p>
+    {% endif %}
+
+    <p><a href="{% url 'pyhts:home' %}" class="btn btn-primary"
+       role="button">Return to home page</a></p>
+
+</div>
+</div>
+{% endblock %}

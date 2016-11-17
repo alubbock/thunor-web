@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Page not found{% endblock %}
+
+{% block content %}
+<div class="row">
+<div class="col-lg-12">
+    <p class="lead">The page you requested could not be found.</p>
+
+    <p><a href="{% url 'pyhts:home' %}" class="btn btn-primary"
+       role="button">Return to home page</a></p>
+
+</div>
+</div>
+{% endblock %}

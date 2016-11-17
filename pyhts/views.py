@@ -5,7 +5,8 @@ from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
 from .forms import CentredAuthForm, PlateFileForm
 from django.views.generic.edit import FormView
-from django.http import JsonResponse, HttpResponseBadRequest
+from django.http import JsonResponse, HttpResponseBadRequest, \
+    HttpResponseServerError, HttpResponseNotFound
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.utils import IntegrityError
 from django.db import transaction
@@ -19,8 +20,18 @@ from datetime import timedelta
 from django.utils import timezone
 from django.utils.encoding import smart_text
 from operator import itemgetter
+from django.shortcuts import render_to_response
+from django.template import RequestContext
 
 HOURS_TO_SECONDS = 3600
+
+
+def handler404(request):
+    return HttpResponseNotFound(render(request, 'error404.html', {}))
+
+
+def handler500(request):
+    return HttpResponseServerError(render(request, 'error500.html', {}))
 
 
 def _handle_login(request):

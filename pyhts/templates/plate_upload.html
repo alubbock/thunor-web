@@ -65,15 +65,6 @@
                         Just drag and drop files here
                     </div>
 
-{#                        <!-- Progress Bar -->#}
-{#                        <div class="progress">#}
-{#                            <div class="progress-bar" role="progressbar"#}
-{#                                 aria-valuenow="60" aria-valuemin="0"#}
-{#                                 aria-valuemax="100" style="width: 60%;">#}
-{#                                <span class="sr-only">60% Complete</span>#}
-{#                            </div>#}
-{#                        </div>#}
-
                     <!-- Upload Finished -->
                     <div class="js-upload-finished" style="display:none">
                         <h3>Uploaded files</h3>
@@ -117,51 +108,6 @@
                 </div>
             </div>
 
-{#            <div id="hts-dataset-upload-3" style="display:none" class="panel#}
-{#                 panel-default">#}
-{#                <div class="panel-heading">#}
-{#                    <span class="h3">3. Specify Time Points</span>#}
-{#                    <button type="button" class="btn hts-next-3#}
-{#                    btn-success#}
-{#                    pull-right"#}
-{#                                style="display:none;padding:3px 12px;">Next#}
-{#                          <span class="glyphicon glyphicon-arrow-right"#}
-{#                                aria-hidden="true"></span>#}
-{#                    </button>#}
-{#                </div>#}
-{#                <div class="panel-body">#}
-{#                    <form name="hts-time-points">#}
-{#                        <input type="hidden" name="dataset-id" value="">#}
-{#                        <div class="hts-dataset">#}
-{#                            <h2></h2>#}
-{#                            <div class="hts-dataset-plate row">#}
-{#                            <div class="col-md-4 col-lg-3">#}
-{#                                <h3 style="margin-top:4px"></h3>#}
-{#                            </div>#}
-{#                            <div class="btn-group col-md-8 col-lg-9"#}
-{#                                 data-toggle="buttons">#}
-{#                                <label class="btn btn-primary">#}
-{#                                    <input type="radio" name="options"#}
-{#                                           value="0"#}
-{#                                           autocomplete="off"><span>0 hr</span>#}
-{#                                </label>#}
-{#                            </div>#}
-{#                            </div>#}
-{#                        </div>#}
-{#                    </form>#}
-{#                </div>#}
-{#                <div class="panel-footer">#}
-{#                    <span class="h3">&nbsp;</span>#}
-{#                    <button type="button" class="btn hts-next-3#}
-{#                    btn-success#}
-{#                    pull-right"#}
-{#                                style="display:none;padding:3px 12px;">Next#}
-{#                          <span class="glyphicon glyphicon-arrow-right"#}
-{#                                aria-hidden="true"></span>#}
-{#                    </button>#}
-{#                </div>#}
-{#            </div>#}
-
         </div> <!-- /container -->
     </div>
 </div>
@@ -175,6 +121,8 @@
         var uploadForm = document.getElementById('js-upload-form');
         var uploadCounter = 0;
 
+        pyHTS.csrfToken = '{{ csrf_token }}';
+
         pyHTS.ajax.createDataset = function(name) {
             if(name == '') {
                 pyHTS.ui.okModal('Error creating dataset',
@@ -185,9 +133,7 @@
             }
             $.ajax({type: 'POST',
                     url: '/ajax/dataset/create',
-                    headers: {
-                      'X-CSRFToken': '{{ csrf_token }}'
-                    },
+                    headers: { 'X-CSRFToken': pyHTS.csrfToken },
                     data: {'name' : name},
                     success: function(data) {
                          if(data.id) {
@@ -199,7 +145,7 @@
                              pyHTS.ui.okModal('Error','Unknown Error');
                          }
                     },
-                    {# TODO: Add error callback #}
+                    error: pyHTS.ajax.ajaxErrorCallback,
                     dataType: 'json'});
         };
 
@@ -256,8 +202,6 @@
             $(this).remove();
         };
 
-        pyHTS.plateFiles = {};
-
         var startUpload = function(files) {
             var formData = new FormData();
             formData.append('dataset_id', $('input[name=dataset-id]')
@@ -269,29 +213,17 @@
             $.ajax({
                 url: $(uploadForm).attr('action'),
                 type: $(uploadForm).attr('method'),
-                headers: {
-                  'X-CSRFToken': '{{ csrf_token }}'
-                },
+                headers: { 'X-CSRFToken': pyHTS.csrfToken },
                 data: formData,
                 cache: false,
                 beforeSend: validateFileForm,
                 processData: false,
                 contentType: false,
                 success: function(data) {
-                    $('#fup-pending-'+uploadNo).slideUp(400, fileUploadComplete);
                     $.each(data.files, function(ind, e) {
                         var baseEl = '.fup-failure';
                         if(e.success) {
                             baseEl = '.fup-success';
-{#                            pyHTS.plateFiles[e.name] = [];#}
-{#                            for(var pl=0; pl<e.plates.length; pl++) {#}
-{#                                var pl_obj = e.plates[pl];#}
-{#                                pyHTS.plateFiles[e.name].push#}
-{#                                ({id: pl_obj['id'],#}
-{#                                  name: pl_obj['name'],#}
-{#                                  timepoint:#}
-{#                                          pl_obj['timepoint_guess_hrs']});#}
-{#                            }#}
                         }
                         var newEl = $(baseEl).first().clone().show();
                         newEl.find('.list-group-item-heading')
@@ -301,11 +233,9 @@
                         newEl.appendTo('#fup-results');
                     });
                 },
-                error: function(data, textStatus, errorThrown) {
+                error: pyHTS.ajax.ajaxErrorCallback,
+                complete: function() {
                     $('#fup-pending-'+uploadNo).slideUp(400, fileUploadComplete);
-                    pyHTS.ui.okModal('Error creating dataset',
-                        'The following error occurred: ' + textStatus + '<br' +
-                        ' />Further details: ' + errorThrown);
                 }
             });
             return false;
@@ -336,123 +266,6 @@
             return false;
         };
 
-{#        $('#hts-next-2').click(function(e) {#}
-{#            // Get plate file names#}
-{#            var plateFileNames = [];#}
-{#            for(var pf in pyHTS.plateFiles) {#}
-{#                if(pyHTS.plateFiles.hasOwnProperty(pf)) {#}
-{#                    plateFileNames.push(pf);#}
-{#                }#}
-{#            }#}
-{##}
-{#            // Get time points#}
-{#            var timePoints = [0];#}
-{#            for(var i=0; i<plateFileNames.length; i++) {#}
-{#                var pFileName = plateFileNames[i];#}
-{#                for(var j=0; j<pyHTS.plateFiles[pFileName].length; j++) {#}
-{#                    var timePoint = pyHTS#}
-{#                            .plateFiles[pFileName][j]['timepoint'];#}
-{#                    if(!isNaN(parseFloat(timePoint)) &&#}
-{#                            pyHTS.util.indexOf(timePoint, timePoints) == -1) {#}
-{#                        timePoints.push(timePoint);#}
-{#                    }#}
-{#                }#}
-{#            }#}
-{#            timePoints.sort();#}
-{##}
-{#            // Build radio buttons for the time points#}
-{#            // Start at 1 because we already have time=0#}
-{#            var lastRadioLabel = $('.hts-dataset label:last');#}
-{#            var radioContainer = lastRadioLabel.closest('div');#}
-{#            for(var tp=1; tp<timePoints.length; tp++) {#}
-{#                var new_radio = lastRadioLabel.clone();#}
-{#                new_radio.find('input').val(timePoints[tp]);#}
-{#                new_radio.find('span').text(timePoints[tp] + ' hr');#}
-{#                new_radio.appendTo(radioContainer);#}
-{#            }#}
-{##}
-{#            // Replicate for each platefile and plate#}
-{#            var plateFileEl = $('.hts-dataset:first');#}
-{#            var plateFileContainer = plateFileEl.parent();#}
-{#            var enableBtnNext3 = true;#}
-{#            for(var i=0; i<plateFileNames.length; i++) {#}
-{#                var pfile = plateFileEl.clone();#}
-{#                var pFileName = plateFileNames[i];#}
-{#                $(pfile).find('h2').text(pFileName);#}
-{#                var plateEl = pfile.find('.hts-dataset-plate:first');#}
-{#                for(var j=0; j<pyHTS.plateFiles[pFileName].length; j++) {#}
-{#                    var newPlateEl = plateEl.clone();#}
-{#                    var plate = pyHTS.plateFiles[pFileName][j];#}
-{#                    // Set plate name#}
-{#                    $(newPlateEl).find('h3').text(plate['name']);#}
-{#                    // Set radio button to plate id#}
-{#                    $(newPlateEl).find('input[type=radio]')#}
-{#                              .attr('name', 'plate_'+plate['id']);#}
-{#                    // Set default active button#}
-{#                    if($.inArray(plate['timepoint'], timePoints)) {#}
-{#                        $(newPlateEl).find('input[type=radio][value=' +#}
-{#                                plate['timepoint'] + ']')#}
-{#                                .prop('checked', true)#}
-{#                                .closest('label').addClass('active');#}
-{#                    } else {#}
-{#                        enableBtnNext3 = false;#}
-{#                    }#}
-{#                    $(newPlateEl).appendTo(pfile);#}
-{#                }#}
-{#                plateEl.remove();#}
-{#                $(pfile).appendTo(plateFileContainer);#}
-{#            }#}
-{#            plateFileEl.remove();#}
-{##}
-{#            if(enableBtnNext3) {#}
-{#                $('.hts-next-3').show();#}
-{#            }#}
-{##}
-{#            $('#hts-dataset-upload-2').slideUp();#}
-{#            $('#hts-dataset-upload-3').slideDown();#}
-{#        });#}
-{##}
-{#        var validateTimePoints = function() {#}
-{#            //ensure all radio groups have a selected option#}
-{#            var numRadios = $('.hts-dataset-plate').length;#}
-{#            var numCheckedRadios = $('.hts-dataset-plate ' +#}
-{#                    'input[type=radio]:checked').length;#}
-{#            if(numCheckedRadios != numRadios) {#}
-{#                pyHTS.ui.okModal('Error setting time points',#}
-{#                                 'Please ensure a time point has been ' +#}
-{#                                 'selected for every well plate');#}
-{#                return false;#}
-{#            }#}
-{#            return true;#}
-{#        };#}
-{##}
-{#        pyHTS.ajax.setTimepoints = function() {#}
-{#            console.log($('#hts-time-points').serialize());#}
-{#            $.ajax({type: 'POST',#}
-{#                    url: '/ajax/dataset/set_timepoints',#}
-{#                    headers: {#}
-{#                      'X-CSRFToken': '{{ csrf_token }}'#}
-{#                    },#}
-{#                    beforeSend: validateTimePoints,#}
-{#                    data: $('form[name=hts-time-points]').serialize(),#}
-{#                    success: function(data) {#}
-{#                         if(data.success) {#}
-{#                             window.location =#}
-{#                                     '{% url 'pyhts:plate_designer' 0 %}'#}
-{#                                             .slice(0,-1) +#}
-{#                                     $('input[name=dataset-id]:first').val();#}
-{#                         } else {#}
-{#                             pyHTS.ui.okModal('Error','Unknown ' +#}
-{#                                     'Error '+data);#}
-{#                         }#}
-{#                    },#}
-                    {# TODO: Add error callback #}
-{#                    dataType: 'json'});#}
-{#        };#}
-{##}
-{#        $('.hts-next-3').click(function() {#}
-{#           pyHTS.ajax.setTimepoints();#}
-{#        });#}
     });
 </script>
 {% endblock %}
