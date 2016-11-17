@@ -1,4 +1,5 @@
 from django import template
+import pyhts
 import pyhts.helpers
 from django.core.serializers import serialize
 from django.db.models.query import QuerySet
@@ -21,3 +22,8 @@ def jsonify(object):
     if isinstance(object, QuerySet):
         return serialize('json', object)
     return mark_safe(json.dumps(object))
+
+
+@register.simple_tag
+def pyhts_version():
+    return pyhts.__version__

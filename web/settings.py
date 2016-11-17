@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/1.10/ref/settings/
 
 import os
 import raven
+import pyhts
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -97,7 +98,7 @@ RAVEN_CONFIG = {
     'dsn': os.environ['SENTRY_DSN'],
     # If you are using git, you can also automatically configure the
     # release based on the git info.
-    'release': raven.fetch_git_sha(os.path.dirname(os.pardir)),
+    'release': pyhts.__version__,
 }
 
 AUTH_USER_MODEL = 'custom_user.EmailUser'
