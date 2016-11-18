@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, Http404
 from django.template.response import TemplateResponse
+from django.template.loader import get_template
 from django.contrib import auth
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
@@ -22,6 +23,9 @@ from django.utils.encoding import smart_text
 from operator import itemgetter
 from django.shortcuts import render_to_response
 from django.template import RequestContext
+import logging
+
+logger = logging.getLogger(__name__)
 
 HOURS_TO_SECONDS = 3600
 
@@ -57,52 +61,20 @@ def logout(request):
     return redirect('pyhts:home')
 
 
-class PlateUpload(FormView):
-    form_class = PlateFileForm
-    template_name = 'plate_upload.html'
+@login_required
+def dataset_upload(request, dataset_id=None):
+    plate_files = None
+    if dataset_id:
+        plate_files = list(PlateFile.objects.filter(dataset_id=dataset_id,
+                                        dataset__owner_id=request.user.id))
+        if not plate_files:
+            try:
+                HTSDataset.objects.get(id=dataset_id, owner_id=request.user.id)
+            except HTSDataset.DoesNotExist:
+                raise Http404()
 
-    @method_decorator(login_required)
-    def dispatch(self, *args, **kwargs):
-        return super(PlateUpload, self).dispatch(*args, **kwargs)
-
-    @transaction.atomic
-    def post(self, request, *args, **kwargs):
-        form_class = self.get_form_class()
-        form = self.get_form(form_class)
-        dataset_id = request.POST.get('dataset_id')
-        files = request.FILES.getlist('file_field')
-        if form.is_valid():
-            response = {'success': False}
-
-            dataset = HTSDataset.objects.get(owner=request.user, id=dataset_id)
-            if not dataset:
-                form.add_error('dataset_id', 'Dataset %s does not exist or '
-                                             'you do not have access' %
-                                             dataset_id)
-                return JsonResponse({'success': False, 'errors':
-                                    form.errors.as_json()})
-
-            file_status = []
-            for f in files:
-                try:
-                    PlateFileParser(f, dataset=dataset).parse_platefile()
-                    response['success'] = True
-                    file_status.append({'success': True,
-                                        # 'id': -1,
-                                        'name': f.name,
-                                        'message': 'File loaded successfully'
-                                        })
-                except PlateFileParseException as pfpe:
-                    file_status.append({'success': False,
-                                        'name': f.name,
-                                        'message': str(pfpe)})
-                    continue
-
-            response['files'] = file_status
-            return JsonResponse(response)
-        else:
-            return JsonResponse({'success': False, 'errors':
-                                form.errors.as_json()})
+    return render(request, 'plate_upload.html', {'dataset_id': dataset_id,
+                                                 'plate_files': plate_files})
 
 
 # @login_required
@@ -126,6 +98,67 @@ class PlateUpload(FormView):
 #     return TemplateResponse(request, 'plate_table_view.html',
 #                             {'wells': wells})
 
+@login_required
+@transaction.atomic
+def ajax_upload_platefiles(request):
+    dataset_id = request.POST.get('dataset_id')
+    files = request.FILES.getlist('file_field[]')
+    single_file_upload = len(files) == 1
+
+    try:
+        dataset = HTSDataset.objects.get(owner=request.user, id=dataset_id)
+    except (ValueError, HTSDataset.DoesNotExist):
+        return JsonResponse({'error': 'Dataset %s does not exist or '
+                                      'you do not have access' % dataset_id,
+                             'errorkeys': list(range(len(files)))})
+
+    initial_preview_config = []
+
+    preview_template = get_template('ajax_upload_template.html')
+    initial_previews = []
+    errors = {}
+    for f_idx, f in enumerate(files):
+        try:
+            pfp = PlateFileParser(f, dataset=dataset)
+            pfp.parse_platefile()
+            initial_previews.append(preview_template.render({
+                'plate_file_format': pfp.file_format}))
+            initial_preview_config.append({'key': pfp.id, 'caption':
+                                           pfp.file_name})
+        except PlateFileParseException as pfpe:
+            if single_file_upload:
+                return JsonResponse({'error': str(pfpe)})
+            else:
+                initial_previews.append(preview_template.render({'failed':
+                                                                     True}))
+                initial_preview_config.append({'caption': f.name})
+                errors[f_idx] = 'File {} had error: {}'.format(f.name,
+                                                               str(pfpe))
+    response = {
+        'initialPreview': initial_previews,
+        'initialPreviewConfig': initial_preview_config}
+
+    if errors:
+        response['error'] = '<br>'.join(errors.values())
+        response['errorkeys'] = list(errors.keys())
+
+    return JsonResponse(response)
+
+
+@login_required
+def ajax_delete_platefile(request):
+    platefile_id = request.POST.get('key', None)
+    try:
+        n_deleted, _ = PlateFile.objects.filter(id=platefile_id,
+                               dataset__owner_id=request.user.id).delete()
+    except ValueError:
+        raise Http404()
+
+    if n_deleted < 1:
+        raise Http404()
+
+    return JsonResponse({'success': True})
+
 
 @login_required
 @transaction.atomic
@@ -139,7 +172,8 @@ def ajax_save_plate(request):
                              dataset__owner_id=request.user.id).update(
         last_annotated=timezone.now())
     if n_updated != 1:
-        return Http404()
+        #TODO: This should return a better error
+        raise Http404()
 
     # Get the used cell lines and drugs
     # TODO: Validate supplied cell line and drug IDs?
@@ -327,10 +361,9 @@ def ajax_create_drug(request):
 
 @login_required
 def plate_designer(request, dataset_id):
-    dset = HTSDataset.objects.get(id=dataset_id, owner_id=request.user.id)
-    if not dset:
+    dataset = HTSDataset.objects.get(id=dataset_id, owner_id=request.user.id)
+    if not dataset:
         raise Http404()
-    dataset_name = dset.name
 
     plates = list(Plate.objects.filter(dataset_id=dataset_id).order_by('id'))
 
@@ -349,8 +382,7 @@ def plate_designer(request, dataset_id):
     plate_sizes = sorted(plate_sizes, key=itemgetter('numWells'))
 
     response = TemplateResponse(request, 'plate_designer.html', {
-        'dataset_id': dataset_id,
-        'dataset_name': dataset_name,
+        'dataset': dataset,
         'plate_sizes': plate_sizes,
         'plates': plates,
         'cell_lines': list(CellLine.objects.all().values('id', 'name')),

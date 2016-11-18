@@ -7,9 +7,10 @@
 <div class="row">
     <div>
         <div class="container">
+            {% if not dataset_id %}
             <div id="hts-dataset-upload-1" class="panel panel-default">
                 <div class="panel-heading">
-                    <span class="h3">1. Specify Details</span>
+                    <span class="h3">Specify Details</span>
                     <button id="hts-next-1" type="button" class="btn
                     btn-success
                     pull-right"
@@ -24,15 +25,18 @@
                            class="form-control" />
                 </div>
             </div>
+            {% endif %}
 
-            <div id="hts-dataset-upload-2" style="display:none" class="panel
+            <div id="hts-dataset-upload-2"
+                 style="{% if not dataset_id %}display:none{% endif %}"
+                 class="panel
                  panel-default">
                 <div class="panel-heading inline-headers clearfix">
-                    <span class="h3">2. Upload Plates</span>
-{#                        <small>Tab-separated plate files</small>#}
+                    <span class="h3">Upload Plates</span>
                     <a id="hts-next-2" role="button" class="btn
                     btn-success
                     pull-right"
+                       href="{% if dataset_id %}{% url 'pyhts:plate_designer' dataset_id %}{% else %}#{% endif %}"
                                 style="display:none;padding:3px 12px;">Next
                           <span class="glyphicon glyphicon-arrow-right"
                                 aria-hidden="true"></span>
@@ -40,71 +44,15 @@
                     <div class="clearfix"></div>
                 </div>
                 <div class="panel-body">
+                    <h4>Select files from your computer <small>
+                        Drag and drop or click
+                        <strong>Browse</strong></small></h4>
+                    <input type="hidden" name="dataset-id" value="">
+                    <input type="file" name="file_field[]"
+                           id="js-upload-files" multiple
+                           class="file-loading">
+                    <div id="errorBlock" class="help-block"></div>
 
-                    <!-- Standard Form -->
-                    <h4>Select files from your computer</h4>
-                    <form action="" method="post"
-                          enctype="multipart/form-data"
-                          id="js-upload-form">
-                        <div class="form-inline">
-                            <div class="form-group">
-                                <input type="hidden" name="dataset-id" value="">
-                                <input type="file" name="file_field[]"
-                                       id="js-upload-files" multiple>
-                            </div>
-                            <button type="submit"
-                                    class="btn btn-sm btn-primary"
-                                    id="js-upload-submit">Upload files
-                            </button>
-                        </div>
-                    </form>
-
-                    <!-- Drop Zone -->
-                    <h4>Or drag and drop files below</h4>
-                    <div class="upload-drop-zone" id="drop-zone">
-                        Just drag and drop files here
-                    </div>
-
-                    <!-- Upload Finished -->
-                    <div class="js-upload-finished" style="display:none">
-                        <h3>Uploaded files</h3>
-                        <div class="list-group">
-                            <ul id="fup-results">
-                            <li class="fup-pending list-group-item
-                            list-group-item-warning"
-                                    style="display:none">
-                                <span class="glyphicon glyphicon-refresh
-                                spinning pull-right"></span>
-                                <span
-                                    class="badge alert-warning
-                                    pull-right">Processing</span>
-                                <h5
-                                    class="list-group-item-heading">Processing
-                                    upload</h5>
-                                <span class="list-group-item-text"></span>
-                            </li>
-                            <li class="fup-success list-group-item
-                            list-group-item-success"
-                                    style="display:none">
-                                <span
-                                    class="badge alert-success
-                                    pull-right">Success</span>
-                                <h5
-                                    class="list-group-item-heading"></h5>
-                                <span class="list-group-item-text"></span>
-                            </li>
-                            <li class="fup-failure list-group-item
-                               list-group-item-danger"
-                                    style="display:none">
-                                <span class="badge alert-danger
-                                    pull-right">Failed</span>
-                                <h5
-                                    class="list-group-item-heading"></h5>
-                                <span class="list-group-item-text"></span>
-                            </li>
-                                </ul>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -113,159 +61,106 @@
 </div>
 {% endblock %}
 
+{% block stylesheets %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'vendor/bootstrap-fileinput/css/fileinput.min.css' %}">
+{% endblock %}
+
 {% block tailscript %}
+<script src="{% static 'vendor/bootstrap-fileinput/js/fileinput.min.js' %}"></script>
 <script>
-    $(function () {
-        'use strict';
-        var dropZone = document.getElementById('drop-zone');
-        var uploadForm = document.getElementById('js-upload-form');
-        var uploadCounter = 0;
+$(function () {
+    'use strict';
 
-        pyHTS.csrfToken = '{{ csrf_token }}';
+    pyHTS.csrfToken = '{{ csrf_token }}';
+    pyHTS.ajaxSettings = {headers: { 'X-CSRFToken': pyHTS.csrfToken }};
 
-        pyHTS.ajax.createDataset = function(name) {
-            if(name == '') {
-                pyHTS.ui.okModal('Error creating dataset',
-                                 'Please enter a name for this dataset',
-                                 function() {$('input[name=dataset-name]')
-                                         .focus()});
-                return false;
-            }
-            $.ajax({type: 'POST',
-                    url: '/ajax/dataset/create',
-                    headers: { 'X-CSRFToken': pyHTS.csrfToken },
-                    data: {'name' : name},
-                    success: function(data) {
-                         if(data.id) {
-                             $('input[name=dataset-id]').val(data.id);
-                             $('#hts-next-2').prop('href', '/annotate/'+data.id);
-                             $('#hts-dataset-upload-1').slideUp();
-                             $('#hts-dataset-upload-2').slideDown();
-                         } else {
-                             pyHTS.ui.okModal('Error','Unknown Error');
-                         }
-                    },
-                    error: pyHTS.ajax.ajaxErrorCallback,
-                    dataType: 'json'});
-        };
+    var pyHTSLockNext2 = function() { $('#hts-next-2').hide(); };
+    var pyHTSUnlockNext2 = function() { $('#hts-next-2').show(); };
 
-        $('#hts-next-1').click(function(e) {
-           pyHTS.ajax.createDataset($('input[name=dataset-name]').val());
-        });
+    var initialPreview = [], initialPreviewConfig = [];
+    {% for pf in plate_files %}
+        initialPreview.push('{% spaceless %}
+        {% include "ajax_upload_template.html" with plate_file_format=pf.file_format %}
+        {% endspaceless %}');
+        initialPreviewConfig.push({caption: '{{ pf.file.name|escapejs }}',
+            key:{{ pf.id }}});
+    {% endfor %}
 
-        $('input[name=dataset-name]').keyup(function (e) {
-            var btn_selected = $('#hts-next-1');
-            if($(this).val() == '') {
-                btn_selected.hide();
-            } else {
-                btn_selected.show();
-            }
-            if(e.which == 13) {
-                btn_selected.click();
-            }
-        }).focus();
+    pyHTS.ui.createFileUploadScreen = function(dataset_id) {
+        $("#js-upload-files").fileinput({
+            uploadUrl: '/ajax/platefile/upload',
+            uploadAsync: false,
+            deleteUrl: '/ajax/platefile/delete',
+            allowedFileExtensions: ['xls', 'xlsx',
+                'txt', 'csv', 'tsv'],
+            maxFileSize: 2048,
+            maxFileCount: 20,
+            minFileCount: 1,
+            initialPreview: initialPreview,
+            initialPreviewConfig: initialPreviewConfig,
+            overwriteInitial: false,
+            uploadExtraData: {
+              dataset_id: dataset_id
+            },
+            ajaxSettings: pyHTS.ajaxSettings,
+            ajaxDeleteSettings: pyHTS.ajaxSettings
+        }).on('filelock', pyHTSLockNext2)
+          .on('filereset', pyHTSLockNext2)
+          .on('filebatchuploadcomplete', pyHTSUnlockNext2)
+          .on('fileuploaded', pyHTSUnlockNext2);
+    };
 
-        var validateFileForm = function(xhr, settings) {
-            var errors = [];
-            if(settings.data.get('dataset_id') == '') {
-                errors.push('No dataset ID is present');
-            }
-            if(settings.data.get('file_field') == null) {
-                errors.push('Please supply at least one file for upload');
-            }
-            if(errors.length > 0) {
-                pyHTS.ui.okModal('Error creating dataset',
-                        'The following errors were detected with the ' +
-                        'form:<ul><li>' + errors.join('</li><li>') +
-                        '</li></ul>'
-                );
-                return false;
-            }
-
-            // Add loading indicator
-            $('.js-upload-finished').show();
-            var origPending = $('.fup-pending:first');
-            origPending.clone().attr('id',
-                    'fup-pending-'+uploadCounter).show().insertAfter
-            (origPending);
-            uploadCounter++;
-            $('#hts-next-2').hide();
-
-            return true;
-        };
-
-        var fileUploadComplete = function() {
-            if($('.fup-pending').not(this).length == 1
-                    && $('.fup-success').length) {
-                $('#hts-next-2').show();
-            }
-            $(this).remove();
-        };
-
-        var startUpload = function(files) {
-            var formData = new FormData();
-            formData.append('dataset_id', $('input[name=dataset-id]')
-                    .val());
-            for (var i=0; i<files.length; i++) {
-                formData.append('file_field', files[i])
-            }
-            var uploadNo = uploadCounter;
-            $.ajax({
-                url: $(uploadForm).attr('action'),
-                type: $(uploadForm).attr('method'),
+    pyHTS.ajax.createDataset = function(name) {
+        if(name == '') {
+            pyHTS.ui.okModal('Error creating dataset',
+                             'Please enter a name for this dataset',
+                             function() {$('input[name=dataset-name]')
+                                     .focus()});
+            return false;
+        }
+        $.ajax({type: 'POST',
+                url: '/ajax/dataset/create',
                 headers: { 'X-CSRFToken': pyHTS.csrfToken },
-                data: formData,
-                cache: false,
-                beforeSend: validateFileForm,
-                processData: false,
-                contentType: false,
+                data: {'name' : name},
                 success: function(data) {
-                    $.each(data.files, function(ind, e) {
-                        var baseEl = '.fup-failure';
-                        if(e.success) {
-                            baseEl = '.fup-success';
+                     if(data.id) {
+                        if(window.history.replaceState) {
+                            window.history.replaceState(null, null,
+                                    '/dataset/'+data.id+'/upload');
                         }
-                        var newEl = $(baseEl).first().clone().show();
-                        newEl.find('.list-group-item-heading')
-                                .html(e.name);
-                        newEl.find('.list-group-item-text')
-                                .html(e.message);
-                        newEl.appendTo('#fup-results');
-                    });
+                        $('#hts-next-2').prop('href',
+                                '/dataset/'+data.id+'/annotate');
+                        pyHTS.ui.createFileUploadScreen(data.id);
+                        $('#hts-dataset-upload-1').slideUp();
+                        $('#hts-dataset-upload-2').slideDown();
+                     } else {
+                         pyHTS.ui.okModal('Error','Unknown Error');
+                         throw new Error('Unexpected response from ' +
+                                 'server', data);
+                     }
                 },
                 error: pyHTS.ajax.ajaxErrorCallback,
-                complete: function() {
-                    $('#fup-pending-'+uploadNo).slideUp(400, fileUploadComplete);
-                }
-            });
-            return false;
-        };
+                dataType: 'json'});
+    };
 
-        uploadForm.addEventListener('submit', function(e) {
-            var uploadFiles = document.getElementById('js-upload-files')
-                    .files;
-            e.preventDefault();
-
-            startUpload(uploadFiles);
-        });
-
-        dropZone.ondrop = function(e) {
-            e.preventDefault();
-            this.className = 'upload-drop-zone';
-
-            startUpload(e.dataTransfer.files);
-        };
-
-        dropZone.ondragover = function() {
-            this.className = 'upload-drop-zone drop';
-            return false;
-        };
-
-        dropZone.ondragleave = function() {
-            this.className = 'upload-drop-zone';
-            return false;
-        };
-
+    $('#hts-next-1').click(function() {
+       pyHTS.ajax.createDataset($('input[name=dataset-name]').val());
     });
+
+    $('input[name=dataset-name]').keyup(function (e) {
+        var btn_selected = $('#hts-next-1');
+        if($(this).val() == '') {
+            btn_selected.hide();
+        } else {
+            btn_selected.show();
+        }
+        if(e.which == 13) {
+            btn_selected.click();
+        }
+    }).focus();
+
+    {% if dataset_id %}pyHTS.ui.createFileUploadScreen({{ dataset_id }});{% endif %}
+});
 </script>
 {% endblock %}

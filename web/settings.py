@@ -163,6 +163,7 @@ LOGGING = {
         'sentry': {
             'level': 'ERROR', # To capture more than ERROR, change to WARNING, INFO, etc.
             'class': 'raven.contrib.django.raven_compat.handlers.SentryHandler',
+            'filters': ['require_debug_false'],
             'tags': {},
         },
         'console': {
@@ -174,7 +175,6 @@ LOGGING = {
     'loggers': {
         'root': {
             'level': 'WARNING',
-            'filters': ['require_debug_false'],
             'handlers': ['sentry'],
         },
         'django.db.backends': {

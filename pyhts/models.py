@@ -22,8 +22,10 @@ class HTSDataset(models.Model):
 
 
 class PlateFile(models.Model):
+    dataset = models.ForeignKey(HTSDataset)
     upload_date = models.DateTimeField(auto_now_add=True)
     file = models.FileField()
+    file_format = models.TextField(null=True)
 
 
 class CellLine(models.Model):

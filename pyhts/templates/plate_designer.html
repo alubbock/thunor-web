@@ -1,11 +1,12 @@
 {% extends "base.html" %}
 
 {% block title %}Annotate Plates
-    <em class="pull-right">{{ dataset_name }}</em>
+    <em class="pull-right">{{ dataset.name }}</em>
 {% endblock %}
 
 {% block content %}
 {# Plate Designer #}
+{% if plates %}
 <div class="row">
     <div class="col-lg-9 col-md-9 col-sm-12 col-xs-12">
     <div class="panel panel-default" id="hts-plate-panel">
@@ -208,6 +209,19 @@
 
     </div>
 </div>
+{% else %}
+<div class="row">
+    <div class="col-lg-12">
+        <p class="lead">This dataset does not contain any plate files.</p>
+        <a role="button" class="btn btn-info" href="{% url 'pyhts:plate_upload' dataset.id %}">
+            Upload plate files
+        </a>
+        <a role="button" class="btn btn-default" href="{% url 'pyhts:home' %}">
+            Return to home page
+        </a>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% load static %}
@@ -218,6 +232,7 @@
 
 {% block tailscript %}
 <script src="//code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<script src="{% static 'vendor/touchpunch/touchpunch.js' %}"></script>
 <script src="{% static 'vendor/typeahead/typeahead.js' %}"></script>
 <script src="{% static 'vendor/datatables/js/jquery.dataTables.min.js' %}">
 </script>
@@ -227,9 +242,9 @@
 $(function () {
     'use strict';
 
-    pyHTS.csrfToken = '{{ csrf_token }}';
+    pyHTS.csrfToken = '{{ csrf_token }}';{% if plates.0 %}
     pyHTS.plateMap = new pyHTS.classes.PlateMap({{ plates.0.id }},
-    {{ plates.0.height }}, {{ plates.0.width }});
+    {{ plates.0.height }}, {{ plates.0.width }});{% endif %}
 
     pyHTS.plateMapTemplates = {
         {% for plate_size in plate_sizes %}
@@ -249,7 +264,7 @@ $(function () {
     pyHTS.savedPlates = [{% for p in plates %}{% if p.last_annotated %}{{ p.id }},{% endif %}{% endfor %}];
 
     window.onbeforeunload = function() {
-      if(pyHTS.plateMap.unsaved_changes) {
+      if(pyHTS.plateMap!=null && pyHTS.plateMap.unsaved_changes) {
           return 'The plate map has unsaved changes. Are you sure you want ' +
                   'to leave the page?';
       }
@@ -1089,7 +1104,7 @@ $(function () {
         }
     });
 
-    setPlate({{ plates.0.id }});
+    {% if plates.0 %}setPlate({{ plates.0.id }});{% endif %}
 });
 </script>
 {% endblock %}

@@ -1,0 +1,4 @@
+<div class="alert alert-{% if failed %}danger{% else %}success{% endif %} file-upload-response" role="alert">
+    <span class="label label-{% if failed %}danger{% else %}success{% endif %}">{% if failed %}Failed{% else %}Success{% endif %}</span>
+    {% if not failed %}<span> {{ plate_file_format }} format</span>{% endif %}
+</div>

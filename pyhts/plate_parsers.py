@@ -17,13 +17,8 @@ def _read_plate_decorator(func):
         if self._plate_data is None:
             self._read_plate_data()
 
-        try:
-            with transaction.atomic():
-                return func(self, *args, **kwargs)
-        except IntegrityError:
-            raise PlateFileParseException('A file with the same plate and '
-                                          'timepoints has been uploaded '
-                                          'to this dataset before')
+        with transaction.atomic():
+            return func(self, *args, **kwargs)
 
     return wraps(func)(_decorator)
 
@@ -47,11 +42,14 @@ class PlateFileParser(object):
 
         self.plate_file = plate_file
         self.dataset = dataset
+        self.file_format = None
         self._db_platefile = None
         self._plate_data = None
 
     def _create_db_platefile(self):
-        self._db_platefile = PlateFile.objects.create(file=self.plate_file)
+        self._db_platefile = PlateFile.objects.create(
+            dataset=self.dataset, file=self.plate_file,
+            file_format=self.file_format)
 
     def _read_plate_data(self):
         # TODO: Ensure file isn't too big, check filetype etc.
@@ -65,6 +63,12 @@ class PlateFileParser(object):
     @property
     def file_name(self):
         return self.plate_file.name
+
+    @property
+    def id(self):
+        if self._db_platefile is None:
+            return None
+        return self._db_platefile.id
 
     @classmethod
     def extract_timepoint(cls, string):
@@ -93,6 +97,7 @@ class PlateFileParser(object):
         Data includes number of plates, assay types, plate names, number of well
         rows and cols.
         """
+        self.file_format = 'Synergy Neo'
         pd = self._plate_data
         try:
             pd = self._str_universal_newlines(pd.decode('utf-8'))
@@ -149,7 +154,7 @@ class PlateFileParser(object):
                 well_rows = len(well_lines) - 2
 
                 if plate is None:
-                    plate, _ = Plate.objects.update_or_create(
+                    plate, created = Plate.objects.update_or_create(
                         dataset=self.dataset,
                         name=plate_name,
                         defaults={'plate_file': self._db_platefile,
@@ -177,11 +182,16 @@ class PlateFileParser(object):
                                               'of wells from plate (plate: %s,'
                                               ' wells: %d)'.format(plate_name,
                                                                    len(wells)))
-
-        WellMeasurement.objects.bulk_create(wells)
+        try:
+            WellMeasurement.objects.bulk_create(wells)
+        except IntegrityError:
+            raise PlateFileParseException('A file with the same plate, '
+                                          'assay and time points has been '
+                                          'uploaded to this dataset before')
 
     @_read_plate_decorator
     def parse_platefile_imagexpress(self):
+        self.file_format = 'ImageXpress'
         wb = xlrd.open_workbook(file_contents=self._plate_data)
         if wb.nsheets != 1:
             raise PlateFileParseException('Excel workbooks with more than one '
@@ -232,7 +242,7 @@ class PlateFileParser(object):
                     scan_row += 1
                 well_rows = scan_row - row - 1
                 if plate is None:
-                    plate, _ = Plate.objects.update_or_create(
+                    plate, created = Plate.objects.update_or_create(
                         dataset=self.dataset,
                         name=plate_name,
                         defaults={'plate_file': self._db_platefile,
@@ -245,9 +255,9 @@ class PlateFileParser(object):
                     val = ws.cell(row, col).value
                     if val == '':
                         val = None
-                    print(self.dataset.id, self._db_platefile.id, plate.id,
-                          well_id,
-                          file_timepoint, assay_name)
+                    # print(self.dataset.id, self._db_platefile.id, plate.id,
+                    #       well_id,
+                    #       file_timepoint, assay_name)
                     wells.append(WellMeasurement(plate=plate,
                                                  well=well_id,
                                                  timepoint=file_timepoint,
@@ -260,7 +270,12 @@ class PlateFileParser(object):
             raise PlateFileParseException('File contains no readable '
                                           'plates')
 
-        WellMeasurement.objects.bulk_create(wells)
+        try:
+            WellMeasurement.objects.bulk_create(wells)
+        except IntegrityError:
+            raise PlateFileParseException('A file with the same plate, '
+                                          'assay and time points has been '
+                                          'uploaded to this dataset before')
 
     def parse_platefile(self):
         """
