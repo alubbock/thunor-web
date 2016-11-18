@@ -1,587 +1,298 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "outer.html" %}
+{% block body %}
+<div id="wrapper">
 
-<head>
-
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="">
-    <meta name="author" content="">
-
-    <title>HTS Prototype</title>
-
-    {% load static %}
-    <!-- Bootstrap Core CSS -->
-    <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}"
-          rel="stylesheet">
-
-    <!-- MetisMenu CSS -->
-    <link href="{% static 'vendor/metisMenu/metisMenu.min.css' %}"
-          rel="stylesheet">
-
-    <!-- Custom CSS -->
-{#    <link href="{% static 'dist/css/sb-admin-2.css' %}" rel="stylesheet">#}
-    <link href="{% static 'pyhts/css/pyhts.css' %}" rel="stylesheet">
-
-    <!-- Morris Charts CSS -->
-    <link href="{% static 'vendor/morrisjs/morris.css' %}" rel="stylesheet">
-
-    <!-- Custom Fonts -->
-    <link href="{% static 'vendor/font-awesome/css/font-awesome.min.css' %}"
-          rel="stylesheet" type="text/css">
-
-    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.0/themes/base/jquery-ui.css">
-    {% block stylesheets %}{% endblock %}
-      <style>
-  #page-wrapper {margin:0;}
-
-  #selectable-wells .ui-selecting { background: #FECA40; }
-  #selectable-wells .ui-selected { background: #F39814; color: white; }
-  .welllist { list-style-type: none;
-      margin: 0;
-      padding: 0; }
-  #well-all {-webkit-touch-callout: none;
--webkit-user-select: none;
--khtml-user-select: none;
--moz-user-select: none;
--ms-user-select: none;
-user-select: none;}
-{#  #hts-well-plate {width:52em;padding:1em;}#}
-{#  #rowlabels { width: 2em; float:left; }#}
-{#  .welllist li { margin: 0; padding: 0; float: left; width: 2em;#}
-{#      height: 2em; font-size: 1em; text-align: center; cursor: default; }#}
-
-  #hts-plate-panel {min-width:500px;}
-  #selectable-well-rows {width:4%; float: left; clear:left; }
-{#  #hts-well-plate {width:100%;height:0;padding-bottom:100%; ; }#}
-{#  #hts-well-plate-inner { }#}
-{#  #rowlabels { width: 2em; float:left; }#}
-  .welllist li { margin: 0; padding: 0 0 4% 0; float: left; width: 4%;
-      height: 0; cursor: default; text-align: center; font-size:1em;
-      border-radius: 50%; }
-  @media (min-width: 992px) {
-      .welllist li {font-size:125%}
-  }
-  @media (min-width: 1200px) {
-      .welllist li {font-size:150%}
-  }
-  #selectable-well-rows li {width: 100%; height:0; padding-bottom:100%;
-      border:1px solid transparent; }
-
- .ui-selectable-helper { display:none }
-
-  .scrollable-menu {
-    height: auto;
-    max-height: 400px;
-    overflow-x: hidden;
- }
-
-
-          /*  */
-.upload-drop-zone {
-  height: 200px;
-  border-width: 2px;
-  margin-bottom: 20px;
-}
-
-/* skin.css Style*/
-.upload-drop-zone {
-  color: #ccc;
-  border-style: dashed;
-  border-color: #ccc;
-  line-height: 200px;
-  text-align: center
-}
-.upload-drop-zone.drop {
-    color: #222;
-    border-color: #222;
-}
-
-.tt-query {
-    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075) inset;
-}
-.tt-hint {
-    color: #999;
-}
-.tt-menu {
-    background-color: #fff;
-    border: 1px solid rgba(0, 0, 0, 0.2);
-    border-radius: 4px;
-    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
-    padding: 4px 0;
-}
-.tt-suggestion {
-    line-height: 24px;
-    padding: 3px 20px;
-}
-.tt-suggestion:hover {
-    background-color: #0097cf;
-    color: #fff;
-    cursor: pointer;
-}
-.tt-suggestion.tt-cursor {
-    background-color: #0097cf;
-    color: #fff;
-}
-.tt-suggestion p {
-    margin: 0;
-}
-
-.hts-overview .hts-cell-line {
-    background-color: #a1aec7;
-}
-.hts-overview .hts-drug {
-    background-color: #ebccd1;
-}
-.hts-overview .hts-dose {
-    background-color: #f7ecb5;
-}
-.hts-overview .hts-cell-line.hts-drug {
-    background-color: #a6e1ec;
-    background: repeating-linear-gradient(
-  45deg,
-  #a1aec7,
-  #a1aec7 6px,
-  #ebccd1 6px,
-  #ebccd1 12px
-    );
-}
-.hts-overview .hts-cell-line.hts-dose {
-    background-color: #adadad;
-    background: repeating-linear-gradient(
-  45deg,
-  #a1aec7,
-  #a1aec7 6px,
-  #f7ecb5 6px,
-  #f7ecb5 12px
-    );
-}
-.hts-overview .hts-drug.hts-dose {
-    background-color: #f0e8ff;
-    background: repeating-linear-gradient(
-  45deg,
-  #ebccd1,
-  #ebccd1 6px,
-  #f7ecb5 6px,
-  #f7ecb5 12px
-    );
-}
-.hts-overview .hts-cell-line.hts-drug.hts-dose {
-    background: #000;
-}
-.welllist.well-legend {
-    display: block;
-    clear: left;
-    line-height: 1em;
-}
-.welllist.well-legend li {
-    display: block;
-    width: 1.5em;
-    padding-bottom: 1.5em;
-    margin-right: 0.5em;
-    margin-bottom: 0.5em;
-}
-#legend-overview,#legend-cell-lines,#legend-drugs,#legend-doses {
-    display:none;
-}
-.hts-overview #legend-overview {
-    display:block;
-}
-.hts-celllines #legend-cell-lines {
-    display:block;
-}
-.hts-drugs #legend-drugs {
-    display:block;
-}
-.hts-doses #legend-doses {
-    display:block;
-}
-.hts-celllines .hts-cell-line-0,.hts-drugs .hts-drug-0,.hts-doses .hts-dose-0 {
-    background-color: #FF5005; }
-.hts-celllines .hts-cell-line-1,.hts-drugs .hts-drug-1,.hts-doses .hts-dose-1 {
-    background-color: #F0A3FF; }
-.hts-celllines .hts-cell-line-2,.hts-drugs .hts-drug-2,.hts-doses .hts-dose-2 {
-    background-color: #0075DC; }
-.hts-celllines .hts-cell-line-3,.hts-drugs .hts-drug-3,.hts-doses .hts-dose-3 {
-    background-color: #993F00; }
-.hts-celllines .hts-cell-line-4,.hts-drugs .hts-drug-4,.hts-doses .hts-dose-4 {
-    background-color: #4C005C; }
-.hts-celllines .hts-cell-line-5,.hts-drugs .hts-drug-5,.hts-doses .hts-dose-5 {
-    background-color: #191919; }
-.hts-celllines .hts-cell-line-6,.hts-drugs .hts-drug-6,.hts-doses .hts-dose-6 {
-    background-color: #005C31; }
-.hts-celllines .hts-cell-line-7,.hts-drugs .hts-drug-7,.hts-doses .hts-dose-7 {
-    background-color: #2BCE48; }
-.hts-celllines .hts-cell-line-8,.hts-drugs .hts-drug-8,.hts-doses .hts-dose-8 {
-    background-color: #FFCC99; }
-.hts-celllines .hts-cell-line-9,.hts-drugs .hts-drug-9,.hts-doses .hts-dose-9 {
-    background-color: #808080; }
-.hts-celllines .hts-cell-line-10,.hts-drugs .hts-drug-10,.hts-doses .hts-dose-10 {
-    background-color: #94FFB5; }
-.hts-celllines .hts-cell-line-11,.hts-drugs .hts-drug-11,.hts-doses .hts-dose-11 {
-    background-color: #8F7C00; }
-.hts-celllines .hts-cell-line-12,.hts-drugs .hts-drug-12,.hts-doses .hts-dose-12 {
-    background-color: #9DCC00; }
-.hts-celllines .hts-cell-line-13,.hts-drugs .hts-drug-13,.hts-doses .hts-dose-13 {
-    background-color: #C20088; }
-.hts-celllines .hts-cell-line-14,.hts-drugs .hts-drug-14,.hts-doses .hts-dose-14 {
-    background-color: #003380; }
-.hts-celllines .hts-cell-line-15,.hts-drugs .hts-drug-15,.hts-doses .hts-dose-15 {
-    background-color: #FFA405; }
-.hts-celllines .hts-cell-line-16,.hts-drugs .hts-drug-16,.hts-doses .hts-dose-16 {
-    background-color: #FFA8BB; }
-.hts-celllines .hts-cell-line-17,.hts-drugs .hts-drug-17,.hts-doses .hts-dose-17 {
-    background-color: #426600; }
-.hts-celllines .hts-cell-line-18,.hts-drugs .hts-drug-18,.hts-doses .hts-dose-18 {
-    background-color: #FF0010; }
-.hts-celllines .hts-cell-line-19,.hts-drugs .hts-drug-19,.hts-doses .hts-dose-19 {
-    background-color: #5EF1F2; }
-.hts-celllines .hts-cell-line-20,.hts-drugs .hts-drug-20,.hts-doses .hts-dose-20 {
-    background-color: #00998F; }
-.hts-celllines .hts-cell-line-21,.hts-drugs .hts-drug-21,.hts-doses .hts-dose-21 {
-    background-color: #E0FF66; }
-.hts-celllines .hts-cell-line-22,.hts-drugs .hts-drug-22,.hts-doses .hts-dose-22 {
-    background-color: #740AFF; }
-.hts-celllines .hts-cell-line-23,.hts-drugs .hts-drug-23,.hts-doses .hts-dose-23 {
-    background-color: #990000; }
-.hts-celllines .hts-cell-line-24,.hts-drugs .hts-drug-24,.hts-doses .hts-dose-24 {
-    background-color: #FFFF80; }
-.twitter-typeahead {
-    width: 100%
-}
-.hts-drug-entry {
-    margin-bottom: 15px;
-}
-.hts-drug-num-label {
-    display: none;
-}
-.glyphicon.spinning {
-    animation: spin 1s infinite linear;
-    -webkit-animation: spin2 1s infinite linear;
-}
-#hts-well-table-view { display: none; }
-
-@keyframes spin {
-    from { transform: scale(1) rotate(0deg); }
-    to { transform: scale(1) rotate(360deg); }
-}
-
-@-webkit-keyframes spin2 {
-    from { -webkit-transform: rotate(0deg); }
-    to { -webkit-transform: rotate(360deg); }
-}
-  </style>
-
-    <!--[if lt IE 9]>{# TODO: Make this a non-javascript banner #}
-        <script>alert("Sorry, your web browser is unsupported. Please
-        upgrade to Internet Explorer 9 or higher, or use a recent version of
-         Google Chrome or Mozilla Firefox");</script>
-    <![endif]-->
-
-</head>
-
-<body>
-
-    <div id="wrapper">
-
-        <!-- Navigation -->
-        <nav class="navbar navbar-default navbar-static-top" role="navigation" style="margin-bottom: 0">
-            <div class="navbar-header">
-                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-                    <span class="sr-only">Toggle navigation</span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                </button>
-                <a class="navbar-brand" href="/">HTS Prototype</a>
-            </div>
-            <!-- /.navbar-header -->
-
-            <ul class="nav navbar-top-links navbar-right">
-                <li class="dropdown">
-                    <a class="dropdown-toggle" data-toggle="dropdown" href="#">
-                        <i class="fa fa-envelope fa-fw"></i> <i class="fa fa-caret-down"></i>
-                    </a>
-                    <ul class="dropdown-menu dropdown-messages">
-                        <li>
-                            <a href="#">
-                                <div>
-                                    <strong>John Smith</strong>
-                                    <span class="pull-right text-muted">
-                                        <em>Yesterday</em>
-                                    </span>
-                                </div>
-                                <div>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque eleifend...</div>
-                            </a>
-                        </li>
-                        <li class="divider"></li>
-                        <li>
-                            <a href="#">
-                                <div>
-                                    <strong>John Smith</strong>
-                                    <span class="pull-right text-muted">
-                                        <em>Yesterday</em>
-                                    </span>
-                                </div>
-                                <div>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque eleifend...</div>
-                            </a>
-                        </li>
-                        <li class="divider"></li>
-                        <li>
-                            <a href="#">
-                                <div>
-                                    <strong>John Smith</strong>
-                                    <span class="pull-right text-muted">
-                                        <em>Yesterday</em>
-                                    </span>
-                                </div>
-                                <div>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque eleifend...</div>
-                            </a>
-                        </li>
-                        <li class="divider"></li>
-                        <li>
-                            <a class="text-center" href="#">
-                                <strong>Read All Messages</strong>
-                                <i class="fa fa-angle-right"></i>
-                            </a>
-                        </li>
-                    </ul>
-                    <!-- /.dropdown-messages -->
-                </li>
-                <!-- /.dropdown -->
-                <li class="dropdown">
-                    <a class="dropdown-toggle" data-toggle="dropdown" href="#">
-                        <i class="fa fa-tasks fa-fw"></i> <i class="fa fa-caret-down"></i>
-                    </a>
-                    <ul class="dropdown-menu dropdown-tasks">
-                        <li>
-                            <a href="#">
-                                <div>
-                                    <p>
-                                        <strong>Task 1</strong>
-                                        <span class="pull-right text-muted">40% Complete</span>
-                                    </p>
-                                    <div class="progress progress-striped active">
-                                        <div class="progress-bar progress-bar-success" role="progressbar" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100" style="width: 40%">
-                                            <span class="sr-only">40% Complete (success)</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </a>
-                        </li>
-                        <li class="divider"></li>
-                        <li>
-                            <a href="#">
-                                <div>
-                                    <p>
-                                        <strong>Task 2</strong>
-                                        <span class="pull-right text-muted">20% Complete</span>
-                                    </p>
-                                    <div class="progress progress-striped active">
-                                        <div class="progress-bar progress-bar-info" role="progressbar" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100" style="width: 20%">
-                                            <span class="sr-only">20% Complete</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </a>
-                        </li>
-                        <li class="divider"></li>
-                        <li>
-                            <a href="#">
-                                <div>
-                                    <p>
-                                        <strong>Task 3</strong>
-                                        <span class="pull-right text-muted">60% Complete</span>
-                                    </p>
-                                    <div class="progress progress-striped active">
-                                        <div class="progress-bar progress-bar-warning" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" style="width: 60%">
-                                            <span class="sr-only">60% Complete (warning)</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </a>
-                        </li>
-                        <li class="divider"></li>
-                        <li>
-                            <a href="#">
-                                <div>
-                                    <p>
-                                        <strong>Task 4</strong>
-                                        <span class="pull-right text-muted">80% Complete</span>
-                                    </p>
-                                    <div class="progress progress-striped active">
-                                        <div class="progress-bar progress-bar-danger" role="progressbar" aria-valuenow="80" aria-valuemin="0" aria-valuemax="100" style="width: 80%">
-                                            <span class="sr-only">80% Complete (danger)</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </a>
-                        </li>
-                        <li class="divider"></li>
-                        <li>
-                            <a class="text-center" href="#">
-                                <strong>See All Tasks</strong>
-                                <i class="fa fa-angle-right"></i>
-                            </a>
-                        </li>
-                    </ul>
-                    <!-- /.dropdown-tasks -->
-                </li>
-                <!-- /.dropdown -->
-                <li class="dropdown">
-                    <a class="dropdown-toggle" data-toggle="dropdown" href="#">
-                        <i class="fa fa-bell fa-fw"></i> <i class="fa fa-caret-down"></i>
-                    </a>
-                    <ul class="dropdown-menu dropdown-alerts">
-                        <li>
-                            <a href="#">
-                                <div>
-                                    <i class="fa fa-comment fa-fw"></i> New Comment
-                                    <span class="pull-right text-muted small">4 minutes ago</span>
-                                </div>
-                            </a>
-                        </li>
-                        <li class="divider"></li>
-                        <li>
-                            <a href="#">
-                                <div>
-                                    <i class="fa fa-twitter fa-fw"></i> 3 New Followers
-                                    <span class="pull-right text-muted small">12 minutes ago</span>
-                                </div>
-                            </a>
-                        </li>
-                        <li class="divider"></li>
-                        <li>
-                            <a href="#">
-                                <div>
-                                    <i class="fa fa-envelope fa-fw"></i> Message Sent
-                                    <span class="pull-right text-muted small">4 minutes ago</span>
-                                </div>
-                            </a>
-                        </li>
-                        <li class="divider"></li>
-                        <li>
-                            <a href="#">
-                                <div>
-                                    <i class="fa fa-tasks fa-fw"></i> New Task
-                                    <span class="pull-right text-muted small">4 minutes ago</span>
-                                </div>
-                            </a>
-                        </li>
-                        <li class="divider"></li>
-                        <li>
-                            <a href="#">
-                                <div>
-                                    <i class="fa fa-upload fa-fw"></i> Server Rebooted
-                                    <span class="pull-right text-muted small">4 minutes ago</span>
-                                </div>
-                            </a>
-                        </li>
-                        <li class="divider"></li>
-                        <li>
-                            <a class="text-center" href="#">
-                                <strong>See All Alerts</strong>
-                                <i class="fa fa-angle-right"></i>
-                            </a>
-                        </li>
-                    </ul>
-                    <!-- /.dropdown-alerts -->
-                </li>
-                <!-- /.dropdown -->
-                <li class="dropdown">
-                    <a class="dropdown-toggle" data-toggle="dropdown" href="#">
-                        <i class="fa fa-user fa-fw"></i> <i class="fa fa-caret-down"></i>
-                    </a>
-                    <ul class="dropdown-menu dropdown-user">
-                        <li><a href="#"><i class="fa fa-user fa-fw"></i> User Profile</a>
-                        </li>
-                        <li><a href="#"><i class="fa fa-gear fa-fw"></i> Settings</a>
-                        </li>
-                        <li class="divider"></li>
-                        <li><a href="{% url 'pyhts:logout' %}"><i class="fa
-                        fa-sign-out
-                        fa-fw"></i>
-                            Logout</a>
-                        </li>
-                    </ul>
-                    <!-- /.dropdown-user -->
-                </li>
-                <!-- /.dropdown -->
-                {% if user.is_authenticated %}
-                <li>{{ user.email }}</li>
-                {% endif %}
-            </ul>
-            <!-- /.navbar-top-links -->
-
-            <!-- /.navbar-static-side -->
-        </nav>
-
-        <div id="page-wrapper">
-            <div class="row">
-                <div class="col-lg-12">
-                    <h1 class="page-header">{% block title %}
-                    {% endblock %}</h1>
-                </div>
-                <!-- /.col-lg-12 -->
-            </div>
-
-            {% block content %}{% endblock %}
+    <!-- Navigation -->
+    <nav class="navbar navbar-default navbar-static-top" role="navigation" style="margin-bottom: 0">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="{% url 'pyhts:home' %}">HTS
+                Prototype</a>
         </div>
-        <!-- /#page-wrapper -->
+        <!-- /.navbar-header -->
 
-        {#  Confirmation modal #}
-        <div class="modal fade" id="modal-ok-cancel" tabindex="-1" role="dialog"
-             aria-labelledby="myModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header" style="font-size: 20pt">
-                        ...
-                    </div>
-                    <div class="modal-body">
-                        ...
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-cancel btn-default"
-                                data-dismiss="modal">Cancel</button>
-                        <button class="btn btn-success btn-ok">OK</button>
-                    </div>
-                </div>
+        <ul class="nav navbar-top-links navbar-right">
+            <li class="dropdown">
+                <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                    <i class="fa fa-envelope fa-fw"></i> <i class="fa fa-caret-down"></i>
+                </a>
+                <ul class="dropdown-menu dropdown-messages">
+                    <li>
+                        <a href="#">
+                            <div>
+                                <strong>John Smith</strong>
+                                <span class="pull-right text-muted">
+                                    <em>Yesterday</em>
+                                </span>
+                            </div>
+                            <div>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque eleifend...</div>
+                        </a>
+                    </li>
+                    <li class="divider"></li>
+                    <li>
+                        <a href="#">
+                            <div>
+                                <strong>John Smith</strong>
+                                <span class="pull-right text-muted">
+                                    <em>Yesterday</em>
+                                </span>
+                            </div>
+                            <div>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque eleifend...</div>
+                        </a>
+                    </li>
+                    <li class="divider"></li>
+                    <li>
+                        <a href="#">
+                            <div>
+                                <strong>John Smith</strong>
+                                <span class="pull-right text-muted">
+                                    <em>Yesterday</em>
+                                </span>
+                            </div>
+                            <div>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque eleifend...</div>
+                        </a>
+                    </li>
+                    <li class="divider"></li>
+                    <li>
+                        <a class="text-center" href="#">
+                            <strong>Read All Messages</strong>
+                            <i class="fa fa-angle-right"></i>
+                        </a>
+                    </li>
+                </ul>
+                <!-- /.dropdown-messages -->
+            </li>
+            <!-- /.dropdown -->
+            <li class="dropdown">
+                <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                    <i class="fa fa-tasks fa-fw"></i> <i class="fa fa-caret-down"></i>
+                </a>
+                <ul class="dropdown-menu dropdown-tasks">
+                    <li>
+                        <a href="#">
+                            <div>
+                                <p>
+                                    <strong>Task 1</strong>
+                                    <span class="pull-right text-muted">40% Complete</span>
+                                </p>
+                                <div class="progress progress-striped active">
+                                    <div class="progress-bar progress-bar-success" role="progressbar" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100" style="width: 40%">
+                                        <span class="sr-only">40% Complete (success)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    </li>
+                    <li class="divider"></li>
+                    <li>
+                        <a href="#">
+                            <div>
+                                <p>
+                                    <strong>Task 2</strong>
+                                    <span class="pull-right text-muted">20% Complete</span>
+                                </p>
+                                <div class="progress progress-striped active">
+                                    <div class="progress-bar progress-bar-info" role="progressbar" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100" style="width: 20%">
+                                        <span class="sr-only">20% Complete</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    </li>
+                    <li class="divider"></li>
+                    <li>
+                        <a href="#">
+                            <div>
+                                <p>
+                                    <strong>Task 3</strong>
+                                    <span class="pull-right text-muted">60% Complete</span>
+                                </p>
+                                <div class="progress progress-striped active">
+                                    <div class="progress-bar progress-bar-warning" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" style="width: 60%">
+                                        <span class="sr-only">60% Complete (warning)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    </li>
+                    <li class="divider"></li>
+                    <li>
+                        <a href="#">
+                            <div>
+                                <p>
+                                    <strong>Task 4</strong>
+                                    <span class="pull-right text-muted">80% Complete</span>
+                                </p>
+                                <div class="progress progress-striped active">
+                                    <div class="progress-bar progress-bar-danger" role="progressbar" aria-valuenow="80" aria-valuemin="0" aria-valuemax="100" style="width: 80%">
+                                        <span class="sr-only">80% Complete (danger)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    </li>
+                    <li class="divider"></li>
+                    <li>
+                        <a class="text-center" href="#">
+                            <strong>See All Tasks</strong>
+                            <i class="fa fa-angle-right"></i>
+                        </a>
+                    </li>
+                </ul>
+                <!-- /.dropdown-tasks -->
+            </li>
+            <!-- /.dropdown -->
+            <li class="dropdown">
+                <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                    <i class="fa fa-bell fa-fw"></i> <i class="fa fa-caret-down"></i>
+                </a>
+                <ul class="dropdown-menu dropdown-alerts">
+                    <li>
+                        <a href="#">
+                            <div>
+                                <i class="fa fa-comment fa-fw"></i> New Comment
+                                <span class="pull-right text-muted small">4 minutes ago</span>
+                            </div>
+                        </a>
+                    </li>
+                    <li class="divider"></li>
+                    <li>
+                        <a href="#">
+                            <div>
+                                <i class="fa fa-twitter fa-fw"></i> 3 New Followers
+                                <span class="pull-right text-muted small">12 minutes ago</span>
+                            </div>
+                        </a>
+                    </li>
+                    <li class="divider"></li>
+                    <li>
+                        <a href="#">
+                            <div>
+                                <i class="fa fa-envelope fa-fw"></i> Message Sent
+                                <span class="pull-right text-muted small">4 minutes ago</span>
+                            </div>
+                        </a>
+                    </li>
+                    <li class="divider"></li>
+                    <li>
+                        <a href="#">
+                            <div>
+                                <i class="fa fa-tasks fa-fw"></i> New Task
+                                <span class="pull-right text-muted small">4 minutes ago</span>
+                            </div>
+                        </a>
+                    </li>
+                    <li class="divider"></li>
+                    <li>
+                        <a href="#">
+                            <div>
+                                <i class="fa fa-upload fa-fw"></i> Server Rebooted
+                                <span class="pull-right text-muted small">4 minutes ago</span>
+                            </div>
+                        </a>
+                    </li>
+                    <li class="divider"></li>
+                    <li>
+                        <a class="text-center" href="#">
+                            <strong>See All Alerts</strong>
+                            <i class="fa fa-angle-right"></i>
+                        </a>
+                    </li>
+                </ul>
+                <!-- /.dropdown-alerts -->
+            </li>
+            <!-- /.dropdown -->
+            <li class="dropdown">
+                <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                    <i class="fa fa-user fa-fw"></i> <i class="fa fa-caret-down"></i>
+                </a>
+                <ul class="dropdown-menu dropdown-user">
+                    <li><a href="#"><i class="fa fa-user fa-fw"></i> User Profile</a>
+                    </li>
+                    <li><a href="#"><i class="fa fa-gear fa-fw"></i> Settings</a>
+                    </li>
+                    <li class="divider"></li>
+                    <li><a href="{% url 'pyhts:logout' %}"><i class="fa
+                    fa-sign-out
+                    fa-fw"></i>
+                        Logout</a>
+                    </li>
+                </ul>
+                <!-- /.dropdown-user -->
+            </li>
+            <!-- /.dropdown -->
+            {% if user.is_authenticated %}
+            <li>{{ user.email }}</li>
+            {% endif %}
+        </ul>
+        <!-- /.navbar-top-links -->
+
+        <!-- /.navbar-static-side -->
+    </nav>
+
+    <div id="page-wrapper">
+    {% block titlerow %}<div class="row">
+            <div class="col-lg-12">
+                <h1 class="page-header">{% block bodytitle %}{% block title %}{% endblock %}{% endblock %}</h1>
             </div>
-        </div>
+        </div>{% endblock %}
 
+        {% block content %}{% endblock %}
     </div>
-    <!-- /#wrapper -->
+    <!-- /#page-wrapper -->
 
-    <script src="https://cdn.ravenjs.com/3.8.0/raven.min.js"></script>
-    <script>{% load raven %}{% load pyhts_tags %}Raven.config('{% sentry_public_dsn %}', {
-        {% if debug %}environment: 'development',{% endif %}
-        release: '{% pyhts_version %}'
-    }).install();
-    {% if user.is_authenticated %}Raven.setUserContext({email: '{{ user.email }}',
-        id: '{{ user.id }}'});{% endif %}
-    </script>
+    {#  Confirmation modal #}
+    <div class="modal fade" id="modal-ok-cancel" tabindex="-1" role="dialog"
+         aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="font-size: 20pt">
+                    ...
+                </div>
+                <div class="modal-body">
+                    ...
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-cancel btn-default"
+                            data-dismiss="modal">Cancel</button>
+                    <button class="btn btn-success btn-ok">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <!-- jQuery -->
-    <script src="{% static 'vendor/jquery/jquery.min.js' %}"></script>
+</div>
+<!-- /#wrapper -->
 
-    <!-- Bootstrap Core JavaScript -->
-    <script src="{% static 'vendor/bootstrap/js/bootstrap.min.js' %}"></script>
+<script src="https://cdn.ravenjs.com/3.8.0/raven.min.js"></script>
+<script>{% load raven %}{% load pyhts_tags %}Raven.config('{% sentry_public_dsn %}', {
+    {% if debug %}environment: 'development',{% endif %}
+    release: '{% pyhts_version %}'
+}).install();
+{% if user.is_authenticated %}Raven.setUserContext({email: '{{ user.email }}',
+    id: '{{ user.id }}'});{% endif %}
+</script>
 
-    <!-- Metis Menu Plugin JavaScript -->
+<!-- jQuery -->{% load static %}
+<script src="{% static 'vendor/jquery/jquery.min.js' %}"></script>
+
+<!-- Bootstrap Core JavaScript -->
+<script src="{% static 'vendor/bootstrap/js/bootstrap.min.js' %}"></script>
+
+{#    <!-- Metis Menu Plugin JavaScript -->#}
 {#    <script src="{% static 'vendor/metisMenu/metisMenu.min.js' %}"></script>#}
 
-    <!-- Morris Charts JavaScript -->
+{#    <!-- Morris Charts JavaScript -->#}
 {#    <script src="{% static 'vendor/raphael/raphael.min.js' %}"></script>#}
 {#    <script src="{% static 'vendor/morrisjs/morris.min.js' %}"></script>#}
 {#    <script src="{% static 'data/morris-data.js' %}"></script>#}
 
-    <!-- Custom Theme JavaScript -->
+{#    <!-- Custom Theme JavaScript -->#}
 {#    <script src="{% static 'dist/js/sb-admin-2.js' %}"></script>#}
-    <script src="{% static 'pyhts/js/pyhts.js' %}"></script>
-
-    {% block tailscript %}{% endblock %}
-
-</body>
-
-</html>
+<script src="{% static 'pyhts/js/pyhts.js' %}"></script>
+{% endblock %}

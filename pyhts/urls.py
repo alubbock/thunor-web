@@ -27,6 +27,8 @@ urlpatterns = [
     url(r'^ajax/plate/save', views.ajax_save_plate,
         name='ajax_save_plate'),
 
+    url(r'^ajax/dataset/all', views.ajax_get_datasets,
+        name='ajax_get_datasets'),
     url(r'^ajax/dataset/create', views.ajax_create_dataset,
         name='ajax_create_dataset'),
     # url(r'^ajax/dataset/set_timepoints', views.ajax_set_timepoints,

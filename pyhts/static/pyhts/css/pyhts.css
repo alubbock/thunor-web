@@ -237,3 +237,14 @@ table.dataTable thead .sorting:after {
 .huge {
   font-size: 40px;
 }
+.jumbotron .fa-bolt {
+  font-size: 126px;
+  margin-top: 20px;
+}
+@media (max-width: 500px) {
+    .jumbotron .fa-bolt {font-size:90px;}
+}
+.navy {
+  background-color: #022559;
+  color: #fff;
+}

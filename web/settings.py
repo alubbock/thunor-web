@@ -147,7 +147,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'uploads')
 
 LOGGING = {
     'version': 1,
-    'disable_existing_loggers': True,
+    'disable_existing_loggers': not DEBUG,
     'filters': {
         'require_debug_false': {
             '()': 'django.utils.log.RequireDebugFalse'
@@ -162,8 +162,8 @@ LOGGING = {
     'handlers': {
         'sentry': {
             'level': 'ERROR', # To capture more than ERROR, change to WARNING, INFO, etc.
-            'class': 'raven.contrib.django.raven_compat.handlers.SentryHandler',
             'filters': ['require_debug_false'],
+            'class': 'raven.contrib.django.raven_compat.handlers.SentryHandler',
             'tags': {},
         },
         'console': {
@@ -174,8 +174,8 @@ LOGGING = {
     },
     'loggers': {
         'root': {
-            'level': 'WARNING',
-            'handlers': ['sentry'],
+            'level': 'DEBUG' if DEBUG else 'WARNING',
+            'handlers': ['sentry', 'console'],
         },
         'django.db.backends': {
             'level': 'ERROR',

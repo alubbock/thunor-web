@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>{% block title %}{% endblock %} | PyHTS</title>
+
+    {% load static %}
+<link rel="apple-touch-icon-precomposed" sizes="57x57" href="{% static 'pyhts/favicons/apple-touch-icon-57x57.png' %}" />
+<link rel="apple-touch-icon-precomposed" sizes="114x114" href="{% static 'pyhts/favicons/apple-touch-icon-114x114.png' %}" />
+<link rel="apple-touch-icon-precomposed" sizes="72x72" href="{% static 'pyhts/favicons/apple-touch-icon-72x72.png' %}" />
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="{% static 'pyhts/favicons/apple-touch-icon-144x144.png' %}" />
+<link rel="apple-touch-icon-precomposed" sizes="60x60" href="{% static 'pyhts/favicons/apple-touch-icon-60x60.png' %}" />
+<link rel="apple-touch-icon-precomposed" sizes="120x120" href="{% static 'pyhts/favicons/apple-touch-icon-120x120.png' %}" />
+<link rel="apple-touch-icon-precomposed" sizes="76x76" href="{% static 'pyhts/favicons/apple-touch-icon-76x76.png' %}" />
+<link rel="apple-touch-icon-precomposed" sizes="152x152" href="{% static 'pyhts/favicons/apple-touch-icon-152x152.png' %}" />
+<link rel="icon" type="image/png" href="{% static 'pyhts/favicons/favicon-196x196.png' %}" sizes="196x196" />
+<link rel="icon" type="image/png" href="{% static 'pyhts/favicons/favicon-96x96.png' %}" sizes="96x96" />
+<link rel="icon" type="image/png" href="{% static 'pyhts/favicons/favicon-32x32.png' %}" sizes="32x32" />
+<link rel="icon" type="image/png" href="{% static 'pyhts/favicons/favicon-16x16.png' %}" sizes="16x16" />
+<link rel="icon" type="image/png" href="{% static 'pyhts/favicons/favicon-128.png' %}" sizes="128x128" />
+<meta name="application-name" content="PyHTS"/>
+<meta name="msapplication-TileColor" content="#002559" />
+<meta name="msapplication-TileImage" content="{% static 'pyhts/favicons/mstile-144x144.png' %}" />
+<meta name="msapplication-square70x70logo" content="{% static 'pyhts/favicons/mstile-70x70.png' %}" />
+<meta name="msapplication-square150x150logo" content="{% static 'pyhts/favicons/mstile-150x150.png' %}" />
+<meta name="msapplication-wide310x150logo" content="{% static 'pyhts/favicons/mstile-310x150.png' %}" />
+<meta name="msapplication-square310x310logo" content="{% static 'pyhts/favicons/mstile-310x310.png' %}" />
+
+
+    <!-- Bootstrap Core CSS -->
+    <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}"
+          rel="stylesheet">
+
+    <!-- MetisMenu CSS -->
+    <link href="{% static 'vendor/metisMenu/metisMenu.min.css' %}"
+          rel="stylesheet">
+
+    <!-- Custom CSS -->
+{#    <link href="{% static 'dist/css/sb-admin-2.css' %}" rel="stylesheet">#}
+    <link href="{% static 'pyhts/css/pyhts.css' %}" rel="stylesheet">
+
+    <!-- Morris Charts CSS -->
+    <link href="{% static 'vendor/morrisjs/morris.css' %}" rel="stylesheet">
+
+    <!-- Custom Fonts -->
+    <link href="{% static 'vendor/font-awesome/css/font-awesome.min.css' %}"
+          rel="stylesheet" type="text/css">
+
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.0/themes/base/jquery-ui.css">
+    {% block stylesheets %}{% endblock %}
+      <style>
+  #page-wrapper {margin:0;}
+
+  #selectable-wells .ui-selecting { background: #FECA40; }
+  #selectable-wells .ui-selected { background: #F39814; color: white; }
+  .welllist { list-style-type: none;
+      margin: 0;
+      padding: 0; }
+  #well-all {-webkit-touch-callout: none;
+-webkit-user-select: none;
+-khtml-user-select: none;
+-moz-user-select: none;
+-ms-user-select: none;
+user-select: none;}
+{#  #hts-well-plate {width:52em;padding:1em;}#}
+{#  #rowlabels { width: 2em; float:left; }#}
+{#  .welllist li { margin: 0; padding: 0; float: left; width: 2em;#}
+{#      height: 2em; font-size: 1em; text-align: center; cursor: default; }#}
+
+  #hts-plate-panel {min-width:500px;}
+  #selectable-well-rows {width:4%; float: left; clear:left; }
+{#  #hts-well-plate {width:100%;height:0;padding-bottom:100%; ; }#}
+{#  #hts-well-plate-inner { }#}
+{#  #rowlabels { width: 2em; float:left; }#}
+  .welllist li { margin: 0; padding: 0 0 4% 0; float: left; width: 4%;
+      height: 0; cursor: default; text-align: center; font-size:1em;
+      border-radius: 50%; }
+  @media (min-width: 992px) {
+      .welllist li {font-size:125%}
+  }
+  @media (min-width: 1200px) {
+      .welllist li {font-size:150%}
+  }
+  #selectable-well-rows li {width: 100%; height:0; padding-bottom:100%;
+      border:1px solid transparent; }
+
+ .ui-selectable-helper { display:none }
+
+  .scrollable-menu {
+    height: auto;
+    max-height: 400px;
+    overflow-x: hidden;
+ }
+
+
+          /*  */
+.upload-drop-zone {
+  height: 200px;
+  border-width: 2px;
+  margin-bottom: 20px;
+}
+
+/* skin.css Style*/
+.upload-drop-zone {
+  color: #ccc;
+  border-style: dashed;
+  border-color: #ccc;
+  line-height: 200px;
+  text-align: center
+}
+.upload-drop-zone.drop {
+    color: #222;
+    border-color: #222;
+}
+
+.tt-query {
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075) inset;
+}
+.tt-hint {
+    color: #999;
+}
+.tt-menu {
+    background-color: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+    padding: 4px 0;
+}
+.tt-suggestion {
+    line-height: 24px;
+    padding: 3px 20px;
+}
+.tt-suggestion:hover {
+    background-color: #0097cf;
+    color: #fff;
+    cursor: pointer;
+}
+.tt-suggestion.tt-cursor {
+    background-color: #0097cf;
+    color: #fff;
+}
+.tt-suggestion p {
+    margin: 0;
+}
+
+.hts-overview .hts-cell-line {
+    background-color: #a1aec7;
+}
+.hts-overview .hts-drug {
+    background-color: #ebccd1;
+}
+.hts-overview .hts-dose {
+    background-color: #f7ecb5;
+}
+.hts-overview .hts-cell-line.hts-drug {
+    background-color: #a6e1ec;
+    background: repeating-linear-gradient(
+  45deg,
+  #a1aec7,
+  #a1aec7 6px,
+  #ebccd1 6px,
+  #ebccd1 12px
+    );
+}
+.hts-overview .hts-cell-line.hts-dose {
+    background-color: #adadad;
+    background: repeating-linear-gradient(
+  45deg,
+  #a1aec7,
+  #a1aec7 6px,
+  #f7ecb5 6px,
+  #f7ecb5 12px
+    );
+}
+.hts-overview .hts-drug.hts-dose {
+    background-color: #f0e8ff;
+    background: repeating-linear-gradient(
+  45deg,
+  #ebccd1,
+  #ebccd1 6px,
+  #f7ecb5 6px,
+  #f7ecb5 12px
+    );
+}
+.hts-overview .hts-cell-line.hts-drug.hts-dose {
+    background: #000;
+}
+.welllist.well-legend {
+    display: block;
+    clear: left;
+    line-height: 1em;
+}
+.welllist.well-legend li {
+    display: block;
+    width: 1.5em;
+    padding-bottom: 1.5em;
+    margin-right: 0.5em;
+    margin-bottom: 0.5em;
+}
+#legend-overview,#legend-cell-lines,#legend-drugs,#legend-doses {
+    display:none;
+}
+.hts-overview #legend-overview {
+    display:block;
+}
+.hts-celllines #legend-cell-lines {
+    display:block;
+}
+.hts-drugs #legend-drugs {
+    display:block;
+}
+.hts-doses #legend-doses {
+    display:block;
+}
+.hts-celllines .hts-cell-line-0,.hts-drugs .hts-drug-0,.hts-doses .hts-dose-0 {
+    background-color: #FF5005; }
+.hts-celllines .hts-cell-line-1,.hts-drugs .hts-drug-1,.hts-doses .hts-dose-1 {
+    background-color: #F0A3FF; }
+.hts-celllines .hts-cell-line-2,.hts-drugs .hts-drug-2,.hts-doses .hts-dose-2 {
+    background-color: #0075DC; }
+.hts-celllines .hts-cell-line-3,.hts-drugs .hts-drug-3,.hts-doses .hts-dose-3 {
+    background-color: #993F00; }
+.hts-celllines .hts-cell-line-4,.hts-drugs .hts-drug-4,.hts-doses .hts-dose-4 {
+    background-color: #4C005C; }
+.hts-celllines .hts-cell-line-5,.hts-drugs .hts-drug-5,.hts-doses .hts-dose-5 {
+    background-color: #191919; }
+.hts-celllines .hts-cell-line-6,.hts-drugs .hts-drug-6,.hts-doses .hts-dose-6 {
+    background-color: #005C31; }
+.hts-celllines .hts-cell-line-7,.hts-drugs .hts-drug-7,.hts-doses .hts-dose-7 {
+    background-color: #2BCE48; }
+.hts-celllines .hts-cell-line-8,.hts-drugs .hts-drug-8,.hts-doses .hts-dose-8 {
+    background-color: #FFCC99; }
+.hts-celllines .hts-cell-line-9,.hts-drugs .hts-drug-9,.hts-doses .hts-dose-9 {
+    background-color: #808080; }
+.hts-celllines .hts-cell-line-10,.hts-drugs .hts-drug-10,.hts-doses .hts-dose-10 {
+    background-color: #94FFB5; }
+.hts-celllines .hts-cell-line-11,.hts-drugs .hts-drug-11,.hts-doses .hts-dose-11 {
+    background-color: #8F7C00; }
+.hts-celllines .hts-cell-line-12,.hts-drugs .hts-drug-12,.hts-doses .hts-dose-12 {
+    background-color: #9DCC00; }
+.hts-celllines .hts-cell-line-13,.hts-drugs .hts-drug-13,.hts-doses .hts-dose-13 {
+    background-color: #C20088; }
+.hts-celllines .hts-cell-line-14,.hts-drugs .hts-drug-14,.hts-doses .hts-dose-14 {
+    background-color: #003380; }
+.hts-celllines .hts-cell-line-15,.hts-drugs .hts-drug-15,.hts-doses .hts-dose-15 {
+    background-color: #FFA405; }
+.hts-celllines .hts-cell-line-16,.hts-drugs .hts-drug-16,.hts-doses .hts-dose-16 {
+    background-color: #FFA8BB; }
+.hts-celllines .hts-cell-line-17,.hts-drugs .hts-drug-17,.hts-doses .hts-dose-17 {
+    background-color: #426600; }
+.hts-celllines .hts-cell-line-18,.hts-drugs .hts-drug-18,.hts-doses .hts-dose-18 {
+    background-color: #FF0010; }
+.hts-celllines .hts-cell-line-19,.hts-drugs .hts-drug-19,.hts-doses .hts-dose-19 {
+    background-color: #5EF1F2; }
+.hts-celllines .hts-cell-line-20,.hts-drugs .hts-drug-20,.hts-doses .hts-dose-20 {
+    background-color: #00998F; }
+.hts-celllines .hts-cell-line-21,.hts-drugs .hts-drug-21,.hts-doses .hts-dose-21 {
+    background-color: #E0FF66; }
+.hts-celllines .hts-cell-line-22,.hts-drugs .hts-drug-22,.hts-doses .hts-dose-22 {
+    background-color: #740AFF; }
+.hts-celllines .hts-cell-line-23,.hts-drugs .hts-drug-23,.hts-doses .hts-dose-23 {
+    background-color: #990000; }
+.hts-celllines .hts-cell-line-24,.hts-drugs .hts-drug-24,.hts-doses .hts-dose-24 {
+    background-color: #FFFF80; }
+.twitter-typeahead {
+    width: 100%
+}
+.hts-drug-entry {
+    margin-bottom: 15px;
+}
+.hts-drug-num-label {
+    display: none;
+}
+.glyphicon.spinning {
+    animation: spin 1s infinite linear;
+    -webkit-animation: spin2 1s infinite linear;
+}
+#hts-well-table-view { display: none; }
+
+@keyframes spin {
+    from { transform: scale(1) rotate(0deg); }
+    to { transform: scale(1) rotate(360deg); }
+}
+
+@-webkit-keyframes spin2 {
+    from { -webkit-transform: rotate(0deg); }
+    to { -webkit-transform: rotate(360deg); }
+}
+  </style>
+
+    <!--[if lt IE 9]>{# TODO: Make this a non-javascript banner #}
+        <script>alert("Sorry, your web browser is unsupported. Please
+        upgrade to Internet Explorer 9 or higher, or use a recent version of
+         Google Chrome or Mozilla Firefox");</script>
+    <![endif]-->
+
+</head>
+
+<body>{% block body %}{% endblock %}
+{% block tailscript %}{% endblock %}
+</body>
+</html>

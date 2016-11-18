@@ -161,6 +161,7 @@ $(function () {
     }).focus();
 
     {% if dataset_id %}pyHTS.ui.createFileUploadScreen({{ dataset_id }});{% endif %}
+    {% if plate_files %}pyHTSUnlockNext2();{% endif %}
 });
 </script>
 {% endblock %}

@@ -324,39 +324,19 @@ def ajax_create_drug(request):
     return JsonResponse({'drugs': list(drugs)})
 
 
-# @login_required
-# @transaction.atomic
-# def ajax_set_timepoints(request):
-#     # TODO: Respond with appropriate JSON responses under error conditions
-#     try:
-#         HTSDataset.objects.get(id=request.POST.get('dataset-id', None),
-#                                   owner_id=request.user.id)
-#     except ObjectDoesNotExist:
-#         return Http404()
-#
-#     plate_prefix = 'plate_'
-#
-#     plates_to_update = {key[len(plate_prefix):]: value for (key, value) in
-#                         request.POST.items()
-#                         if key.startswith(plate_prefix)}
-#
-#     # count = Plate.objects.filter(id__in=plates_to_update.keys(),
-#     #                      plate_file__dataset__owner_id=request.user.id
-#     #                      ).count()
-#     #
-#     # if count < len(plates_to_update):
-#     #     # Some of those plates don't exist or are owned by a different user
-#     #     return Http404()
-#
-#     for pl_id, pl_timepoint in plates_to_update.items():
-#         updated = Plate.objects.filter(id=pl_id,
-#                           plate_file__dataset__owner_id=request.user.id
-#                           ).update(timepoint_secs=float(pl_timepoint) *
-#                                                   HOURS_TO_SECONDS)
-#         if not updated:
-#             return Http404()
-#
-#     return JsonResponse({'success': True})
+@login_required
+def ajax_get_datasets(request):
+    #plates = Plate.objects.filter(
+    # dataset__owner_id=request.user.id).select_related()
+
+    #datasets = set([p.dataset for p in plates])
+
+    datasets = HTSDataset.objects.filter(owner_id=request.user.id).all()
+    plate_set = datasets.plate_set.all()
+    platefiles = datasets.platefile_set.all().count()
+
+    response = {'data': [[d.name, d.creation_date] for d in datasets]}
+    return JsonResponse(response)
 
 
 @login_required
