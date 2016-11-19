@@ -248,17 +248,18 @@ table.dataTable thead .sorting:after {
   background-color: #022559;
   color: #fff;
 }
-.navbar {
+.navbar-default, .nav > li > a:focus, .navbar-default > li > a:hover {
   background-color: #022559;
   color: #fff;
 }
-.navbar-default .navbar-brand, .navbar a {
+.navbar-default .navbar-brand, .navbar-default a {
   color: #fff;
 }
 .navbar-default .navbar-brand:hover, .navbar-default .navbar-brand:focus {
   color: #4e8dc4;
 }
-.nav .open > a, .nav .open > a:focus, .nav .open > a:hover, .nav > li > a:focus, .nav > li > a:hover {
+.navbar-default .dropdown-toggle:hover,
+.nav .open > a, .nav .open > a:focus, .nav .open > a:hover {
   background-color: #2e6da4;
 }
 .messages {

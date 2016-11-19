@@ -2,17 +2,18 @@
 
 {% block title %}Confirm email address{% endblock %}
 
-{% block preheader %}Confirm your email address to access {{ site_name }}.{% endblock %}
+{% block preheader %}Confirm your email address to access {{ current_site.name }}.{% endblock %}
 {% block link_name %}Confirm email{% endblock %}
 {% block link_url %}{{ activate_url }}{% endblock %}
 
 {% block topcontent %}<h2 class="center">Please click the button to
     confirm you used this email address to register an account at
-    {{ site_name }}</h2>{%endblock %}
+    {{ current_site.name }}</h2>{%endblock %}
 {% block bottomcontent %}<p>If the button doesn't work, please copy and paste
 the following address into your web browser:</p><p>
     {{ activate_url }}</p>
     <p>You're receiving this e-mail because you or someone else has
-        requested an account at {{ site_domain }}.
+        requested an account at {{ current_site.domain }}.
 It can be safely ignored if you did not request an account.</p>
+    <p>Best regards,<br>The {{ current_site.name }} team</p>
 {% endblock %}

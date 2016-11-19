@@ -1,9 +1,9 @@
-Hello from {{ site_name }}!
+Hello from {{ current_site.name }}!
 
 You're receiving this email because your email was used to register an
-account at {{ site_domain }}.
+account at {{ current_site.domain }}.
 
 To confirm this is correct, please go to {{ activate_url }}
 
 Best regards,
-The {{ site_name }} team
+The {{ current_site.name }} team

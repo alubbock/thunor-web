@@ -51,6 +51,9 @@ INSTALLED_APPS = [
 ]
 
 SITE_ID = 1
+MIGRATION_MODULES = {
+    'sites': 'pyhts.fixtures.sites_migrations',
+}
 
 MIDDLEWARE = []
 
