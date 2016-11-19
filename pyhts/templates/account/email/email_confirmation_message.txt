@@ -1,0 +1,9 @@
+Hello from {{ site_name }}!
+
+You're receiving this email because your email was used to register an
+account at {{ site_domain }}.
+
+To confirm this is correct, please go to {{ activate_url }}
+
+Best regards,
+The {{ site_name }} team

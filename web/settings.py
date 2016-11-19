@@ -13,10 +13,10 @@ https://docs.djangoproject.com/en/1.10/ref/settings/
 import os
 import raven
 import pyhts
+from django.contrib import messages
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.10/howto/deployment/checklist/
@@ -34,17 +34,23 @@ INTERNAL_IPS = '127.0.0.1'
 # Application definition
 
 INSTALLED_APPS = [
+    'pyhts',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'django.contrib.sites',
     'django.contrib.staticfiles',
     'raven.contrib.django.raven_compat',
     'custom_user',
+    'allauth',
+    'allauth.account',
+    'invitations',
     'crispy_forms',
-    'pyhts',
 ]
+
+SITE_ID = 1
 
 MIDDLEWARE = []
 
@@ -83,6 +89,11 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'web.wsgi.application'
 
+EMAIL_HOST = os.environ['DJANGO_EMAIL_HOST']
+EMAIL_PORT = os.environ['DJANGO_EMAIL_PORT']
+EMAIL_HOST_USER = os.environ['DJANGO_EMAIL_USER']
+EMAIL_HOST_PASSWORD = os.environ['DJANGO_EMAIL_PASSWORD']
+EMAIL_USE_TLS = True
 
 # Database
 # https://docs.djangoproject.com/en/1.10/ref/settings/#databases
@@ -101,8 +112,34 @@ RAVEN_CONFIG = {
     'release': pyhts.__version__,
 }
 
+
 AUTH_USER_MODEL = 'custom_user.EmailUser'
-LOGIN_URL = '/'
+AUTHENTICATION_BACKENDS = (
+    # Needed to login by username in Django admin, regardless of `allauth`
+    'django.contrib.auth.backends.ModelBackend',
+    # `allauth` specific authentication methods, such as login by e-mail
+    'allauth.account.auth_backends.AuthenticationBackend',
+)
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
+ACCOUNT_LOGIN_ON_PASSWORD_RESET = True
+ACCOUNT_FORMS = {'login': 'pyhts.forms.CentredAuthForm',
+                 'change_password': 'pyhts.forms.ChangePasswordForm',
+                 'reset_password': 'pyhts.forms.ResetPasswordForm',
+                 'reset_password_from_key': 'pyhts.forms.ResetPasswordKeyForm',
+                 'set_password': 'pyhts.forms.SetPasswordForm',
+                 'signup': 'pyhts.forms.SignUpForm',
+                 'add_email': 'pyhts.forms.AddEmailForm'}
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_USERNAME_REQUIRED = False
+
+LOGIN_REDIRECT_URL = 'pyhts:home'
+
+MESSAGE_TAGS = {
+    messages.ERROR: 'danger'
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/1.10/ref/settings/#auth-password-validators
@@ -122,6 +159,12 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+
+INVITATIONS_GONE_ON_ACCEPT_ERROR = False
+INVITATIONS_INVITATION_ONLY = True
+INVITATIONS_ACCEPT_INVITE_AFTER_SIGNUP = True
+ACCOUNT_ADAPTER = 'invitations.models.InvitationsAdapter'
+INVITATIONS_ADAPTER = ACCOUNT_ADAPTER
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.10/topics/i18n/

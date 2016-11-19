@@ -1,11 +1,14 @@
 from django.conf.urls import url
-
+from django.contrib.auth import views as django_auth
 from . import views
 
 app_name = 'pyhts'
 urlpatterns = [
     url(r'^$', views.home, name='home'),
+
+    url('^accounts/$', views.my_account, name='my_account'),
     url('^logout$', views.logout, name='logout'),
+
     url(r'^dataset/add$', views.dataset_upload, name='plate_upload'),
     url(r'^dataset/(?P<dataset_id>\d+)/upload', views.dataset_upload,
         name='plate_upload'),

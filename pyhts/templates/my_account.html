@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}My Account{% endblock %}
+
+{% block content %}
+<p class="lead">{{ user.email }}</p>
+    <p>
+    <a role="button" class="btn btn-info" href="{% url 'account_email' %}">Add/change email address</a>
+    <a role="button" class="btn btn-info" href="{% url 'account_change_password' %}">Change password</a>
+    </p>
+{% endblock %}

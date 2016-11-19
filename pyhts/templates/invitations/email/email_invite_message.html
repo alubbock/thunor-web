@@ -1,0 +1,17 @@
+{% extends "email_base.html" %}
+
+{% block title %}You're Invited{% endblock %}
+
+{% block preheader %}You're invited to try our new web app {{ site_name }}.{% endblock %}
+{% block link_name %}Accept Invitation{% endblock %}
+{% block link_url %}{{ invite_url }}{% endblock %}
+
+{% block topcontent %}<h2 class="center">We would like to introduce
+    {{ site_name }}, a web application for simple management and analysis
+    of high throughput screen data in your web browser.</h2>
+    <h2 class="center">You've been invited to try it out.</h2>{% endblock %}
+{% block bottomcontent %}<p>If the button doesn't work, please copy and paste
+the following address into your web browser:</p><p>{{ invite_url }}</p>
+    <p>This invitation is exclusively for {{ email }}.</p>
+    <p>Best regards,<br>The {{ site_name }} team</p>
+{% endblock %}

@@ -4,7 +4,7 @@ from django.template.loader import get_template
 from django.contrib import auth
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
-from .forms import CentredAuthForm, PlateFileForm
+from .forms import CentredAuthForm
 from django.views.generic.edit import FormView
 from django.http import JsonResponse, HttpResponseBadRequest, \
     HttpResponseServerError, HttpResponseNotFound
@@ -38,22 +38,14 @@ def handler500(request):
     return HttpResponseServerError(render(request, 'error500.html', {}))
 
 
-def _handle_login(request):
-    if request.method == 'POST':
-        form = CentredAuthForm(data=request.POST)
-        if form.is_valid():
-            auth.login(request, form.get_user())
-            return redirect('pyhts:home')
-    else:
-        form = CentredAuthForm()
-    return render(request, 'registration/login.html', {'form': form})
-
-
+@login_required
 def home(request):
-    if not request.user.is_authenticated:
-        return _handle_login(request)
-
     return render(request, 'home.html')
+
+
+@login_required
+def my_account(request):
+    return render(request, 'my_account.html')
 
 
 def logout(request):
@@ -332,8 +324,8 @@ def ajax_get_datasets(request):
     #datasets = set([p.dataset for p in plates])
 
     datasets = HTSDataset.objects.filter(owner_id=request.user.id).all()
-    plate_set = datasets.plate_set.all()
-    platefiles = datasets.platefile_set.all().count()
+    # plate_set = datasets.plate_set.all()
+    # platefiles = datasets.platefile_set.all().count()
 
     response = {'data': [[d.name, d.creation_date] for d in datasets]}
     return JsonResponse(response)

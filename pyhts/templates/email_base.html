@@ -1,0 +1,23 @@
+{% extends "email_outer.html" %}
+
+{% block body %}
+<h3>A message from PyHTS: High Throughput Screening</h3>
+<h1>{% block title %}{% endblock %}</h1>
+{% block topcontent %}{% endblock %}
+<table border="0" cellpadding="0" cellspacing="0" class="btn btn-primary">
+  <tbody>
+    <tr>
+      <td align="center">
+        <table border="0" cellpadding="0" cellspacing="0">
+          <tbody>
+            <tr>
+              <td> <a href="{% block link_url %}{% endblock %}" target="_blank">{% block link_name %}{% endblock %}</a> </td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+    </tr>
+  </tbody>
+</table>
+{% block bottomcontent %}{% endblock %}
+{% endblock %}

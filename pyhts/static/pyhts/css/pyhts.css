@@ -248,3 +248,19 @@ table.dataTable thead .sorting:after {
   background-color: #022559;
   color: #fff;
 }
+.navbar {
+  background-color: #022559;
+  color: #fff;
+}
+.navbar-default .navbar-brand, .navbar a {
+  color: #fff;
+}
+.navbar-default .navbar-brand:hover, .navbar-default .navbar-brand:focus {
+  color: #4e8dc4;
+}
+.nav .open > a, .nav .open > a:focus, .nav .open > a:hover, .nav > li > a:focus, .nav > li > a:hover {
+  background-color: #2e6da4;
+}
+.messages {
+  margin-top:20px;
+}

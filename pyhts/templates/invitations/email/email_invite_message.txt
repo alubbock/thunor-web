@@ -1,0 +1,19 @@
+{% load i18n %}
+{% autoescape off %}
+{% blocktrans %}
+
+Hello,
+
+We would like to introduce {{ site_name }}, a web application for simple
+management and analysis of high throughput screen data in your web browser.
+You've been invited to try it out.
+
+If you'd like to join, please go to {{ invite_url }}
+
+This invitation is exclusively for {{ email }}.
+
+Best regards,
+The {{ site_name}} team
+
+{% endblocktrans %}
+{% endautoescape %}
