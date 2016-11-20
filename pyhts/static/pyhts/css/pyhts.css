@@ -265,3 +265,9 @@ table.dataTable thead .sorting:after {
 .messages {
   margin-top:20px;
 }
+a[aria-expanded=true] .fa-chevron-up {
+   display: none;
+}
+a[aria-expanded=false] .fa-chevron-down {
+   display: none;
+}

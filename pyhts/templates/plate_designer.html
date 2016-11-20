@@ -110,15 +110,18 @@
     <div class="col-lg-3 col-md-3 col-sm-12 col-xs-12">
 
         <div class="panel panel-default">
-            <div class="panel-heading"><h3 class="panel-title">Cell
-                Line</h3></div>
-            <div class="panel-body">
+            <div class="panel-heading">
+                <a href="#annotation-panel" data-toggle="collapse"
+                   class="pull-right" aria-expanded="true">
+                    <i class="fa fa-chevron-up"></i>
+                    <i class="fa fa-chevron-down"></i>
+                </a>
+                <h3 class="panel-title">Annotations</h3></div>
+            <div class="panel-body collapse in" id="annotation-panel"
+                 aria-expanded="true">
+                <label>Cell Line</label>
                 <input type="text" class="form-control" id="cellline-typeahead"
                        placeholder="Cell line"/>
-            </div>
-            <div class="panel-heading"><h3 class="panel-title">
-                Drug</h3></div>
-            <div class="panel-body">
                 <div class="hts-drug-entry" data-drug-num="1">
                     <label class="hts-drug-num-label">Drug <span
                             class="hts-drug-num">1</span></label>
@@ -158,6 +161,48 @@
                 <button type="button" class="btn btn-default"
                         id="hts-apply-template">Apply
                     template</button>
+                <hr>
+
+                <label>Auto-stepper</label>
+                <div class="dropdown" id="hts-autostepper-div">
+                  <button class="btn btn-default dropdown-toggle"
+                          type="button" id="hts-autostepper"
+                          data-toggle="dropdown" aria-haspopup="true"
+                          aria-expanded="false">
+                    <span id="hts-autostepper-mode">Off</span>
+                    <span class="caret"></span>
+                  </button>
+                  <ul class="dropdown-menu" aria-labelledby="hts-autostepper">
+                      <li data-mode="off"><a href="#">Off</a></li>
+                      <li role="separator" class="divider"></li>
+                      <li data-mode="down-1"><a href="#">Move down 1
+                          well</a></li>
+                      <li data-mode="down-sel"><a href="#">Move down selection
+                          height</a></li>
+                      <li data-mode="right-1"><a href="#">Move right 1
+                          well</a></li>
+                      <li data-mode="right-sel"><a href="#">Move right
+                          selection width</a></li>
+                  </ul>
+                </div>
+
+                <label>Move selection</label>
+                <div id="hts-move-selection" class="btn-group" role="group"
+                aria-label="Move selection">
+                    <button data-move-by="-1" data-move-row-dir="false"
+                            class="btn
+                    btn-default"><i class="fa
+                    fa-arrow-left"></i></button>
+                    <button data-move-by="1" data-move-row-dir="false"
+                            class="btn btn-default"><i class="fa
+                            fa-arrow-right"></i></button>
+                    <button data-move-by="-1" data-move-row-dir="true"
+                            class="btn btn-default"><i class="fa
+                    fa-arrow-up"></i></button>
+                    <button data-move-by="1" data-move-row-dir="true"
+                            class="btn btn-default"><i class="fa
+                    fa-arrow-down"></i></button>
+                </div>
             </div>
         </div>
 
@@ -644,25 +689,71 @@ $(function () {
             }
         });
 
-        // Clear inputs and lose focus
-        $cellLineTypeahead.typeahead('val', '');
-        $drugTypeaheads.typeahead('val', '');
-        $doseInputs.val('');
-        $(caller).blur();
-
         // Refresh legend
         refreshLegend($selectedWells, wellIds, 'cell-line');
         refreshLegend($selectedWells, wellIds, 'drug');
         refreshLegend($selectedWells, wellIds, 'dose');
-
-        // Deselect wells
-        $selectedWells.removeClass('ui-selected');
 
         // Show finish button if appropriate
         if(pyHTS.savedPlates.length == (pyHTS.plates.length - 1)
            && ($.inArray(pyHTS.plateMap.plateId, pyHTS.savedPlates) == -1)) {
             $('#hts-finish-platemap').show();
         }
+
+        // Clear inputs and lose focus
+        $cellLineTypeahead.typeahead('val', '');
+        $drugTypeaheads.typeahead('val', '');
+        $doseInputs.val('');
+
+        // Deselect wells or apply auto-stepper
+        var newWellIds;
+        switch (pyHTS.stepperMode) {
+            case 'off':
+                $selectedWells.removeClass('ui-selected');
+                break;
+            case 'down-sel':
+                try {
+                    newWellIds = pyHTS.plateMap.moveSelectionDownBy(wellIds,
+                            pyHTS.plateMap.selectionHeight(wellIds));
+                } catch(e) {
+                    autoStepperOutOfBounds();
+                }
+                break;
+            case 'down-1':
+                try {
+                    newWellIds = pyHTS.plateMap.moveSelectionDownBy(wellIds, 1);
+                } catch(e) {
+                    autoStepperOutOfBounds();
+                }
+                break;
+            case 'right-sel':
+                try {
+                    newWellIds = pyHTS.plateMap.moveSelectionRightBy(wellIds,
+                            pyHTS.plateMap.selectionWidth(wellIds));
+                } catch(e) {
+                    autoStepperOutOfBounds();
+                }
+                break;
+            case 'right-1':
+                try {
+                    newWellIds = pyHTS.plateMap.moveSelectionRightBy(wellIds, 1);
+                } catch(e) {
+                    autoStepperOutOfBounds();
+                }
+                break;
+        }
+
+        if(newWellIds == null) {
+            $(caller).blur();
+        } else {
+            selectWells(newWellIds);
+        }
+    };
+
+    var autoStepperOutOfBounds = function() {
+        pyHTS.ui.okModal('Auto-step error', 'The auto-stepper reached the' +
+                ' edge of the plate. Please adjust your well ' +
+                'selection manually to continue.');
     };
 
     var activateDrugInputs = function() {
@@ -691,7 +782,7 @@ $(function () {
             return +val + 1;
         });
         new_el.insertAfter(orig_el);
-        $('.hts-drug-num-label').show();
+        $('.hts-drug-num').show();
         activateDrugInputs();
     };
 
@@ -702,7 +793,7 @@ $(function () {
             $drugEntries.filter(':last').remove();
         }
         if(numEntries == 2) {
-            $('.hts-drug-num-label').hide();
+            $('.hts-drug-num').hide();
         }
     };
 
@@ -777,6 +868,40 @@ $(function () {
     $.extend( $.fn.dataTableExt.oSort, pyHTS.util.doseSorter );
 
     {# Well selection #}
+    var selectWells = function(wellIds) {
+        var $wells = $('#selectable-wells').find('.hts-well');
+        // deselect any existing wells
+        $wells.removeClass('ui-selected');
+
+        // select new selection and update annotation panel
+        for(var w=0; w<wellIds.length; w++){
+            $wells.eq(wellIds[w]).addClass('ui-selected');
+        }
+
+        updateInputsWithWellData();
+    };
+
+    var moveSelectionBy = function(amount, isRowDirection) {
+        var $selectedWells = $('#selectable-wells').find('.ui-selected');
+        var wellIds = [], newWellIds;
+        $.each($selectedWells, function(i, well) {
+            wellIds.push($(well).data('well'));
+        });
+        try {
+            newWellIds = pyHTS.plateMap.moveSelectionBy(wellIds, amount,
+                    isRowDirection);
+        } catch (e) {
+            //ignore
+        }
+        if(newWellIds != null) {
+            selectWells(newWellIds);
+        }
+    };
+
+    $('#hts-move-selection').find('button').click(function() {
+        moveSelectionBy($(this).data('move-by'), $(this).data('move-row-dir'));
+    });
+
     var updateInputsWithWellData = function() {
         var i;
         var cellLines = [], drugs = [], doses = [];
@@ -948,6 +1073,14 @@ $(function () {
 
     $('#hts-apply-template').click(function() {
         applyTemplateToCurrent();
+    });
+
+    // Auto-stepper
+    pyHTS.stepperMode = 'off';
+    $('#hts-autostepper-div').find('li').click(function(e) {
+        e.preventDefault();
+        pyHTS.stepperMode = $(this).data('mode');
+        $('#hts-autostepper-mode').text($(this).text());
     });
 
     // Mouseovers

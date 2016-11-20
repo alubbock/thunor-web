@@ -245,6 +245,42 @@ pyHTS.classes.PlateMap = function(plateId, numRows, numCols, wells) {
 };
 pyHTS.classes.PlateMap.prototype = {
     constructor: pyHTS.classes.PlateMap,
+    selectionHeight: function(wellIds) {
+        var rowNums = this.wellNumsToRowNums(wellIds);
+        return Math.max.apply(null, rowNums) - Math.min.apply(null, rowNums) + 1;
+    },
+    selectionWidth: function(wellIds) {
+        var colNums = this.wellNumsToColNums(wellIds);
+        return Math.max.apply(null, colNums) - Math.min.apply(null, colNums) + 1;
+    },
+    moveSelectionBy: function(wellIds, moveStep, inRowDirection) {
+        var newWellIds = [];
+        var maxWell = this.wells.length;
+        var colNums = this.wellNumsToColNums(wellIds);
+        for(var w=0; w<wellIds.length; w++) {
+            if(!inRowDirection) {
+                // check we don't overflow column
+                if((colNums[w] + moveStep < 1) ||
+                    colNums[w] > (this.numCols - moveStep)) {
+                    throw new Error("Out of bounds");
+                }
+            }
+            var newId = inRowDirection ?
+                        wellIds[w] + (this.numCols * moveStep) :
+                        wellIds[w] + moveStep;
+            if(newId < 0 || newId > maxWell) {
+                throw new Error("Out of bounds");
+            }
+            newWellIds.push(newId);
+        }
+        return newWellIds;
+    },
+    moveSelectionDownBy: function(wellIds, moveStep) {
+        return this.moveSelectionBy(wellIds, moveStep, true);
+    },
+    moveSelectionRightBy: function(wellIds, moveStep) {
+        return this.moveSelectionBy(wellIds, moveStep, false);
+    },
     getUsedEntries: function(entry_list) {
         var usedEntries = [];
 
@@ -286,6 +322,20 @@ pyHTS.classes.PlateMap.prototype = {
         return String.fromCharCode(65 + Math.floor(wellNum / this.numCols)) +
                pyHTS.util.padNum(((wellNum % this.numCols) + 1), 2);
     },
+    wellNumsToRowNums: function(wellNums) {
+        var rowNums = [];
+        for(var w=0; w<wellNums.length; w++) {
+            rowNums.push(Math.floor(wellNums[w] / this.numCols));
+        }
+        return rowNums;
+    },
+    wellNumsToColNums: function(wellNums) {
+        var colNums = [];
+        for(var w=0; w<wellNums.length; w++) {
+            colNums.push((wellNums[w] % this.numCols) + 1);
+        }
+        return colNums;
+    },
     asDataTable: function() {
         var wells = [];
         for(var w=0; w<this.wells.length; w++) {
@@ -303,7 +353,7 @@ pyHTS.classes.PlateMap.prototype = {
         return wells;
     },
     wellDataIsEmpty: function() {
-        for(var w=0; w<(this.numRows * this.numCols); w++) {
+        for(var w=0; w<this.wells.length; w++) {
             var well = this.wells[w];
             if(well.cellLine != null ||
                (well.drugs != null && well.drugs.length > 0) ||
