@@ -271,3 +271,19 @@ a[aria-expanded=true] .fa-chevron-up {
 a[aria-expanded=false] .fa-chevron-down {
    display: none;
 }
+#annotation-actions {
+  width:100%;
+  max-width:250px;
+  margin-bottom: 10px;
+}
+#hts-apply-annotation {
+  width:65%;
+}
+#hts-clear-annotation {
+  width: 35%;
+}
+#hts-apply-template {
+  width:100%;
+  max-width: 250px;
+  margin-bottom: 10px;
+}
