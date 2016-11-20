@@ -1,8 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Annotate Plates
-    <em class="pull-right">{{ dataset.name }}</em>
-{% endblock %}
+{% block title %}Annotate Plates{% endblock %}
 
 {% block content %}
 {# Plate Designer #}
@@ -12,18 +10,25 @@
     <div class="panel panel-default" id="hts-plate-panel">
     <div class="panel-heading">
         <div class="pull-right" role="group">
+            <div id="hts-apply-template-multiple" style="display:none">
+            <select class="selectpicker" multiple title="Apply to plates">{% for p in plates %}
+                <option data-id="{{ p.id }}">{{ p.name }}</option>
+            {% endfor %}</select>
+            <button id="apply-template-multiple-btn" type="button" class="btn
+                btn-default">Apply template</button>
+            </div>
             <button id="hts-prev-dataset" type="button" class="btn btn-default"
                                     style="display:none">
                               <span class="glyphicon glyphicon-arrow-left"
                                     aria-hidden="true"></span> Previous
                         </button>
-        <button id="hts-next-dataset" type="button" class="btn
-        btn-default">Next
+            <button id="hts-next-dataset" type="button" class="btn
+            btn-default">Next
                               <span class="glyphicon glyphicon-arrow-right"
                                     aria-hidden="true"></span>
                         </button>
-        <button id="hts-finish-platemap" type="button" class="btn
-        btn-success" style="display:none">Finish</button>
+            <button id="hts-finish-platemap" type="button" class="btn
+            btn-success" style="display:none">Finish</button>
         </div>
 
         <div class="dropdown" style="display:inline-block" id="hts-plate-dropdown">
@@ -231,6 +236,7 @@
 {% load pyhts_tags %}
 {% block stylesheets %}
     <link rel="stylesheet" href="{% static 'vendor/datatables/css/dataTables.bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'vendor/bootstrap-select/css/bootstrap-select.min.css' %}">
 {% endblock %}
 
 {% block tailscript %}
@@ -241,9 +247,51 @@
 </script>
 <script src="{% static 'vendor/datatables/js/dataTables.bootstrap.min.js' %}">
 </script>
+<script src="{% static 'vendor/bootstrap-select/js/bootstrap-select.min.js' %}"></script>
 <script>
 $(function () {
     'use strict';
+
+    $('.selectpicker').selectpicker({
+        countSelectedText: function(n, N) {
+            return n + ' of ' + N + ' plates selected';
+        },
+        selectedTextFormat: 'count > 1',
+        actionsBox: true
+    }).on('changed.bs.select', function() {
+        var $btn = $('#apply-template-multiple-btn');
+        if($(this).selectpicker('val').length > 0) {
+            $btn.removeClass('btn-default').addClass('btn-success');
+        } else {
+            $btn.removeClass('btn-success').addClass('btn-default');
+        }
+    });
+
+    $('#apply-template-multiple-btn').click(function() {
+        var $templateMultiple = $('#hts-apply-template-multiple');
+
+        var tgtPlateIds = [];
+        $templateMultiple.find('option:selected').each(function(i, ele){
+            tgtPlateIds.push($(ele).data('id'));
+        });
+
+        if(tgtPlateIds.length == 0) {
+            pyHTS.ui.okDialog('No plates selected', 'Please select plates ' +
+                    'for template application');
+            return;
+        }
+        if(pyHTS.plateMap.wellDataIsEmpty()) {
+            pyHTS.ui.okDialog('Empty template', 'The template could not be ' +
+                    'applied because it is empty');
+            return;
+        }
+
+        pyHTS.ui.loadingModal.show('Applying template...');
+
+        pyHTS.plateMap.applyTemplateTo = tgtPlateIds;
+        pyHTS.ajax.savePlate(null);
+        delete pyHTS.plateMap.applyTemplateTo;
+    });
 
     pyHTS.csrfToken = '{{ csrf_token }}';{% if plates.0 %}
     pyHTS.plateMap = new pyHTS.classes.PlateMap({{ plates.0.id }},
@@ -699,7 +747,6 @@ $(function () {
     $('#hts-well-table').click(function(e) {
         // deselect any selected wells
         $('.hts-well.ui-selected').removeClass('ui-selected');
-        //$('#hts-well-table-view').html('<em>Loading...</em>');
 
         var $loadingIndicator = $('#hts-well-table-view')
                 .find('.loading-indicator').show();
@@ -878,7 +925,7 @@ $(function () {
         pyHTS.ui.refreshViewAll();
     });
 
-    var applyTemplate = function() {
+    var applyTemplateToCurrent = function() {
         if($('#hts-current-plate').data('id') == 'MASTER') {
             pyHTS.ui.okModal('Error', 'Cannot apply template to itself');
             return;
@@ -900,7 +947,7 @@ $(function () {
     };
 
     $('#hts-apply-template').click(function() {
-        applyTemplate();
+        applyTemplateToCurrent();
     });
 
     // Mouseovers
@@ -957,6 +1004,12 @@ $(function () {
             window.location = '{% url 'pyhts:home' %}';
         }
         if(data.success) {
+            if(data.templateAppliedTo) {
+                pyHTS.ui.okModal('Template applied', 'Template was ' +
+                        'successfully applied');
+                $('#hts-apply-template-multiple').find('.selectpicker')
+                        .selectpicker('deselectAll');
+            }
             if(data.savedPlateId) {
                 if ($.inArray(data.savedPlateId, pyHTS.savedPlates) == -1) {
                     pyHTS.savedPlates.push(data.savedPlateId);
@@ -1017,6 +1070,10 @@ $(function () {
         var $currentPlate = $('#hts-current-plate');
         var currentId = $currentPlate.data('id');
 
+        if(plateId != 'MASTER') {
+            pyHTS.ui.loadingModal.show();
+        }
+
         if(currentId != 'MASTER') {
             var plateErrors = pyHTS.plateMap.validate();
             if (plateErrors) {
@@ -1026,8 +1083,6 @@ $(function () {
             }
             if (plateId == 'MASTER') {
                 $('#hts-select-plate').addClass('btn-success');
-            } else {
-                pyHTS.ui.loadingModal.show();
             }
         } else {
             // currently on a master template
@@ -1060,7 +1115,11 @@ $(function () {
             pyHTS.plateMap = pyHTS.plateMapTemplates[templateId];
             pyHTS.ui.refreshViewAll();
             $('#hts-prev-dataset,#hts-next-dataset').hide();
+            $('#hts-apply-template').hide();
+            $('#hts-apply-template-multiple').show();
         } else {
+            $('#hts-apply-template').show();
+            $('#hts-apply-template-multiple').hide();
             if (prevPlatePos() != null) {
                 $('#hts-prev-dataset').show();
             } else {

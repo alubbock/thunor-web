@@ -11,7 +11,7 @@ from django.http import JsonResponse, HttpResponseBadRequest, \
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.utils import IntegrityError
 from django.db import transaction
-from django.db.models import F
+from django.db.models import Q, Count
 from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, \
     WellCellLine, WellMeasurement, WellDrug
 import json
@@ -156,33 +156,61 @@ def ajax_delete_platefile(request):
 @transaction.atomic
 def ajax_save_plate(request):
     plate_data = json.loads(request.body.decode(request.encoding))
-    plate_id = int(plate_data['plateId'])
+
+    plate_id = None
+    plate_ids = None
+    if plate_data.get('applyTemplateTo', None):
+        # Apply data to multiple plates
+        plate_ids = [int(p_id) for p_id in plate_data['applyTemplateTo']]
+        if len(plate_ids) == 0:
+            # TODO: Raise a proper error!
+            raise Http404()
+        elif len(plate_ids) == 1:
+            plate_id = plate_ids[0]
+    else:
+        # Apply data to single plate
+        plate_id = int(plate_data['plateId'])
+        plate_ids = [plate_id, ]
+
     wells = plate_data['wells']
 
     # Check permissions
-    n_updated = Plate.objects.filter(id=plate_id,
-                             dataset__owner_id=request.user.id).update(
-        last_annotated=timezone.now())
-    if n_updated != 1:
+    if plate_id is not None:
+        pl_objs = Plate.objects.filter(id=plate_id)
+    else:
+        pl_objs = Plate.objects.filter(id__in=plate_ids)
+    pl_objs = pl_objs.filter(dataset__owner_id=request.user.id)
+
+    pre_mod_savepoint = None
+    if plate_id is None:
+        pre_mod_savepoint = transaction.savepoint()
+    n_updated = pl_objs.update(last_annotated=timezone.now())
+
+    if n_updated != len(plate_ids):
         #TODO: This should return a better error
         raise Http404()
 
-    # Get the used cell lines and drugs
+    if not plate_id:
+        # If we're applying a template, check the target plates are empty
+        # Get plate names where plate has >0 cell lines specified
+        cl_pl_names = WellCellLine.objects.filter(plate_id__in=plate_ids,
+                                               cell_line__isnull=False).\
+            values('plate').annotate(total=Count('plate')).\
+            values_list('plate__name', flat=True)
+
+        # Similarly, get plate names where plate has >0 drugs specified
+        dr_pl_names = WellDrug.objects.filter(plate_id__in=plate_ids).filter(
+            Q(drug__isnull=False) | Q(dose__isnull=False)).values(
+            'plate').annotate(total=Count('plate')).values_list('plate__name',
+                                                                flat=True)
+
+        non_empty_plates = set(list(cl_pl_names) + list(dr_pl_names))
+        if len(non_empty_plates) > 0:
+            transaction.savepoint_rollback(pre_mod_savepoint)
+            return JsonResponse({'error': 'non_empty_plates', 'plateNames':
+                                 list(non_empty_plates)}, status=409)
+
     # TODO: Validate supplied cell line and drug IDs?
-    # cell_line_ids = set([well['cellLine'] for well in wells])
-    # cell_lines = dict(CellLine.objects.filter(
-    #     id__in=cell_line_ids).values_list(
-    #     'name', 'id'))
-    #
-    # drug_ids = set()
-    # for well in wells:
-    #     if well['drugs'] is None:
-    #         continue
-    #     for drug in well['drugs']:
-    #         drug_ids.add(drug)
-    # drugs = dict(Drug.objects.filter(
-    #     ids__in=drug_ids).values_list(
-    #     'name', 'id'))
 
     # Add the cell lines
     wells_celllines_to_create = []
@@ -193,16 +221,23 @@ def ajax_save_plate(request):
         #     cell_line_id = cell_lines[well['cellLine']]
         # if not well['cellLine']:
         #     continue
-        wells_celllines_to_create.append(
-            WellCellLine(plate_id=plate_id,
-                         well=i,
-                         cell_line_id=well['cellLine']))
+        for p_id in plate_ids:
+            wells_celllines_to_create.append(
+                WellCellLine(plate_id=p_id,
+                             well=i,
+                             cell_line_id=well['cellLine']))
 
     try:
         with transaction.atomic():
             WellCellLine.objects.bulk_create(wells_celllines_to_create)
     except IntegrityError:
-        # Do update instead
+        # Do update instead, this should only happen with saving to a single
+        #  plate, not applying to templates, due to earlier check
+        if plate_id is None:
+            raise IntegrityError('Refusing to overwrite cell lines during '
+                                 'template application (plate_ids: ' +
+                                 str(plate_ids) + ')')
+
         cell_line_ids = [well['cellLine'] for well in wells]
         for cl_id in set(cell_line_ids):
             WellCellLine.objects.filter(
@@ -216,40 +251,46 @@ def ajax_save_plate(request):
     # solution is just to delete/reinsert. The alternative would be select
     # for update, then delete/update/insert as appropriate, which would
     # probably be slower anyway due to the extra queries.
-    WellDrug.objects.filter(plate_id=plate_id).delete()
+    if plate_id is not None:
+        WellDrug.objects.filter(plate_id=plate_id).delete()
 
     for i, well in enumerate(wells):
         if well['drugs']:
             for drug_idx, drug_id in enumerate(well['drugs']):
-                if not drug_id:
+                if drug_id is None:
                     continue
                 try:
                     dose = well['doses'][drug_idx]
                 except (TypeError, IndexError):
                     continue
-                if not dose:
+                if dose is None:
                     continue
-                well_drugs_to_create.append(WellDrug(
-                    plate_id=plate_id,
-                    well=i,
-                    drug_id=drug_id,
-                    dose=dose
-                ))
+                for p_id in plate_ids:
+                    well_drugs_to_create.append(WellDrug(
+                        plate_id=p_id,
+                        well=i,
+                        drug_id=drug_id,
+                        dose=dose
+                    ))
 
     WellDrug.objects.bulk_create(well_drugs_to_create)
+
+    if not plate_id:
+        # If this was a template-based update...
+        return JsonResponse({'success': True, 'templateAppliedTo': plate_ids})
 
     if plate_data.get('loadNext', None):
         next_plate_id = plate_data['loadNext']
         return ajax_load_plate(request, plate_id=next_plate_id,
-                               saved_plate_id=plate_id)
+                               extra_return_args={'savedPlateId': plate_id})
     else:
         return JsonResponse({'success': True, 'savedPlateId': plate_id})
 
-    # TODO: Validate received PlateMap
+    # TODO: Validate received PlateMap further?
 
 
 @login_required
-def ajax_load_plate(request, plate_id, saved_plate_id=None):
+def ajax_load_plate(request, plate_id, extra_return_args=None):
     p = Plate.objects.get(id=plate_id,
                           dataset__owner_id=request.user.id)
     if not p:
@@ -280,9 +321,8 @@ def ajax_load_plate(request, plate_id, saved_plate_id=None):
              'wells': wells}
 
     return_dict = {'success': True, 'plateMap': plate}
-
-    if saved_plate_id:
-        return_dict['savedPlateId'] = saved_plate_id
+    if extra_return_args is not None:
+        return_dict.update(extra_return_args)
 
     return JsonResponse(return_dict)
 

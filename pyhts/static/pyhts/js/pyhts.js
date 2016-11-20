@@ -477,11 +477,30 @@ pyHTS.ui.loadingModal = (function () {
 
 })();
 
+pyHTS.ajax.ajax409Handler = function(jqXHR) {
+    // Is this a known error?
+    if(jqXHR.responseJSON.error != null
+        && jqXHR.responseJSON.error == 'non_empty_plates') {
+        pyHTS.ui.okModal('Error applying template',
+                'The template could not be applied because some of the' +
+                ' selected plates are not empty. The non-empty plates' +
+                ' are:<br>' +
+                jqXHR.responseJSON.plateNames.join(', ')
+        );
+        return true;
+    }
+    return false;
+};
+
 pyHTS.ajax.ajaxErrorCallback = function(jqXHR,textStatus,thrownError) {
     var message = 'Communication with the server timed ' +
         'out (perhaps the connection was lost?';
     if(textStatus == "error" ||
         textStatus == "parsererror") {
+        console.log(jqXHR, textStatus, thrownError);
+        if(jqXHR != null && jqXHR.status == 409) {
+            if(pyHTS.ajax.ajax409Handler(jqXHR)) return;
+        }
         if(Raven != null) {
             Raven.captureMessage(thrownError || jqXHR.statusText, {
                 extra: {
