@@ -146,8 +146,8 @@
                         id="hts-add-drug" style="margin-top:5px">Add another
                     drug</button>
                 <hr>
-{#                <button type="button" class="btn btn-success"#}
-{#                        id="hts-apply-annotation">Apply to wells</button>#}
+                <button type="button" class="btn btn-success"
+                        id="hts-apply-annotation">Apply</button>
                 <button type="button" class="btn btn-danger"
                         id="hts-clear-annotation">Clear wells</button>
                 <button type="button" class="btn btn-default"
@@ -785,8 +785,6 @@ $(function () {
                 $doseInput.filter(':eq('+i+')').val(doseSplit[0]);
                 $('.hts-active-dose-unit:eq('+i+')').data('dose',
                         doseSplit[1]).text(doseSplit[2]);
-            } else {
-                $('.hts-active-dose-unit:eq('+i+')').data('dose', 1e-9).text('nM');
             }
 
             if(dosesI.length > 1) {
@@ -858,6 +856,10 @@ $(function () {
             pyHTS.last_edited = 'cell';
         },
         stop: updateInputsWithWellData
+    });
+
+    $('#hts-apply-annotation').click(function() {
+        submitToWells(this);
     });
 
     $('#hts-clear-annotation').click(function() {
