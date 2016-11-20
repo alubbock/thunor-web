@@ -150,6 +150,9 @@
 {#                        id="hts-apply-annotation">Apply to wells</button>#}
                 <button type="button" class="btn btn-danger"
                         id="hts-clear-annotation">Clear wells</button>
+                <button type="button" class="btn btn-default"
+                        id="hts-apply-template">Apply
+                    template</button>
             </div>
         </div>
 
@@ -873,6 +876,31 @@ $(function () {
         pyHTS.ui.refreshViewAll();
     });
 
+    var applyTemplate = function() {
+        if($('#hts-current-plate').data('id') == 'MASTER') {
+            pyHTS.ui.okModal('Error', 'Cannot apply template to itself');
+            return;
+        }
+        if(pyHTS.plateMap.wellDataIsEmpty()) {
+            pyHTS.ui.okModal('Plate map not empty', 'Cannot apply template ' +
+                    'data because this plate map is not empty.');
+            return;
+        }
+        var templateId = pyHTS.plateMap.numCols + 'x' + pyHTS.plateMap.numRows;
+        if(!pyHTS.plateMapTemplates[templateId].unsaved_changes) {
+            pyHTS.ui.okModal('Template is empty', 'The template is empty, ' +
+                    'nothing to apply');
+            return;
+        }
+        populateWellDataFromTemplate(pyHTS.plateMap.wells, templateId);
+        pyHTS.plateMap.unsaved_changes = true;
+        pyHTS.ui.refreshViewAll();
+    };
+
+    $('#hts-apply-template').click(function() {
+        applyTemplate();
+    });
+
     // Mouseovers
     $('#selectable-wells').find('.hts-well').mouseenter(function(e) {
         var well = $(this).data('well');
@@ -909,17 +937,6 @@ $(function () {
         $('.hts-dose-input').attr('placeholder', 'Dose');
     });
 
-    var wellDataIsEmpty = function(wellData) {
-        for(var w=0; w<wellData.length; w++) {
-            if(wellData[w].cellLine != null ||
-               (wellData[w].drugs != null && wellData[w].drugs.length > 0) ||
-               (wellData[w].doses != null && wellData[w].doses.length > 0)) {
-                return false;
-            }
-        }
-        return true;
-    };
-
     var populateWellDataFromTemplate = function(wellData, templateId) {
         var templateWells = pyHTS.plateMapTemplates[templateId].wells;
         for(var w=0; w<wellData.length; w++) {
@@ -955,23 +972,12 @@ $(function () {
                         == -1)) {
                     $('#hts-finish-platemap').show();
                 }
-                var templateId = pyHTS.plateMap.numCols + 'x' + pyHTS.plateMap
-                                .numRows;
-                var loadFromTemplate = pyHTS.plateMapTemplates[templateId]
-                                .unsaved_changes
-                        && wellDataIsEmpty(data.plateMap.wells);
-                if (loadFromTemplate) {
-                    populateWellDataFromTemplate(data.plateMap.wells, templateId);
-                }
                 pyHTS.plateMap = new pyHTS.classes.PlateMap(
                         data.plateMap.plateId,
                         data.plateMap.numRows,
                         data.plateMap.numCols,
                         data.plateMap.wells
                 );
-                if (loadFromTemplate) {
-                    pyHTS.plateMap.unsaved_changes = true;
-                }
                 pyHTS.ui.refreshViewAll();
             }
         }
@@ -1023,7 +1029,7 @@ $(function () {
             }
         } else {
             // currently on a master template
-            if(wellDataIsEmpty(pyHTS.plateMap.wells)) {
+            if(pyHTS.plateMap.wellDataIsEmpty()) {
                 pyHTS.plateMap.unsaved_changes = false;
             }
             if(plateId != 'MASTER') {

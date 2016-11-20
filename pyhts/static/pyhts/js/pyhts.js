@@ -302,6 +302,17 @@ pyHTS.classes.PlateMap.prototype = {
         }
         return wells;
     },
+    wellDataIsEmpty: function() {
+        for(var w=0; w<(this.numRows * this.numCols); w++) {
+            var well = this.wells[w];
+            if(well.cellLine != null ||
+               (well.drugs != null && well.drugs.length > 0) ||
+               (well.doses != null && well.doses.length > 0)) {
+                return false;
+            }
+        }
+        return true;
+    },
     validate: function() {
         var wellsWithDrugButNotDose = [], wellsWithDoseButNotDrug = [],
             wellsWithDuplicateDrug = [], wellsWithDrugButNoCellLine = [],
