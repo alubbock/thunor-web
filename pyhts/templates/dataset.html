@@ -24,6 +24,10 @@
     <div class="col-md-3">
         <p class="lead"><strong>Metadata</strong></p>
             <p><strong>Creation date</strong><br>{{ dataset.creation_date }}</p>
+            <p><strong>Most recent plate file upload</strong><br>
+                {{ dataset.last_upload }}</p>
+            <p><strong>Most recent annotation</strong><br>
+                {{ dataset.last_annotated }}</p>
     </div>
     </div>
 {% endblock %}

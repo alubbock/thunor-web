@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Create Dataset{% endblock %}
+{% block title %}{% if dataset_id %}Add to Dataset{% else %}Create Dataset{% endif %}{% endblock %}
 
 {% block content %}
 {# Plate File Upload #}

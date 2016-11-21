@@ -7,7 +7,7 @@ from django.http import JsonResponse, HttpResponseBadRequest, \
     HttpResponseServerError, HttpResponseNotFound
 from django.db.utils import IntegrityError
 from django.db import transaction
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Max
 from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, \
     WellCellLine, WellMeasurement, WellDrug
 import json
@@ -514,8 +514,12 @@ def plate_designer(request, dataset_id):
 
 @login_required
 def view_dataset(request, dataset_id):
-    dataset = HTSDataset.objects.get(id=dataset_id, owner_id=request.user.id)
-    if not dataset:
+    try:
+        dataset = HTSDataset.objects.filter(id=dataset_id,
+                                        owner_id=request.user.id)\
+        .annotate(last_upload=Max('platefile__upload_date'),
+                  last_annotated=Max('plate__last_annotated')).get()
+    except HTSDataset.DoesNotExist:
         raise Http404()
 
     response = render(request, 'dataset.html', {'dataset': dataset})
