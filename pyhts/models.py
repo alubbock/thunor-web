@@ -55,10 +55,12 @@ class PlateMap(object):
     def col_iterator(self):
         return range(1, self.width + 1)
 
+    def well_id_to_name(self, well_id):
+        return '{}{}'.format(chr(65 + (well_id // self.width)),
+                             (well_id % self.width) + 1)
+
     def well_iterator(self):
         row_it = iter(repeat(list(self.row_iterator()), self.width))
-        # print(row_it)
-        # print(next(next(row_it)))
         col_it = cycle(self.col_iterator())
         for i in range(self.num_wells):
             yield {'well': i,

@@ -37,7 +37,16 @@
     <script>
 $(function() {
     $('#dataset-table').DataTable( {
-        "ajax": '{% url 'pyhts:ajax_get_datasets' %}'
+        "ajax": '{% url 'pyhts:ajax_get_datasets' %}',
+        "columnDefs": [
+            {"targets": 0, "data": "name", "render": {
+                "display": function( data, type, full, meta ) {
+                    console.log(full);
+                    return '<a href="/dataset/'+full.id+'">'+full.name+'</a>';
+                }
+            }},
+            {"targets": 1, "data": "creation_date"}
+        ]
     } );
 } );
 </script>

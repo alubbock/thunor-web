@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}{{ dataset.name }}{% endblock %}
+
+{% block content %}
+    <div class="row">
+    <div class="col-md-9">
+        <h4>Data Modification</h4>
+        <p>
+        <a href="{% url 'pyhts:plate_upload' dataset.id %}" role="button"
+              class="btn btn-default">Attach more plate files</a>
+        <a href="{% url 'pyhts:plate_designer' dataset.id %}" role="button"
+           class="btn btn-default">View/edit plate design</a>
+        </p>
+
+        <h4 class="">Data Download</h4>
+        <p>
+        <a href="{% url 'pyhts:download_dataset_annotation' dataset.id %}"
+           role="button" class="btn btn-default">Download annotations (Excel)</a>
+        <a href="{% url 'pyhts:download_dataset_assays' dataset.id %}"
+           role="button" class="btn btn-default">Download assays (Excel)</a>
+        </p>
+    </div>
+    <div class="col-md-3">
+        <p class="lead"><strong>Metadata</strong></p>
+            <p><strong>Creation date</strong><br>{{ dataset.creation_date }}</p>
+    </div>
+    </div>
+{% endblock %}

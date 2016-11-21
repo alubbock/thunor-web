@@ -1030,7 +1030,7 @@ $(function () {
     });
 
     $("#selectable-wells").selectable({
-        start: function (event, ui) {
+        start: function () {
             pyHTS.last_edited = 'cell';
         },
         stop: updateInputsWithWellData
@@ -1091,8 +1091,9 @@ $(function () {
 
     // Mouseovers
     $('#selectable-wells').find('.hts-well').mouseenter(function(e) {
-        var well = $(this).data('well');
-        var wellData = pyHTS.plateMap.wells[well];
+        var well = $(this).data('well'),
+                wellData = pyHTS.plateMap.wells[well],
+                i;
         if(wellData == null) return;
         $('#cellline-typeahead').attr('placeholder',
                 wellData.cellLine == null ? '' :
@@ -1101,7 +1102,7 @@ $(function () {
                                             'id', 'name'));
         $('.hts-drug-typeahead').not('.tt-hint').attr('placeholder', '');
         if(wellData.drugs != null) {
-            for(var i=0; i<wellData.drugs.length; i++) {
+            for(i=0; i<wellData.drugs.length; i++) {
                 if(wellData.drugs[i] == null) continue;
                 $('.hts-drug-entry:eq('+i+') ' +
                         '.hts-drug-typeahead').not('.tt-hint')
@@ -1112,7 +1113,7 @@ $(function () {
         }
         $('.hts-dose-input').attr('placeholder', '');
         if(wellData.doses != null) {
-            for(var i=0; i<wellData.doses.length; i++) {
+            for(i=0; i<wellData.doses.length; i++) {
                 if(wellData.doses[i] == null) continue;
                 $('.hts-drug-entry:eq('+i+') ' +
                         '.hts-dose-input').attr('placeholder',

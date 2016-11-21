@@ -10,10 +10,17 @@ urlpatterns = [
     url('^logout$', views.logout, name='logout'),
 
     url(r'^dataset/add$', views.dataset_upload, name='plate_upload'),
-    url(r'^dataset/(?P<dataset_id>\d+)/upload', views.dataset_upload,
+    url(r'^dataset/(?P<dataset_id>\d+)/$', views.view_dataset,
+        name='view_dataset'),
+    url(r'^dataset/(?P<dataset_id>\d+)/upload$', views.dataset_upload,
         name='plate_upload'),
     url(r'^dataset/(?P<dataset_id>\d+)/annotate$', views.plate_designer,
         name='plate_designer'),
+
+    url(r'^dataset/(?P<dataset_id>\d+)/download/annotations$',
+        views.xlsx_get_annotation_data, name='download_dataset_annotation'),
+    url(r'^dataset/(?P<dataset_id>\d+)/download/assays$',
+        views.xlsx_get_assay_data, name='download_dataset_assays'),
 
     # url(r'^ajax/plate_file/(?P<file_id>\d+)$', views.ajax_get_plates,
     #     name='ajax_plate_names'),

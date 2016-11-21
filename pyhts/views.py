@@ -2,13 +2,9 @@ from django.shortcuts import render, redirect, Http404
 from django.template.response import TemplateResponse
 from django.template.loader import get_template
 from django.contrib import auth
-from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
-from .forms import CentredAuthForm
-from django.views.generic.edit import FormView
 from django.http import JsonResponse, HttpResponseBadRequest, \
     HttpResponseServerError, HttpResponseNotFound
-from django.core.exceptions import ObjectDoesNotExist
 from django.db.utils import IntegrityError
 from django.db import transaction
 from django.db.models import Q, Count
@@ -17,17 +13,18 @@ from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, \
 import json
 from .plate_parsers import PlateFileParser, PlateFileParseException
 import numpy as np
-from datetime import timedelta
 from django.utils import timezone
 from django.utils.encoding import smart_text
 from operator import itemgetter
-from django.shortcuts import render_to_response
-from django.template import RequestContext
+from django.conf import settings
 import logging
+import os
+import xlsxwriter
+import tempfile
 
 logger = logging.getLogger(__name__)
 
-HOURS_TO_SECONDS = 3600
+SECONDS_IN_DAY = 86400
 
 
 def handler404(request):
@@ -190,7 +187,7 @@ def ajax_save_plate(request):
         #TODO: This should return a better error
         raise Http404()
 
-    if not plate_id:
+    if plate_id is None:
         # If we're applying a template, check the target plates are empty
         # Get plate names where plate has >0 cell lines specified
         cl_pl_names = WellCellLine.objects.filter(plate_id__in=plate_ids,
@@ -231,13 +228,6 @@ def ajax_save_plate(request):
         with transaction.atomic():
             WellCellLine.objects.bulk_create(wells_celllines_to_create)
     except IntegrityError:
-        # Do update instead, this should only happen with saving to a single
-        #  plate, not applying to templates, due to earlier check
-        if plate_id is None:
-            raise IntegrityError('Refusing to overwrite cell lines during '
-                                 'template application (plate_ids: ' +
-                                 str(plate_ids) + ')')
-
         cell_line_ids = [well['cellLine'] for well in wells]
         for cl_id in set(cell_line_ids):
             WellCellLine.objects.filter(
@@ -363,12 +353,131 @@ def ajax_get_datasets(request):
 
     #datasets = set([p.dataset for p in plates])
 
-    datasets = HTSDataset.objects.filter(owner_id=request.user.id).all()
+    datasets = HTSDataset.objects.filter(owner_id=request.user.id).values(
+        'id', 'name', 'creation_date')
     # plate_set = datasets.plate_set.all()
     # platefiles = datasets.platefile_set.all().count()
 
-    response = {'data': [[d.name, d.creation_date] for d in datasets]}
+    response = {'data': list(datasets)}
     return JsonResponse(response)
+
+
+@login_required
+def xlsx_get_annotation_data(request, dataset_id):
+    plates = list(Plate.objects.filter(dataset_id=dataset_id,
+                                  dataset__owner_id=request.user.id).order_by('id'))
+
+    plate_ids = [p.id for p in plates]
+
+    cell_lines = list(WellCellLine.objects.filter(plate_id__in=plate_ids).\
+                         order_by('plate_id', 'well').select_related())
+
+    drugs = list(WellDrug.objects.filter(plate_id__in=plate_ids).\
+                         order_by('plate_id', 'well').select_related())
+
+    with tempfile.NamedTemporaryFile('wb', suffix='.xlsx') as tf:
+        workbook = xlsxwriter.Workbook(tf)
+        bold = workbook.add_format({'bold': 1})
+        cl_pos = 0
+        dr_pos = 0
+
+        for p in plates:
+            ws = workbook.add_worksheet(p.name)
+            ws.write(0, 0, 'Well', bold)
+            ws.write(0, 1, 'Cell Line', bold)
+            max_num_drugs = 0
+
+            for well in p.well_iterator():
+                w_id = well['well']
+                ws.write(w_id+1, 0, '{}{}'.format(well['row'], well['col']))
+
+                if cl_pos < len(cell_lines):
+                    cl = cell_lines[cl_pos]
+                    if cl.plate_id == p.id and cl.well == w_id:
+                        ws.write(w_id+1, 1, cl.cell_line.name if cl.cell_line else '')
+                        cl_pos += 1
+
+                if dr_pos < len(drugs):
+                    drugs_this_well = 0
+                    while dr_pos < len(drugs) and drugs[dr_pos].plate_id == p.id and \
+                            drugs[dr_pos].well == w_id:
+                        drugs_this_well += 1
+                        if drugs_this_well > max_num_drugs:
+                            max_num_drugs += 1
+                            ws.write(0, 2*drugs_this_well, 'Drug {}'.format(
+                                drugs_this_well), bold)
+                            ws.write(0, 2*drugs_this_well + 1, 'Dose {} (M)'.format(
+                                drugs_this_well), bold)
+
+                        ws.write(w_id+1, 2*drugs_this_well, drugs[dr_pos].drug.name)
+                        ws.write(w_id+1, 2*drugs_this_well+1, drugs[dr_pos].dose)
+                        dr_pos += 1
+
+        workbook.close()
+        tf.flush()
+
+        if settings.DEBUG:
+            from django.views.static import serve
+            return serve(request, os.path.basename(tf.name), os.path.dirname(
+                tf.name))
+        else:
+            # TODO: Use X-sendfile in production
+            raise NotImplementedError()
+
+
+@login_required
+def xlsx_get_assay_data(request, dataset_id):
+    assays = list(WellMeasurement.objects.filter(
+        plate__dataset_id=dataset_id,
+        plate__dataset__owner_id=request.user.id
+    ).order_by('plate_id', 'assay', 'timepoint', 'well').select_related())
+
+    with tempfile.NamedTemporaryFile('wb', suffix='.xlsx') as tf:
+        workbook = xlsxwriter.Workbook(tf)
+        bold = workbook.add_format({'bold': 1})
+        timefmt = workbook.add_format({'num_format': '[h]:mm:ss'})
+
+        last_plate = None
+        last_assay = None
+        last_time = None
+        last_time_col = 0
+
+        for val in assays:
+            if val.plate_id != last_plate:
+                last_plate = val.plate_id
+                last_assay = None
+                last_time = None
+                last_time_col = 0
+
+            if val.assay != last_assay:
+                last_assay = val.assay
+                plate_name = '{}-{}'.format(val.plate.name, val.assay)
+                for c in '[]:*?/\\':
+                    plate_name = plate_name.replace(c, '_')
+                ws = workbook.add_worksheet(plate_name)
+                ws.write(0, 0, 'Well', bold)
+                last_time = None
+                last_time_col = 0
+
+            if val.timepoint != last_time:
+                last_time = val.timepoint
+                last_time_col += 1
+                ws.write(0, last_time_col,
+                    val.timepoint.total_seconds() / SECONDS_IN_DAY, timefmt)
+
+            ws.write(val.well + 1, 0, val.plate.well_id_to_name(val.well))
+            ws.write(val.well + 1, last_time_col, val.value)
+
+        workbook.close()
+        tf.flush()
+
+        if settings.DEBUG:
+            from django.views.static import serve
+            return serve(request, os.path.basename(tf.name), os.path.dirname(
+                tf.name))
+        else:
+            # TODO: Use X-sendfile in production
+            raise NotImplementedError()
 
 
 @login_required
@@ -400,4 +509,14 @@ def plate_designer(request, dataset_id):
         'cell_lines': list(CellLine.objects.all().values('id', 'name')),
         'drugs': list(Drug.objects.all().values('id', 'name'))
     })
+    return response
+
+
+@login_required
+def view_dataset(request, dataset_id):
+    dataset = HTSDataset.objects.get(id=dataset_id, owner_id=request.user.id)
+    if not dataset:
+        raise Http404()
+
+    response = render(request, 'dataset.html', {'dataset': dataset})
     return response
