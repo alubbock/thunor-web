@@ -1,0 +1,10 @@
+FROM python:3.5
+ENV PYTHONUNBUFFERED 1
+
+ENV THUNOR_HOME=/thunor
+
+RUN mkdir $THUNOR_HOME
+WORKDIR $THUNOR_HOME
+ADD requirements.txt $THUNOR_HOME
+RUN pip install -r requirements.txt
+ADD . $THUNOR_HOME

@@ -27,7 +27,8 @@ SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ['DJANGO_DEBUG'].lower() == 'true'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost' if
+                               DEBUG else '').split(' ')
 
 INTERNAL_IPS = '127.0.0.1'
 
@@ -101,15 +102,28 @@ EMAIL_USE_TLS = True
 # Database
 # https://docs.djangoproject.com/en/1.10/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+if os.environ.get('DJANGO_DATABASE', None) == 'postgres':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql_psycopg2',
+            'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
+            'NAME': os.environ.get('POSTGRES_DB', False) or
+                    os.environ.get('POSTGRES_USER', 'postgres'),
+            'USER': os.environ.get('POSTGRES_USER', 'postgres'),
+            'PASSWORD': os.environ['POSTGRES_PASSWORD'],
+            'PORT': os.environ.get('POSTGRES_PORT', '')
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        }
+    }
 
 RAVEN_CONFIG = {
-    'dsn': os.environ['SENTRY_DSN'],
+    'dsn': os.environ.get('DJANGO_SENTRY_DSN', None),
     # If you are using git, you can also automatically configure the
     # release based on the git info.
     'release': pyhts.__version__,
@@ -187,7 +201,7 @@ CRISPY_TEMPLATE_PACK = 'bootstrap3'
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.10/howto/static-files/
 
-STATIC_URL = '/static/'
+STATIC_URL = os.environ.get('DJANGO_STATIC_URL', '/static/')
 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'uploads')
 

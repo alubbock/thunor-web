@@ -1,0 +1,19 @@
+version: '2'
+services:
+  db:
+    image: postgres:9.6
+    env_file:
+      - thunor.env
+    volumes:
+      - ${POSTGRES_HOST_DIR}:/var/lib/postgresql/data
+  web:
+    build: .
+    command: /bin/sh docker-entrypoint.sh
+    volumes:
+      - .:/thunor
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    env_file:
+      - thunor.env
