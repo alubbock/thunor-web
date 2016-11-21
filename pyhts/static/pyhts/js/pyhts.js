@@ -254,21 +254,21 @@ pyHTS.classes.PlateMap.prototype = {
         return Math.max.apply(null, colNums) - Math.min.apply(null, colNums) + 1;
     },
     moveSelectionBy: function(wellIds, moveStep, inRowDirection) {
-        var newWellIds = [];
-        var maxWell = this.wells.length;
-        var colNums = this.wellNumsToColNums(wellIds);
+        var newWellIds = [],
+            maxWell = this.wells.length,
+            colNums = this.wellNumsToColNums(wellIds);
         for(var w=0; w<wellIds.length; w++) {
             if(!inRowDirection) {
                 // check we don't overflow column
-                if((colNums[w] + moveStep < 1) ||
-                    colNums[w] > (this.numCols - moveStep)) {
+                if((colNums[w] + moveStep < 0) ||
+                    colNums[w] > (this.numCols - moveStep - 1)) {
                     throw new Error("Out of bounds");
                 }
             }
             var newId = inRowDirection ?
                         wellIds[w] + (this.numCols * moveStep) :
                         wellIds[w] + moveStep;
-            if(newId < 0 || newId > maxWell) {
+            if(newId < 0 || newId > (maxWell - 1)) {
                 throw new Error("Out of bounds");
             }
             newWellIds.push(newId);
@@ -318,9 +318,19 @@ pyHTS.classes.PlateMap.prototype = {
         }
         return maxUsed;
     },
-    wellNumToName: function(wellNum) {
-        return String.fromCharCode(65 + Math.floor(wellNum / this.numCols)) +
-               pyHTS.util.padNum(((wellNum % this.numCols) + 1), 2);
+    wellNumToName: function(wellNum, padded) {
+        return this.rowNumToName(Math.floor(wellNum / this.numCols)) +
+               this.colNumToName(wellNum % this.numCols, padded);
+    },
+    rowNumToName: function(rowNum) {
+        return String.fromCharCode(65 + rowNum);
+    },
+    colNumToName: function(colNum, padded) {
+        if(padded === true) {
+            return pyHTS.util.padNum(colNum + 1, this.numCols.toString().length);
+        } else {
+            return (colNum + 1).toString();
+        }
     },
     wellNumsToRowNums: function(wellNums) {
         var rowNums = [];
@@ -332,7 +342,7 @@ pyHTS.classes.PlateMap.prototype = {
     wellNumsToColNums: function(wellNums) {
         var colNums = [];
         for(var w=0; w<wellNums.length; w++) {
-            colNums.push((wellNums[w] % this.numCols) + 1);
+            colNums.push(wellNums[w] % this.numCols);
         }
         return colNums;
     },
@@ -340,7 +350,7 @@ pyHTS.classes.PlateMap.prototype = {
         var wells = [];
         for(var w=0; w<this.wells.length; w++) {
             wells.push([
-               this.wellNumToName(w),
+               this.wellNumToName(w, true),
                pyHTS.util.filterObjectsAttr(this.wells[w].cellLine,
                                             pyHTS.cell_lines,
                                             "id", "name").toString().replace(/^-1$/, ""),
@@ -363,6 +373,33 @@ pyHTS.classes.PlateMap.prototype = {
         }
         return true;
     },
+    readableWells: function(wellIds) {
+        if(wellIds == null || wellIds.length == 0) {
+            return "No wells";
+        } else if(wellIds.length == 1) {
+            return this.wellNumToName(wellIds[0]);
+        }
+        wellIds.sort(function(a,b){return a - b;});
+        wellIds = pyHTS.util.unique(wellIds);
+
+        var wellStrs = [],
+            rowNums = this.wellNumsToRowNums(wellIds),
+            colNums = this.wellNumsToColNums(wellIds),
+            contigStart = wellIds[0];
+        for(var w=0; w<wellIds.length; w++) {
+            if(colNums[w] != (colNums[w+1] - 1) ||
+               rowNums[w] != rowNums[w+1] ||
+               w == (wellIds.length - 1)) {
+                var wellStr = this.wellNumToName(contigStart);
+                if ((w - wellIds.indexOf(contigStart)) > 0) {
+                    wellStr += "\u2014" + this.colNumToName(colNums[w]);
+                }
+                wellStrs.push(wellStr);
+                contigStart = wellIds[w + 1];
+            }
+        }
+        return wellStrs.join(", ");
+    },
     validate: function() {
         var wellsWithDrugButNotDose = [], wellsWithDoseButNotDrug = [],
             wellsWithDuplicateDrug = [], wellsWithDrugButNoCellLine = [],
@@ -370,32 +407,36 @@ pyHTS.classes.PlateMap.prototype = {
 
         for(var w=0; w<this.wells.length; w++) {
             var well = this.wells[w];
+
+            var numDrugs = well.drugs == null ? 0 : well.drugs.length;
+            var numDoses = well.doses == null ? 0 : well.doses.length;
+
             if(well.drugs == null && well.doses == null) {
                 continue;
             }
-            if(well.drugs.length > 0) {
+            if(numDrugs > 0) {
                 if(well.cellLine == null) {
-                    wellsWithDrugButNoCellLine.push(this.wellNumToName(w));
+                    wellsWithDrugButNoCellLine.push(w);
                 }
                 if(pyHTS.util.hasDuplicates(well.drugs)) {
-                    wellsWithDuplicateDrug.push(this.wellNumToName(w));
+                    wellsWithDuplicateDrug.push(w);
                 }
             }
 
-            if(well.drugs.length > well.doses.length) {
-                wellsWithDrugButNotDose.push(this.wellNumToName(w));
-            } else if (well.drugs.length < well.doses.length) {
-                wellsWithDoseButNotDrug.push(this.wellNumToName(w));
-            } else {
-                for(var pos = 0; pos < well.drugs.length; pos++) {
+            if(numDrugs > numDoses) {
+                wellsWithDrugButNotDose.push(w);
+            } else if (numDrugs < numDoses) {
+                wellsWithDoseButNotDrug.push(w);
+            } else if (numDrugs > 0) {
+                for(var pos = 0; pos < numDrugs; pos++) {
                     if(well.drugs[pos] == null && well.doses[pos] == null) {
                         continue;
                     }
                     if(well.drugs[pos] != null && well.doses[pos] == null) {
-                        wellsWithDrugButNotDose.push(this.wellNumToName(w));
+                        wellsWithDrugButNotDose.push(w);
                     }
                     if(well.drugs[pos] == null && well.doses[pos] != null) {
-                        wellsWithDoseButNotDrug.push(this.wellNumToName(w));
+                        wellsWithDoseButNotDrug.push(w);
                     }
                 }
             }
@@ -403,19 +444,19 @@ pyHTS.classes.PlateMap.prototype = {
 
         if(wellsWithDoseButNotDrug.length > 0) {
             errors.push("The following wells have one or more doses without" +
-                " a drug: " + wellsWithDoseButNotDrug.join(", "));
+                " a drug: " + this.readableWells(wellsWithDoseButNotDrug));
         }
         if(wellsWithDrugButNotDose.length > 0) {
             errors.push("The following wells have one or more drugs without" +
-                " a dose: " + wellsWithDrugButNotDose.join(", "));
+                " a dose: " + this.readableWells(wellsWithDrugButNotDose));
         }
         if(wellsWithDuplicateDrug.length > 0) {
             errors.push("The following wells have the same drug more than" +
-                " once: " + wellsWithDuplicateDrug.join(", "));
+                " once: " + this.readableWells(wellsWithDuplicateDrug));
         }
         if(wellsWithDrugButNoCellLine.length > 0) {
             errors.push("The following wells have a drug defined but no" +
-                " cell line: " + wellsWithDrugButNoCellLine.join(", "));
+                " cell line: " + this.readableWells(wellsWithDrugButNoCellLine));
         }
         if(errors.length > 0) {
             return errors;
@@ -547,7 +588,6 @@ pyHTS.ajax.ajaxErrorCallback = function(jqXHR,textStatus,thrownError) {
         'out (perhaps the connection was lost?';
     if(textStatus == "error" ||
         textStatus == "parsererror") {
-        console.log(jqXHR, textStatus, thrownError);
         if(jqXHR != null && jqXHR.status == 409) {
             if(pyHTS.ajax.ajax409Handler(jqXHR)) return;
         }

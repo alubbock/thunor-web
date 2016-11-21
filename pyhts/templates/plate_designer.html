@@ -640,6 +640,10 @@ $(function () {
         }
 
         // Check that the cell line exists
+        var createEntityCallback = function() {
+            $(caller).focus();
+            submitToWells(caller)
+        };
         var $cellLineTypeahead = $('#cellline-typeahead');
         var cl = $cellLineTypeahead.typeahead('val');
         var cl_id = pyHTS.util.filterObjectsAttr(cl, pyHTS.cell_lines,
@@ -649,7 +653,7 @@ $(function () {
                     'Cell line "' + cl + '" ' +
                 'was not found. Create it?<br /><br />If you meant to ' +
                 'autocomplete a suggestion use <kbd>Tab</kbd> instead.',
-                function() { pyHTS.ajax.createCellLine(cl, submitToWells); },
+                function() { pyHTS.ajax.createCellLine(cl, createEntityCallback); },
                 function() { $('#cellline-typeahead').focus(); });
             return;
         }
@@ -667,7 +671,7 @@ $(function () {
                 'Drug "' + drug + '" was not found. Create it?<br /><br />'
                 + 'If you meant to autocomplate a suggestion use ' +
                 '<kbd>Tab</kbd> instead.',
-                function() { pyHTS.ajax.createDrug(drug, submitToWells); },
+                function() { pyHTS.ajax.createDrug(drug, createEntityCallback); },
                 function() { $($drugTypeaheads[i]).focus(); });
                 return;
             }
@@ -1205,10 +1209,6 @@ $(function () {
         var $currentPlate = $('#hts-current-plate');
         var currentId = $currentPlate.data('id');
 
-        if(plateId != 'MASTER') {
-            pyHTS.ui.loadingModal.show();
-        }
-
         if(currentId != 'MASTER') {
             var plateErrors = pyHTS.plateMap.validate();
             if (plateErrors) {
@@ -1227,6 +1227,10 @@ $(function () {
             if(plateId != 'MASTER') {
                 $('#hts-select-plate').removeClass('btn-success');
             }
+        }
+
+        if(plateId != 'MASTER') {
+            pyHTS.ui.loadingModal.show();
         }
 
         // save current data if necessary
