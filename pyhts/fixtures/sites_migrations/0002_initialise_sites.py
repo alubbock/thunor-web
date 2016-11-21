@@ -11,7 +11,7 @@ def insert_sites(apps, schema_editor):
     Site.objects.all().delete()
 
     # Register SITE_ID = 1
-    Site.objects.create(pk=1, domain='hts.lolab.xyz', name='PyHTS')
+    Site.objects.create(pk=1, domain='thunor.lolab.xyz', name='Thunor')
 
 
 class Migration(migrations.Migration):
