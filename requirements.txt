@@ -3,7 +3,7 @@ django-allauth==0.28.0
 django-crispy-forms==1.6.1
 django-custom-user==0.6
 django-invitations==1.8
-gunicorn==19.6.0
+uwsgi==2.0.14
 psycopg2==2.6.2
 ipython==5.1.0
 numpy==1.11.2
