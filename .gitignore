@@ -1,4 +1,5 @@
 *.pyc
 db.sqlite3
 .idea
-uploads/
+_state/
+_conf/

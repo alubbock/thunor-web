@@ -203,7 +203,7 @@ CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
 STATIC_URL = os.environ.get('DJANGO_STATIC_URL', '/static/')
 
-MEDIA_ROOT = os.path.join(BASE_DIR, 'uploads')
+MEDIA_ROOT = os.environ.get('DJANGO_MEDIA_ROOT', os.path.join(BASE_DIR, 'uploads'))
 
 LOGGING = {
     'version': 1,

@@ -3,9 +3,9 @@ services:
   db:
     image: postgres:9.6
     env_file:
-      - thunor.env
+      - ./_conf/thunor.env
     volumes:
-      - ${POSTGRES_HOST_DIR}:/var/lib/postgresql/data
+      - ./_state/postgres-data:/var/lib/postgresql/data
   web:
     build: .
     command: /bin/sh docker-entrypoint.sh
@@ -16,4 +16,4 @@ services:
     depends_on:
       - db
     env_file:
-      - thunor.env
+      - ./_conf/thunor.env
