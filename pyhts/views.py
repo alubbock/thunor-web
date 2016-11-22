@@ -3,8 +3,9 @@ from django.template.response import TemplateResponse
 from django.template.loader import get_template
 from django.contrib import auth
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, HttpResponseBadRequest, \
-    HttpResponseServerError, HttpResponseNotFound
+from django.http import JsonResponse, FileResponse, StreamingHttpResponse,\
+    HttpResponse, HttpResponseBadRequest, HttpResponseServerError, \
+    HttpResponseNotFound
 from django.db.utils import IntegrityError
 from django.db import transaction
 from django.db.models import Q, Count, Max
@@ -375,54 +376,70 @@ def xlsx_get_annotation_data(request, dataset_id):
     drugs = list(WellDrug.objects.filter(plate_id__in=plate_ids).\
                          order_by('plate_id', 'well').select_related())
 
-    with tempfile.NamedTemporaryFile('wb', suffix='.xlsx') as tf:
-        workbook = xlsxwriter.Workbook(tf)
-        bold = workbook.add_format({'bold': 1})
-        cl_pos = 0
-        dr_pos = 0
+    tf = tempfile.NamedTemporaryFile('wb', suffix='.xlsx', delete=False)
+    workbook = xlsxwriter.Workbook(tf)
+    bold = workbook.add_format({'bold': 1})
+    cl_pos = 0
+    dr_pos = 0
 
-        for p in plates:
-            ws = workbook.add_worksheet(p.name)
-            ws.write(0, 0, 'Well', bold)
-            ws.write(0, 1, 'Cell Line', bold)
-            max_num_drugs = 0
+    for p in plates:
+        ws = workbook.add_worksheet(p.name)
+        ws.write(0, 0, 'Well', bold)
+        ws.write(0, 1, 'Cell Line', bold)
+        max_num_drugs = 0
 
-            for well in p.well_iterator():
-                w_id = well['well']
-                ws.write(w_id+1, 0, '{}{}'.format(well['row'], well['col']))
+        for well in p.well_iterator():
+            w_id = well['well']
+            ws.write(w_id+1, 0, '{}{}'.format(well['row'], well['col']))
 
-                if cl_pos < len(cell_lines):
-                    cl = cell_lines[cl_pos]
-                    if cl.plate_id == p.id and cl.well == w_id:
-                        ws.write(w_id+1, 1, cl.cell_line.name if cl.cell_line else '')
-                        cl_pos += 1
+            if cl_pos < len(cell_lines):
+                cl = cell_lines[cl_pos]
+                if cl.plate_id == p.id and cl.well == w_id:
+                    ws.write(w_id+1, 1, cl.cell_line.name if cl.cell_line else '')
+                    cl_pos += 1
 
-                if dr_pos < len(drugs):
-                    drugs_this_well = 0
-                    while dr_pos < len(drugs) and drugs[dr_pos].plate_id == p.id and \
-                            drugs[dr_pos].well == w_id:
-                        drugs_this_well += 1
-                        if drugs_this_well > max_num_drugs:
-                            max_num_drugs += 1
-                            ws.write(0, 2*drugs_this_well, 'Drug {}'.format(
-                                drugs_this_well), bold)
-                            ws.write(0, 2*drugs_this_well + 1, 'Dose {} (M)'.format(
-                                drugs_this_well), bold)
+            if dr_pos < len(drugs):
+                drugs_this_well = 0
+                while dr_pos < len(drugs) and drugs[dr_pos].plate_id == p.id and \
+                        drugs[dr_pos].well == w_id:
+                    drugs_this_well += 1
+                    if drugs_this_well > max_num_drugs:
+                        max_num_drugs += 1
+                        ws.write(0, 2*drugs_this_well, 'Drug {}'.format(
+                            drugs_this_well), bold)
+                        ws.write(0, 2*drugs_this_well + 1, 'Dose {} (M)'.format(
+                            drugs_this_well), bold)
 
-                        ws.write(w_id+1, 2*drugs_this_well, drugs[dr_pos].drug.name)
-                        ws.write(w_id+1, 2*drugs_this_well+1, drugs[dr_pos].dose)
-                        dr_pos += 1
+                    ws.write(w_id+1, 2*drugs_this_well, drugs[dr_pos].drug.name)
+                    ws.write(w_id+1, 2*drugs_this_well+1, drugs[dr_pos].dose)
+                    dr_pos += 1
 
-        workbook.close()
+    workbook.close()
+
+    if settings.DEBUG:
         tf.flush()
+        from django.views.static import serve
+        return serve(request, os.path.basename(tf.name), os.path.dirname(
+            tf.name))
+    else:
+        # TODO: Consider X-sendfile?
+        # tf.file.open('rb')
+        # tf.seek(0)
+        # from wsgiref.util import FileWrapper
+        # response = StreamingHttpResponse(FileWrapper(tf),
+        #                          content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        # # response['Content-Length'] = os.path.getsize(tf.file.name)
+        # response['Content-Disposition'] = 'attachment; filename={}'.\
+        #     format('test.xlsx')
+        #     # format(os.path.basename(tf.name))
+        # return response
 
-        if settings.DEBUG:
-            from django.views.static import serve
-            return serve(request, os.path.basename(tf.name), os.path.dirname(
-                tf.name))
-        else:
-            # TODO: Use X-sendfile in production
-            raise NotImplementedError()
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename={}'.format(
+            os.path.basename(tf.name))
+        # # response['Content-Length'] = os.path.getsize(tf.file.name)
+        response['X-Accel-Redirect'] = smart_text(tf.file.name)
+        return response
 
 
 @login_required
@@ -443,6 +460,8 @@ def xlsx_get_assay_data(request, dataset_id):
         last_time_col = 0
 
         for val in assays:
+            print(val.plate_id, val.plate.name, val.assay)
+
             if val.plate_id != last_plate:
                 last_plate = val.plate_id
                 last_assay = None
@@ -454,7 +473,21 @@ def xlsx_get_assay_data(request, dataset_id):
                 plate_name = '{}-{}'.format(val.plate.name, val.assay)
                 for c in '[]:*?/\\':
                     plate_name = plate_name.replace(c, '_')
-                ws = workbook.add_worksheet(plate_name)
+                try:
+                    ws = workbook.add_worksheet(plate_name)
+                except Exception as e:
+                    if str(e).find('already in use') > -1:
+                        i = 1
+                        succeed = False
+                        while not succeed:
+                            plate_name += '-{}'.format(i)
+                            try:
+                                ws = workbook.add_worksheet(plate_name)
+                                succeed = True
+                            except:
+                                i += 1
+                    else:
+                        raise e
                 ws.write(0, 0, 'Well', bold)
                 last_time = None
                 last_time_col = 0
@@ -470,7 +503,7 @@ def xlsx_get_assay_data(request, dataset_id):
 
         workbook.close()
         tf.flush()
-
+        print(as_names)
         if settings.DEBUG:
             from django.views.static import serve
             return serve(request, os.path.basename(tf.name), os.path.dirname(
