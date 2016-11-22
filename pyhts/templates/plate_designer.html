@@ -1141,7 +1141,7 @@ $(function () {
     var plateLoadedCallback = function (data) {
         if(pyHTS.completeFlag) {
             pyHTS.plateMap.unsaved_changes = false;
-            window.location = '{% url 'pyhts:home' %}';
+            window.location = '{% url 'pyhts:view_dataset' dataset.id %}';
         }
         if(data.success) {
             if(data.templateAppliedTo) {
