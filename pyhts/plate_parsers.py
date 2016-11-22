@@ -218,6 +218,8 @@ class PlateFileParser(object):
         for row in range(ws.nrows):
             cell0_val = ws.cell(row, 0).value
             if cell0_val == 'Barcode':
+                barcode = ws.cell(row, 1).value
+                plate_name = None if barcode == 'N/A' else barcode
                 scanning_wells = False
                 well_id = 0
                 col = 2
@@ -230,9 +232,14 @@ class PlateFileParser(object):
                     raise PlateFileParseException('No assay name detected')
                 continue
 
-            if cell0_val == 'Plate ID':
-                plate_name = str(ws.cell(row, 1).value)
+            if cell0_val == 'Plate Name':
+                if plate_name is None:
+                    plate_name = ws.cell(row, 1).value.split(' ', 1)[0]
                 continue
+
+            # if cell0_val == 'Plate ID':
+            #     plate_name = str(ws.cell(row, 1).value)
+            #     continue
 
             if cell0_val == '' and ws.cell(row, 1).value == 1:
                 scanning_wells = True
