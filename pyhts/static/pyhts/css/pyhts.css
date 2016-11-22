@@ -300,16 +300,9 @@ a[aria-expanded=false] .fa-chevron-down {
 -moz-user-select: none;
 -ms-user-select: none;
 user-select: none;}
-{#  #hts-well-plate {width:52em;padding:1em;}#}
-{#  #rowlabels { width: 2em; float:left; }#}
-{#  .welllist li { margin: 0; padding: 0; float: left; width: 2em;#}
-{#      height: 2em; font-size: 1em; text-align: center; cursor: default; }#}
 
   #hts-plate-panel {min-width:500px;}
   #selectable-well-rows {width:4%; float: left; clear:left; }
-{#  #hts-well-plate {width:100%;height:0;padding-bottom:100%; ; }#}
-{#  #hts-well-plate-inner { }#}
-{#  #rowlabels { width: 2em; float:left; }#}
   .welllist li { margin: 0; padding: 0 0 4% 0; float: left; width: 4%;
       height: 0; cursor: default; text-align: center; font-size:1em;
       border-radius: 50%; }
