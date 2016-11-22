@@ -15,7 +15,7 @@
                     class="fa fa-bolt"></i> Thunor</a>
         </div>
         <!-- /.navbar-header -->
-
+        {% if user.is_authenticated %}
         <ul class="nav navbar-top-links navbar-right">
             <!-- /.dropdown -->
             <li class="dropdown">
@@ -34,10 +34,9 @@
                 <!-- /.dropdown-user -->
             </li>
             <!-- /.dropdown -->
-            {% if user.is_authenticated %}
             <li>{{ user.email }}</li>
-            {% endif %}
         </ul>
+        {% endif %}
         <!-- /.navbar-top-links -->
 
         <!-- /.navbar-static-side -->
