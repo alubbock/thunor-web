@@ -3,7 +3,7 @@ from django.template.response import TemplateResponse
 from django.template.loader import get_template
 from django.contrib import auth
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, FileResponse, StreamingHttpResponse,\
+from django.http import JsonResponse, \
     HttpResponse, HttpResponseBadRequest, HttpResponseServerError, \
     HttpResponseNotFound
 from django.db.utils import IntegrityError
@@ -15,13 +15,14 @@ import json
 from .plate_parsers import PlateFileParser, PlateFileParseException
 import numpy as np
 from django.utils import timezone
-from django.utils.encoding import smart_text
 from operator import itemgetter
 from django.conf import settings
 import logging
 import os
 import xlsxwriter
 import tempfile
+from django.views.static import serve
+from .serve_file import nginx_file
 
 logger = logging.getLogger(__name__)
 
@@ -376,70 +377,58 @@ def xlsx_get_annotation_data(request, dataset_id):
     drugs = list(WellDrug.objects.filter(plate_id__in=plate_ids).\
                          order_by('plate_id', 'well').select_related())
 
-    tf = tempfile.NamedTemporaryFile('wb', suffix='.xlsx', delete=False)
-    workbook = xlsxwriter.Workbook(tf)
-    bold = workbook.add_format({'bold': 1})
-    cl_pos = 0
-    dr_pos = 0
+    with tempfile.NamedTemporaryFile('wb', dir=settings.MEDIA_ROOT,
+                                     prefix='tmpdownload_',
+                                     suffix='.xlsx',
+                                     delete=False) as tf:
+        workbook = xlsxwriter.Workbook(tf)
+        bold = workbook.add_format({'bold': 1})
+        cl_pos = 0
+        dr_pos = 0
 
-    for p in plates:
-        ws = workbook.add_worksheet(p.name)
-        ws.write(0, 0, 'Well', bold)
-        ws.write(0, 1, 'Cell Line', bold)
-        max_num_drugs = 0
+        for p in plates:
+            ws = workbook.add_worksheet(p.name)
+            ws.write(0, 0, 'Well', bold)
+            ws.write(0, 1, 'Cell Line', bold)
+            max_num_drugs = 0
 
-        for well in p.well_iterator():
-            w_id = well['well']
-            ws.write(w_id+1, 0, '{}{}'.format(well['row'], well['col']))
+            for well in p.well_iterator():
+                w_id = well['well']
+                ws.write(w_id+1, 0, '{}{}'.format(well['row'], well['col']))
 
-            if cl_pos < len(cell_lines):
-                cl = cell_lines[cl_pos]
-                if cl.plate_id == p.id and cl.well == w_id:
-                    ws.write(w_id+1, 1, cl.cell_line.name if cl.cell_line else '')
-                    cl_pos += 1
+                if cl_pos < len(cell_lines):
+                    cl = cell_lines[cl_pos]
+                    if cl.plate_id == p.id and cl.well == w_id:
+                        ws.write(w_id+1, 1, cl.cell_line.name if cl.cell_line else '')
+                        cl_pos += 1
 
-            if dr_pos < len(drugs):
-                drugs_this_well = 0
-                while dr_pos < len(drugs) and drugs[dr_pos].plate_id == p.id and \
-                        drugs[dr_pos].well == w_id:
-                    drugs_this_well += 1
-                    if drugs_this_well > max_num_drugs:
-                        max_num_drugs += 1
-                        ws.write(0, 2*drugs_this_well, 'Drug {}'.format(
-                            drugs_this_well), bold)
-                        ws.write(0, 2*drugs_this_well + 1, 'Dose {} (M)'.format(
-                            drugs_this_well), bold)
+                if dr_pos < len(drugs):
+                    drugs_this_well = 0
+                    while dr_pos < len(drugs) and drugs[dr_pos].plate_id == p.id and \
+                            drugs[dr_pos].well == w_id:
+                        drugs_this_well += 1
+                        if drugs_this_well > max_num_drugs:
+                            max_num_drugs += 1
+                            ws.write(0, 2*drugs_this_well, 'Drug {}'.format(
+                                drugs_this_well), bold)
+                            ws.write(0, 2*drugs_this_well + 1, 'Dose {} (M)'.format(
+                                drugs_this_well), bold)
 
-                    ws.write(w_id+1, 2*drugs_this_well, drugs[dr_pos].drug.name)
-                    ws.write(w_id+1, 2*drugs_this_well+1, drugs[dr_pos].dose)
-                    dr_pos += 1
+                        ws.write(w_id+1, 2*drugs_this_well, drugs[dr_pos].drug.name)
+                        ws.write(w_id+1, 2*drugs_this_well+1, drugs[dr_pos].dose)
+                        dr_pos += 1
 
-    workbook.close()
+        workbook.close()
 
-    if settings.DEBUG:
-        tf.flush()
-        from django.views.static import serve
-        return serve(request, os.path.basename(tf.name), os.path.dirname(
-            tf.name))
-    else:
-        # TODO: Consider X-sendfile?
-        # tf.file.open('rb')
-        # tf.seek(0)
-        # from wsgiref.util import FileWrapper
-        # response = StreamingHttpResponse(FileWrapper(tf),
-        #                          content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        # # response['Content-Length'] = os.path.getsize(tf.file.name)
-        # response['Content-Disposition'] = 'attachment; filename={}'.\
-        #     format('test.xlsx')
-        #     # format(os.path.basename(tf.name))
-        # return response
+        if settings.DEBUG:
+            tf.flush()
+            return serve(request, os.path.basename(tf.name),
+                         os.path.dirname(tf.name))
 
-        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        response['Content-Disposition'] = 'attachment; filename={}'.format(
-            os.path.basename(tf.name))
-        # # response['Content-Length'] = os.path.getsize(tf.file.name)
-        response['X-Accel-Redirect'] = smart_text(tf.file.name)
-        return response
+    return nginx_file(tf.name, rename_to=plates[0].name,
+                      content_type='application/vnd.openxmlformats'
+                                   '-officedocument.spreadsheetml.sheet',
+                      set_permissions=True)
 
 
 @login_required
@@ -502,15 +491,16 @@ def xlsx_get_assay_data(request, dataset_id):
             ws.write(val.well + 1, last_time_col, val.value)
 
         workbook.close()
-        tf.flush()
-        print(as_names)
+
         if settings.DEBUG:
-            from django.views.static import serve
+            tf.flush()
             return serve(request, os.path.basename(tf.name), os.path.dirname(
                 tf.name))
-        else:
-            # TODO: Use X-sendfile in production
-            raise NotImplementedError()
+
+        return nginx_file(tf.name, rename_to=assays[0].plate.dataset.name,
+                          content_type='application/vnd.openxmlformats'
+                                       '-officedocument.spreadsheetml.sheet',
+                          set_permissions=True)
 
 
 @login_required
