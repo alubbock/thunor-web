@@ -14,6 +14,7 @@ import os
 import raven
 import pyhts
 from django.contrib import messages
+import errno
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -214,6 +215,12 @@ MEDIA_URL = os.environ.get('DJANGO_MEDIA_URL', '/_state/thunor-files/')
 # These DOWNLOADS_* settings need to match nginx config
 DOWNLOADS_ROOT = os.path.join(MEDIA_ROOT, 'downloads')
 DOWNLOADS_URL = '/_thunor_downloads/'
+
+try:
+    os.makedirs(DOWNLOADS_ROOT)
+except OSError as exc:
+    if exc.errno != errno.EEXIST:
+        raise
 
 LOGGING = {
     'version': 1,
