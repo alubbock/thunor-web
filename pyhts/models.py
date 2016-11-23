@@ -3,8 +3,6 @@ from django.db import models
 from django.conf import settings
 from itertools import cycle
 from numpy import repeat
-import os
-from django.core.files.storage import FileSystemStorage
 
 
 class HTSDataset(models.Model):
