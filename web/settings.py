@@ -215,6 +215,8 @@ MEDIA_URL = os.environ.get('DJANGO_MEDIA_URL', '/_state/thunor-files/')
 # These DOWNLOADS_* settings need to match nginx config
 DOWNLOADS_ROOT = os.path.join(MEDIA_ROOT, 'downloads')
 DOWNLOADS_URL = '/_thunor_downloads/'
+# Delete ephemeral download files after this amount of time
+DOWNLOAD_EPHEMERAL_PURGE_DAYS = 7
 
 try:
     os.makedirs(DOWNLOADS_ROOT)
