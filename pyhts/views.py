@@ -377,10 +377,9 @@ def xlsx_get_annotation_data(request, dataset_id):
     drugs = list(WellDrug.objects.filter(plate_id__in=plate_ids).\
                          order_by('plate_id', 'well').select_related())
 
-    with tempfile.NamedTemporaryFile('wb', dir=settings.MEDIA_ROOT,
-                                     prefix='tmpdownload_',
-                                     suffix='.xlsx',
-                                     delete=False) as tf:
+    with tempfile.NamedTemporaryFile('wb', dir=settings.DOWNLOADS_ROOT,
+                                     prefix='xlsxannot-', delete=False) \
+                                     as tf:
         workbook = xlsxwriter.Workbook(tf)
         bold = workbook.add_format({'bold': 1})
         cl_pos = 0
@@ -421,11 +420,12 @@ def xlsx_get_annotation_data(request, dataset_id):
         workbook.close()
 
         if settings.DEBUG:
-            tf.flush()
             return serve(request, os.path.basename(tf.name),
                          os.path.dirname(tf.name))
 
-    return nginx_file(tf.name, rename_to=plates[0].name,
+    output_filename = '{}-annotation.xlsx'.format(plates[0].dataset.name)
+
+    return nginx_file(tf.name, rename_to=output_filename,
                       content_type='application/vnd.openxmlformats'
                                    '-officedocument.spreadsheetml.sheet',
                       set_permissions=True)
@@ -438,7 +438,8 @@ def xlsx_get_assay_data(request, dataset_id):
         plate__dataset__owner_id=request.user.id
     ).order_by('plate_id', 'assay', 'timepoint', 'well').select_related())
 
-    with tempfile.NamedTemporaryFile('wb', suffix='.xlsx') as tf:
+    with tempfile.NamedTemporaryFile('wb', dir=settings.DOWNLOADS_ROOT,
+            prefix='xlsxassay-', delete=False) as tf:
         workbook = xlsxwriter.Workbook(tf)
         bold = workbook.add_format({'bold': 1})
         timefmt = workbook.add_format({'num_format': '[h]:mm:ss'})
@@ -492,15 +493,16 @@ def xlsx_get_assay_data(request, dataset_id):
 
         workbook.close()
 
-        if settings.DEBUG:
-            tf.flush()
-            return serve(request, os.path.basename(tf.name), os.path.dirname(
-                tf.name))
+    if settings.DEBUG:
+        return serve(request, os.path.basename(tf.name), os.path.dirname(
+            tf.name))
 
-        return nginx_file(tf.name, rename_to=assays[0].plate.dataset.name,
-                          content_type='application/vnd.openxmlformats'
-                                       '-officedocument.spreadsheetml.sheet',
-                          set_permissions=True)
+    output_filename = '{}-assays.xlsx'.format(assays[0].plate.dataset.name)
+
+    return nginx_file(tf.name, rename_to=output_filename,
+                      content_type='application/vnd.openxmlformats'
+                                   '-officedocument.spreadsheetml.sheet',
+                      set_permissions=True)
 
 
 @login_required

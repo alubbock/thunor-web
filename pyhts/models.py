@@ -3,6 +3,8 @@ from django.db import models
 from django.conf import settings
 from itertools import cycle
 from numpy import repeat
+import os
+from django.core.files.storage import FileSystemStorage
 
 
 class HTSDataset(models.Model):
@@ -22,9 +24,11 @@ class HTSDataset(models.Model):
 
 
 class PlateFile(models.Model):
+    _plate_file_storage = FileSystemStorage(location=os.path.join(
+        settings.MEDIA_ROOT, 'plate-files'))
     dataset = models.ForeignKey(HTSDataset)
     upload_date = models.DateTimeField(auto_now_add=True)
-    file = models.FileField()
+    file = models.FileField(storage=_plate_file_storage)
     file_format = models.TextField(null=True)
 
 

@@ -18,6 +18,10 @@ from django.contrib import messages
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# This is where state-specific files are stored, like uploads/downloads and
+# the SQLite database, if applicable
+STATE_DIR = os.path.join(BASE_DIR, '_state')
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.10/howto/deployment/checklist/
 
@@ -118,7 +122,7 @@ else:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+            'NAME': os.path.join(STATE_DIR, 'thunor.sqlite3'),
         }
     }
 
@@ -203,8 +207,13 @@ CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
 STATIC_URL = os.environ.get('DJANGO_STATIC_URL', '/static/')
 
-MEDIA_ROOT = os.environ.get('DJANGO_MEDIA_ROOT', os.path.join(BASE_DIR, 'uploads'))
-MEDIA_URL = os.environ.get('DJANGO_MEDIA_URL', '/uploads')
+MEDIA_ROOT = os.environ.get('DJANGO_MEDIA_ROOT', os.path.join(STATE_DIR,
+                                                              'thunor-files'))
+MEDIA_URL = os.environ.get('DJANGO_MEDIA_URL', '/_state/thunor-files/')
+
+# These DOWNLOADS_* settings need to match nginx config
+DOWNLOADS_ROOT = os.path.join(MEDIA_ROOT, 'downloads')
+DOWNLOADS_URL = '/_thunor_downloads/'
 
 LOGGING = {
     'version': 1,
