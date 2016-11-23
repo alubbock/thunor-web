@@ -24,11 +24,9 @@ class HTSDataset(models.Model):
 
 
 class PlateFile(models.Model):
-    _plate_file_storage = FileSystemStorage(location=os.path.join(
-        settings.MEDIA_ROOT, 'plate-files'))
     dataset = models.ForeignKey(HTSDataset)
     upload_date = models.DateTimeField(auto_now_add=True)
-    file = models.FileField(storage=_plate_file_storage)
+    file = models.FileField(upload_to='plate-files')
     file_format = models.TextField(null=True)
 
 
