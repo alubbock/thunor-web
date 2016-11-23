@@ -1142,6 +1142,7 @@ $(function () {
         if(pyHTS.completeFlag) {
             pyHTS.plateMap.unsaved_changes = false;
             window.location = '{% url 'pyhts:view_dataset' dataset.id %}';
+            return;
         }
         if(data.success) {
             if(data.templateAppliedTo) {
