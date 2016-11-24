@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Plots{% endblock %}
+
+{% block titlerow %}
+<div class="row">
+    <div class="btn-toolbar col-lg-12" role="toolbar" aria-label="..."
+         style="margin: 10px 0">
+        <div class="btn-group" id="hts-num-cols-lg">
+          <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            <span id="hts-current-num-cols-lg">1 column</span>
+            <span class="caret"></span>
+          </button>
+          <ul class="dropdown-menu">
+            <li data-cols="1"><a href="#">1 column</a></li>
+            <li data-cols="2"><a href="#">2 columns</a></li>
+            <li data-cols="3"><a href="#">3 columns</a></li>
+            <li data-cols="4"><a href="#">4 columns</a></li>
+          </ul>
+        </div>
+
+        <div class="btn-group" id="hts-num-cols-md">
+          <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            <span id="hts-current-num-cols-md">1 column</span>
+            <span class="caret"></span>
+          </button>
+          <ul class="dropdown-menu">
+            <li data-cols="1"><a href="#">1 column</a></li>
+            <li data-cols="2"><a href="#">2 columns</a></li>
+          </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row sortable-panels">
+    {% for graph in graphs %}
+    <div class="panel-container col-lg-12 col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">{{ graph.title }}<span
+                    class="pull-right panel-close-btn"
+                    data-effect="fadeOut"><i class="fa fa-times"></i></span></div>
+            <div class="panel-body">{{ graph.html|safe }}</div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block headscript %}
+{% load static %}
+<script src="{% static 'vendor/plotly/js/plotly-basic.min.js' %}"></script>
+{% endblock %}
+
+{% block tailscript %}
+<script src="//code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<script>
+$(function () {
+    $(".sortable-panels").sortable({
+        tolerance: 'pointer',
+        revert: 'invalid',
+        handle: '.panel-heading',
+        placeholder: 'panel-placeholder col-lg-12',
+        forceHelperSize: false,
+        forcePlaceholderSize: true
+    });
+
+    pyHTS.ui.setColumns = function(numColsMd, numColsLg) {
+        var numBScolsLg = Math.round(12 / numColsLg);
+        var numBScolsMd = Math.round(12 / numColsMd);
+        $('.panel-container').removeClass('col-lg-3 col-lg-4 col-lg-6 ' +
+                'col-lg-12 col-md-6 col-md-12').addClass
+            ('col-lg-' + numBScolsLg + ' col-md-' + numBScolsMd);
+        pyHTS.ui.resizeGraphs();
+        $('.sortable-panels').sortable('option', 'placeholder',
+                'panel-placeholder col-lg-' + numBScolsLg +
+                ' col-md-' + numBScolsMd);
+        $('#hts-current-num-cols-lg').text(numColsLg + ' column' +
+                (numColsLg > 1 ? 's': ''));
+        $('#hts-current-num-cols-md').text(numColsMd + ' column' +
+                (numColsMd > 1 ? 's' : ''));
+    };
+
+    pyHTS.ui.resizeGraphs = function() {
+        $('.plotly-graph-div').each(function(i, obj) {
+          Plotly.Plots.resize($(obj)[0]);
+        });
+    };
+
+    $(window).resize(function() {
+        clearTimeout($.data(this, 'resizeTimer'));
+        $.data(this, 'resizeTimer', setTimeout(function() {
+            //do something
+            pyHTS.ui.resizeGraphs();
+        }, 200));
+    });
+
+    $('#hts-num-cols-lg').find('li').click(function(){
+        var lgCols = $(this).data('cols');
+        var mdCols = lgCols >= 2 ? 2 : 1;
+        pyHTS.ui.setColumns(mdCols, lgCols);
+    });
+
+    $('#hts-num-cols-md').find('li').click(function(){
+        var mdCols = $(this).data('cols');
+        pyHTS.ui.setColumns(mdCols, mdCols);
+    });
+
+    $('.panel-close-btn').on('click',function(){
+        $(this).closest('.panel-container')[$(this).data('effect')]();
+	});
+});
+</script>
+{% endblock %}

@@ -517,3 +517,23 @@ user-select: none;}
     from { -webkit-transform: rotate(0deg); }
     to { -webkit-transform: rotate(360deg); }
 }
+.panel-container {
+    border: 1px solid transparent;
+}
+.panel-placeholder {
+    border: 1px solid red;
+}
+@media (max-width: 1199px) {
+    #hts-num-cols-md { display: block; }
+    #hts-num-cols-lg { display: none; }
+}
+@media (max-width: 767px) {
+    #hts-num-cols-md { display: none;}
+}
+@media (min-width: 1200px) {
+    #hts-num-cols-md { display: none; }
+    #hts-num-cols-lg { display: block; }
+}
+.panel-close-btn {
+    cursor: pointer;
+}

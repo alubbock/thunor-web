@@ -589,3 +589,54 @@ def view_dataset(request, dataset_id):
 
     response = render(request, 'dataset.html', {'dataset': dataset})
     return response
+
+
+@login_required
+def dose_response(request):
+    from .plots import dose_response
+    import pandas as pd
+    dataset_id = 11
+
+    cell_lines = WellCellLine.objects.filter(
+        plate__dataset_id=dataset_id,
+        plate__dataset__owner_id=request.user.id)
+    drugs = WellDrug.objects.filter(
+        plate__dataset_id=dataset_id,
+        plate__dataset__owner_id=request.user.id)
+    assays = WellMeasurement.objects.filter(
+        plate__dataset_id=dataset_id).values(
+        'assay').distinct()
+
+    cell_line_id = 7  # F36P
+    drug_id = 3  # 52793 JAK1
+    assay = 'BF'
+
+    tgt_wells = set(WellCellLine.objects.filter(
+                    plate__dataset_id=dataset_id,
+                    cell_line_id=cell_line_id).
+                    values_list('well', flat=True)) &\
+                set(WellDrug.objects.filter(
+                    plate__dataset_id=dataset_id,
+                    drug_id=drug_id).
+                    values_list('well', flat=True))
+
+    vals = pd.DataFrame(list(WellMeasurement.objects.filter(
+        plate__dataset_id=dataset_id, assay=assay, well__in=tgt_wells
+    ).order_by('timepoint', 'well').
+                             values_list('well', 'timepoint', 'value')),
+                        columns=('well', 'timepoint', 'value'))
+
+    doses = pd.DataFrame(list(WellDrug.objects.filter(
+        plate__dataset_id=dataset_id, drug=drug_id).order_by(
+        'well').values_list('well', 'dose')), columns=('well', 'dose'))
+
+    df = pd.merge(vals, doses, how='inner', on='well').set_index(
+        ['timepoint', 'dose']).drop('well', axis=1)
+
+    df = df.groupby(level=['timepoint', 'dose']).mean()
+
+    graphs = []
+    for i in range(0, 4):
+        graphs.append({'title': i, 'html': dose_response(df)})
+
+    return render(request, 'plots.html', {'graphs': graphs})
