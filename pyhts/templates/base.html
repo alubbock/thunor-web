@@ -87,7 +87,7 @@
 
 <script src="https://cdn.ravenjs.com/3.8.0/raven.min.js"></script>
 <script>{% load raven %}{% load pyhts_tags %}Raven.config('{% sentry_public_dsn %}', {
-    {% if debug %}environment: 'development',{% endif %}
+    environment: '{% sentry_environment %}',
     release: '{% pyhts_version %}'
 }).install();
 {% if user.is_authenticated %}Raven.setUserContext({email: '{{ user.email }}',

@@ -131,6 +131,8 @@ RAVEN_CONFIG = {
     'dsn': os.environ.get('DJANGO_SENTRY_DSN', None),
     # If you are using git, you can also automatically configure the
     # release based on the git info.
+    'environment': os.environ.get('DJANGO_SENTRY_ENVIRONMENT',
+                                  'development' if DEBUG else 'production'),
     'release': pyhts.__version__,
 }
 
