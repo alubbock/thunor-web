@@ -1,7 +1,5 @@
 import plotly.offline as opy
 import plotly.graph_objs as go
-import pandas as pd
-import numpy as np
 
 
 def dose_response(df, title=None):
@@ -9,7 +7,7 @@ def dose_response(df, title=None):
     traces = []
 
     for tp, x in df.groupby(level=0):
-        traces.append(go.Scatter(x=np.log10(x.index.get_level_values('dose')),
+        traces.append(go.Scatter(x=x.index.get_level_values('dose'),
                                  y=list(x['value']),
                                  marker={'symbol': 104,
                                          'size': "10"},
@@ -20,7 +18,8 @@ def dose_response(df, title=None):
     layout = go.Layout(title=title or 'Dose/response',
                        font={'family': '"Helvetica Neue",Helvetica,Arial,'
                                        'sans-serif'},
-                       xaxis={'title': 'Dose'},
+                       xaxis={'title': 'Dose',
+                              'type': 'log'},
                        yaxis={'title': 'Assay Value'},
                        )
     figure = go.Figure(data=data, layout=layout)

@@ -598,11 +598,17 @@ def dose_response(request):
     dataset_id = 11
 
     cell_lines = WellCellLine.objects.filter(
+        cell_line__isnull=False,
         plate__dataset_id=dataset_id,
-        plate__dataset__owner_id=request.user.id)
+        plate__dataset__owner_id=request.user.id).\
+        values('cell_line_id', 'cell_line__name').distinct()
+
     drugs = WellDrug.objects.filter(
+        drug__isnull=False,
         plate__dataset_id=dataset_id,
-        plate__dataset__owner_id=request.user.id)
+        plate__dataset__owner_id=request.user.id).\
+        values('drug_id', 'drug__name').distinct()
+
     assays = WellMeasurement.objects.filter(
         plate__dataset_id=dataset_id).values(
         'assay').distinct()
@@ -637,6 +643,11 @@ def dose_response(request):
 
     graphs = []
     for i in range(0, 4):
-        graphs.append({'title': i, 'html': dose_response(df)})
+        graphs.append({'html': dose_response(df, title='Dose/response of {} '
+                                                       'on {} cells'.format(
+            drugs[0]['drug__name'], cell_lines[0]['cell_line__name']))})
 
-    return render(request, 'plots.html', {'graphs': graphs})
+    return render(request, 'plots.html', {'graphs': graphs,
+                                          'cell_lines': cell_lines,
+                                          'drugs': drugs,
+                                          'assays': assays})
