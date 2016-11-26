@@ -1188,7 +1188,7 @@ $(function () {
             complete: function() {
                 pyHTS.ui.loadingModal.hide();
             }
-        })
+        });
     };
 
     pyHTS.ajax.savePlate = function(nextPlateToLoad) {
@@ -1207,17 +1207,21 @@ $(function () {
         delete pyHTS.plateMap.loadNext;
     };
 
+    var validatePlate = function() {
+        var plateErrors = pyHTS.plateMap.validate();
+        if (plateErrors) {
+            pyHTS.ui.okModal('Error validating plate map', '<ul><li>' +
+                    plateErrors.join("</li><li>") + '</li></ul>');
+            return false;
+        }
+    };
+
     var setPlate = function(plateId, templateId) {
         var $currentPlate = $('#hts-current-plate');
         var currentId = $currentPlate.data('id');
 
         if(currentId != 'MASTER') {
-            var plateErrors = pyHTS.plateMap.validate();
-            if (plateErrors) {
-                pyHTS.ui.okModal('Error validating plate map', '<ul><li>' +
-                        plateErrors.join("</li><li>") + '</li></ul>');
-                return false;
-            }
+            validatePlate();
             if (plateId == 'MASTER') {
                 $('#hts-select-plate').addClass('btn-success');
             }
@@ -1302,10 +1306,14 @@ $(function () {
     });
 
     $('#hts-finish-platemap').click(function(e) {
-        pyHTS.ui.loadingModal.show();
         pyHTS.completeFlag = true;
         if ($('#hts-current-plate').data('id') != 'MASTER' &&
                 pyHTS.plateMap.unsaved_changes) {
+            if(!validatePlate()) {
+                pyHTS.completeFlag = false;
+                return;
+            }
+            pyHTS.ui.loadingModal.show();
             pyHTS.ajax.savePlate(null);
         } else {
             plateLoadedCallback();
