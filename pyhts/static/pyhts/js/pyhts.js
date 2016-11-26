@@ -599,7 +599,8 @@ pyHTS.ajax.ajaxErrorCallback = function(jqXHR,textStatus,thrownError) {
                     data: this.data,
                     status: jqXHR.status,
                     error: thrownError || jqXHR.statusText,
-                    response: jqXHR.responseText.substring(0, 100)
+                    response: (jqXHR.responseText == undefined) ? null :
+                        jqXHR.responseText.substring(0, 100)
                 }
             });
         }

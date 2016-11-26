@@ -11,7 +11,7 @@ from django.db.models import Q, Count, Max
 from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, \
     WellCellLine, WellMeasurement, WellDrug
 import json
-from .plots import plot_dose_response
+from .plots import plot_dose_response, plot_dose_response_mpl
 from .pandas import df_dose_response
 from .plate_parsers import PlateFileParser, PlateFileParseException
 import numpy as np
@@ -620,9 +620,10 @@ def ajax_get_dataset_groups(request, dataset_id):
     controls_list = [{'id': None, 'name': 'None'}]
     for dr in drugs:
         this_entry = {'id': dr['drug_id'], 'name': dr['drug__name']}
-        drug_list.append(this_entry)
         if this_entry['name'] in KNOWN_CONTROLS:
             controls_list.append(this_entry)
+        else:
+            drug_list.append(this_entry)
 
     return JsonResponse({
         'cellLines': [{'id': cl['cell_line_id'],
@@ -639,21 +640,36 @@ def ajax_get_plot(request, plot_type):
         # TODO: Return JsonError
         raise NotImplementedError()
 
-    # TODO: Throw errors if query not set appropriately
-    dataset_id = request.GET['datasetId']
-    cell_line_id = request.GET['cellLineId']
-    drug_id = request.GET['drugId']
-    assay = request.GET['assayId']
-    control = request.GET['controlId']
+    try:
+        dataset_id = int(request.GET['datasetId'])
+        cell_line_id = int(request.GET['cellLineId'])
+        drug_id = int(request.GET['drugId'])
+        assay = request.GET['assayId']
+        control_id = request.GET['controlId']
+        error_bars = request.GET['errorBars']
+        line_smoothing = request.GET['lineSmoothing']
 
-    if control == 'null':
-        control = None
+        if control_id == 'null':
+            control_id = None
+        else:
+            control_id = int(control_id)
+    except (KeyError, ValueError):
+        # TODO: Throw JsonError
+        raise Http404()
 
-    dr = df_dose_response(dataset_id=dataset_id,
-                               cell_line_id=cell_line_id,
-                          drug_id=drug_id, assay=assay, control=control)
+    if error_bars == 'sd':
+        aggregates = (np.mean, np.std)
+    elif error_bars == 'range':
+        aggregates = (np.mean, np.min, np.max)
+    else:
+        aggregates = (np.mean, )
+
+    dr = df_dose_response(dataset_id=dataset_id, cell_line_id=cell_line_id,
+                          drug_id=drug_id, assay=assay, control=control_id,
+                          aggregates=aggregates)
 
     html = plot_dose_response(dr['df'],
+                              smoothing=line_smoothing,
                               title='Dose/response of {} on {} cells'.format(
                                 dr['drug_name'], dr['cell_line_name']))
 
@@ -665,19 +681,32 @@ def plots(request):
     dataset_id = 11
 
     cell_line_id = 7  # F36P
-    cell_line_name = 'F36P'
     drug_id = 3  # 52793 JAK1
-    drug_name = '52793 JAK1'
     assay = 'BF'
+    control_id = 6  # DMSO
+    error_bars = 'sd'
+    line_smoothing = 'spline'
 
     dr = df_dose_response(dataset_id=dataset_id, cell_line_id=cell_line_id,
-                          drug_id=drug_id, assay=assay)
+                          drug_id=drug_id, assay=assay, control=control_id,
+                          aggregates=(np.mean, np.std))
 
     graphs = []
     for i in range(0, 4):
+        # html = plot_dose_response(dr['df'],
+        #                           smoothing=line_smoothing,
+        #                           title='Dose/response of {} on {} cells'.
+        #                           format(dr['drug_name'], dr['cell_line_name'])
+        #                           )
+        html = plot_dose_response_mpl(dr['df'])
+
         graphs.append({'dataset_id': dataset_id,
-                       'html': plot_dose_response(
-            dr['df'], title='Dose/response of {} on {} cells'.format(
-                drug_name, cell_line_name))})
+                       'cell_line_id': cell_line_id,
+                       'drug_id': drug_id,
+                       'assay_id': assay,
+                       'control_id': control_id,
+                       'error_bars': error_bars,
+                       'line_smoothing': line_smoothing,
+                       'html': html})
 
     return render(request, 'plots.html', {'graphs': graphs})
