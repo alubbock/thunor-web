@@ -45,7 +45,7 @@
              data-assay-id="{{ graph.assay_id }}"
              data-control-id="{{ graph.control_id }}"
              data-error-bars="{{ graph.error_bars }}"
-             data-line-smoothing="{{ graph.line_smoothing }}"
+             data-log-transform="{{ graph.log_transform }}"
         >
             <div class="panel-heading">
                 <i class="glyphicon glyphicon-th"></i>
@@ -85,7 +85,7 @@
 
 <div class="hts-change-data" style="display: none; position: absolute; top: 0; left: 0; z-index:2000; background: rgba(255,
 255, 255, 0.9); padding: 10px; border-bottom: 1px solid #ddd; border-right:
-1px solid #ddd">
+1px solid #ddd; max-height: 100%; overflow-y: scroll">
 <form>
     <input type="hidden" name="datasetId" value="">
     <div class="form-group">
@@ -117,10 +117,10 @@
         </select>
     </div>
     <div class="form-group">
-        <label for="hts-line-smoothing">Line smoothing</label>
-        <select name="lineSmoothing" class="hts-line-smoothing form-control">
-            <option value="linear">None</option>
-            <option value="spline">Spline</option>
+        <label for="hts-log-transform">Y-axis</label>
+        <select name="logTransform" class="hts-log-transform form-control">
+            <option value="None">Linear</option>
+            <option value="log2">Log2</option>
         </select>
     </div>
     <button type="submit" class="btn btn-success
@@ -219,38 +219,32 @@ $(function () {
         } else {
             $dataPanel = $('.hts-change-data:last').clone();
             // load in the data
-            var datasetId = $enclosingPanel.data('datasetId'),
-                cellLineId = $enclosingPanel.data('cellLineId'),
-                drugId = $enclosingPanel.data('drugId'),
-                assayId = $enclosingPanel.data('assayId'),
-                controlId = $enclosingPanel.data('controlId'),
-                errorBars = $enclosingPanel.data('errorBars'),
-                lineSmoothing = $enclosingPanel.data('lineSmoothing');
+            var dat = $enclosingPanel.data();
 
             $.ajax({
-                url: '/ajax/dataset/'+datasetId+'/groups/',
+                url: '/ajax/dataset/'+dat['datasetId']+'/groups/',
                 type: 'GET',
                 success: function(data) {
                     pushOptionsToSelect(
                         $dataPanel.find('select.hts-change-cell-line'),
                         data.cellLines,
-                        cellLineId);
+                        dat['cellLineId']);
                     pushOptionsToSelect(
                         $dataPanel.find('select.hts-change-drug'),
                         data.drugs,
-                        drugId);
+                        dat['drugId']);
                     pushOptionsToSelect(
                         $dataPanel.find('select.hts-change-assay'),
                         data.assays,
-                        assayId);
+                        dat['assayId']);
                     pushOptionsToSelect(
                         $dataPanel.find('select.hts-change-control'),
                         data.controls,
-                        controlId);
-                    $dataPanel.find('select.hts-error-bars').val(errorBars)
-                        .selectpicker('refresh');
-                    $dataPanel.find('select.hts-line-smoothing').val
-                        (lineSmoothing).selectpicker('refresh');
+                        dat['controlId']);
+                    $dataPanel.find('select.hts-error-bars').val
+                        (dat['errorBars']).selectpicker('refresh');
+                    $dataPanel.find('select.hts-log-transform').val
+                        (dat['logTransform']).selectpicker('refresh');
                 },
                 error: pyHTS.ajax.ajaxErrorCallback
             });
@@ -273,7 +267,7 @@ $(function () {
                   },
                   error: pyHTS.ajax.ajaxErrorCallback
                });
-            }).find('input[name=datasetId]').val(datasetId);
+            }).find('input[name=datasetId]').val(dat['datasetId']);
             $dataPanel.prependTo(
                 $enclosingPanel.find('.panel-body')
             ).slideDown();

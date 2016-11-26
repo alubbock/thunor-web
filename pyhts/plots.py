@@ -3,37 +3,62 @@ import plotly.graph_objs as go
 import numpy as np
 import scipy.stats
 import scipy.optimize
-import matplotlib.pyplot as plt
+import seaborn as sns
 
 
-def plot_dose_response(df, smoothing='spline', title=None):
+def plot_dose_response(df, title=None):
     # Dataframe with time point as index
     traces = []
 
+    colours = sns.color_palette("husl",
+                                len(df.index.get_level_values(
+                                    level='time').unique()))
+
     error_y = {}
     for time, stats in df.groupby(level='time'):
+        c = colours.pop()
+        this_colour = 'rgb(%d, %d, %d)' % (c[0] * 255, c[1] * 255, c[2] * 255)
         if 'std' in stats:
             error_y = dict(
                 type='data',
-                array=list(stats['std'])
+                array=list(stats['std']),
+                color=this_colour
             )
         elif 'amax' in stats:
             error_y = dict(
                 type='data',
                 symmetric=False,
                 array=list(stats['amax']),
-                arrayminus=list(stats['amin'])
+                arrayminus=list(stats['amin']),
+                color=this_colour
             )
-        traces.append(go.Scatter(x=stats.index.get_level_values('dose'),
-                                 y=list(stats['mean']),
-                                 mode='lines+markers',
+        x_var = stats.index.get_level_values('dose').values
+        y_var = list(stats['mean'])
+        traces.append(go.Scatter(x=x_var,
+                                 y=y_var,
+                                 mode='markers',
+                                 line={'color': this_colour},
+                                 legendgroup=str(time),
                                  error_y=error_y,
                                  marker={'size': 5},
-                                 name=str(time),
-                                 line=dict(
-                                    shape=smoothing
-                                )
-                      ))
+                                 name=str(time))
+                     )
+        # Convert to negative log space for numerical reasons
+        x_var_log = -np.log(x_var)
+        popt, pcov = scipy.optimize.curve_fit(ll4, x_var_log, y_var,
+                                              maxfev=100000)
+        x_interp = np.linspace(np.min(x_var_log), np.max(x_var_log), 50)
+        y_interp = ll4(x_interp, *popt)
+        traces.append(go.Scatter(x=np.exp(-x_interp),
+                                 y=y_interp,
+                                 legendgroup=str(time),
+                                 showlegend=False,
+                                 mode='lines',
+                                 hoverinfo='skip',
+                                 line={'shape': 'spline',
+                                       'color': this_colour},
+                                 name=str(time) + ' (interpolated)')
+                     )
 
     data = go.Data(traces)
     layout = go.Layout(title=title or 'Dose/response',
@@ -50,19 +75,8 @@ def plot_dose_response(df, smoothing='spline', title=None):
     return div
 
 
-def plot_dose_response_mpl(df, title=None):
-    fig, ax = plt.subplots()
-
-    plt.errorbar([0, 10, 20], [20, 30, 40],
-                 yerr=[5, 5, 5],
-                 fmt='o')
-
-    return opy.plot_mpl(fig, auto_open=False, output_type='div',
-                        show_link=False, include_plotlyjs=False)
-
-
 def ll3u(x, b, c, e):
-    ll4(x, b=b, c=c, d=1, e=e)
+    return ll4(x, b=b, c=c, d=1, e=e)
 
 
 def ll4(x, b, c, d, e):
@@ -85,3 +99,7 @@ def dip_rate(times, cell_counts):
     slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(
         t_secs, log2_cell_counts)
     return slope
+
+
+def curve_fit(x, y, fit_fn=ll4, num_points=100):
+    popt, pcov = scipy.optimize.curve_fit(fit_fn, x, y, maxfev=1000000)

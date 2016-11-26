@@ -7,6 +7,7 @@ import numpy as np
 
 
 def df_dose_response(dataset_id, cell_line_id, drug_id, assay, control=None,
+                     log2y=False,
                      aggregates=(np.mean, np.min, np.max)):
     # TODO: Check drug/cell line combos split across more than one plate
 
@@ -78,6 +79,9 @@ def df_dose_response(dataset_id, cell_line_id, drug_id, assay, control=None,
                                 main_vals.iloc[row] /
                                 ctrl_means.loc[idx[0], idx[1]],
                                 takeable=True)
+
+    if log2y:
+        main_vals = np.log2(main_vals)
 
     # Calculate summary statistics
     df = main_vals.groupby(level=('time', 'dose')).agg(aggregates)

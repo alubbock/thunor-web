@@ -11,7 +11,7 @@ from django.db.models import Q, Count, Max
 from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, \
     WellCellLine, WellMeasurement, WellDrug
 import json
-from .plots import plot_dose_response, plot_dose_response_mpl
+from .plots import plot_dose_response
 from .pandas import df_dose_response
 from .plate_parsers import PlateFileParser, PlateFileParseException
 import numpy as np
@@ -170,7 +170,7 @@ def ajax_save_plate(request):
     n_updated = pl_objs.update(last_annotated=timezone.now())
 
     if n_updated != len(plate_ids):
-        #TODO: This should return a better error
+        # TODO: This should return a better error
         raise Http404()
 
     if plate_id is None:
@@ -647,7 +647,7 @@ def ajax_get_plot(request, plot_type):
         assay = request.GET['assayId']
         control_id = request.GET['controlId']
         error_bars = request.GET['errorBars']
-        line_smoothing = request.GET['lineSmoothing']
+        yaxis = request.GET['logTransform']
 
         if control_id == 'null':
             control_id = None
@@ -666,10 +666,10 @@ def ajax_get_plot(request, plot_type):
 
     dr = df_dose_response(dataset_id=dataset_id, cell_line_id=cell_line_id,
                           drug_id=drug_id, assay=assay, control=control_id,
+                          log2y=yaxis=='log2',
                           aggregates=aggregates)
 
     html = plot_dose_response(dr['df'],
-                              smoothing=line_smoothing,
                               title='Dose/response of {} on {} cells'.format(
                                 dr['drug_name'], dr['cell_line_name']))
 
@@ -685,20 +685,19 @@ def plots(request):
     assay = 'BF'
     control_id = 6  # DMSO
     error_bars = 'sd'
-    line_smoothing = 'spline'
+    yaxis = 'log2'
 
     dr = df_dose_response(dataset_id=dataset_id, cell_line_id=cell_line_id,
                           drug_id=drug_id, assay=assay, control=control_id,
+                          log2y=yaxis == 'log2',
                           aggregates=(np.mean, np.std))
 
     graphs = []
     for i in range(0, 4):
-        # html = plot_dose_response(dr['df'],
-        #                           smoothing=line_smoothing,
-        #                           title='Dose/response of {} on {} cells'.
-        #                           format(dr['drug_name'], dr['cell_line_name'])
-        #                           )
-        html = plot_dose_response_mpl(dr['df'])
+        html = plot_dose_response(dr['df'],
+                                  title='Dose/response of {} on {} cells'.
+                                  format(dr['drug_name'], dr['cell_line_name'])
+                                  )
 
         graphs.append({'dataset_id': dataset_id,
                        'cell_line_id': cell_line_id,
@@ -706,7 +705,7 @@ def plots(request):
                        'assay_id': assay,
                        'control_id': control_id,
                        'error_bars': error_bars,
-                       'line_smoothing': line_smoothing,
+                       'log_transform': yaxis,
                        'html': html})
 
     return render(request, 'plots.html', {'graphs': graphs})
