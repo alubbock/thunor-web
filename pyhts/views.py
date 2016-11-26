@@ -3,7 +3,7 @@ from django.template.response import TemplateResponse
 from django.template.loader import get_template
 from django.contrib import auth
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, HttpResponseBadRequest, \
+from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, \
     HttpResponseServerError, HttpResponseNotFound
 from django.db.utils import IntegrityError
 from django.db import transaction
@@ -11,6 +11,8 @@ from django.db.models import Q, Count, Max
 from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, \
     WellCellLine, WellMeasurement, WellDrug
 import json
+from .plots import plot_dose_response
+from .pandas import df_dose_response
 from .plate_parsers import PlateFileParser, PlateFileParseException
 import numpy as np
 import datetime
@@ -592,62 +594,90 @@ def view_dataset(request, dataset_id):
 
 
 @login_required
-def dose_response(request):
-    from .plots import dose_response
-    import pandas as pd
-    dataset_id = 11
-
+def ajax_get_dataset_groups(request, dataset_id):
+    # TODO: Sanitise names for Javascript display
     cell_lines = WellCellLine.objects.filter(
         cell_line__isnull=False,
         plate__dataset_id=dataset_id,
-        plate__dataset__owner_id=request.user.id).\
-        values('cell_line_id', 'cell_line__name').distinct()
+        plate__dataset__owner_id=request.user.id
+    ).values('cell_line_id', 'cell_line__name').distinct()
 
     drugs = WellDrug.objects.filter(
         drug__isnull=False,
         plate__dataset_id=dataset_id,
-        plate__dataset__owner_id=request.user.id).\
-        values('drug_id', 'drug__name').distinct()
+        plate__dataset__owner_id=request.user.id
+    ).values('drug_id', 'drug__name').distinct()
 
     assays = WellMeasurement.objects.filter(
-        plate__dataset_id=dataset_id).values(
-        'assay').distinct()
+        plate__dataset_id=dataset_id,
+        plate__dataset__owner_id=request.user.id
+    ).values('assay').distinct()
+
+    # TODO: Improve this handling of controls!
+    KNOWN_CONTROLS = ['DMSO']
+
+    drug_list = []
+    controls_list = [{'id': None, 'name': 'None'}]
+    for dr in drugs:
+        this_entry = {'id': dr['drug_id'], 'name': dr['drug__name']}
+        drug_list.append(this_entry)
+        if this_entry['name'] in KNOWN_CONTROLS:
+            controls_list.append(this_entry)
+
+    return JsonResponse({
+        'cellLines': [{'id': cl['cell_line_id'],
+                       'name': cl['cell_line__name']} for cl in cell_lines],
+        'drugs': drug_list,
+        'assays': [{'id': a['assay'], 'name': a['assay']} for a in assays],
+        'controls': controls_list
+    })
+
+
+@login_required
+def ajax_get_plot(request, plot_type):
+    if plot_type != 'dose-response-times':
+        # TODO: Return JsonError
+        raise NotImplementedError()
+
+    # TODO: Throw errors if query not set appropriately
+    dataset_id = request.GET['datasetId']
+    cell_line_id = request.GET['cellLineId']
+    drug_id = request.GET['drugId']
+    assay = request.GET['assayId']
+    control = request.GET['controlId']
+
+    if control == 'null':
+        control = None
+
+    dr = df_dose_response(dataset_id=dataset_id,
+                               cell_line_id=cell_line_id,
+                          drug_id=drug_id, assay=assay, control=control)
+
+    html = plot_dose_response(dr['df'],
+                              title='Dose/response of {} on {} cells'.format(
+                                dr['drug_name'], dr['cell_line_name']))
+
+    return HttpResponse(html)
+
+
+@login_required
+def plots(request):
+    dataset_id = 11
 
     cell_line_id = 7  # F36P
+    cell_line_name = 'F36P'
     drug_id = 3  # 52793 JAK1
+    drug_name = '52793 JAK1'
     assay = 'BF'
 
-    tgt_wells = set(WellCellLine.objects.filter(
-                    plate__dataset_id=dataset_id,
-                    cell_line_id=cell_line_id).
-                    values_list('well', flat=True)) &\
-                set(WellDrug.objects.filter(
-                    plate__dataset_id=dataset_id,
-                    drug_id=drug_id).
-                    values_list('well', flat=True))
-
-    vals = pd.DataFrame(list(WellMeasurement.objects.filter(
-        plate__dataset_id=dataset_id, assay=assay, well__in=tgt_wells
-    ).order_by('timepoint', 'well').
-                             values_list('well', 'timepoint', 'value')),
-                        columns=('well', 'timepoint', 'value'))
-
-    doses = pd.DataFrame(list(WellDrug.objects.filter(
-        plate__dataset_id=dataset_id, drug=drug_id).order_by(
-        'well').values_list('well', 'dose')), columns=('well', 'dose'))
-
-    df = pd.merge(vals, doses, how='inner', on='well').set_index(
-        ['timepoint', 'dose']).drop('well', axis=1)
-
-    df = df.groupby(level=['timepoint', 'dose']).mean()
+    dr = df_dose_response(dataset_id=dataset_id, cell_line_id=cell_line_id,
+                          drug_id=drug_id, assay=assay)
 
     graphs = []
     for i in range(0, 4):
-        graphs.append({'html': dose_response(df, title='Dose/response of {} '
-                                                       'on {} cells'.format(
-            drugs[0]['drug__name'], cell_lines[0]['cell_line__name']))})
+        graphs.append({'dataset_id': dataset_id,
+                       'html': plot_dose_response(
+            dr['df'], title='Dose/response of {} on {} cells'.format(
+                drug_name, cell_line_name))})
 
-    return render(request, 'plots.html', {'graphs': graphs,
-                                          'cell_lines': cell_lines,
-                                          'drugs': drugs,
-                                          'assays': assays})
+    return render(request, 'plots.html', {'graphs': graphs})

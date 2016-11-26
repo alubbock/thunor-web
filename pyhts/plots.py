@@ -2,7 +2,7 @@ import plotly.offline as opy
 import plotly.graph_objs as go
 
 
-def dose_response(df, title=None):
+def plot_dose_response(df, title=None):
     # Dataframe with time point as index
     traces = []
 
