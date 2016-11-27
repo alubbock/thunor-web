@@ -11,7 +11,7 @@ from django.db.models import Q, Count, Max
 from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, \
     WellCellLine, WellMeasurement, WellDrug
 import json
-from .plots import plot_dose_response
+from .plots import plot_dose_response, plot_dose_response_3d, plot_timecourse
 from .pandas import df_dose_response
 from .plate_parsers import PlateFileParser, PlateFileParseException
 import numpy as np
@@ -634,11 +634,7 @@ def ajax_get_dataset_groups(request, dataset_id):
 
 
 @login_required
-def ajax_get_plot(request, plot_type):
-    if plot_type != 'dose-response-times':
-        # TODO: Return JsonError
-        raise NotImplementedError()
-
+def ajax_get_plot(request):
     try:
         dataset_id = int(request.GET['datasetId'])
         cell_line_id = int(request.GET['cellLineId'])
@@ -647,12 +643,26 @@ def ajax_get_plot(request, plot_type):
         control_id = request.GET['controlId']
         error_bars = request.GET['errorBars']
         yaxis = request.GET['logTransform']
+        plot_type = request.GET['plotType']
 
         if control_id == 'null':
             control_id = None
         else:
             control_id = int(control_id)
     except (KeyError, ValueError):
+        # TODO: Throw JsonError
+        raise Http404()
+
+    if plot_type == 'dr2d':
+        plot_fn = plot_dose_response
+        plot_type_str = 'Dose/Response'
+    elif plot_type == 'dr3d':
+        plot_fn = plot_dose_response_3d
+        plot_type_str = 'Dose/Response/Time'
+    elif plot_type == 'tc':
+        plot_fn = plot_timecourse
+        plot_type_str = 'Time Course'
+    else:
         # TODO: Throw JsonError
         raise Http404()
 
@@ -665,23 +675,23 @@ def ajax_get_plot(request, plot_type):
 
     dr = df_dose_response(dataset_id=dataset_id, cell_line_id=cell_line_id,
                           drug_id=drug_id, assay=assay, control=control_id,
-                          log2y=yaxis=='log2',
+                          log2y=yaxis == 'log2',
                           aggregates=aggregates)
 
-    html = plot_dose_response(dr['df'],
-                              log2=dr['log2y'],
-                              assay_name=assay,
-                              control_name=dr['control_name'],
-                              title='Dose/response of {} on {} cells'.format(
-                                dr['drug_name'], dr['cell_line_name']))
+    html = plot_fn(dr['df'],
+                   log2=dr['log2y'],
+                   assay_name=assay,
+                   control_name=dr['control_name'],
+                   title='{} of {} on {} cells'.format(
+                       plot_type_str,
+                       dr['drug_name'],
+                       dr['cell_line_name']))
 
     return HttpResponse(html)
 
 
 @login_required
 def plots(request, dataset_id):
-    # dataset_id = 11
-
     # TODO: Access control!
     control_0 = WellDrug.objects.filter(drug__name__in=KNOWN_CONTROLS,
                                         plate__dataset__id=dataset_id,
@@ -692,37 +702,6 @@ def plots(request, dataset_id):
         raise Http404()
 
     control_id = control_0.drug.id
-
-    # cell_line_id = 7  # F36P
-    # drug_id = 3  # 52793 JAK1
-    # assay = 'BF'
-    # control_id = 6  # DMSO
-    # error_bars = 'sd'
-    # yaxis = None
-
-    # dr = df_dose_response(dataset_id=dataset_id, cell_line_id=cell_line_id,
-    #                       drug_id=drug_id, assay=assay, control=control_id,
-    #                       log2y=yaxis == 'log2',
-    #                       aggregates=(np.mean, np.std))
-
-    # graphs = []
-    # for i in range(0, 4):
-    #     html = plot_dose_response(dr['df'],
-    #                               log2=dr['log2y'],
-    #                               assay_name=assay,
-    #                               control_name=dr['control_name'],
-    #                               title='Dose/response of {} on {} cells'.
-    #                               format(dr['drug_name'], dr['cell_line_name'])
-    #                               )
-    #
-    #     graphs.append({'dataset_id': dataset_id,
-    #                    'cell_line_id': cell_line_id,
-    #                    'drug_id': drug_id,
-    #                    'assay_id': assay,
-    #                    'control_id': control_id,
-    #                    'error_bars': error_bars,
-    #                    'log_transform': yaxis,
-    #                    'html': html})
 
     return render(request, 'plots.html', {'dataset_id': dataset_id,
                                           'control_id': control_id})

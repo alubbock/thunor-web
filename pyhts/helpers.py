@@ -23,6 +23,6 @@ def format_dose(num):
     for i in sorted(_prefix.keys()):
         if num >= i:
             multiplier = i
-    return '{0} {1}M'.format(num/multiplier, _prefix[multiplier])
+    return '{0:.12g} {1}M'.format(num/multiplier, _prefix[multiplier])
 
 

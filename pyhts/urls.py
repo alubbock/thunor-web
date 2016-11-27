@@ -27,7 +27,7 @@ urlpatterns = [
     # url(r'^ajax/plate_file/(?P<file_id>\d+)$', views.ajax_get_plates,
     #     name='ajax_plate_names'),
 
-    url(r'^ajax/plot/(?P<plot_type>[-\w]+)/$', views.ajax_get_plot,
+    url(r'^ajax/plot/$', views.ajax_get_plot,
         name='ajax_plot'),
 
     url(r'^ajax/dataset/(?P<dataset_id>\d+)/groups/$',

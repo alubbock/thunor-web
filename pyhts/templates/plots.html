@@ -31,8 +31,18 @@
           </ul>
         </div>
 
-        <button class="btn btn-success" id="btn-new-dr">New
-            Dose/Response</button>
+        <button class="btn btn-success new-plot-btn"
+                data-dataset-id="{{ dataset_id }}"
+                data-control-id="{{ control_id }}"
+                data-plot-type="dr2d">Dose/Response</button>
+        <button class="btn btn-success new-plot-btn"
+                data-dataset-id="{{ dataset_id }}"
+                data-control-id="{{ control_id }}"
+                data-plot-type="tc">Time Course</button>
+        <button class="btn btn-success new-plot-btn"
+                data-dataset-id="{{ dataset_id }}"
+                data-control-id="{{ control_id }}"
+                data-plot-type="dr3d">Dose/Time/Response (3D)</button>
     </div>
 </div>
 {% endblock %}
@@ -42,11 +52,6 @@
 {#    {% for graph in graphs %}#}
     <div class="panel-container col-lg-12 col-md-12" style="display:none">
         <div class="panel panel-default"
-             data-dataset-id=""
-             data-cell-line-id=""
-             data-drug-id=""
-             data-assay-id=""
-             data-control-id=""
              data-error-bars="sd"
              data-log-transform="log2"
         >
@@ -94,7 +99,8 @@ absolute; top: 0; left: 0; z-index:2000; background: rgba(255,
 <div class="row">
 <form>
     <div class="col-lg-6">
-    <input type="hidden" name="datasetId" value="">
+    <input type="hidden" name="datasetId">
+    <input type="hidden" name="plotType">
     <div class="form-group">
         <label for="hts-change-cell-line">Cell Line</label>
         <select name="cellLineId" class="hts-change-cell-line form-control">
@@ -147,7 +153,8 @@ absolute; top: 0; left: 0; z-index:2000; background: rgba(255,
 {% endblock %}
 
 {% block headscript %}
-<script src="{% static 'vendor/plotly/js/plotly-basic.min.js' %}"></script>
+{#<script src="{% static 'vendor/plotly/js/plotly-basic.min.js' %}"></script>#}
+<script src="{% static 'vendor/plotly/js/plotly.min.js' %}"></script>
 {% endblock %}
 
 {% block tailscript %}
@@ -207,7 +214,8 @@ $(function () {
     });
 
     $('.panel-close-btn').on('click',function(){
-        $(this).closest('.panel-container')[$(this).data('effect')]();
+        $(this).closest('.panel-container')[$(this).data('effect')](400,
+            function() {$(this).remove();});
 	});
 
     var pushOptionsToSelect = function($select, optionList, selectedOption) {
@@ -222,10 +230,9 @@ $(function () {
     };
 
     // Add new panel
-    $('#btn-new-dr').click(function() {
+    $('.new-plot-btn').click(function() {
         var $newPanel = $('.panel-container:first').clone(true);
-        $newPanel.find('.panel').data('datasetId', '{{ dataset_id }}')
-            .data('controlId', '{{ control_id }}');
+        $newPanel.find('.panel').data($(this).data());
         $('#welcome-instructional').hide();
         $newPanel.appendTo('.sortable-panels').fadeIn(400, function() {
             $newPanel.find('.hts-change-data-btn').click();
@@ -278,7 +285,7 @@ $(function () {
                   $enclosingPanel.data(ele.name, ele.value);
                });
                $.ajax({
-                  url: '/ajax/plot/dose-response-times/?'+$(this).serialize(),
+                  url: '/ajax/plot/?'+$(this).serialize(),
                   type: 'GET',
                   dataType: 'html',
                   success: function(data) {
@@ -289,7 +296,12 @@ $(function () {
                   },
                   error: pyHTS.ajax.ajaxErrorCallback
                });
-            }).find('input[name=datasetId]').val(dat['datasetId']);
+            }).find('input[type=hidden]').each(function(i, obj) {
+                console.log($(this));
+                console.log($(this).attr('name'));
+                console.log(dat[$(this).attr('name')]);
+                $(this).val(dat[$(this).attr('name')]);
+            });
             $dataPanel.prependTo(
                 $enclosingPanel.find('.panel-body')
             ).slideDown();

@@ -4,6 +4,7 @@ import numpy as np
 import scipy.stats
 import scipy.optimize
 import seaborn as sns
+from .helpers import format_dose
 
 
 def plot_dose_response(df, log2=False, assay_name='Assay',
@@ -86,6 +87,121 @@ def plot_dose_response(df, log2=False, assay_name='Assay',
     return div
 
 
+def plot_dose_response_3d(df, log2=False, assay_name='Assay',
+                          control_name=None, title=None):
+
+    data_matrix = df['mean'].unstack()
+    # Convert nanoseconds to hours
+    time_hrs = [t / 3600e9 for t in data_matrix.index.values]
+    doses_M = data_matrix.columns.values
+
+    print(data_matrix)
+    print(data_matrix.as_matrix())
+
+    if control_name:
+        zaxis_title = '{} rel. to {}'.format(assay_name, control_name)
+    else:
+        zaxis_title = assay_name
+    if log2:
+        zaxis_title = 'log2({})'.format(zaxis_title)
+
+    scene = go.Scene(
+        xaxis={'title': 'Dose (M)', 'type': 'log'},
+        yaxis={'title': 'Time (hours)'},
+        zaxis={'title': zaxis_title}
+    )
+
+    data = [
+        go.Surface(
+            x=doses_M,
+            y=time_hrs,
+            z=data_matrix.as_matrix(),
+            colorscale='Viridis'
+        )
+    ]
+    layout = go.Layout(
+        title=title or '3D Dose/Response',
+        font={'family': '"Helvetica Neue",Helvetica,Arial,'
+                        'sans-serif'},
+        autosize=True,
+        scene=scene,
+        # width=500,
+        # height=500,
+        margin=dict(
+            l=30,
+            r=30,
+            b=10,
+            t=50
+        )
+    )
+    figure = go.Figure(data=data, layout=layout)
+    div = opy.plot(figure, auto_open=False, output_type='div',
+                   show_link=False, include_plotlyjs=False)
+
+    return div
+
+
+def plot_timecourse(df, log2=False, assay_name='Assay',
+                    control_name=None, title=None):
+    # Dataframe with time point as index
+    traces = []
+
+    colours = sns.color_palette("husl",
+                                len(df.index.get_level_values(
+                                    level='dose').unique()))
+
+    error_y = {}
+    for dose, stats in df.groupby(level='dose'):
+        c = colours.pop()
+        this_colour = 'rgb(%d, %d, %d)' % (c[0] * 255, c[1] * 255, c[2] * 255)
+        if 'std' in stats:
+            error_y = dict(
+                type='data',
+                array=list(stats['std']),
+                color=this_colour
+            )
+        elif 'amax' in stats:
+            error_y = dict(
+                type='data',
+                symmetric=False,
+                array=list(stats['amax']),
+                arrayminus=list(stats['amin']),
+                color=this_colour
+            )
+        # Convert from ns to hours
+        x_var = [t / 3600e9 for t in stats.index.get_level_values(
+            'time').values]
+        y_var = list(stats['mean'])
+        traces.append(go.Scatter(x=x_var,
+                                 y=y_var,
+                                 mode='lines+markers',
+                                 line={'color': this_colour,
+                                       'shape': 'spline'},
+                                 error_y=error_y,
+                                 marker={'size': 5},
+                                 name=format_dose(dose))
+                     )
+
+    data = go.Data(traces)
+    if control_name:
+        yaxis_title = '{} rel. to {}'.format(assay_name, control_name)
+    else:
+        yaxis_title = assay_name
+    if log2:
+        yaxis_title = 'log2({})'.format(yaxis_title)
+    layout = go.Layout(title=title or 'Time Course',
+                       font={'family': '"Helvetica Neue",Helvetica,Arial,'
+                                       'sans-serif'},
+                       xaxis={'title': 'Time (hrs)'},
+                       yaxis={'title': yaxis_title},
+                       )
+    figure = go.Figure(data=data, layout=layout)
+    div = opy.plot(figure, auto_open=False, output_type='div',
+                   show_link=False, include_plotlyjs=False)
+
+    return div
+
+
 def ll3u(x, b, c, e):
     return ll4(x, b, c, 1, e)
 
@@ -112,7 +228,3 @@ def dip_rate(times, cell_counts):
     slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(
         t_secs, log2_cell_counts)
     return slope
-
-
-def curve_fit(x, y, fit_fn=ll4, num_points=100):
-    popt, pcov = scipy.optimize.curve_fit(fit_fn, x, y, maxfev=1000000)
