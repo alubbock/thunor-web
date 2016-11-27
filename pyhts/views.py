@@ -32,6 +32,8 @@ from collections import OrderedDict
 logger = logging.getLogger(__name__)
 
 SECONDS_IN_DAY = 86400
+# TODO: Improve this handling of controls!
+KNOWN_CONTROLS = ['DMSO']
 
 
 def handler404(request):
@@ -613,9 +615,6 @@ def ajax_get_dataset_groups(request, dataset_id):
         plate__dataset__owner_id=request.user.id
     ).values('assay').distinct()
 
-    # TODO: Improve this handling of controls!
-    KNOWN_CONTROLS = ['DMSO']
-
     drug_list = []
     controls_list = [{'id': None, 'name': 'None'}]
     for dr in drugs:
@@ -670,6 +669,9 @@ def ajax_get_plot(request, plot_type):
                           aggregates=aggregates)
 
     html = plot_dose_response(dr['df'],
+                              log2=dr['log2y'],
+                              assay_name=assay,
+                              control_name=dr['control_name'],
                               title='Dose/response of {} on {} cells'.format(
                                 dr['drug_name'], dr['cell_line_name']))
 
@@ -677,35 +679,50 @@ def ajax_get_plot(request, plot_type):
 
 
 @login_required
-def plots(request):
-    dataset_id = 11
+def plots(request, dataset_id):
+    # dataset_id = 11
 
-    cell_line_id = 7  # F36P
-    drug_id = 3  # 52793 JAK1
-    assay = 'BF'
-    control_id = 6  # DMSO
-    error_bars = 'sd'
-    yaxis = 'log2'
+    # TODO: Access control!
+    control_0 = WellDrug.objects.filter(drug__name__in=KNOWN_CONTROLS,
+                                        plate__dataset__id=dataset_id,
+                                        plate__dataset__owner__id=request.user.id).\
+        first()
 
-    dr = df_dose_response(dataset_id=dataset_id, cell_line_id=cell_line_id,
-                          drug_id=drug_id, assay=assay, control=control_id,
-                          log2y=yaxis == 'log2',
-                          aggregates=(np.mean, np.std))
+    if not control_0:
+        raise Http404()
 
-    graphs = []
-    for i in range(0, 4):
-        html = plot_dose_response(dr['df'],
-                                  title='Dose/response of {} on {} cells'.
-                                  format(dr['drug_name'], dr['cell_line_name'])
-                                  )
+    control_id = control_0.drug.id
 
-        graphs.append({'dataset_id': dataset_id,
-                       'cell_line_id': cell_line_id,
-                       'drug_id': drug_id,
-                       'assay_id': assay,
-                       'control_id': control_id,
-                       'error_bars': error_bars,
-                       'log_transform': yaxis,
-                       'html': html})
+    # cell_line_id = 7  # F36P
+    # drug_id = 3  # 52793 JAK1
+    # assay = 'BF'
+    # control_id = 6  # DMSO
+    # error_bars = 'sd'
+    # yaxis = None
 
-    return render(request, 'plots.html', {'graphs': graphs})
+    # dr = df_dose_response(dataset_id=dataset_id, cell_line_id=cell_line_id,
+    #                       drug_id=drug_id, assay=assay, control=control_id,
+    #                       log2y=yaxis == 'log2',
+    #                       aggregates=(np.mean, np.std))
+
+    # graphs = []
+    # for i in range(0, 4):
+    #     html = plot_dose_response(dr['df'],
+    #                               log2=dr['log2y'],
+    #                               assay_name=assay,
+    #                               control_name=dr['control_name'],
+    #                               title='Dose/response of {} on {} cells'.
+    #                               format(dr['drug_name'], dr['cell_line_name'])
+    #                               )
+    #
+    #     graphs.append({'dataset_id': dataset_id,
+    #                    'cell_line_id': cell_line_id,
+    #                    'drug_id': drug_id,
+    #                    'assay_id': assay,
+    #                    'control_id': control_id,
+    #                    'error_bars': error_bars,
+    #                    'log_transform': yaxis,
+    #                    'html': html})
+
+    return render(request, 'plots.html', {'dataset_id': dataset_id,
+                                          'control_id': control_id})

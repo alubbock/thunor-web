@@ -5,6 +5,11 @@
 {% block content %}
     <div class="row">
     <div class="col-md-9">
+        <h4>Visualisation</h4>
+        <p>
+        <a href="{% url 'pyhts:plots' dataset.id %}" role="button"
+           class="btn btn-default">Interactive plots</a>
+        </p>
         <h4>Data Modification</h4>
         <p>
         <a href="{% url 'pyhts:plate_upload' dataset.id %}" role="button"

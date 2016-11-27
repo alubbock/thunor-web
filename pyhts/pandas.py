@@ -33,9 +33,13 @@ def df_dose_response(dataset_id, cell_line_id, drug_id, assay, control=None,
         'drug').order_by('drug', 'plate', 'well'))
 
     drug_name = None
+    control_name = None
     for dr in drugs:
         if dr.drug_id == drug_id:
             drug_name = dr.drug.name
+        if dr.drug_id == control:
+            control_name = dr.drug.name
+        if control_name and drug_name:
             break
 
     drug_df = pd.DataFrame([[dr.plate_id, dr.well, dr.drug_id, dr.dose] for
@@ -86,5 +90,8 @@ def df_dose_response(dataset_id, cell_line_id, drug_id, assay, control=None,
     # Calculate summary statistics
     df = main_vals.groupby(level=('time', 'dose')).agg(aggregates)
 
-    return {'df': df, 'drug_name': drug_name, 'cell_line_name':
-            cell_line_name}
+    return {'df': df, 'log2y': log2y,
+            'assay_name': assay,
+            'control_name': control_name,
+            'drug_name': drug_name,
+            'cell_line_name': cell_line_name}

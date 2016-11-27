@@ -6,13 +6,16 @@ import scipy.optimize
 import seaborn as sns
 
 
-def plot_dose_response(df, title=None):
+def plot_dose_response(df, log2=False, assay_name='Assay',
+                       control_name=None, title=None):
     # Dataframe with time point as index
     traces = []
 
     colours = sns.color_palette("husl",
                                 len(df.index.get_level_values(
                                     level='time').unique()))
+
+    HILL_FN = ll4
 
     error_y = {}
     for time, stats in df.groupby(level='time'):
@@ -43,14 +46,16 @@ def plot_dose_response(df, title=None):
                                  marker={'size': 5},
                                  name=str(time))
                      )
-        # Convert to negative log space for numerical reasons
-        x_var_log = -np.log(x_var)
-        popt, pcov = scipy.optimize.curve_fit(ll4, x_var_log, y_var,
+        popt, pcov = scipy.optimize.curve_fit(HILL_FN,
+                                              x_var,
+                                              np.power(2, y_var) if log2
+                                                    else y_var,
                                               maxfev=100000)
-        x_interp = np.linspace(np.min(x_var_log), np.max(x_var_log), 50)
-        y_interp = ll4(x_interp, *popt)
-        traces.append(go.Scatter(x=np.exp(-x_interp),
-                                 y=y_interp,
+        x_interp = np.logspace(np.log10(np.min(x_var)), np.log10(np.max(
+            x_var)), 50)
+        y_interp = HILL_FN(x_interp, *popt)
+        traces.append(go.Scatter(x=x_interp,
+                                 y=np.log2(y_interp) if log2 else y_interp,
                                  legendgroup=str(time),
                                  showlegend=False,
                                  mode='lines',
@@ -61,12 +66,18 @@ def plot_dose_response(df, title=None):
                      )
 
     data = go.Data(traces)
+    if control_name:
+        yaxis_title = '{} rel. to {}'.format(assay_name, control_name)
+    else:
+        yaxis_title = assay_name
+    if log2:
+        yaxis_title = 'log2({})'.format(yaxis_title)
     layout = go.Layout(title=title or 'Dose/response',
                        font={'family': '"Helvetica Neue",Helvetica,Arial,'
                                        'sans-serif'},
                        xaxis={'title': 'Dose (M)',
                               'type': 'log'},
-                       yaxis={'title': 'Assay Value'},
+                       yaxis={'title': yaxis_title},
                        )
     figure = go.Figure(data=data, layout=layout)
     div = opy.plot(figure, auto_open=False, output_type='div',
@@ -76,7 +87,7 @@ def plot_dose_response(df, title=None):
 
 
 def ll3u(x, b, c, e):
-    return ll4(x, b=b, c=c, d=1, e=e)
+    return ll4(x, b, c, 1, e)
 
 
 def ll4(x, b, c, d, e):
@@ -84,13 +95,15 @@ def ll4(x, b, c, d, e):
     @yannabraham from Github Gist
     https://gist.github.com/yannabraham/5f210fed773785d8b638
 
-    This function is basically a copy of the LL.4 function from the R drc package with
+    This function is basically a copy of the LL.4 function from the R drc
+    package with
      - b: hill slope
      - c: min response
      - d: max response
      - e: EC50
      """
-    return c+(d-c)/(1+np.exp(b*(np.log(x)-np.log(e))))
+    # return c+(d-c)/(1+np.exp(b*(np.log(x)-np.log(e))))
+    return c+(d-c)/(1+10**(b*(np.log10(x)-np.log10(e))))
 
 
 def dip_rate(times, cell_counts):
