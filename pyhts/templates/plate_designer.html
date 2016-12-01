@@ -489,9 +489,9 @@ $(function () {
                      .css('padding-bottom', wellWidthPercent);
         $('#selectable-well-rows').css('width', wellWidthPercent);
 
-        $('#legend-cell-lines').find('ol:not(:first)').remove();
-        $('#legend-drugs').find('ol:not(:first)').remove();
-        $('#legend-doses').find('ol:not(:first)').remove();
+        $('#legend-cell-lines').find('ol').remove();
+        $('#legend-drugs').find('ol').remove();
+        $('#legend-doses').find('ol').remove();
         pyHTS.cell_lines_used = [];
         pyHTS.drugs_used = [];
         pyHTS.doses_used = [];
