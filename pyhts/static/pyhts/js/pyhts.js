@@ -31,7 +31,8 @@ pyHTS.util.substringMatcher = function(strs) {
         var matches = [];
 
         // regex used to determine if a string contains the substring `q`
-        var substrRegex = new RegExp(q, "i");
+        var substrRegex = new RegExp(
+            q.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"), "i");
 
         // iterate through the pool of strings and for any string that
         // contains the substring `q`, add it to the `matches` array

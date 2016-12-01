@@ -489,6 +489,13 @@ $(function () {
                      .css('padding-bottom', wellWidthPercent);
         $('#selectable-well-rows').css('width', wellWidthPercent);
 
+        $('#legend-cell-lines').find('ol:not(:first)').remove();
+        $('#legend-drugs').find('ol:not(:first)').remove();
+        $('#legend-doses').find('ol:not(:first)').remove();
+        pyHTS.cell_lines_used = [];
+        pyHTS.drugs_used = [];
+        pyHTS.doses_used = [];
+
         // refresh the legend and well CSS classes
         refreshLegend(selectedWells, wellIds, 'cell-line');
         refreshLegend(selectedWells, wellIds, 'drug');
