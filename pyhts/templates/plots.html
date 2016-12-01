@@ -4,23 +4,28 @@
 
 {% block titlerow %}
 <div class="row">
-    <div class="btn-toolbar col-lg-12" role="toolbar" aria-label="Plot toolbar"
+    <div class="col-lg-12" role="toolbar" aria-label="Plot toolbar"
          style="margin: 10px 0">
 
-        <div class="btn-group" id="hts-num-cols-lg">
-          <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            <span id="hts-current-num-cols-lg">1 column</span>
-            <span class="caret"></span>
-          </button>
-          <ul class="dropdown-menu">
-            <li data-cols="1"><a href="#">1 column</a></li>
-            <li data-cols="2"><a href="#">2 columns</a></li>
-            <li data-cols="3"><a href="#">3 columns</a></li>
-            <li data-cols="4"><a href="#">4 columns</a></li>
-          </ul>
+        <div id="hts-num-cols-lg" style="float:left;margin-right:10px">
+            <label>Layout</label>
+            <div class="btn-group">
+
+              <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <span id="hts-current-num-cols-lg">1 column</span>
+                <span class="caret"></span>
+              </button>
+              <ul class="dropdown-menu">
+                <li data-cols="1"><a href="#">1 column</a></li>
+                <li data-cols="2"><a href="#">2 columns</a></li>
+                <li data-cols="3"><a href="#">3 columns</a></li>
+                <li data-cols="4"><a href="#">4 columns</a></li>
+              </ul>
+            </div>
         </div>
 
-        <div class="btn-group" id="hts-num-cols-md">
+        <div id="hts-num-cols-md" style="float:left;margin-right:10px">
+            <label>Layout</label>
           <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
             <span id="hts-current-num-cols-md">1 column</span>
             <span class="caret"></span>
@@ -31,18 +36,21 @@
           </ul>
         </div>
 
-        <button class="btn btn-success new-plot-btn"
-                data-dataset-id="{{ dataset_id }}"
-                data-control-id="{{ control_id }}"
-                data-plot-type="dr2d">Dose/Response</button>
-        <button class="btn btn-success new-plot-btn"
-                data-dataset-id="{{ dataset_id }}"
-                data-control-id="{{ control_id }}"
-                data-plot-type="tc">Time Course</button>
-        <button class="btn btn-success new-plot-btn"
-                data-dataset-id="{{ dataset_id }}"
-                data-control-id="{{ control_id }}"
-                data-plot-type="dr3d">Dose/Time/Response (3D)</button>
+        <label>1 Drug/1 Cell Line</label>
+        <div class="btn-group">
+            <button class="btn btn-success new-plot-btn"
+                    data-dataset-id="{{ dataset_id }}"
+                    data-control-id="{{ control_id }}"
+                    data-plot-type="dr2d">Dose/Response</button>
+            <button class="btn btn-success new-plot-btn"
+                    data-dataset-id="{{ dataset_id }}"
+                    data-control-id="{{ control_id }}"
+                    data-plot-type="tc">Time Course</button>
+            <button class="btn btn-success new-plot-btn"
+                    data-dataset-id="{{ dataset_id }}"
+                    data-control-id="{{ control_id }}"
+                    data-plot-type="dr3d">Dose/Time/Response (3D)</button>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -50,34 +58,7 @@
 {% block content %}
 <div class="row sortable-panels">
 {#    {% for graph in graphs %}#}
-    <div class="panel-container col-lg-12 col-md-12" style="display:none">
-        <div class="panel panel-default"
-             data-error-bars="sd"
-             data-log-transform="log2"
-        >
-            <div class="panel-heading">
-                <i class="glyphicon glyphicon-th"></i>
 
-                <span class="pull-right panel-close-btn" data-effect="fadeOut">
-                    <i class="fa fa-times"></i>
-                </span>
-
-                <div class="btn-group">
-                  <button type="button" class="hts-change-data-btn btn
-                  btn-default
-                  dropdown-toggle" data-toggle="dropdown"
-                          aria-haspopup="true" aria-expanded="false">
-                    <span class="fa fa-exchange"></span>
-                    <span>Data</span>
-                    <span class="caret"></span>
-                  </button>
-                </div>
-
-            </div>
-            <div class="panel-body" style="position:relative;min-height:300px;overflow:visible">
-            </div>
-        </div>
-    </div>
 {#    {% endfor %}#}
 </div>
 
@@ -92,13 +73,42 @@
   </div>
 </div>
 
+<div class="panel-container col-lg-12 col-md-12" style="display:none">
+    <div class="panel panel-default"
+         data-error-bars="sd"
+         data-log-transform="log2"
+    >
+        <div class="panel-heading">
+            <i class="glyphicon glyphicon-th"></i>
+
+            <span class="pull-right panel-close-btn" data-effect="fadeOut">
+                <i class="fa fa-times"></i>
+            </span>
+
+            <div class="btn-group">
+              <button type="button" class="hts-change-data-btn btn
+              btn-default
+              dropdown-toggle" data-toggle="dropdown"
+                      aria-haspopup="true" aria-expanded="false">
+                <span class="fa fa-exchange"></span>
+                <span>Data</span>
+                <span class="caret"></span>
+              </button>
+            </div>
+
+        </div>
+        <div class="panel-body" style="position:relative;min-height:300px;overflow:visible">
+        </div>
+    </div>
+</div>
+
 <div class="hts-change-data container" style="display: none; position:
-absolute; top: 0; left: 0; z-index:2000; background: rgba(255,
-255, 255, 0.9); padding: 10px; border-bottom: 1px solid #ddd; border-right:
-1px solid #ddd; max-height: 100%; max-width:50%">
+absolute; top: 0; left: -1px; z-index: 1024; background: rgba(255,
+255, 255, 0.9); padding: 10px; border: 1px solid #ddd; border-top: none;
+max-width:50%">
 <div class="row">
 <form>
-    <div class="col-lg-6">
+    <div class="col-sm-6">
     <input type="hidden" name="datasetId">
     <input type="hidden" name="plotType">
     <div class="form-group">
@@ -117,7 +127,7 @@ absolute; top: 0; left: 0; z-index:2000; background: rgba(255,
         </select>
     </div>
     </div>
-    <div class="col-lg-6">
+    <div class="col-sm-6">
     <div class="form-group">
         <label for="hts-change-control">Control</label>
         <select name="controlId" class="hts-change-control form-control">
@@ -168,7 +178,8 @@ $(function () {
         handle: '.panel-heading',
         placeholder: 'panel-placeholder col-lg-12',
         forceHelperSize: false,
-        forcePlaceholderSize: true
+        forcePlaceholderSize: true,
+        zIndex: 2000
     });
 
     pyHTS.ui.setColumns = function(numColsMd, numColsLg) {
@@ -231,7 +242,7 @@ $(function () {
 
     // Add new panel
     $('.new-plot-btn').click(function() {
-        var $newPanel = $('.panel-container:first').clone(true);
+        var $newPanel = $('.panel-container:last').clone(true);
         $newPanel.find('.panel').data($(this).data());
         $('#welcome-instructional').hide();
         $newPanel.appendTo('.sortable-panels').fadeIn(400, function() {
@@ -290,7 +301,7 @@ $(function () {
                   dataType: 'html',
                   success: function(data) {
                       var $panelBody = $enclosingPanel.find('.panel-body');
-                      $panelBody.find('.plotly-graph-div').remove();
+                      $panelBody.children().not('.hts-change-data').remove();
                       $panelBody.append(data);
                       $dataPanel.slideUp();
                   },

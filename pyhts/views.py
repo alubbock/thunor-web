@@ -5,15 +5,14 @@ from django.contrib import auth
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, \
     HttpResponseServerError, HttpResponseNotFound
-from django.db.utils import IntegrityError
 from django.db import transaction
 from django.db.models import Q, Count, Max
 from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, \
-    WellCellLine, WellMeasurement, WellDrug
+    Well, WellMeasurement, WellDrug
 import json
 from .plots import plot_dose_response, plot_dose_response_3d, plot_timecourse
-from .pandas import df_dose_response
-from .plate_parsers import PlateFileParser, PlateFileParseException
+from .pandas import df_single_cl_drug, NoDataException
+from .plate_parsers import PlateFileParser
 import numpy as np
 import datetime
 from django.utils import timezone
@@ -27,7 +26,8 @@ import tempfile
 from django.views.static import serve
 from .serve_file import nginx_file
 from django.contrib.sites.shortcuts import get_current_site
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
+from .helpers import AutoExtendList
 
 logger = logging.getLogger(__name__)
 
@@ -37,11 +37,17 @@ KNOWN_CONTROLS = ['DMSO']
 
 
 def handler404(request):
-    return HttpResponseNotFound(render(request, 'error404.html', {}))
+    if request.is_ajax():
+        return JsonResponse({}, status=404)
+    else:
+        return HttpResponseNotFound(render(request, 'error404.html', {}))
 
 
 def handler500(request):
-    return HttpResponseServerError(render(request, 'error500.html', {}))
+    if request.is_ajax():
+        return JsonResponse({'error': 'Internal server error'}, status=500)
+    else:
+        return HttpResponseServerError(render(request, 'error500.html', {}))
 
 
 @login_required
@@ -75,9 +81,11 @@ def dataset_upload(request, dataset_id=None):
                                                  'plate_files': plate_files})
 
 
-@login_required
 @transaction.atomic
 def ajax_upload_platefiles(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({}, status=401)
+
     dataset_id = request.POST.get('dataset_id')
     files = request.FILES.getlist('file_field[]')
     single_file_upload = len(files) == 1
@@ -94,23 +102,24 @@ def ajax_upload_platefiles(request):
     preview_template = get_template('ajax_upload_template.html')
     initial_previews = []
     errors = {}
-    for f_idx, f in enumerate(files):
-        try:
-            pfp = PlateFileParser(f, dataset=dataset)
-            pfp.parse_platefile()
+    pfp = PlateFileParser(files, dataset=dataset)
+    results = pfp.parse_all()
+    for f_idx, res in enumerate(results):
+        if res['success']:
             initial_previews.append(preview_template.render({
-                'plate_file_format': pfp.file_format}))
-            initial_preview_config.append({'key': pfp.id, 'caption':
-                                           pfp.file_name})
-        except PlateFileParseException as pfpe:
+                'plate_file_format': res['file_format']}))
+            initial_preview_config.append({'key': res['id'], 'caption':
+                                           res['file_name']})
+        else:
             if single_file_upload:
-                return JsonResponse({'error': str(pfpe)})
+                return JsonResponse({'error': str(res['error'])})
             else:
                 initial_previews.append(preview_template.render({'failed':
                                                                      True}))
-                initial_preview_config.append({'caption': f.name})
-                errors[f_idx] = 'File {} had error: {}'.format(f.name,
-                                                               str(pfpe))
+                initial_preview_config.append({'caption': files[f_idx].name})
+                errors[f_idx] = 'File {} had error: {}'.format(
+                    files[f_idx].name, str(res['error']))
+
     response = {
         'initialPreview': initial_previews,
         'initialPreviewConfig': initial_preview_config}
@@ -122,8 +131,10 @@ def ajax_upload_platefiles(request):
     return JsonResponse(response)
 
 
-@login_required
 def ajax_delete_platefile(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({}, status=401)
+
     platefile_id = request.POST.get('key', None)
     try:
         n_deleted, _ = PlateFile.objects.filter(id=platefile_id,
@@ -137,18 +148,20 @@ def ajax_delete_platefile(request):
     return JsonResponse({'success': True})
 
 
-@login_required
 @transaction.atomic
 def ajax_save_plate(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({}, status=401)
+
     plate_data = json.loads(request.body.decode(request.encoding))
 
     plate_id = None
-    plate_ids = None
+    apply_mode = 'normal'
     if plate_data.get('applyTemplateTo', None):
         # Apply data to multiple plates
         plate_ids = [int(p_id) for p_id in plate_data['applyTemplateTo']]
+        apply_mode = plate_data.get('applyTemplateMode', 'all')
         if len(plate_ids) == 0:
-            # TODO: Raise a proper error!
             raise Http404()
         elif len(plate_ids) == 1:
             plate_id = plate_ids[0]
@@ -167,27 +180,41 @@ def ajax_save_plate(request):
     pl_objs = pl_objs.filter(dataset__owner_id=request.user.id)
 
     pre_mod_savepoint = None
-    if plate_id is None:
+    if apply_mode != 'normal':
         pre_mod_savepoint = transaction.savepoint()
     n_updated = pl_objs.update(last_annotated=timezone.now())
 
     if n_updated != len(plate_ids):
-        # TODO: This should return a better error
-        raise Http404()
+        raise Exception('Query did not update the expected number of objects')
 
-    if plate_id is None:
+    if apply_mode != 'normal':
+        print(apply_mode)
         # If we're applying a template, check the target plates are empty
         # Get plate names where plate has >0 cell lines specified
-        cl_pl_names = WellCellLine.objects.filter(plate_id__in=plate_ids,
-                                               cell_line__isnull=False).\
-            values('plate').annotate(total=Count('plate')).\
-            values_list('plate__name', flat=True)
+        if apply_mode in ['all', 'celllines']:
+            cl_pl_names = Well.objects.filter(plate_id__in=plate_ids,
+                                              cell_line__isnull=False).\
+                values('plate').annotate(total=Count('plate')).\
+                values_list('plate__name', flat=True)
+        else:
+            cl_pl_names = []
 
         # Similarly, get plate names where plate has >0 drugs specified
-        dr_pl_names = WellDrug.objects.filter(plate_id__in=plate_ids).filter(
-            Q(drug__isnull=False) | Q(dose__isnull=False)).values(
-            'plate').annotate(total=Count('plate')).values_list('plate__name',
-                                                                flat=True)
+        if apply_mode != 'celllines':
+            if apply_mode == 'drugs':
+                q_clause = Q(drug__isnull=False)
+            elif apply_mode == 'doses':
+                q_clause = Q(dose__isnull=False)
+            else:
+                q_clause = Q(drug__isnull=False) | Q(dose__isnull=False)
+            dr_pl_names = WellDrug.objects.filter(
+                well__plate_id__in=plate_ids)\
+                .filter(q_clause)\
+                .values('well__plate_id')\
+                .annotate(total=Count('well__plate_id'))\
+                .values_list('well__plate__name', flat=True)
+        else:
+            dr_pl_names = []
 
         non_empty_plates = set(list(cl_pl_names) + list(dr_pl_names))
         if len(non_empty_plates) > 0:
@@ -198,29 +225,12 @@ def ajax_save_plate(request):
     # TODO: Validate supplied cell line and drug IDs?
 
     # Add the cell lines
-    wells_celllines_to_create = []
-    well_drugs_to_create = []
-    for i, well in enumerate(wells):
-        # cell_line_id = None
-        # if well['cellLine']:
-        #     cell_line_id = cell_lines[well['cellLine']]
-        # if not well['cellLine']:
-        #     continue
-        for p_id in plate_ids:
-            wells_celllines_to_create.append(
-                WellCellLine(plate_id=p_id,
-                             well=i,
-                             cell_line_id=well['cellLine']))
-
-    try:
-        with transaction.atomic():
-            WellCellLine.objects.bulk_create(wells_celllines_to_create)
-    except IntegrityError:
+    if apply_mode not in ['drugs', 'doses']:
         cell_line_ids = [well['cellLine'] for well in wells]
         for cl_id in set(cell_line_ids):
-            WellCellLine.objects.filter(
-                plate_id=plate_id,
-                well__in=np.where([this_id == cl_id for this_id in
+            Well.objects.filter(
+                plate_id__in=plate_ids,
+                well_num__in=np.where([this_id == cl_id for this_id in
                                    cell_line_ids])[0]).update(
                                                         cell_line_id=cl_id)
 
@@ -229,31 +239,54 @@ def ajax_save_plate(request):
     # solution is just to delete/reinsert. The alternative would be select
     # for update, then delete/update/insert as appropriate, which would
     # probably be slower anyway due to the extra queries.
-    if plate_id is not None:
-        WellDrug.objects.filter(plate_id=plate_id).delete()
+    if apply_mode != 'celllines':
+        well_drugs_to_create = defaultdict(AutoExtendList)
 
-    for i, well in enumerate(wells):
-        if well['drugs']:
-            for drug_idx, drug_id in enumerate(well['drugs']):
-                if drug_id is None:
+        if apply_mode in ['drugs', 'doses']:
+            # If this is applying a template to multiple plates,
+            # we'll need to get the existing well information before the
+            # delete
+            for wd in WellDrug.objects.filter(well__plate_id__in=plate_ids):
+                print(wd.well_id, wd.order, wd.drug_id, wd.dose)
+                if apply_mode == 'drugs' and wd.dose is not None:
+                    well_drugs_to_create[(wd.well_id, wd.order)] = \
+                        [None, wd.dose]
+                elif apply_mode == 'doses' and wd.drug_id is not None:
+                    well_drugs_to_create[(wd.well_id, wd.order)] = \
+                        [wd.drug_id, None]
+
+        WellDrug.objects.filter(well__plate_id__in=plate_ids).delete()
+
+        well_dict = {}
+        for w in Well.objects.filter(plate_id__in=plate_ids):
+            well_dict[(w.plate_id, w.well_num)] = w.id
+
+        for i, well in enumerate(wells):
+            drugs = well.get('drugs', None)
+            doses = well.get('doses', None)
+            if drugs is None and doses is None:
+                continue
+            for drug_order in range(max(len(drugs), len(doses))):
+                drug_id = drugs[drug_order] if drug_order < len(drugs) else None
+                dose = doses[drug_order] if drug_order < len(doses) else None
+                if drug_id is None and dose is None:
                     continue
-                try:
-                    dose = well['doses'][drug_idx]
-                except (TypeError, IndexError):
-                    continue
-                if dose is None:
-                    continue
+
                 for p_id in plate_ids:
-                    well_drugs_to_create.append(WellDrug(
-                        plate_id=p_id,
-                        well=i,
-                        drug_id=drug_id,
-                        dose=dose
-                    ))
+                    if apply_mode != 'doses' and drug_id is not None:
+                        well_drugs_to_create[(well_dict[(p_id, i)],
+                                              drug_order)][0] = drug_id
+                    if apply_mode != 'drugs' and dose is not None:
+                        well_drugs_to_create[(well_dict[(p_id, i)],
+                                              drug_order)][1] = dose
 
-    WellDrug.objects.bulk_create(well_drugs_to_create)
+        WellDrug.objects.bulk_create([WellDrug(well_id=k[0], order=k[1],
+                                               drug_id=v[0], dose=v[1] if
+            len(v) > 1 else None)
+                                      for
+                                      k, v in well_drugs_to_create.items()])
 
-    if not plate_id:
+    if apply_mode != 'normal':
         # If this was a template-based update...
         return JsonResponse({'success': True, 'templateAppliedTo': plate_ids})
 
@@ -267,33 +300,35 @@ def ajax_save_plate(request):
     # TODO: Validate received PlateMap further?
 
 
-@login_required
 def ajax_load_plate(request, plate_id, extra_return_args=None):
-    p = Plate.objects.get(id=plate_id,
-                          dataset__owner_id=request.user.id)
-    if not p:
-        # TODO: Replace 404 with JSON
+    if not request.user.is_authenticated():
+        return JsonResponse({}, status=401)
+
+    try:
+        p = Plate.objects.get(id=plate_id,
+                              dataset__owner_id=request.user.id)
+    except Plate.DoesNotExist:
         raise Http404()
 
-    cell_lines = WellCellLine.objects.filter(plate_id=plate_id).order_by(
-        'well').values('cell_line_id')
-    drugs = WellDrug.objects.filter(plate_id=plate_id).order_by('well').values(
-        'well', 'drug_id', 'dose')
+    cell_lines = Well.objects.filter(plate_id=plate_id).order_by(
+        'well_num').values('cell_line_id')
+    drugs = WellDrug.objects.filter(well__plate_id=plate_id).order_by(
+        'well__well_num', 'order').values(
+        'well__well_num', 'drug_id', 'order', 'dose')
 
     wells = []
     for cl in range(p.num_wells):
         wells += [{'cellLine': cell_lines[cl]['cell_line_id'] if cell_lines
                 else None,
-                   'drugs': [], 'doses': []}]
+                   'drugs': AutoExtendList(), 'doses': AutoExtendList()}]
 
     assert len(wells) == p.num_wells
 
     for dr in drugs:
-        wells[dr['well']]['drugs'].append(dr['drug_id'])
-        wells[dr['well']]['doses'].append(dr['dose'])
+        wells[dr['well__well_num']]['drugs'][dr['order']] = dr['drug_id']
+        wells[dr['well__well_num']]['doses'][dr['order']] = dr['dose']
 
     plate = {'plateId': p.id,
-             'plateFileId': p.plate_file_id,
              'numCols': p.width,
              'numRows': p.height,
              'wells': wells}
@@ -305,8 +340,10 @@ def ajax_load_plate(request, plate_id, extra_return_args=None):
     return JsonResponse(return_dict)
 
 
-@login_required
 def ajax_create_dataset(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({}, status=401)
+
     name = request.POST.get('name')
     if not name:
         return HttpResponseBadRequest()
@@ -314,8 +351,10 @@ def ajax_create_dataset(request):
     return JsonResponse({'name': dset.name, 'id': dset.id})
 
 
-@login_required
 def ajax_create_cellline(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({}, status=401)
+
     name = request.POST.get('name')
     if not name:
         return HttpResponseBadRequest()
@@ -324,8 +363,10 @@ def ajax_create_cellline(request):
     return JsonResponse({'cellLines': list(cell_lines)})
 
 
-@login_required
 def ajax_create_drug(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({}, status=401)
+
     name = request.POST.get('name')
     if not name:
         return HttpResponseBadRequest()
@@ -334,8 +375,9 @@ def ajax_create_drug(request):
     return JsonResponse({'drugs': list(drugs)})
 
 
-@login_required
 def ajax_get_datasets(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({}, status=401)
 
     datasets = HTSDataset.objects.filter(owner_id=request.user.id).values(
         'id', 'name', 'creation_date')
@@ -362,6 +404,7 @@ class DatasetXlsxWriter(object):
         self.tempfile = tempfile.NamedTemporaryFile('wb',
                                                     dir=settings.DOWNLOADS_ROOT,
                                                     prefix=self.prefix,
+                                                    suffix='.xlsx',
                                                     delete=False)
         self.workbook = xlsxwriter.Workbook(self.tempfile)
         ws = self.workbook.add_worksheet('File Information')
@@ -421,11 +464,13 @@ def xlsx_get_annotation_data(request, dataset_id):
 
         plate_ids = [p.id for p in plates]
 
-        cell_lines = list(WellCellLine.objects.filter(plate_id__in=plate_ids)
-                                              .order_by('plate_id', 'well'))
+        cell_lines = list(Well.objects.filter(plate_id__in=plate_ids)
+                                              .order_by('plate_id',
+                                                        'well_num'))
 
-        drugs = list(WellDrug.objects.filter(plate_id__in=plate_ids)
-                                     .order_by('plate_id', 'well'))
+        drugs = list(WellDrug.objects.filter(well__plate_id__in=plate_ids)
+                     .select_related('well')
+                     .order_by('well__plate_id', 'well__well_num'))
 
         cl_pos = 0
         dr_pos = 0
@@ -443,7 +488,7 @@ def xlsx_get_annotation_data(request, dataset_id):
 
                 if cl_pos < len(cell_lines):
                     cl = cell_lines[cl_pos]
-                    if cl.plate_id == p.id and cl.well == w_id:
+                    if cl.plate_id == p.id and cl.well_num == w_id:
                         ws.write(w_id+1, 1, cl.cell_line.name if cl.cell_line
                                  else '')
                         cl_pos += 1
@@ -451,8 +496,8 @@ def xlsx_get_annotation_data(request, dataset_id):
                 if dr_pos < len(drugs):
                     drugs_this_well = 0
                     while dr_pos < len(drugs) \
-                            and drugs[dr_pos].plate_id == p.id \
-                            and drugs[dr_pos].well == w_id:
+                            and drugs[dr_pos].well.plate_id == p.id \
+                            and drugs[dr_pos].well.well_num == w_id:
                         drugs_this_well += 1
                         if drugs_this_well > max_num_drugs:
                             max_num_drugs += 1
@@ -486,8 +531,9 @@ def xlsx_get_assay_data(request, dataset_id):
         output_filename = '{}-assays.xlsx'.format(xlsx.dataset.name)
 
         assays = list(WellMeasurement.objects.filter(
-            plate__dataset_id=dataset_id,
-        ).order_by('plate_id', 'assay', 'timepoint', 'well').select_related())
+            well__plate__dataset_id=dataset_id,
+        ).order_by('well__plate_id', 'assay', 'timepoint',
+                   'well__well_num').select_related('well', 'well__plate'))
 
         header = xlsx.styles['header']
         header_duration = xlsx.styles['header_duration']
@@ -499,15 +545,15 @@ def xlsx_get_assay_data(request, dataset_id):
 
         for val in assays:
 
-            if val.plate_id != last_plate:
-                last_plate = val.plate_id
+            if val.well.plate_id != last_plate:
+                last_plate = val.well.plate_id
                 last_assay = None
                 last_time = None
                 last_time_col = 0
 
             if val.assay != last_assay:
                 last_assay = val.assay
-                plate_name = '{}-{}'.format(val.plate.name, val.assay)
+                plate_name = '{}-{}'.format(val.well.plate.name, val.assay)
                 for c in '[]:*?/\\':
                     plate_name = plate_name.replace(c, '_')
                 try:
@@ -536,8 +582,9 @@ def xlsx_get_assay_data(request, dataset_id):
                     val.timepoint.total_seconds() / SECONDS_IN_DAY,
                          header_duration)
 
-            ws.write(val.well + 1, 0, val.plate.well_id_to_name(val.well))
-            ws.write(val.well + 1, last_time_col, val.value)
+            ws.write(val.well.well_num + 1, 0, val.well.plate.well_id_to_name(
+                val.well.well_num))
+            ws.write(val.well.well_num + 1, last_time_col, val.value)
 
     if settings.DEBUG:
         return serve(request,
@@ -595,29 +642,45 @@ def view_dataset(request, dataset_id):
     return response
 
 
-@login_required
+def _wells_by_num_drugs(request, dataset_id):
+    return WellDrug.objects.filter(
+        drug__isnull=False,
+        well__plate__dataset_id=dataset_id,
+        well__plate__dataset__owner_id=request.user.id,
+    ).values('well_id').annotate(num_drugs=Count('well_id'))
+
+
 def ajax_get_dataset_groups(request, dataset_id):
-    # TODO: Sanitise names for Javascript display
-    cell_lines = WellCellLine.objects.filter(
+    if not request.user.is_authenticated():
+        return JsonResponse({}, status=401)
+
+    single_drug_wells = [dr['well_id'] for dr in
+                         _wells_by_num_drugs(request, dataset_id) if
+                         dr['num_drugs'] == 1]
+
+    if not single_drug_wells:
+        raise Http404()
+
+    cell_lines = Well.objects.filter(
         cell_line__isnull=False,
-        plate__dataset_id=dataset_id,
-        plate__dataset__owner_id=request.user.id
+        id__in=single_drug_wells
     ).values('cell_line_id', 'cell_line__name').distinct()
 
-    drugs = WellDrug.objects.filter(
+    # Get drug without combinations
+    drug_objs = WellDrug.objects.filter(
         drug__isnull=False,
-        plate__dataset_id=dataset_id,
-        plate__dataset__owner_id=request.user.id
-    ).values('drug_id', 'drug__name').distinct()
+        dose__isnull=False,
+        well_id__in=single_drug_wells
+    ).values('drug_id', 'drug__name').distinct().order_by('drug__name')
 
     assays = WellMeasurement.objects.filter(
-        plate__dataset_id=dataset_id,
-        plate__dataset__owner_id=request.user.id
-    ).values('assay').distinct()
+        well_id__in=single_drug_wells
+    ).values('assay').distinct().order_by('assay')
 
     drug_list = []
     controls_list = [{'id': None, 'name': 'None'}]
-    for dr in drugs:
+
+    for dr in drug_objs:
         this_entry = {'id': dr['drug_id'], 'name': dr['drug__name']}
         if this_entry['name'] in KNOWN_CONTROLS:
             controls_list.append(this_entry)
@@ -633,8 +696,10 @@ def ajax_get_dataset_groups(request, dataset_id):
     })
 
 
-@login_required
 def ajax_get_plot(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({}, status=401)
+
     try:
         dataset_id = int(request.GET['datasetId'])
         cell_line_id = int(request.GET['cellLineId'])
@@ -650,8 +715,9 @@ def ajax_get_plot(request):
         else:
             control_id = int(control_id)
     except (KeyError, ValueError):
-        # TODO: Throw JsonError
         raise Http404()
+
+    normalize_as = 'dr'
 
     if plot_type == 'dr2d':
         plot_fn = plot_dose_response
@@ -662,8 +728,8 @@ def ajax_get_plot(request):
     elif plot_type == 'tc':
         plot_fn = plot_timecourse
         plot_type_str = 'Time Course'
+        normalize_as = 'tc'
     else:
-        # TODO: Throw JsonError
         raise Http404()
 
     if error_bars == 'sd':
@@ -673,10 +739,13 @@ def ajax_get_plot(request):
     else:
         aggregates = (np.mean, )
 
-    dr = df_dose_response(dataset_id=dataset_id, cell_line_id=cell_line_id,
-                          drug_id=drug_id, assay=assay, control=control_id,
-                          log2y=yaxis == 'log2',
-                          aggregates=aggregates)
+    try:
+        dr = df_single_cl_drug(dataset_id=dataset_id, cell_line_id=cell_line_id,
+                               drug_id=drug_id, assay=assay, control=control_id,
+                               log2y=yaxis == 'log2', normalize_as=normalize_as,
+                               aggregates=aggregates)
+    except NoDataException:
+        raise Http404()
 
     html = plot_fn(dr['df'],
                    log2=dr['log2y'],
@@ -692,16 +761,20 @@ def ajax_get_plot(request):
 
 @login_required
 def plots(request, dataset_id):
-    # TODO: Access control!
     control_0 = WellDrug.objects.filter(drug__name__in=KNOWN_CONTROLS,
-                                        plate__dataset__id=dataset_id,
-                                        plate__dataset__owner__id=request.user.id).\
+                                        well__plate__dataset__id=dataset_id,
+                                        well__plate__dataset__owner__id=request.user.id).\
         first()
 
     if not control_0:
-        raise Http404()
-
-    control_id = control_0.drug.id
+        # Check the dataset exists instead
+        try:
+            HTSDataset.objects.get(id=dataset_id, owner_id=request.user.id)
+        except HTSDataset.DoesNotExist:
+            raise Http404()
+        control_id = None
+    else:
+        control_id = control_0.drug.id
 
     return render(request, 'plots.html', {'dataset_id': dataset_id,
                                           'control_id': control_id})

@@ -91,6 +91,10 @@ pyHTS.util.indexOf = function(needle, haystack) {
     }
 };
 
+pyHTS.util.allNull = function(arr) {
+    return arr.every(function(v) { return v === null; });
+};
+
 var onlyUnique = function(value, index, self) {
     return self.indexOf(value) === index;
 };
@@ -212,12 +216,20 @@ pyHTS.classes.Well.prototype = {
     constructor: pyHTS.classes.Well,
     setDrug: function(drug, position) {
         if(this.drugs == null) this.drugs = [];
-        this.drugs[position] = drug;
+        if(drug == null && position == null) {
+            this.drugs = [];
+        } else {
+            this.drugs[position] = drug;
+        }
         this.setUnsavedChanges();
     },
     setDose: function(dose, position) {
         if(this.doses == null) this.doses = [];
-        this.doses[position] = dose;
+        if(dose == null && position == null) {
+            this.doses = [];
+        } else {
+            this.doses[position] = dose;
+        }
         this.setUnsavedChanges();
     },
     setCellLine: function(cellLine) {
@@ -228,6 +240,7 @@ pyHTS.classes.Well.prototype = {
         this.cellLine = null;
         this.drugs = null;
         this.doses = null;
+        this.setUnsavedChanges();
     }
 };
 
@@ -286,8 +299,12 @@ pyHTS.classes.PlateMap.prototype = {
 
         for(var i=0; i<this.wells.length; i++) {
             var ent = this.wells[i][entry_list];
-            if (ent == null || (typeof ent == "object" && !ent.length)) {
+            if (ent == null) {
                continue;
+            }
+            if(typeof ent == "object" &&
+                (!ent.length || pyHTS.util.allNull(ent))) {
+                    continue;
             }
 
             if(pyHTS.util.indexOf(ent, usedEntries) == -1) {
@@ -363,11 +380,29 @@ pyHTS.classes.PlateMap.prototype = {
         return wells;
     },
     wellDataIsEmpty: function() {
+        return this.allCellLinesEmpty() && this.allDrugsEmpty() && this.allDosesEmpty();
+    },
+    allCellLinesEmpty: function() {
+        for(var w=0; w<this.wells.length; w++) {
+            if(this.wells[w].cellLine != null) {
+                return false;
+            }
+        }
+        return true;
+    },
+    allDrugsEmpty: function() {
         for(var w=0; w<this.wells.length; w++) {
             var well = this.wells[w];
-            if(well.cellLine != null ||
-               (well.drugs != null && well.drugs.length > 0) ||
-               (well.doses != null && well.doses.length > 0)) {
+            if(well.drugs != null && well.drugs.length > 0) {
+                return false;
+            }
+        }
+        return true;
+    },
+    allDosesEmpty: function() {
+        for(var w=0; w<this.wells.length; w++) {
+            var well = this.wells[w];
+            if(well.doses != null && well.doses.length > 0) {
                 return false;
             }
         }
@@ -466,28 +501,31 @@ pyHTS.classes.PlateMap.prototype = {
 };
 
 pyHTS.ui.okCancelModal = function(title, text, success_callback,
-                             cancel_callback, closed_callback) {
-    var mok = "#modal-ok-cancel";
+                                  cancel_callback, closed_callback,
+                                  ok_label, cancel_label) {
+    var $mok = $("#modal-ok-cancel");
     if(cancel_callback != null) {
-        $(mok).find(".btn-cancel").show();
+        cancel_label = cancel_label == null ? "Cancel" : cancel_label;
+        $mok.find(".btn-cancel").text(cancel_label).show();
     } else {
-        $(mok).find(".btn-cancel").hide();
+        $mok.find(".btn-cancel").hide();
     }
-    $(mok).find(".modal-header").text(title);
-    $(mok).find(".modal-body").html(text);
-    $(mok).data("success", false);
-    $(mok).find(".btn-ok").off("click").on("click", function (e) {
-        $(mok).data("success", true).modal("hide");
+    $mok.find(".modal-header").text(title);
+    $mok.find(".modal-body").html(text);
+    $mok.data("success", false);
+    ok_label = ok_label == null ? "OK" : ok_label;
+    $mok.find(".btn-ok").text(ok_label).off("click").on("click", function () {
+        $mok.data("success", true).modal("hide");
     });
-    $(mok).off("shown.bs.model").on("shown.bs.modal", function() {
-        $(mok).find(".btn-ok").focus();
+    $mok.off("shown.bs.model").on("shown.bs.modal", function() {
+        $mok.find(".btn-ok").focus();
     }).off("hidden.bs.modal").on("hidden.bs.modal", function(e) {
         if(closed_callback != null) {
             closed_callback(e);
         }
-        if(success_callback != null && $(mok).data("success")) {
+        if(success_callback != null && $mok.data("success")) {
             success_callback(e);
-        } else if(cancel_callback != null) {
+        } else if(cancel_callback != null && !$mok.data("success")) {
             cancel_callback(e);
         }
     }).modal();
@@ -568,16 +606,33 @@ pyHTS.ui.loadingModal = (function () {
 
 })();
 
+pyHTS.ajax.ajax401Handler = function(jqXHR) {
+    pyHTS.ui.okModal("Authentication required", "The request to the server" +
+        " was not authenticated. Please check that you are logged in, e.g." +
+        " by refreshing the page.");
+    return true;
+};
+
+pyHTS.ajax.ajax404Handler = function(jqXHR) {
+    pyHTS.ui.okModal("Requested resource not found", "The requested resource" +
+        " was not found, or you do not do have access to it. Please check" +
+        " you are logged in as the correct user.");
+    return true;
+};
+
 pyHTS.ajax.ajax409Handler = function(jqXHR) {
     // Is this a known error?
     if(jqXHR.responseJSON.error != null
-        && jqXHR.responseJSON.error == 'non_empty_plates') {
-        pyHTS.ui.okModal('Error applying template',
-                'The template could not be applied because some of the' +
-                ' selected plates are not empty. The non-empty plates' +
-                ' are:<br>' +
-                jqXHR.responseJSON.plateNames.join(', ')
-        );
+        && jqXHR.responseJSON.error == "non_empty_plates") {
+        var errStr = "The template could not be applied because some of the" +
+                " selected plates are not empty. The non-empty plates" +
+                " are:<br>" + jqXHR.responseJSON.plateNames.join(", ");
+        if(pyHTS.ui.currentView == "overview") {
+            errStr += "<br><br><strong>Switch to a different view tab if" +
+                " you want to apply only one of cell lines, drugs or" +
+                " doses</strong>";
+        }
+        pyHTS.ui.okModal("Error applying template", errStr);
         return true;
     }
     return false;
@@ -588,8 +643,10 @@ pyHTS.ajax.ajaxErrorCallback = function(jqXHR,textStatus,thrownError) {
         'out (perhaps the connection was lost?';
     if(textStatus == "error" ||
         textStatus == "parsererror") {
-        if(jqXHR != null && jqXHR.status == 409) {
-            if(pyHTS.ajax.ajax409Handler(jqXHR)) return;
+        if(jqXHR != null) {
+            if(jqXHR.status == 401 && pyHTS.ajax.ajax401Handler(jqXHR)) return;
+            if(jqXHR.status == 404 && pyHTS.ajax.ajax404Handler(jqXHR)) return;
+            if(jqXHR.status == 409 && pyHTS.ajax.ajax409Handler(jqXHR)) return;
         }
         if(Raven != null) {
             Raven.captureMessage(thrownError || jqXHR.statusText, {

@@ -1,11 +1,12 @@
 import re
 from django.core.files.uploadedfile import UploadedFile
 from datetime import timedelta, datetime
-from .models import PlateFile, Plate, WellMeasurement
+from .models import PlateFile, Plate, Well, WellMeasurement
 from django.db import IntegrityError, transaction
 import xlrd
 import magic
 from functools import wraps
+import collections
 
 
 class PlateFileParseException(Exception):
@@ -35,16 +36,33 @@ class PlateFileParser(object):
                            'text/plain': 'text'
                            }
 
-    def __init__(self, plate_file, dataset=None):
-        if not isinstance(plate_file, UploadedFile):
+    def __init__(self, plate_files, dataset):
+        if isinstance(plate_files, UploadedFile):
+            self.all_plate_files = [plate_files, ]
+        elif isinstance(plate_files, collections.Iterable):
+            self.all_plate_files = plate_files
+        else:
             raise PlateFileParseException('Cannot (yet) parse object of type: '
-                                          '{}'.format(type(plate_file)))
+                                          '{}'.format(type(plate_files)))
 
-        self.plate_file = plate_file
+        self._plate_file_position = -1
+        self.plate_file = None
         self.dataset = dataset
         self.file_format = None
         self._db_platefile = None
         self._plate_data = None
+        self._plate_objects = []
+        self._results = []
+        self._well_sets = {}
+
+        # Get existing plate objects
+        self._plate_objects = list(Plate.objects.filter(
+            dataset_id=dataset.id))
+        if self._plate_objects:
+            for w in Well.objects.filter(
+                    plate_id__in=[p.id for p in self._plate_objects]).order_by(
+                    'plate_id', 'well_num'):
+                self._well_sets.setdefault(w.plate_id, []).append(w.pk)
 
     def _create_db_platefile(self):
         self._db_platefile = PlateFile.objects.create(
@@ -55,6 +73,15 @@ class PlateFileParser(object):
         # TODO: Ensure file isn't too big, check filetype etc.
         self.plate_file.open()
         self._plate_data = self.plate_file.read()
+
+    def _has_more_platefiles(self):
+        return self._plate_file_position < (len(self.all_plate_files) - 1)
+
+    def _next_platefile(self):
+        self._plate_file_position += 1
+        self.plate_file = self.all_plate_files[self._plate_file_position]
+        self._plate_data = None
+        self._db_platefile = None
 
     @staticmethod
     def _str_universal_newlines(a_string):
@@ -114,7 +141,7 @@ class PlateFileParser(object):
 
         self._create_db_platefile()
 
-        wells = []
+        well_measurements = []
 
         for p in plates:
             if len(p.strip()) == 0:
@@ -132,13 +159,18 @@ class PlateFileParser(object):
             plate_name = plate_and_timepoint['plate']
             plate_timepoint = plate_and_timepoint['timepoint']
 
+            plate = [p for p in self._plate_objects if p.name == plate_name]
+
+            if len(plate) == 1:
+                plate = plate[0]
+            else:
+                plate = None
+
             # Each plate can have multiple assays
             assays = re.split('\n\s*\n', barcode_and_rest[1])
 
             well_cols = 0
             well_rows = 0
-
-            plate = None
 
             for a in assays:
                 a_strp = a.strip()
@@ -154,36 +186,31 @@ class PlateFileParser(object):
                 well_rows = len(well_lines) - 2
 
                 if plate is None:
-                    plate, created = Plate.objects.update_or_create(
-                        dataset=self.dataset,
-                        name=plate_name,
-                        defaults={'plate_file': self._db_platefile,
-                                  'width': well_cols,
-                                  'height': well_rows})
+                    plate = self._get_or_create_plate(plate_name,
+                                                      well_cols, well_rows)
 
-                # Read the actual well values
                 well_id = 0
                 for row in range(2, len(well_lines)):
                     for val in well_lines[row].split('\t')[1:-1]:
-                        wells.append(WellMeasurement(plate=plate,
-                                                     well=well_id,
-                                                     timepoint=plate_timepoint,
-                                                     assay=assay_name,
-                                                     value=float(val)
-                                                     ))
+                        well_measurements.append(WellMeasurement(
+                            well_id=self._well_sets[plate.id][well_id],
+                            timepoint=plate_timepoint,
+                            assay=assay_name,
+                            value=float(val)
+                        ))
                         well_id += 1
 
-            if not wells:
-                raise PlateFileParseException('File contains no readable '
-                                              'plates')
-
-            if len(wells) % (well_cols * well_rows) != 0:
+            if len(well_measurements) % (well_cols * well_rows) != 0:
                 raise PlateFileParseException('Extracted an unexpected number '
-                                              'of wells from plate (plate: %s,'
-                                              ' wells: %d)'.format(plate_name,
-                                                                   len(wells)))
+                                              'of wells from plate (plate: {},'
+                                              ' wells: {})'.format(
+                    plate_name, len(well_measurements)))
+
+        if not well_measurements:
+            raise PlateFileParseException('File contains no readable '
+                                          'plates')
         try:
-            WellMeasurement.objects.bulk_create(wells)
+            WellMeasurement.objects.bulk_create(well_measurements)
         except IntegrityError:
             raise PlateFileParseException('A file with the same plate, '
                                           'assay and time points has been '
@@ -210,10 +237,10 @@ class PlateFileParser(object):
         assay_name = None
         plate_name = None
         well_cols = ws.ncols - 1
-        wells = []
         scanning_wells = False
         plate = None
         well_id = 0
+        well_measurements = []
 
         for row in range(ws.nrows):
             cell0_val = ws.cell(row, 0).value
@@ -248,13 +275,9 @@ class PlateFileParser(object):
                                 ws.cell(scan_row, 0).value != 'Barcode':
                     scan_row += 1
                 well_rows = scan_row - row - 1
-                if plate is None:
-                    plate, created = Plate.objects.update_or_create(
-                        dataset=self.dataset,
-                        name=plate_name,
-                        defaults={'plate_file': self._db_platefile,
-                                  'width': well_cols,
-                                  'height': well_rows})
+
+                plate = self._get_or_create_plate(plate_name,
+                                                  well_cols, well_rows)
                 continue
 
             if scanning_wells:
@@ -265,24 +288,58 @@ class PlateFileParser(object):
                     # print(self.dataset.id, self._db_platefile.id, plate.id,
                     #       well_id,
                     #       file_timepoint, assay_name)
-                    wells.append(WellMeasurement(plate=plate,
-                                                 well=well_id,
-                                                 timepoint=file_timepoint,
-                                                 assay=assay_name,
-                                                 value=val
-                                                 ))
+                    well_measurements.append(WellMeasurement(
+                        well_id=self._well_sets[plate.id][well_id],
+                        timepoint=file_timepoint,
+                        assay=assay_name,
+                        value=val
+                    ))
                     well_id += 1
 
-        if not wells:
+        if not well_measurements:
             raise PlateFileParseException('File contains no readable '
                                           'plates')
 
         try:
-            WellMeasurement.objects.bulk_create(wells)
+            WellMeasurement.objects.bulk_create(well_measurements)
         except IntegrityError:
             raise PlateFileParseException('A file with the same plate, '
                                           'assay and time points has been '
                                           'uploaded to this dataset before')
+
+    def _get_or_create_plate(self, plate_name, well_cols, well_rows):
+        plate = [p for p in self._plate_objects if
+                 p.name == plate_name]
+
+        if len(plate) == 1:
+            plate = plate[0]
+        else:
+            plate = Plate.objects.create(
+                dataset=self.dataset,
+                name=plate_name,
+                width=well_cols,
+                height=well_rows)
+            self._plate_objects.append(plate)
+
+            Well.objects.bulk_create([Well(plate_id=plate.id,
+                                           well_num=w) for w in
+                                      range(well_cols * well_rows)])
+
+        if plate.id not in self._well_sets:
+            self._well_sets[plate.id] = list(
+                plate.well_set.order_by('well_num').values_list(
+                    'pk', flat=True))
+
+        if len(self._well_sets[plate.id]) != well_cols * well_rows:
+            raise PlateFileParseException(
+                'Retrieved {} wells for plate {} (was expecting '
+                '{})'.format(len(plate.well_set),
+                             plate.id,
+                             well_cols * well_rows
+                             )
+            )
+
+        return plate
 
     def parse_platefile(self):
         """
@@ -304,3 +361,19 @@ class PlateFileParser(object):
             self.parse_platefile_synergy_neo()
         else:
             raise NotImplementedError()
+
+    def parse_all(self):
+        self._results = []
+        while self._has_more_platefiles():
+            self._next_platefile()
+            try:
+                self.parse_platefile()
+                self._results.append({'success': True,
+                                      'file_format': self.file_format,
+                                      'id': self.id,
+                                      'file_name': self.file_name
+                                      })
+            except PlateFileParseException as e:
+                self._results.append({'success': False, 'error': e})
+
+        return self._results

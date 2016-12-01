@@ -11,11 +11,12 @@
     <div class="panel-heading">
         <div class="pull-right" role="group">
             <div id="hts-apply-template-multiple" style="display:none">
-            <select class="selectpicker" multiple title="Apply to plates">{% for p in plates %}
+            <select multiple title="Apply to plates">{% for p in plates %}
                 <option data-id="{{ p.id }}">{{ p.name }}</option>
             {% endfor %}</select>
             <button id="apply-template-multiple-btn" type="button" class="btn
-                btn-default">Apply template</button>
+                btn-default">Apply template <span
+                    class="view-str"></span></button>
             </div>
             <button id="hts-prev-dataset" type="button" class="btn btn-default"
                                     style="display:none">
@@ -150,24 +151,27 @@
                         </div>
                     </div>
                 </div>
-                <button type="button" class="btn btn-default"
+                <button type="button" class="btn btn-default
+                btn-sidebar btn-sidebar-nomgn"
                         id="hts-add-drug" style="margin-top:5px">Add another
                     drug</button>
                 <hr>
 
-                <div id="annotation-actions" class="btn-group" role="group"
-                aria-label="Move selection">
-                    <button type="button" class="btn btn-success"
-                            id="hts-apply-annotation">Apply</button>
-                    <button type="button" class="btn btn-danger"
-                            id="hts-clear-annotation">Clear</button>
-                </div>
-                <button type="button" class="btn btn-default"
-                    id="hts-apply-template">Apply template</button>
+                <button type="button" class="btn btn-success btn-sidebar"
+                        id="hts-apply-annotation">Apply <span
+                    class="view-str"></span></button>
+                <button type="button" class="btn btn-danger btn-sidebar"
+                        id="hts-clear-annotation">Clear <span
+                    class="view-str"></span></button>
+                <button type="button" class="btn btn-default btn-sidebar"
+                    id="hts-apply-template">Apply template <span
+                    class="view-str"></span></button>
 
+                <br>
                 <label>Auto-stepper</label>
-                <div class="dropdown" id="hts-autostepper-div">
-                  <button class="btn btn-default dropdown-toggle"
+                <div class="dropdown btn-sidebar" id="hts-autostepper-div">
+                  <button class="btn btn-default dropdown-toggle btn-sidebar
+                   btn-sidebar-nomgn"
                           type="button" id="hts-autostepper"
                           data-toggle="dropdown" aria-haspopup="true"
                           aria-expanded="false">
@@ -189,7 +193,9 @@
                 </div>
 
                 <label>Move selection</label><br>
-                <div id="hts-move-selection" class="btn-group" role="group"
+                <div id="hts-move-selection" class="btn-group btn-sidebar
+                btn-sidebar-nomgn"
+                     role="group"
                 aria-label="Move selection">
                     <button data-move-by="-1" data-move-row-dir="false"
                             class="btn
@@ -299,12 +305,12 @@
 $(function () {
     'use strict';
 
-    $('.selectpicker').selectpicker({
+    $('#hts-apply-template-multiple').find('select').selectpicker({
+        actionsBox: true,
         countSelectedText: function(n, N) {
             return n + ' of ' + N + ' plates selected';
         },
-        selectedTextFormat: 'count > 1',
-        actionsBox: true
+        selectedTextFormat: 'count > 1'
     }).on('changed.bs.select', function() {
         var $btn = $('#apply-template-multiple-btn');
         if($(this).selectpicker('val').length > 0) {
@@ -323,12 +329,12 @@ $(function () {
         });
 
         if(tgtPlateIds.length == 0) {
-            pyHTS.ui.okDialog('No plates selected', 'Please select plates ' +
-                    'for template application');
+            pyHTS.ui.okModal('No plates selected', 'Please select target ' +
+                    'plates from the drop down list');
             return;
         }
         if(pyHTS.plateMap.wellDataIsEmpty()) {
-            pyHTS.ui.okDialog('Empty template', 'The template could not be ' +
+            pyHTS.ui.okModal('Empty template', 'The template could not be ' +
                     'applied because it is empty');
             return;
         }
@@ -336,7 +342,10 @@ $(function () {
         pyHTS.ui.loadingModal.show('Applying template...');
 
         pyHTS.plateMap.applyTemplateTo = tgtPlateIds;
+        pyHTS.plateMap.applyTemplateMode = $.inArray(pyHTS.ui.currentView,
+            ['overview', 'table']) != -1 ? 'all' : pyHTS.ui.currentView;
         pyHTS.ajax.savePlate(null);
+        delete pyHTS.plateMap.applyTemplateMode;
         delete pyHTS.plateMap.applyTemplateTo;
     });
 
@@ -360,6 +369,8 @@ $(function () {
 
     pyHTS.plates = [{% for p in plates %}{{ p.id }}{% if not forloop.last %},{% endif %}{% endfor %}];
     pyHTS.savedPlates = [{% for p in plates %}{% if p.last_annotated %}{{ p.id }},{% endif %}{% endfor %}];
+
+    pyHTS.ui.currentView = 'overview';
 
     window.onbeforeunload = function() {
       if(pyHTS.plateMap!=null && pyHTS.plateMap.unsaved_changes) {
@@ -756,6 +767,12 @@ $(function () {
         }
     };
 
+    var clearAllInputs = function() {
+        $('#cellline-typeahead,.hts-drug-typeahead').not('.tt-hint')
+            .typeahead('val', '');
+        $('.hts-dose-input').val('');
+    }
+
     var autoStepperOutOfBounds = function() {
         pyHTS.ui.okModal('Auto-step error', 'The auto-stepper reached the' +
                 ' edge of the plate. Please adjust your well ' +
@@ -854,6 +871,9 @@ $(function () {
         $loadingIndicator.hide();
     });
 
+    var viewStrings = {celllines: 'cell lines', drugs: 'drugs', doses:
+        'doses', overview: '', table: ''};
+
     var setWellView = function(e, view) {
         e.preventDefault();
         if(view == 'table') {
@@ -863,6 +883,33 @@ $(function () {
             $('#hts-well-table-view').hide();
             $('#hts-well-plate').show();
         }
+        pyHTS.ui.currentView = view;
+        $('.view-str').text(viewStrings[view]);
+
+        clearAllInputs();
+
+        if(view == 'overview' || view == 'celllines') {
+            $('#cellline-typeahead').prop('disabled', false).css
+                ('background-color', 'transparent');
+        } else {
+            $('#cellline-typeahead').prop('disabled', true).css
+                ('background-color', '');
+        }
+
+        if(view == 'overview' || view == 'drugs') {
+            $('.hts-drug-typeahead').prop('disabled', false).css
+                ('background-color', 'transparent');
+        } else {
+            $('.hts-drug-typeahead').prop('disabled', true).css
+                ('background-color', '');
+        }
+
+        if(view == 'overview' || view == 'doses') {
+            $('.hts-dose-input').prop('disabled', false);
+        } else {
+            $('.hts-dose-input').prop('disabled', true);
+        }
+
         $('#hts-well-nav li').removeClass('active');
         $('#hts-well-'+view).addClass('active');
         $('#selectable-wells,#hts-legend-container')
@@ -1049,10 +1096,19 @@ $(function () {
         }
 
         $.each(selectedWells, function(i, well) {
-            pyHTS.plateMap.wells[$(well).data('well')].clear();
+            var w = pyHTS.plateMap.wells[$(well).data('well')];
+            if(pyHTS.ui.currentView == 'celllines') {
+                w.setCellLine(null);
+            } else if(pyHTS.ui.currentView == 'drugs') {
+                w.setDrug(null, null);
+            } else if(pyHTS.ui.currentView == 'doses') {
+                w.setDose(null, null);
+            } else {
+                w.clear();
+            }
         });
-        pyHTS.plateMap.unsaved_changes = true;
 
+        clearAllInputs();
         pyHTS.ui.refreshViewAll();
     });
 
@@ -1061,7 +1117,14 @@ $(function () {
             pyHTS.ui.okModal('Error', 'Cannot apply template to itself');
             return;
         }
-        if(pyHTS.plateMap.wellDataIsEmpty()) {
+        if(pyHTS.ui.currentView == 'celllines' && !pyHTS.plateMap
+                .allCellLinesEmpty() ||
+                pyHTS.ui.currentView == 'drugs' && !pyHTS.plateMap
+                    .allDrugsEmpty() ||
+                pyHTS.ui.currentView == 'doses' && !pyHTS.plateMap
+                    .allDosesEmpty() ||
+                !$.inArray(pyHTS.ui.currentView, ['celllines', 'drugs',
+                        'doses']) && !pyHTS.plateMap.wellDataIsEmpty()) {
             pyHTS.ui.okModal('Plate map not empty', 'Cannot apply template ' +
                     'data because this plate map is not empty.');
             return;
@@ -1129,11 +1192,19 @@ $(function () {
     var populateWellDataFromTemplate = function(wellData, templateId) {
         var templateWells = pyHTS.plateMapTemplates[templateId].wells;
         for(var w=0; w<wellData.length; w++) {
-            wellData[w].cellLine = templateWells[w].cellLine;
-            wellData[w].drugs = templateWells[w].drugs != null ?
+            if($.inArray(pyHTS.ui.currentView, ['drugs', 'doses']) == -1) {
+                wellData[w].cellLine = templateWells[w].cellLine;
+            }
+            if($.inArray(pyHTS.ui.currentView, ['celllines', 'doses']) ==
+                -1) {
+                wellData[w].drugs = templateWells[w].drugs != null ?
                     templateWells[w].drugs.slice() : null;
-            wellData[w].doses = templateWells[w].doses != null ?
+            }
+            if($.inArray(pyHTS.ui.currentView, ['celllines', 'drugs']) ==
+                -1) {
+                wellData[w].doses = templateWells[w].doses != null ?
                     templateWells[w].doses.slice() : null;
+            }
         }
     };
 
@@ -1148,7 +1219,7 @@ $(function () {
             if(data.templateAppliedTo) {
                 pyHTS.ui.okModal('Template applied', 'Template was ' +
                         'successfully applied');
-                $('#hts-apply-template-multiple').find('.selectpicker')
+                $('#hts-apply-template-multiple').find('select')
                         .selectpicker('deselectAll');
             }
             if(data.savedPlateId) {
@@ -1207,21 +1278,35 @@ $(function () {
         delete pyHTS.plateMap.loadNext;
     };
 
-    var validatePlate = function() {
+    var validatePlate = function(retryCallback) {
         var plateErrors = pyHTS.plateMap.validate();
         if (plateErrors) {
-            pyHTS.ui.okModal('Error validating plate map', '<ul><li>' +
-                    plateErrors.join("</li><li>") + '</li></ul>');
+            pyHTS.ui.okCancelModal('Error validating plate map',
+                '<ul><li>' + plateErrors.join("</li><li>") + '</li></ul>',
+                null,
+                retryCallback,
+                null,
+                'Go back',
+                'Ignore errors'
+            );
             return false;
         }
+        return true;
     };
 
-    var setPlate = function(plateId, templateId) {
+    var setPlate = function(plateId, templateId, noValidation) {
         var $currentPlate = $('#hts-current-plate');
         var currentId = $currentPlate.data('id');
 
         if(currentId != 'MASTER') {
-            validatePlate();
+            if(noValidation !== true) {
+                var validated = validatePlate(function () {
+                    setPlate(plateId, templateId, true)
+                });
+                if (!validated) {
+                    return false;
+                }
+            }
             if (plateId == 'MASTER') {
                 $('#hts-select-plate').addClass('btn-success');
             }

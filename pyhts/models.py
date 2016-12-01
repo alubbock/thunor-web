@@ -31,9 +31,15 @@ class PlateFile(models.Model):
 class CellLine(models.Model):
     name = models.TextField(unique=True)
 
+    def __str__(self):
+        return '%s (%d)' % (self.name, self.id)
+
 
 class Drug(models.Model):
     name = models.TextField(unique=True)
+
+    def __str__(self):
+        return '%s (%d)' % (self.name, self.id)
 
 
 class PlateMap(object):
@@ -76,50 +82,45 @@ class Plate(models.Model, PlateMap):
         unique_together = (("dataset", "name"), )
 
     dataset = models.ForeignKey(HTSDataset)
-    plate_file = models.ForeignKey(PlateFile)
     name = models.TextField()
     last_annotated = models.DateTimeField(null=True)
     width = models.IntegerField()
     height = models.IntegerField()
 
-    @property
-    def next_plate_id(self):
-        pf_ids = HTSDataset.get_plate_file_ids(self.dataset_id)
-        idx = pf_ids.index(self.id) + 1
-        return idx if idx < (len(pf_ids) - 1) else None
+
+class Well(models.Model):
+    # __slots__ = ('plate', 'well_num')
+
+    class Meta:
+        unique_together = (('plate', 'well_num'), )
+        index_together = (('plate', 'well_num'), )
+
+    plate = models.ForeignKey(Plate)
+    well_num = models.IntegerField()
+    cell_line = models.ForeignKey(CellLine, null=True)
 
 
 class WellMeasurement(models.Model):
-    __slots__ = ('plate', 'well', 'assay', 'timepoint', 'value')
+    # __slots__ = ('well', 'assay', 'timepoint', 'value')
 
     class Meta:
-        unique_together = (("plate", "well", "assay", "timepoint"), )
+        unique_together = (("well", "assay", "timepoint"), )
+        index_together = (("well", "assay", "timepoint"), )
 
-    plate = models.ForeignKey(Plate)
-    well = models.IntegerField()
+    well = models.ForeignKey(Well)
     assay = models.TextField()
     timepoint = models.DurationField()
     value = models.FloatField(null=True)
 
 
-class WellCellLine(models.Model):
-    __slots__ = ('plate', 'well')
-
-    class Meta:
-        unique_together = (("plate", "well"), )
-
-    plate = models.ForeignKey(Plate)
-    well = models.IntegerField()
-    cell_line = models.ForeignKey(CellLine, null=True)
-
-
 class WellDrug(models.Model):
-    __slots__ = ('plate', 'well', 'drug', 'dose')
+    # __slots__ = ('plate', 'well', 'drug', 'dose')
 
     class Meta:
-        unique_together = (("plate", "well", "drug"), )
+        unique_together = (("well", "drug"), ("well", "order"))
+        index_together = (("well", "drug", "order"), )
 
-    plate = models.ForeignKey(Plate)
-    well = models.IntegerField()
-    drug = models.ForeignKey(Drug)
-    dose = models.FloatField()
+    well = models.ForeignKey(Well)
+    drug = models.ForeignKey(Drug, null=True)
+    order = models.PositiveSmallIntegerField()
+    dose = models.FloatField(null=True)

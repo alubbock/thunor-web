@@ -3,6 +3,7 @@ import plotly.graph_objs as go
 import numpy as np
 import scipy.stats
 import scipy.optimize
+import scipy.interpolate
 import seaborn as sns
 from .helpers import format_dose
 
@@ -15,7 +16,6 @@ def plot_dose_response(df, log2=False, assay_name='Assay',
     colours = sns.color_palette("husl",
                                 len(df.index.get_level_values(
                                     level='time').unique()))
-
     HILL_FN = ll4
 
     error_y = {}
@@ -38,6 +38,35 @@ def plot_dose_response(df, log2=False, assay_name='Assay',
             )
         x_var = stats.index.get_level_values('dose').values
         y_var = list(stats['mean'])
+        # Fit hill curve
+        x_interp = None
+        if len(x_var) > 1:
+            popt, pcov = scipy.optimize.curve_fit(HILL_FN,
+                                                  x_var,
+                                                  np.power(2, y_var) if log2
+                                                        else y_var,
+                                                  maxfev=100000)
+
+            dose_range = (np.min(x_var), np.max(x_var))
+            ec50 = popt[-1]
+            ec50_str = format_dose(ec50, sig_digits=5)
+            if ec50 < dose_range[0] or ec50 > dose_range[1]:
+                ec50_str = '<span style="color:darkorange">{}</span>'.format(
+                    ec50_str)
+
+            x_interp = np.logspace(np.log10(dose_range[0]),
+                                   np.log10(dose_range[1]),
+                                   50)
+            y_interp = HILL_FN(x_interp, *popt)
+
+            ic50 = find_ic50(x_interp, y_interp)
+            ic50_str = format_dose(ic50, sig_digits=5)
+            if ic50 is None:
+                ic50_str = '<em>{}</em>'.format(ic50_str)
+        else:
+            ic50_str = '<span style="color:darkred">N/A</span>'
+            ec50_str = ic50_str
+
         traces.append(go.Scatter(x=x_var,
                                  y=y_var,
                                  mode='markers',
@@ -45,26 +74,21 @@ def plot_dose_response(df, log2=False, assay_name='Assay',
                                  legendgroup=str(time),
                                  error_y=error_y,
                                  marker={'size': 5},
-                                 name=str(time))
+                                 name='{}<br>IC50: {}<br>EC50: {}'.format(
+                                     time, ic50_str, ec50_str))
                      )
-        popt, pcov = scipy.optimize.curve_fit(HILL_FN,
-                                              x_var,
-                                              np.power(2, y_var) if log2
-                                                    else y_var,
-                                              maxfev=100000)
-        x_interp = np.logspace(np.log10(np.min(x_var)), np.log10(np.max(
-            x_var)), 50)
-        y_interp = HILL_FN(x_interp, *popt)
-        traces.append(go.Scatter(x=x_interp,
-                                 y=np.log2(y_interp) if log2 else y_interp,
-                                 legendgroup=str(time),
-                                 showlegend=False,
-                                 mode='lines',
-                                 hoverinfo='skip',
-                                 line={'shape': 'spline',
-                                       'color': this_colour},
-                                 name=str(time) + ' (interpolated)')
-                     )
+
+        if x_interp is not None:
+            traces.append(go.Scatter(x=x_interp,
+                                     y=np.log2(y_interp) if log2 else y_interp,
+                                     legendgroup=str(time),
+                                     showlegend=False,
+                                     mode='lines',
+                                     hoverinfo='skip',
+                                     line={'shape': 'spline',
+                                           'color': this_colour},
+                                     name=str(time) + ' (interpolated)')
+                         )
 
     data = go.Data(traces)
     if control_name:
@@ -94,9 +118,6 @@ def plot_dose_response_3d(df, log2=False, assay_name='Assay',
     # Convert nanoseconds to hours
     time_hrs = [t / 3600e9 for t in data_matrix.index.values]
     doses_M = data_matrix.columns.values
-
-    print(data_matrix)
-    print(data_matrix.as_matrix())
 
     if control_name:
         zaxis_title = '{} rel. to {}'.format(assay_name, control_name)
@@ -192,7 +213,7 @@ def plot_timecourse(df, log2=False, assay_name='Assay',
     layout = go.Layout(title=title or 'Time Course',
                        font={'family': '"Helvetica Neue",Helvetica,Arial,'
                                        'sans-serif'},
-                       xaxis={'title': 'Time (hrs)'},
+                       xaxis={'title': 'Time (hours)'},
                        yaxis={'title': yaxis_title},
                        )
     figure = go.Figure(data=data, layout=layout)
@@ -220,6 +241,15 @@ def ll4(x, b, c, d, e):
      """
     # return c+(d-c)/(1+np.exp(b*(np.log(x)-np.log(e))))
     return c+(d-c)/(1+10**(b*(np.log10(x)-np.log10(e))))
+
+
+def find_ic50(x_interp, y_interp):
+    st, sc, sk = scipy.interpolate.splrep(x_interp, y_interp)
+    hill_interpolate = scipy.interpolate.sproot((st, sc - .5, sk))
+    if len(hill_interpolate) > 0:
+        return hill_interpolate[0]
+    else:
+        return None
 
 
 def dip_rate(times, cell_counts):

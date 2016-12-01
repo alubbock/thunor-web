@@ -127,6 +127,21 @@ else:
         }
     }
 
+
+# CACHES = {
+#     'default': {},
+#
+#     # this cache backend will be used by django-debug-panel
+#     'debug-panel': {
+#         'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+#         'LOCATION': '/var/tmp/debug-panel-cache',
+#         'TIMEOUT': 600,
+#         'OPTIONS': {
+#             'MAX_ENTRIES': 200
+#         }
+#     }
+# }
+
 RAVEN_CONFIG = {
     'dsn': os.environ.get('DJANGO_SENTRY_DSN', None),
     # If you are using git, you can also automatically configure the
