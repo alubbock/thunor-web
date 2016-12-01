@@ -108,6 +108,9 @@ def df_single_cl_drug(dataset_id, cell_line_id, drug_id, assay, control=None,
     main_df = df_all.loc[drug_id] if control else df_all
     main_vals = main_df['value']
 
+    if main_vals.shape[0] == 0:
+        raise NoDataException
+
     if control is not None:
         if normalize_as == 'dr':
             ctrl_means = df_all.loc[control].groupby(
@@ -120,6 +123,9 @@ def df_single_cl_drug(dataset_id, cell_line_id, drug_id, assay, control=None,
                 groupby(level='plate').mean()['value']
         else:
             raise Exception('Invalid normalize_as value: ' + normalize_as)
+
+        if ctrl_means.shape[0] == 0:
+            raise NoDataException
 
         for row in range(main_vals.shape[0]):
             # idx = [plate, time, dose]

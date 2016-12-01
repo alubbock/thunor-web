@@ -28,6 +28,7 @@ from .serve_file import nginx_file
 from django.contrib.sites.shortcuts import get_current_site
 from collections import OrderedDict, defaultdict
 from .helpers import AutoExtendList
+from plotly.exceptions import PlotlyEmptyDataError
 
 logger = logging.getLogger(__name__)
 
@@ -747,14 +748,17 @@ def ajax_get_plot(request):
     except NoDataException:
         raise Http404()
 
-    html = plot_fn(dr['df'],
-                   log2=dr['log2y'],
-                   assay_name=assay,
-                   control_name=dr['control_name'],
-                   title='{} of {} on {} cells'.format(
-                       plot_type_str,
-                       dr['drug_name'],
-                       dr['cell_line_name']))
+    try:
+        html = plot_fn(dr['df'],
+                       log2=dr['log2y'],
+                       assay_name=assay,
+                       control_name=dr['control_name'],
+                       title='{} of {} on {} cells'.format(
+                           plot_type_str,
+                           dr['drug_name'],
+                           dr['cell_line_name']))
+    except PlotlyEmptyDataError:
+        raise Http404
 
     return HttpResponse(html)
 

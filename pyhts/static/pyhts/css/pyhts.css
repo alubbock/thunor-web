@@ -502,6 +502,7 @@ user-select: none;}
     -webkit-animation: spin2 1s infinite linear;
 }
 #hts-well-table-view { display: none; }
+#hts-apply-template-multiple { display: inline-block; }
 
 @keyframes spin {
     from { transform: scale(1) rotate(0deg); }

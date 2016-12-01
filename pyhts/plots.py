@@ -40,12 +40,17 @@ def plot_dose_response(df, log2=False, assay_name='Assay',
         y_var = list(stats['mean'])
         # Fit hill curve
         x_interp = None
+        ic50_str = '<span style="color:darkred">N/A</span>'
+        ec50_str = ic50_str
         if len(x_var) > 1:
-            popt, pcov = scipy.optimize.curve_fit(HILL_FN,
-                                                  x_var,
-                                                  np.power(2, y_var) if log2
-                                                        else y_var,
-                                                  maxfev=100000)
+            try:
+                popt, pcov = scipy.optimize.curve_fit(HILL_FN,
+                                                      x_var,
+                                                      np.power(2, y_var) if log2
+                                                            else y_var,
+                                                      maxfev=100000)
+            except RuntimeError:
+                break
 
             dose_range = (np.min(x_var), np.max(x_var))
             ec50 = popt[-1]
@@ -63,9 +68,6 @@ def plot_dose_response(df, log2=False, assay_name='Assay',
             ic50_str = format_dose(ic50, sig_digits=5)
             if ic50 is None:
                 ic50_str = '<em>{}</em>'.format(ic50_str)
-        else:
-            ic50_str = '<span style="color:darkred">N/A</span>'
-            ec50_str = ic50_str
 
         traces.append(go.Scatter(x=x_var,
                                  y=y_var,
