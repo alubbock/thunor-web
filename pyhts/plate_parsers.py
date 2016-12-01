@@ -33,7 +33,8 @@ class PlateFileParser(object):
 
     supported_mimetypes = {'application/vnd.openxmlformats-officedocument'
                            '.spreadsheetml.sheet': 'excel',
-                           'text/plain': 'text'
+                           'text/plain': 'text',
+                           'text/x-fortran': 'text'
                            }
 
     def __init__(self, plate_files, dataset):
