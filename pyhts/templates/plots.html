@@ -243,80 +243,73 @@ $(function () {
     // Add new panel
     $('.new-plot-btn').click(function() {
         var $newPanel = $('.panel-container:last').clone(true);
-        $newPanel.find('.panel').data($(this).data());
+        var dat = $(this).data();
+        $newPanel.find('.panel').data(dat);
+
+        var $dataPanel = $('.hts-change-data:last').clone();
+
+        $.ajax({
+            url: '/ajax/dataset/'+dat['datasetId']+'/groups/',
+            type: 'GET',
+            success: function(data) {
+                pushOptionsToSelect(
+                    $dataPanel.find('select.hts-change-cell-line'),
+                    data.cellLines,
+                    dat['cellLineId']);
+                pushOptionsToSelect(
+                    $dataPanel.find('select.hts-change-drug'),
+                    data.drugs,
+                    dat['drugId']);
+                pushOptionsToSelect(
+                    $dataPanel.find('select.hts-change-assay'),
+                    data.assays,
+                    dat['assayId']);
+                pushOptionsToSelect(
+                    $dataPanel.find('select.hts-change-control'),
+                    data.controls,
+                    dat['controlId']);
+                $dataPanel.find('select.hts-error-bars').val
+                    (dat['errorBars']).selectpicker('refresh');
+                $dataPanel.find('select.hts-log-transform').val
+                    (dat['logTransform']).selectpicker('refresh');
+            },
+            error: pyHTS.ajax.ajaxErrorCallback
+        });
+
+        $dataPanel.find('select').selectpicker();
+        $dataPanel.find('form').submit(function (e) {
+           e.preventDefault();
+           $.each($(this).serializeArray(), function(i, ele) {
+              $newPanel.data(ele.name, ele.value);
+           });
+           $.ajax({
+              url: '/ajax/plot/?'+$(this).serialize(),
+              type: 'GET',
+              dataType: 'html',
+              success: function(data) {
+                  var $panelBody = $newPanel.find('.panel-body');
+                  $panelBody.children().not('.hts-change-data').remove();
+                  $panelBody.append(data);
+                  $dataPanel.slideUp();
+              },
+              error: pyHTS.ajax.ajaxErrorCallback
+           });
+        }).find('input[type=hidden]').each(function(i, obj) {
+            $(this).val(dat[$(this).attr('name')]);
+        });
+        $dataPanel.prependTo(
+            $newPanel.find('.panel-body')
+        );
+
         $('#welcome-instructional').hide();
         $newPanel.appendTo('.sortable-panels').fadeIn(400, function() {
-            $newPanel.find('.hts-change-data-btn').click();
+            $dataPanel.slideDown();
         });
     });
 
     // Change data panel
     $('.hts-change-data-btn').click(function() {
-        var $enclosingPanel = $(this).closest('.panel');
-        var $dataPanel = $enclosingPanel.find('.hts-change-data');
-        if ($dataPanel.length) {
-            $dataPanel.slideToggle();
-        } else {
-            $dataPanel = $('.hts-change-data:last').clone();
-            // load in the data
-            var dat = $enclosingPanel.data();
-
-            $.ajax({
-                url: '/ajax/dataset/'+dat['datasetId']+'/groups/',
-                type: 'GET',
-                success: function(data) {
-                    pushOptionsToSelect(
-                        $dataPanel.find('select.hts-change-cell-line'),
-                        data.cellLines,
-                        dat['cellLineId']);
-                    pushOptionsToSelect(
-                        $dataPanel.find('select.hts-change-drug'),
-                        data.drugs,
-                        dat['drugId']);
-                    pushOptionsToSelect(
-                        $dataPanel.find('select.hts-change-assay'),
-                        data.assays,
-                        dat['assayId']);
-                    pushOptionsToSelect(
-                        $dataPanel.find('select.hts-change-control'),
-                        data.controls,
-                        dat['controlId']);
-                    $dataPanel.find('select.hts-error-bars').val
-                        (dat['errorBars']).selectpicker('refresh');
-                    $dataPanel.find('select.hts-log-transform').val
-                        (dat['logTransform']).selectpicker('refresh');
-                },
-                error: pyHTS.ajax.ajaxErrorCallback
-            });
-
-            $dataPanel.find('select').selectpicker();
-            $dataPanel.find('form').submit(function (e) {
-               e.preventDefault();
-               $.each($(this).serializeArray(), function(i, ele) {
-                  $enclosingPanel.data(ele.name, ele.value);
-               });
-               $.ajax({
-                  url: '/ajax/plot/?'+$(this).serialize(),
-                  type: 'GET',
-                  dataType: 'html',
-                  success: function(data) {
-                      var $panelBody = $enclosingPanel.find('.panel-body');
-                      $panelBody.children().not('.hts-change-data').remove();
-                      $panelBody.append(data);
-                      $dataPanel.slideUp();
-                  },
-                  error: pyHTS.ajax.ajaxErrorCallback
-               });
-            }).find('input[type=hidden]').each(function(i, obj) {
-                console.log($(this));
-                console.log($(this).attr('name'));
-                console.log(dat[$(this).attr('name')]);
-                $(this).val(dat[$(this).attr('name')]);
-            });
-            $dataPanel.prependTo(
-                $enclosingPanel.find('.panel-body')
-            ).slideDown();
-        }
+        $(this).closest('.panel').find('.hts-change-data').slideToggle();
     });
 });
 </script>

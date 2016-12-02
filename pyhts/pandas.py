@@ -44,44 +44,38 @@ def df_single_cl_drug(user_id, dataset_id, cell_line_id, drug_id, assay,
     if control is not None:
         drug_ids.append(control)
 
-    # Load cell lines and drugs (to find applicable wells and names)
-    cell_lines = list(Well.objects.filter(
-                    plate__dataset_id=dataset_id,
-                    plate__dataset__owner_id=user_id,
-                    cell_line_id=cell_line_id).annotate(
-        num_drugs=Count('welldrug')).filter(
-        num_drugs=1).select_related(
-        'cell_line').order_by('plate', 'well_num'))
+    # This query isn't executed immediately - Django internally combines it
+    # with the next query to get all the drug details in a single DB hit
+    plate_id_query = WellDrug.objects.filter(
+        well__plate__dataset_id=dataset_id,
+        well__plate__dataset__owner_id=user_id,
+        well__cell_line=cell_line_id,
+        drug_id=drug_id).annotate(num_drugs=Count(
+        'well__welldrug')).filter(
+        num_drugs=1
+        ).values_list('well__plate_id', flat=True).distinct()
 
-    if not cell_lines:
-        raise NoDataException()
-
-    well_ids = [cl.id for cl in cell_lines]
-
-    cell_line_name = cell_lines[0].cell_line.name
-
-    drugs = list(WellDrug.objects.filter(well_id__in=well_ids,
-                                         drug=drug_id).select_related(
-        'drug', 'well').order_by('well__plate_id', 'well__well_num'))
+    drugs = list(WellDrug.objects.filter(
+        drug_id__in=drug_ids, well__plate__in=plate_id_query).select_related(
+        'drug', 'well', 'well__cell_line').order_by('well__plate_id',
+                                            'well__well_num'))
 
     if not drugs:
         raise NoDataException()
 
-    drug_name = drugs[0].drug.name
+    cell_line_name = drugs[0].well.cell_line.name
+    drug_name = None
+    control_name = None
+    for dr in drugs:
+        if dr.drug_id == drug_id:
+            drug_name = dr.drug.name
+        if dr.drug_id == control:
+            control_name = dr.drug.name
+        if drug_name is not None and control_name is not None:
+            break
 
-    if control is not None:
-        control_data = list(WellDrug.objects.filter(
-            well_id__in=well_ids,
-            well__plate_id__in=[dr.well.plate_id for dr in drugs],
-            drug_id=control
-        ).select_related('drug').order_by(
-            'well__plate_id', 'well__well_num'))
-        if not control_data:
-            raise NoDataException()
-        control_name = control_data[0].drug.name
-        drugs.extend(control_data)
-    else:
-        control_name = None
+    if control and control_name is None:
+        raise NoDataException()
 
     drug_cl_intersection = pd.DataFrame([[dr.well.plate_id,
                              dr.well.well_num,

@@ -643,41 +643,34 @@ def view_dataset(request, dataset_id):
     return response
 
 
-def _wells_by_num_drugs(request, dataset_id):
-    return WellDrug.objects.filter(
-        drug__isnull=False,
-        well__plate__dataset_id=dataset_id,
-        well__plate__dataset__owner_id=request.user.id,
-    ).values('well_id').annotate(num_drugs=Count('well_id'))
-
-
 def ajax_get_dataset_groups(request, dataset_id):
     if not request.user.is_authenticated():
         return JsonResponse({}, status=401)
 
-    single_drug_wells = [dr['well_id'] for dr in
-                         _wells_by_num_drugs(request, dataset_id) if
-                         dr['num_drugs'] == 1]
-
-    if not single_drug_wells:
-        raise Http404()
-
     cell_lines = Well.objects.filter(
         cell_line__isnull=False,
-        id__in=single_drug_wells
+        plate__dataset_id=dataset_id,
+        plate__dataset__owner_id=request.user.id).annotate(
+        num_drugs=Count('welldrug')).filter(
+        num_drugs=1).select_related(
     ).values('cell_line_id', 'cell_line__name').distinct().order_by(
         'cell_line__name')
+
+    if not cell_lines:
+        raise Http404
 
     # Get drug without combinations
     drug_objs = WellDrug.objects.filter(
         drug__isnull=False,
         dose__isnull=False,
-        well_id__in=single_drug_wells
-    ).values('drug_id', 'drug__name').distinct().order_by('drug__name')
+        well__plate__dataset_id=dataset_id,
+    ).annotate(num_drugs=Count('well__welldrug')).filter(num_drugs=1).\
+      values('drug_id', 'drug__name').distinct().order_by('drug__name')
 
-    assays = WellMeasurement.objects.filter(
-        well_id__in=single_drug_wells
-    ).values('assay').distinct().order_by('assay')
+    assays = WellMeasurement.objects.annotate(num_drugs=Count(
+        'well__welldrug')).filter(num_drugs=1).values('assay').distinct(
+
+    ).order_by('assay')
 
     drug_list = []
     controls_list = [{'id': None, 'name': 'None'}]
