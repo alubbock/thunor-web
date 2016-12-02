@@ -124,3 +124,9 @@ class WellDrug(models.Model):
     drug = models.ForeignKey(Drug, null=True)
     order = models.PositiveSmallIntegerField()
     dose = models.FloatField(null=True)
+
+    def __str__(self):
+        return '%.2eM of %s in well %d on plate %s' % (self.dose,
+                                                       self.drug.name,
+                                                       self.well.well_num,
+                                                       self.well.plate.name)

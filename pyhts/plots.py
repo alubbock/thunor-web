@@ -49,25 +49,26 @@ def plot_dose_response(df, log2=False, assay_name='Assay',
                                                       np.power(2, y_var) if log2
                                                             else y_var,
                                                       maxfev=100000)
+
+                dose_range = (np.min(x_var), np.max(x_var))
+                ec50 = popt[-1]
+                ec50_str = format_dose(ec50, sig_digits=5)
+                if ec50 < dose_range[0] or ec50 > dose_range[1]:
+                    ec50_str = '<span style="color:darkorange">{' \
+                               '}</span>'.format(
+                        ec50_str)
+
+                x_interp = np.logspace(np.log10(dose_range[0]),
+                                       np.log10(dose_range[1]),
+                                       50)
+                y_interp = HILL_FN(x_interp, *popt)
+
+                ic50 = find_ic50(x_interp, y_interp)
+                ic50_str = format_dose(ic50, sig_digits=5)
+                if ic50 is None:
+                    ic50_str = '<em>{}</em>'.format(ic50_str)
             except RuntimeError:
-                break
-
-            dose_range = (np.min(x_var), np.max(x_var))
-            ec50 = popt[-1]
-            ec50_str = format_dose(ec50, sig_digits=5)
-            if ec50 < dose_range[0] or ec50 > dose_range[1]:
-                ec50_str = '<span style="color:darkorange">{}</span>'.format(
-                    ec50_str)
-
-            x_interp = np.logspace(np.log10(dose_range[0]),
-                                   np.log10(dose_range[1]),
-                                   50)
-            y_interp = HILL_FN(x_interp, *popt)
-
-            ic50 = find_ic50(x_interp, y_interp)
-            ic50_str = format_dose(ic50, sig_digits=5)
-            if ic50 is None:
-                ic50_str = '<em>{}</em>'.format(ic50_str)
+                pass
 
         traces.append(go.Scatter(x=x_var,
                                  y=y_var,

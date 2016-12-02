@@ -665,7 +665,8 @@ def ajax_get_dataset_groups(request, dataset_id):
     cell_lines = Well.objects.filter(
         cell_line__isnull=False,
         id__in=single_drug_wells
-    ).values('cell_line_id', 'cell_line__name').distinct()
+    ).values('cell_line_id', 'cell_line__name').distinct().order_by(
+        'cell_line__name')
 
     # Get drug without combinations
     drug_objs = WellDrug.objects.filter(
@@ -741,24 +742,22 @@ def ajax_get_plot(request):
         aggregates = (np.mean, )
 
     try:
-        dr = df_single_cl_drug(dataset_id=dataset_id, cell_line_id=cell_line_id,
+        dr = df_single_cl_drug(user_id=request.user.id, dataset_id=dataset_id,
+                               cell_line_id=cell_line_id,
                                drug_id=drug_id, assay=assay, control=control_id,
                                log2y=yaxis == 'log2', normalize_as=normalize_as,
                                aggregates=aggregates)
     except NoDataException:
         raise Http404()
 
-    try:
-        html = plot_fn(dr['df'],
-                       log2=dr['log2y'],
-                       assay_name=assay,
-                       control_name=dr['control_name'],
-                       title='{} of {} on {} cells'.format(
-                           plot_type_str,
-                           dr['drug_name'],
-                           dr['cell_line_name']))
-    except PlotlyEmptyDataError:
-        raise Http404
+    html = plot_fn(dr['df'],
+                   log2=dr['log2y'],
+                   assay_name=assay,
+                   control_name=dr['control_name'],
+                   title='{} of {} on {} cells'.format(
+                       plot_type_str,
+                       dr['drug_name'],
+                       dr['cell_line_name']))
 
     return HttpResponse(html)
 

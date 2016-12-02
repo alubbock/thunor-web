@@ -14,13 +14,15 @@ class NoDataException(Exception):
     pass
 
 
-def df_single_cl_drug(dataset_id, cell_line_id, drug_id, assay, control=None,
+def df_single_cl_drug(user_id, dataset_id, cell_line_id, drug_id, assay,
+                      control=None,
                       log2y=False, normalize_as='dr',
                       aggregates=(np.mean, np.min, np.max)):
     """
 
     Parameters
     ----------
+    user_id
     dataset_id
     cell_line_id
     drug_id
@@ -42,46 +44,46 @@ def df_single_cl_drug(dataset_id, cell_line_id, drug_id, assay, control=None,
     if control is not None:
         drug_ids.append(control)
 
-    well_ids = list(WellDrug.objects.filter(
-        drug_id__in=drug_ids,
-        well__plate__dataset_id=dataset_id,
-    ).values('well_id').annotate(num_drugs=Count('well_id')).filter(
-        num_drugs=1).distinct().values_list('well_id', flat=True))
-
-    if not well_ids:
-        raise NoDataException()
-
     # Load cell lines and drugs (to find applicable wells and names)
     cell_lines = list(Well.objects.filter(
-                    id__in=well_ids,
-                    cell_line_id=cell_line_id).select_related(
+                    plate__dataset_id=dataset_id,
+                    plate__dataset__owner_id=user_id,
+                    cell_line_id=cell_line_id).annotate(
+        num_drugs=Count('welldrug')).filter(
+        num_drugs=1).select_related(
         'cell_line').order_by('plate', 'well_num'))
 
     if not cell_lines:
         raise NoDataException()
 
-    well_ids = set([cl.id for cl in cell_lines])
+    well_ids = [cl.id for cl in cell_lines]
 
     cell_line_name = cell_lines[0].cell_line.name
-    cell_line_df = pd.DataFrame([[cl.plate_id, cl.well_num] for
-                                 cl in cell_lines], columns=('plate',
-                                                             'well'))
 
     drugs = list(WellDrug.objects.filter(well_id__in=well_ids,
-                                         drug__in=drug_ids).select_related(
-        'drug').order_by('drug', 'well__plate_id', 'well__well_num'))
+                                         drug=drug_id).select_related(
+        'drug', 'well').order_by('well__plate_id', 'well__well_num'))
 
-    drug_name = None
-    control_name = None
-    for dr in drugs:
-        if dr.drug_id == drug_id:
-            drug_name = dr.drug.name
-        if dr.drug_id == control:
-            control_name = dr.drug.name
-        if control_name and drug_name:
-            break
+    if not drugs:
+        raise NoDataException()
 
-    drug_df = pd.DataFrame([[dr.well.plate_id,
+    drug_name = drugs[0].drug.name
+
+    if control is not None:
+        control_data = list(WellDrug.objects.filter(
+            well_id__in=well_ids,
+            well__plate_id__in=[dr.well.plate_id for dr in drugs],
+            drug_id=control
+        ).select_related('drug').order_by(
+            'well__plate_id', 'well__well_num'))
+        if not control_data:
+            raise NoDataException()
+        control_name = control_data[0].drug.name
+        drugs.extend(control_data)
+    else:
+        control_name = None
+
+    drug_cl_intersection = pd.DataFrame([[dr.well.plate_id,
                              dr.well.well_num,
                              dr.drug_id,
                              dr.dose] for
@@ -90,13 +92,9 @@ def df_single_cl_drug(dataset_id, cell_line_id, drug_id, assay, control=None,
                                                     'drug',
                                                     'dose'))
 
-    # Combine drugs and cell lines to get the relevant plates and wells
-    drug_cl_intersection = pd.merge(cell_line_df, drug_df, how='inner',
-                                    on=('plate', 'well'))
-
     # Get the assay values
     vals = pd.DataFrame(list(WellMeasurement.objects.filter(
-        well_id__in=well_ids, assay=assay).order_by(
+        well_id__in=[dr.well_id for dr in drugs], assay=assay).order_by(
         'timepoint', 'well__plate_id', 'well__well_num').\
         values_list('timepoint', 'well__plate_id', 'well__well_num', 'value')),
                         columns=('time', 'plate', 'well', 'value'))
