@@ -4,6 +4,7 @@ import functools
 from django.db.models import Q, Count
 import operator
 import numpy as np
+import scipy.stats
 from datetime import timedelta
 
 
@@ -57,8 +58,8 @@ def df_single_cl_drug(user_id, dataset_id, cell_line_id, drug_id, assay,
 
     drugs = list(WellDrug.objects.filter(
         drug_id__in=drug_ids, well__plate__in=plate_id_query).select_related(
-        'drug', 'well', 'well__cell_line').order_by('well__plate_id',
-                                            'well__well_num'))
+        'drug', 'well', 'well__cell_line').order_by(
+        'well__plate_id', 'well__well_num'))
 
     if not drugs:
         raise NoDataException()
@@ -103,6 +104,7 @@ def df_single_cl_drug(user_id, dataset_id, cell_line_id, drug_id, assay,
     if main_vals.shape[0] == 0:
         raise NoDataException
 
+    t0_extrapolated = False
     if control is not None:
         if normalize_as == 'dr':
             ctrl_means = df_all.loc[control].groupby(
@@ -113,6 +115,12 @@ def df_single_cl_drug(user_id, dataset_id, cell_line_id, drug_id, assay,
                                     (df_all.index.get_level_values('time') ==
                                     TIME_0)].\
                 groupby(level='plate').mean()['value']
+            if ctrl_means.shape[0] == 0:
+                # No time zero; extrapolate using exp growth model
+                t0_extrapolated = True
+                ctrl_means = df_all.loc[
+                    (df_all.index.get_level_values('drug') == control),
+                    'value'].groupby(level=['plate']).agg(extrapolate_time0)
         else:
             raise Exception('Invalid normalize_as value: ' + normalize_as)
 
@@ -143,4 +151,12 @@ def df_single_cl_drug(user_id, dataset_id, cell_line_id, drug_id, assay,
             'assay_name': assay,
             'control_name': control_name,
             'drug_name': drug_name,
-            'cell_line_name': cell_line_name}
+            'cell_line_name': cell_line_name,
+            't0_extrapolated': t0_extrapolated}
+
+
+def extrapolate_time0(dat):
+    means = dat.groupby(level=['time']).mean()
+    return 2**scipy.stats.linregress(
+        [t.item() for t in means.index.values],
+        np.log2(list(means))).intercept

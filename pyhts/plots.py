@@ -9,7 +9,7 @@ from .helpers import format_dose
 
 
 def plot_dose_response(df, log2=False, assay_name='Assay',
-                       control_name=None, title=None):
+                       control_name=None, title=None, **kwargs):
     # Dataframe with time point as index
     traces = []
 
@@ -115,7 +115,7 @@ def plot_dose_response(df, log2=False, assay_name='Assay',
 
 
 def plot_dose_response_3d(df, log2=False, assay_name='Assay',
-                          control_name=None, title=None):
+                          control_name=None, title=None, **kwargs):
 
     data_matrix = df['mean'].unstack()
     # Convert nanoseconds to hours
@@ -166,7 +166,7 @@ def plot_dose_response_3d(df, log2=False, assay_name='Assay',
 
 
 def plot_timecourse(df, log2=False, assay_name='Assay',
-                    control_name=None, title=None):
+                    control_name=None, title=None, t0_extrapolated=False):
     # Dataframe with time point as index
     traces = []
 
@@ -196,6 +196,18 @@ def plot_timecourse(df, log2=False, assay_name='Assay',
         x_var = [t / 3600e9 for t in stats.index.get_level_values(
             'time').values]
         y_var = list(stats['mean'])
+        if t0_extrapolated:
+            traces.append(go.Scatter(x=[0, x_var[0]],
+                                     y=[0 if log2 else 1, y_var[0]],
+                                     mode='lines+markers',
+                                     line={'color': this_colour,
+                                           'shape': 'spline',
+                                           'dash': 'dash'},
+                                     marker={'size': 5},
+                                     legendgroup=str(dose),
+                                     hoverinfo='skip',
+                                     showlegend=False)
+                          )
         traces.append(go.Scatter(x=x_var,
                                  y=y_var,
                                  mode='lines+markers',
@@ -203,6 +215,7 @@ def plot_timecourse(df, log2=False, assay_name='Assay',
                                        'shape': 'spline'},
                                  error_y=error_y,
                                  marker={'size': 5},
+                                 legendgroup=str(dose),
                                  name=format_dose(dose))
                      )
 

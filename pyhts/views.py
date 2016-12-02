@@ -747,6 +747,7 @@ def ajax_get_plot(request):
                    log2=dr['log2y'],
                    assay_name=assay,
                    control_name=dr['control_name'],
+                   t0_extrapolated=dr['t0_extrapolated'],
                    title='{} of {} on {} cells'.format(
                        plot_type_str,
                        dr['drug_name'],
