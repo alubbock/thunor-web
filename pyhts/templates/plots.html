@@ -183,31 +183,30 @@ $(function () {
     });
 
     pyHTS.ui.setColumns = function(numColsMd, numColsLg) {
-        var numBScolsLg = Math.round(12 / numColsLg);
-        var numBScolsMd = Math.round(12 / numColsMd);
-        $('.panel-container').removeClass('col-lg-3 col-lg-4 col-lg-6 ' +
+        var numBScolsLg = Math.round(12 / numColsLg),
+            numBScolsMd = Math.round(12 / numColsMd);
+        $(".panel-container").removeClass('col-lg-3 col-lg-4 col-lg-6 ' +
                 'col-lg-12 col-md-6 col-md-12').addClass
             ('col-lg-' + numBScolsLg + ' col-md-' + numBScolsMd);
         pyHTS.ui.resizeGraphs();
-        $('.sortable-panels').sortable('option', 'placeholder',
+        $(".sortable-panels").sortable('option', 'placeholder',
                 'panel-placeholder col-lg-' + numBScolsLg +
                 ' col-md-' + numBScolsMd);
-        $('#hts-current-num-cols-lg').text(numColsLg + ' column' +
-                (numColsLg > 1 ? 's': ''));
-        $('#hts-current-num-cols-md').text(numColsMd + ' column' +
+        $("#hts-current-num-cols-lg").text(numColsLg + ' column' +
+                (numColsLg > 1 ? 's' : ''));
+        $("#hts-current-num-cols-md").text(numColsMd + ' column' +
                 (numColsMd > 1 ? 's' : ''));
     };
 
     pyHTS.ui.resizeGraphs = function() {
-        $('.plotly-graph-div').each(function(i, obj) {
-          Plotly.Plots.resize($(obj)[0]);
+        $(".plotly-graph-div").each(function(i, obj) {
+          Plotly.Plots.resize(obj);
         });
     };
 
     $(window).resize(function() {
         clearTimeout($.data(this, 'resizeTimer'));
         $.data(this, 'resizeTimer', setTimeout(function() {
-            //do something
             pyHTS.ui.resizeGraphs();
         }, 200));
     });

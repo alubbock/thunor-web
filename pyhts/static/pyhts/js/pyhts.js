@@ -81,7 +81,7 @@ pyHTS.util.deepEqual = function (x, y) {
 // extends indexOf to search for an array within an array
 pyHTS.util.indexOf = function(needle, haystack) {
     if($.isArray(needle)) {
-        for(var j=0; j<haystack.length; j++) {
+        for(var j=0, len=haystack.length; j<len; j++) {
             if(pyHTS.util.deepEqual(needle, haystack[j])) {
                 return j;
             }
@@ -114,7 +114,7 @@ pyHTS.util.doseFormatter = function(dose) {
     if(dose === undefined) return "None";
     var doseMultiplier = 1;
     var doseSuffix = "";
-    for(var i=0; i<pyHTS.util.doseUnits.length; i++) {
+    for(var i=0, len=pyHTS.util.doseUnits.length; i<len; i++) {
         if(dose >= pyHTS.util.doseUnits[i][0]) {
             doseMultiplier = pyHTS.util.doseUnits[i][0];
             doseSuffix = pyHTS.util.doseUnits[i][1];
@@ -134,7 +134,7 @@ pyHTS.util.doseSplitter = function(dose) {
     if(dose === undefined) return [null, null];
     var doseMultiplier = 1;
     var doseSuffix = "";
-    for(var i=0; i<pyHTS.util.doseUnits.length; i++) {
+    for(var i=0, len=pyHTS.util.doseUnits.length; i<len; i++) {
         if(dose >= pyHTS.util.doseUnits[i][0]) {
             doseMultiplier = pyHTS.util.doseUnits[i][0];
             doseSuffix = pyHTS.util.doseUnits[i][1];
@@ -150,16 +150,14 @@ pyHTS.util.doseParser = function(dose) {
     if(doseParts[1] === undefined)
         return doseParts[0];
     if(doseParts[1].length == 2) {
-        for(var i=0; i<pyHTS.util.doseUnits.length; i++) {
+        for(var i=0, len=pyHTS.util.doseUnits.length; i<len; i++) {
             if(doseParts[1][0] == pyHTS.util.doseUnits[i][1]) {
                 multiplier = pyHTS.util.doseUnits[i][0];
                 break;
             }
         }
     }
-    var val = parseFloat(doseParts[0]) * multiplier;
-    // console.log(dose + " parsed as " + val);
-    return val;
+    return parseFloat(doseParts[0]) * multiplier;
 };
 
 pyHTS.util.doseSorter = {
@@ -172,8 +170,8 @@ pyHTS.util.doseSorter = {
 
 pyHTS.util.filterObjectsAttr = function(name, dataSource,
                                         searchAttribute, returnAttribute) {
-    for(var i=0; i<dataSource.length; i++) {
-        if(dataSource[i][searchAttribute] == name) {
+    for(var i=0, len=dataSource.length; i<len; i++) {
+        if(dataSource[i][searchAttribute] === name) {
             return dataSource[i][returnAttribute];
         }
     }
@@ -185,7 +183,7 @@ pyHTS.util.hasDuplicates = function(array, ignoreNull) {
         ignoreNull = true;
     }
     var valuesSoFar = Object.create(null);
-    for (var i = 0; i < array.length; i++) {
+    for (var i=0, len=array.length; i<len; i++) {
         var value = array[i];
         if(value == null && ignoreNull) continue;
         if (value in valuesSoFar) {
@@ -251,7 +249,7 @@ pyHTS.classes.PlateMap = function(plateId, numRows, numCols, wells) {
     this.numRows = numRows;
     this.numCols = numCols;
     this.wells = [];
-    for (var w = 0; w < (numRows * numCols); w++) {
+    for (var w=0, len=(numRows*numCols); w<len; w++) {
         this.wells.push(wells === undefined ?
             new pyHTS.classes.Well() : new pyHTS.classes.Well(wells[w]));
         this.wells[w].setUnsavedChanges = this.setUnsavedChanges.bind(this);
@@ -271,7 +269,7 @@ pyHTS.classes.PlateMap.prototype = {
         var newWellIds = [],
             maxWell = this.wells.length,
             colNums = this.wellNumsToColNums(wellIds);
-        for(var w=0; w<wellIds.length; w++) {
+        for(var w=0, len=wellIds.length; w<len; w++) {
             if(!inRowDirection) {
                 // check we don't overflow column
                 if((colNums[w] + moveStep < 0) ||
@@ -298,7 +296,7 @@ pyHTS.classes.PlateMap.prototype = {
     getUsedEntries: function(entry_list) {
         var usedEntries = [];
 
-        for(var i=0; i<this.wells.length; i++) {
+        for(var i=0, len=this.wells.length; i<len; i++) {
             var ent = this.wells[i][entry_list];
             if (ent == null) {
                continue;
@@ -308,7 +306,7 @@ pyHTS.classes.PlateMap.prototype = {
                     continue;
             }
 
-            if(pyHTS.util.indexOf(ent, usedEntries) == -1) {
+            if(pyHTS.util.indexOf(ent, usedEntries) === -1) {
                 usedEntries.push(ent);
             }
         }
@@ -328,7 +326,7 @@ pyHTS.classes.PlateMap.prototype = {
     },
     maxDrugsDosesUsed: function() {
         var maxUsed = 0;
-        for(var i=0; i<this.wells.length; i++) {
+        for(var i=0, len=this.wells.length; i<len; i++) {
             var numDrugsUsed = 0, numDosesUsed = 0;
             if(this.wells[i].drugs != null) numDrugsUsed =  this.wells[i].drugs.length;
             if(this.wells[i].doses != null) numDosesUsed =  this.wells[i].doses.length;
@@ -352,21 +350,21 @@ pyHTS.classes.PlateMap.prototype = {
     },
     wellNumsToRowNums: function(wellNums) {
         var rowNums = [];
-        for(var w=0; w<wellNums.length; w++) {
+        for(var w=0, len=wellNums.length; w<len; w++) {
             rowNums.push(Math.floor(wellNums[w] / this.numCols));
         }
         return rowNums;
     },
     wellNumsToColNums: function(wellNums) {
         var colNums = [];
-        for(var w=0; w<wellNums.length; w++) {
+        for(var w=0, len=wellNums.length; w<len; w++) {
             colNums.push(wellNums[w] % this.numCols);
         }
         return colNums;
     },
     asDataTable: function() {
         var wells = [];
-        for(var w=0; w<this.wells.length; w++) {
+        for(var w=0, len=this.wells.length; w<len; w++) {
             wells.push([
                this.wellNumToName(w, true),
                pyHTS.util.filterObjectsAttr(this.wells[w].cellLine,
@@ -384,7 +382,7 @@ pyHTS.classes.PlateMap.prototype = {
         return this.allCellLinesEmpty() && this.allDrugsEmpty() && this.allDosesEmpty();
     },
     allCellLinesEmpty: function() {
-        for(var w=0; w<this.wells.length; w++) {
+        for(var w=0, len=this.wells.length; w<len; w++) {
             if(this.wells[w].cellLine != null) {
                 return false;
             }
@@ -392,7 +390,7 @@ pyHTS.classes.PlateMap.prototype = {
         return true;
     },
     allDrugsEmpty: function() {
-        for(var w=0; w<this.wells.length; w++) {
+        for(var w=0, len=this.wells.length; w<len; w++) {
             var well = this.wells[w];
             if(well.drugs != null && well.drugs.length > 0) {
                 return false;
@@ -401,7 +399,7 @@ pyHTS.classes.PlateMap.prototype = {
         return true;
     },
     allDosesEmpty: function() {
-        for(var w=0; w<this.wells.length; w++) {
+        for(var w=0, len=this.wells.length; w<len; w++) {
             var well = this.wells[w];
             if(well.doses != null && well.doses.length > 0) {
                 return false;
@@ -410,9 +408,10 @@ pyHTS.classes.PlateMap.prototype = {
         return true;
     },
     readableWells: function(wellIds) {
-        if(wellIds == null || wellIds.length == 0) {
+        var wellIdsLen = wellIds.length;
+        if(wellIds == null || wellIdsLen === 0) {
             return "No wells";
-        } else if(wellIds.length == 1) {
+        } else if(wellIdsLen === 1) {
             return this.wellNumToName(wellIds[0]);
         }
         wellIds.sort(function(a,b){return a - b;});
@@ -422,10 +421,10 @@ pyHTS.classes.PlateMap.prototype = {
             rowNums = this.wellNumsToRowNums(wellIds),
             colNums = this.wellNumsToColNums(wellIds),
             contigStart = wellIds[0];
-        for(var w=0; w<wellIds.length; w++) {
+        for(var w=0; w<wellIdsLen; w++) {
             if(colNums[w] != (colNums[w+1] - 1) ||
                rowNums[w] != rowNums[w+1] ||
-               w == (wellIds.length - 1)) {
+               w === (wellIdsLen - 1)) {
                 var wellStr = this.wellNumToName(contigStart);
                 if ((w - wellIds.indexOf(contigStart)) > 0) {
                     wellStr += "\u2014" + this.colNumToName(colNums[w]);
@@ -441,7 +440,7 @@ pyHTS.classes.PlateMap.prototype = {
             wellsWithDuplicateDrug = [], wellsWithDrugButNoCellLine = [],
             errors=[];
 
-        for(var w=0; w<this.wells.length; w++) {
+        for(var w=0, len=this.wells.length; w<len; w++) {
             var well = this.wells[w];
 
             var numDrugs = well.drugs == null ? 0 : well.drugs.length;

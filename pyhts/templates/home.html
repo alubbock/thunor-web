@@ -41,7 +41,6 @@ $(function() {
         "columnDefs": [
             {"targets": 0, "data": "name", "render": {
                 "display": function( data, type, full, meta ) {
-                    console.log(full);
                     return '<a href="/dataset/'+full.id+'">'+full.name+'</a>';
                 }
             }},
