@@ -241,9 +241,9 @@ $(function () {
     };
 
     // Add new panel
-    $('.new-plot-btn').click(function() {
+    $('.new-plot-btn').click(function(eNewPlot) {
         var $newPanel = $('.panel-container:last').clone(true);
-        var dat = $(this).data();
+        var dat = $(eNewPlot.currentTarget).data();
         $newPanel.find('.panel').data(dat);
 
         var $dataPanel = $('.hts-change-data:last').clone();
@@ -278,12 +278,15 @@ $(function () {
 
         $dataPanel.find('select').selectpicker();
         $dataPanel.find('form').submit(function (e) {
+           var $this = $(e.currentTarget),
+               $submit = $this.find('button[type=submit]');
            e.preventDefault();
-           $.each($(this).serializeArray(), function(i, ele) {
+           $.each($this.serializeArray(), function(i, ele) {
               $newPanel.data(ele.name, ele.value);
            });
+           $submit.prop('disabled', true).text('Loading...');
            $.ajax({
-              url: '/ajax/plot/?'+$(this).serialize(),
+              url: '/ajax/plot/?'+$this.serialize(),
               type: 'GET',
               dataType: 'html',
               success: function(data) {
@@ -292,10 +295,13 @@ $(function () {
                   $panelBody.append(data);
                   $dataPanel.slideUp();
               },
-              error: pyHTS.ajax.ajaxErrorCallback
+              error: pyHTS.ajax.ajaxErrorCallback,
+              complete: function() {
+                  $submit.prop('disabled', false).text('Submit');
+              }
            });
         }).find('input[type=hidden]').each(function(i, obj) {
-            $(this).val(dat[$(this).attr('name')]);
+            $(obj).val(dat[$(obj).attr('name')]);
         });
         $dataPanel.prependTo(
             $newPanel.find('.panel-body')
@@ -308,8 +314,9 @@ $(function () {
     });
 
     // Change data panel
-    $('.hts-change-data-btn').click(function() {
-        $(this).closest('.panel').find('.hts-change-data').slideToggle();
+    $('.hts-change-data-btn').click(function(e) {
+        $(e.currentTarget).closest('.panel').find('.hts-change-data')
+            .slideToggle();
     });
 });
 </script>
