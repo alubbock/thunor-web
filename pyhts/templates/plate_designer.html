@@ -418,7 +418,7 @@ $(function () {
     };
 
     {# Plate selector #}
-    $('#hts-plate-list li').click(function(e) {
+    $("#hts-plate-list").find("li").click(function(e) {
         e.preventDefault();
 
         // Load the plate map
@@ -489,13 +489,6 @@ $(function () {
                      .css('padding-bottom', wellWidthPercent);
         $('#selectable-well-rows').css('width', wellWidthPercent);
 
-        $('#legend-cell-lines').find('ol').remove();
-        $('#legend-drugs').find('ol').remove();
-        $('#legend-doses').find('ol').remove();
-        pyHTS.cell_lines_used = [];
-        pyHTS.drugs_used = [];
-        pyHTS.doses_used = [];
-
         // refresh the legend and well CSS classes
         refreshLegend(selectedWells, wellIds, 'cell-line');
         refreshLegend(selectedWells, wellIds, 'drug');
@@ -503,10 +496,12 @@ $(function () {
     };
 
     var refreshLegend = function(selectedWells, wellIds, data_type) {
-        var oldLegendEntries, newLegendEntries;
-        var oldLegendEntriesDescriptor = data_type.replace(/-/g, '_') +
-                's_used';
-        oldLegendEntries = pyHTS[oldLegendEntriesDescriptor];
+        var newLegendEntries,
+            oldLegendEntriesDescriptor = data_type.replace(/-/g, '_') +
+                's_used',
+            oldLegendEntries = pyHTS[oldLegendEntriesDescriptor],
+            i;
+
         if(data_type == 'cell-line') {
             newLegendEntries = pyHTS.plateMap.getUsedCellLines();
         } else if (data_type == 'drug') {
@@ -517,27 +512,32 @@ $(function () {
         //compare old with new (this could be done more efficiently - this
         //scans the arrays twice)
         var removed = pyHTS.util.arrayDiffPositions(oldLegendEntries,
-                newLegendEntries);
-        var added = pyHTS.util.arrayDiffPositions(newLegendEntries, oldLegendEntries);
+                newLegendEntries),
+            added = pyHTS.util.arrayDiffPositions(newLegendEntries,
+                oldLegendEntries),
+            removedLen = removed.length,
+            addedLen = added.length;
 
-        var elsToRemove = [];
-        $.each(removed, function(i, key) {
-            oldLegendEntries[key] = null;
-            elsToRemove.push('#legend-'+data_type+'s .well-legend:eq('+key+')');
-        });
-        if(removed.length > 0) {
-            $(elsToRemove.join(', ')).remove();
+        var $legendBlock = $('#legend-'+data_type+'s');
+        $legendBlock.find('.well-legend').filter(function(i, ele) {
+            return $.inArray($(ele).data('insertPos'), removed) !== -1;
+        }).remove();
+        for(i=0; i<removedLen; i++) {
+            oldLegendEntries[removed[i]] = null;
         }
 
-        $.each(added, function(i, key) {
-            var arrayInsertPos = oldLegendEntries.length;
-            var unusedArrayPos = $.inArray(null, oldLegendEntries);
+        if(addedLen > 0) {
+            var $baseLegendItem = $('.well-legend').first();
+        }
+        for(i=0; i<addedLen; i++) {
+            var arrayInsertPos = oldLegendEntries.length,
+                unusedArrayPos = $.inArray(null, oldLegendEntries);
             if(unusedArrayPos >= 0) {
                 //reuse a deleted legend colour
                 arrayInsertPos = unusedArrayPos;
             }
 
-            var newArrayEntry = newLegendEntries[key];
+            var newArrayEntry = newLegendEntries[added[i]];
             if($.isArray(newArrayEntry)) {
                 newArrayEntry = newArrayEntry.slice();
             }
@@ -545,7 +545,7 @@ $(function () {
 
             // Update the legend
             var n = arrayInsertPos % pyHTS.num_css_unique_colours;
-            var lgnd = $('.well-legend:first').clone();
+            var $lgnd = $baseLegendItem.clone().data('insertPos', arrayInsertPos);
             var legendText;
             if(data_type == 'cell-line') {
                 legendText = pyHTS.util.filterObjectsAttr(newArrayEntry,
@@ -560,37 +560,39 @@ $(function () {
                         .join(' & ');
             }
 
-            $(lgnd).children('li').addClass('hts-'+data_type+'-'+n);
-            $(lgnd).find('.legend-label').text(legendText);
-            $(lgnd).appendTo('#legend-'+data_type+'s');
-        });
+            $lgnd.children('li').addClass('hts-'+data_type+'-'+n);
+            $lgnd.find('.legend-label').text(legendText);
+            $legendBlock.append($lgnd);
+        }
 
-        if(added.length > 0 || removed.length > 0) {
+        if(addedLen > 0 || removedLen > 0) {
             pyHTS[oldLegendEntriesDescriptor] = oldLegendEntries;
         }
 
         // Update the wells
         selectedWells.each(function(i, ele) {
-            var wellId = wellIds[i];
-            for(var n = 0; n < pyHTS.num_css_unique_colours; n++) {
-                $(ele).removeClass('hts-' + data_type + '-' + n);
+            var well = pyHTS.plateMap.wells[wellIds[i]],
+                $ele = $(ele),
+                this_value,
+                n;
+            for(n = 0; n < pyHTS.num_css_unique_colours; n++) {
+                $ele.removeClass('hts-' + data_type + '-' + n);
             }
-            var this_value;
             if (data_type == "cell-line") {
-                this_value = pyHTS.plateMap.wells[wellId].cellLine;
+                this_value = well.cellLine;
             } else if (data_type == "drug") {
-                this_value = pyHTS.plateMap.wells[wellId].drugs;
+                this_value = well.drugs;
             } else if (data_type == "dose") {
-                this_value = pyHTS.plateMap.wells[wellId].doses;
+                this_value = well.doses;
             }
             if(this_value == null || this_value.length == 0) {
-                $(ele).removeClass('hts-' + data_type);
+                $ele.removeClass('hts-' + data_type);
             } else {
                 var loc = pyHTS.util.indexOf(this_value,
                         pyHTS[oldLegendEntriesDescriptor]);
                 if(loc >= 0) {
-                    var n = loc % pyHTS.num_css_unique_colours;
-                    $(ele).addClass('hts-' + data_type + '-' + n)
+                    n = loc % pyHTS.num_css_unique_colours;
+                    $ele.addClass('hts-' + data_type + '-' + n)
                             .addClass('hts-' + data_type);
                 }
             }
@@ -660,7 +662,7 @@ $(function () {
         // Check that the cell line exists
         var createEntityCallback = function() {
             $(caller).focus();
-            submitToWells(caller)
+            submitToWells(caller);
         };
         var $cellLineTypeahead = $('#cellline-typeahead');
         var cl = $cellLineTypeahead.typeahead('val');
@@ -791,13 +793,13 @@ $(function () {
         create_typeahead('.hts-drug-typeahead:last',
                 pyHTS.util.getAttributeFromObjects(pyHTS.drugs, 'name'));
 
-        $('.hts-dose-input:last').keyup(function (e) {
+        $('.hts-dose-input').last().keyup(function (e) {
             if (e.which == 13) {
                 submitToWells(this);
             }
         });
 
-        $('.hts-dose-select:last li').click(function (e) {
+        $('.hts-dose-select').find('li').click(function (e) {
             e.preventDefault();
             $(this).closest('.input-group-btn').find('.hts-active-dose-unit')
                     .data('dose', $(this).data('dose')).text($(this).text());
@@ -806,10 +808,10 @@ $(function () {
     activateDrugInputs();
 
     pyHTS.ui.addDrugInput = function() {
-        var orig_el = $('.hts-drug-entry:last');
-        var new_el = orig_el.clone(true, false);
+        var orig_el = $('.hts-drug-entry').last(),
+            new_el = orig_el.clone(true, false);
         new_el.data().drugNum++;
-        new_el.find('.hts-drug-num:last').text(function (i, val) {
+        new_el.find('.hts-drug-num').last().text(function (i, val) {
             return +val + 1;
         });
         new_el.insertAfter(orig_el);
@@ -873,9 +875,9 @@ $(function () {
         var $loadingIndicator = $('#hts-well-table-view')
                 .find('.loading-indicator').show();
 
+        setWellView(e, 'table');
         refreshDataTable();
 
-        setWellView(e, 'table');
         $loadingIndicator.hide();
     });
 
@@ -918,7 +920,7 @@ $(function () {
             $('.hts-dose-input').prop('disabled', true);
         }
 
-        $('#hts-well-nav li').removeClass('active');
+        $('#hts-well-nav').find('li').removeClass('active');
         $('#hts-well-'+view).addClass('active');
         $('#selectable-wells,#hts-legend-container')
                 .removeClass('hts-overview hts-celllines hts-drugs hts-doses' +
@@ -1167,9 +1169,9 @@ $(function () {
     // Mouseovers
     $('#selectable-wells').find('.hts-well').mouseenter(function(e) {
         var well = $(this).data('well'),
-                wellData = pyHTS.plateMap.wells[well],
-                i,
-                len;
+            wellData = pyHTS.plateMap.wells[well],
+            i,
+            len;
         if(wellData == null) return;
         $('#cellline-typeahead').attr('placeholder',
                 wellData.cellLine == null ? '' :
@@ -1307,8 +1309,9 @@ $(function () {
     };
 
     var setPlate = function(plateId, templateId, noValidation) {
-        var $currentPlate = $('#hts-current-plate');
-        var currentId = $currentPlate.data('id');
+        var $currentPlate = $('#hts-current-plate'),
+            $plateList = $("hts-plate-list"),
+            currentId = $currentPlate.data('id');
 
         if(currentId != 'MASTER') {
             if(noValidation !== true) {
@@ -1344,13 +1347,13 @@ $(function () {
         }
 
         // update the dropdown
-        var $plateEl = $('#hts-plate-list').find('li[data-id='+plateId+']');
+        var $plateEl = $plateList.find('li[data-id='+plateId+']');
         if(plateId == 'MASTER') {
             $plateEl = $plateEl.filter('[data-template='+templateId+']');
         }
         var plateName = $plateEl.find('a').text();
         $currentPlate.data('id', plateId).text(plateName);
-        $('#hts-plate-list').find('li').removeClass('active');
+        $plateList.find('li').removeClass('active');
         $plateEl.addClass('active');
         // update the UI
         if (plateId == 'MASTER') {
