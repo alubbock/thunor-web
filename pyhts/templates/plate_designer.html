@@ -293,7 +293,7 @@
 {% endblock %}
 
 {% block tailscript %}
-<script src="//code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<script src="//code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
 <script src="{% static 'vendor/touchpunch/touchpunch.js' %}"></script>
 <script src="{% static 'vendor/typeahead/typeahead.js' %}"></script>
 <script src="{% static 'vendor/datatables/js/jquery.dataTables.min.js' %}">
@@ -599,14 +599,13 @@ $(function () {
         });
     };
 
-    var create_typeahead = function($input, dataSource) {
+    var createTypeahead = function($input, dataSource) {
         $($input).typeahead({
                     hint: true,
                     highlight: true,
                     minLength: 1
                 },
                 {
-{#                    name: name,#}
                     source: pyHTS.util.substringMatcher(dataSource)
                 }).keyup(function (e) {
             if (e.which == 13) {
@@ -614,7 +613,7 @@ $(function () {
             }
         });
     };
-    create_typeahead('#cellline-typeahead',
+    createTypeahead('#cellline-typeahead',
             pyHTS.util.getAttributeFromObjects(pyHTS.cell_lines, 'name'));
 
     var submitToWells = function(caller) {
@@ -790,7 +789,7 @@ $(function () {
     };
 
     var activateDrugInputs = function() {
-        create_typeahead('.hts-drug-typeahead:last',
+        createTypeahead('.hts-drug-typeahead:last',
                 pyHTS.util.getAttributeFromObjects(pyHTS.drugs, 'name'));
 
         $('.hts-dose-input').last().keyup(function (e) {
@@ -1310,7 +1309,7 @@ $(function () {
 
     var setPlate = function(plateId, templateId, noValidation) {
         var $currentPlate = $('#hts-current-plate'),
-            $plateList = $("hts-plate-list"),
+            $plateList = $("#hts-plate-list"),
             currentId = $currentPlate.data('id');
 
         if(currentId != 'MASTER') {

@@ -1,3 +1,8 @@
+/*!
+ * Thunor pyhts.js
+ * Copyright 2016 Alex Lubbock
+ */
+
 window.pyHTS = {
     csrfToken: null,
 

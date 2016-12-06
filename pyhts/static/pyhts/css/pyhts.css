@@ -11,7 +11,7 @@ body {
 }
 #page-wrapper {
   padding: 0 15px;
-  min-height: 568px;
+  min-height: 600px;
   background-color: white;
 }
 @media (min-width: 768px) {
@@ -21,15 +21,41 @@ body {
     padding: 0 30px;
     border-left: 1px solid #e7e7e7;
   }
+    .navbar-nav > li {
+        float: none;
+    }
+}
+.navbar-default .navbar-nav>.open>a, .navbar-default .navbar-nav>.open>a:focus, .navbar-default .navbar-nav>.open>a:hover {
+    color: #fff;
+}
+.navbar-default .navbar-nav>li>a {
+    background-color: #022559;
+    color: #fff;
+}
+.navbar-default .navbar-nav>li>a:focus, .navbar-default .navbar-nav>li>a:hover, .navbar-default .navbar-nav>.open>a, .navbar-default .navbar-nav>.open>a:focus, .navbar-default .navbar-nav>.open>a:hover {
+    background-color:#337ab7;
+    color: #fff;
+}
+.dropdown-menu>li>a:focus, .dropdown-menu>li>a:hover {
+    background-color:#337ab7;
+    color: #fff;
+}
+@media (max-width: 767px) {
+    .navbar-default .navbar-nav .open .dropdown-menu > li > a:focus, .navbar-default .navbar-nav .open .dropdown-menu > li > a:hover {
+        color: #fff;
+        background-color:#337ab7;
+    }
 }
 .navbar-top-links {
-  margin-right: 0;
+    margin-right: 0;
 }
 .navbar-top-links li {
   display: inline-block;
 }
-.navbar-top-links li:last-child {
-  margin-right: 15px;
+@media (min-width: 768px) {
+    .navbar-top-links li:last-child {
+        margin-right: 15px;
+    }
 }
 .navbar-top-links li a {
   padding: 15px;
@@ -48,69 +74,13 @@ body {
 .navbar-top-links .dropdown-menu li a div {
   white-space: normal;
 }
-.navbar-top-links .dropdown-messages,
-.navbar-top-links .dropdown-tasks,
-.navbar-top-links .dropdown-alerts {
-  width: 310px;
-  min-width: 0;
-}
-.navbar-top-links .dropdown-messages {
-  margin-left: 5px;
-}
-.navbar-top-links .dropdown-tasks {
-  margin-left: -59px;
-}
-.navbar-top-links .dropdown-alerts {
-  margin-left: -123px;
-}
-.navbar-top-links .dropdown-user {
-  right: 0;
-  left: auto;
-}
-.sidebar .sidebar-nav.navbar-collapse {
-  padding-left: 0;
-  padding-right: 0;
-}
-.sidebar .sidebar-search {
-  padding: 15px;
-}
-.sidebar ul li {
-  border-bottom: 1px solid #e7e7e7;
-}
-.sidebar ul li a.active {
-  background-color: #eeeeee;
-}
-.sidebar .arrow {
-  float: right;
-}
-.sidebar .fa.arrow:before {
-  content: "\f104";
-}
-.sidebar .active > a > .fa.arrow:before {
-  content: "\f107";
-}
-.sidebar .nav-second-level li,
-.sidebar .nav-third-level li {
-  border-bottom: none !important;
-}
-.sidebar .nav-second-level li a {
-  padding-left: 37px;
-}
-.sidebar .nav-third-level li a {
-  padding-left: 52px;
-}
-@media (min-width: 768px) {
-  .sidebar {
-    z-index: 1;
-    position: absolute;
-    width: 250px;
-    margin-top: 51px;
-  }
-  .navbar-top-links .dropdown-messages,
-  .navbar-top-links .dropdown-tasks,
-  .navbar-top-links .dropdown-alerts {
-    margin-left: auto;
-  }
+@media (max-width: 767px) {
+    .navbar-default li {
+        width: 100%;
+    }
+    .navbar-default .navbar-nav .open .dropdown-menu>li>a {
+        color: #fff;
+    }
 }
 .btn-outline {
   color: inherit;
@@ -138,44 +108,6 @@ body {
 .btn-warning.btn-outline:hover,
 .btn-danger.btn-outline:hover {
   color: white;
-}
-.chat {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.chat li {
-  margin-bottom: 10px;
-  padding-bottom: 5px;
-  border-bottom: 1px dotted #999999;
-}
-.chat li.left .chat-body {
-  margin-left: 60px;
-}
-.chat li.right .chat-body {
-  margin-right: 60px;
-}
-.chat li .chat-body p {
-  margin: 0;
-}
-.panel .slidedown .glyphicon,
-.chat .glyphicon {
-  margin-right: 5px;
-}
-.chat-panel .panel-body {
-  height: 350px;
-  overflow-y: scroll;
-}
-.login-panel {
-  margin-top: 25%;
-}
-.flot-chart {
-  display: block;
-  height: 400px;
-}
-.flot-chart-content {
-  width: 100%;
-  height: 100%;
 }
 table.dataTable thead .sorting,
 table.dataTable thead .sorting_asc,
@@ -237,6 +169,11 @@ table.dataTable thead .sorting:after {
 .huge {
   font-size: 40px;
 }
+@media (min-width: 768px) {
+    .jumbotron {
+        border-radius: 6px;
+    }
+}
 .jumbotron .fa-bolt {
   font-size: 126px;
   margin-top: 20px;
@@ -248,7 +185,7 @@ table.dataTable thead .sorting:after {
   background-color: #022559;
   color: #fff;
 }
-.navbar-default, .nav > li > a:focus, .navbar-default > li > a:hover {
+.navbar-default {
   background-color: #022559;
   color: #fff;
 }
@@ -258,10 +195,10 @@ table.dataTable thead .sorting:after {
 .navbar-default .navbar-brand:hover, .navbar-default .navbar-brand:focus {
   color: #4e8dc4;
 }
-.navbar-default .dropdown-toggle:hover,
-.nav .open > a, .nav .open > a:focus, .nav .open > a:hover {
-  background-color: #2e6da4;
-}
+/*.navbar-default .dropdown-toggle:hover,*/
+/*.nav .open > a, .nav .open > a:focus, .nav .open > a:hover {*/
+  /*background-color: #2e6da4;*/
+/*}*/
 .messages {
   margin-top:20px;
 }

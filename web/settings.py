@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'allauth.account',
     'invitations',
     'crispy_forms',
+    'webpack_loader'
 ]
 
 SITE_ID = 1
@@ -224,6 +225,17 @@ CRISPY_TEMPLATE_PACK = 'bootstrap3'
 # https://docs.djangoproject.com/en/1.10/howto/static-files/
 
 STATIC_URL = os.environ.get('DJANGO_STATIC_URL', '/static/')
+STATICFILES_DIR = (os.path.join(STATE_DIR, 'thunor-static-files'), )
+WEBPACK_LOADER = {
+    'DEFAULT': {
+        'CACHE': not DEBUG,
+        'BUNDLE_DIR_NAME': 'bundles/',
+        'STATS_FILE': os.path.join(BASE_DIR, 'pyhts/static/webpack-stats.json'),
+        'POLL_INTERVAL': 0.1,
+        'TIMEOUT': None,
+        'IGNORE': ['.+\.map']
+    }
+}
 
 MEDIA_ROOT = os.environ.get('DJANGO_MEDIA_ROOT', os.path.join(STATE_DIR,
                                                               'thunor-files'))
