@@ -461,6 +461,16 @@ user-select: none;}
        #bbb 10px, #bbb 20px
     );
 }
+#plot-toolbar {
+    margin: 10px 0;
+}
+#plot-toolbar .dropdown-menu {
+    z-index: 2000;
+}
+#hts-num-cols-lg, #hts-num-cols-md {
+    float:left;
+    margin-right:10px;
+}
 @media (max-width: 1199px) {
     #hts-num-cols-md { display: block; }
     #hts-num-cols-lg { display: none; }

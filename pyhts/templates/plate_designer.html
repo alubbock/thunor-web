@@ -285,22 +285,7 @@
 {% endif %}
 {% endblock %}
 
-{% load static %}
-{% load pyhts_tags %}
-{% block stylesheets %}
-    <link rel="stylesheet" href="{% static 'vendor/datatables/css/dataTables.bootstrap.min.css' %}">
-    <link rel="stylesheet" href="{% static 'vendor/bootstrap-select/css/bootstrap-select.min.css' %}">
-{% endblock %}
-
 {% block tailscript %}
-<script src="//code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
-<script src="{% static 'vendor/touchpunch/touchpunch.js' %}"></script>
-<script src="{% static 'vendor/typeahead/typeahead.js' %}"></script>
-<script src="{% static 'vendor/datatables/js/jquery.dataTables.min.js' %}">
-</script>
-<script src="{% static 'vendor/datatables/js/dataTables.bootstrap.min.js' %}">
-</script>
-<script src="{% static 'vendor/bootstrap-select/js/bootstrap-select.min.js' %}"></script>
 <script>
 $(function () {
     'use strict';
@@ -363,7 +348,7 @@ $(function () {
     };
 
     pyHTS.completeFlag = false;
-
+    {% load jsonify from pyhts_tags %}
     pyHTS.cell_lines = {{ cell_lines|jsonify }};
     pyHTS.drugs = {{ drugs|jsonify }};
 

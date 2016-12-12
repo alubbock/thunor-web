@@ -26,15 +26,8 @@
 </div>
 {% endblock %}
 
-{% load static %}
-{% block stylesheets %}
-<link rel="stylesheet" href="{% static 'vendor/datatables/css/dataTables.bootstrap.min.css' %}">
-{% endblock %}
-
 {% block tailscript %}
-<script src="{% static 'vendor/datatables/js/jquery.dataTables.min.js' %}"></script>
-<script src="{% static 'vendor/datatables/js/dataTables.bootstrap.min.js' %}"></script>
-    <script>
+<script>
 $(function() {
     $('#dataset-table').DataTable( {
         "ajax": '{% url 'pyhts:ajax_get_datasets' %}',

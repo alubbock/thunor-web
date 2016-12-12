@@ -4,10 +4,10 @@
 
 {% block titlerow %}
 <div class="row">
-    <div class="col-lg-12" role="toolbar" aria-label="Plot toolbar"
-         style="margin: 10px 0">
+    <div id="plot-toolbar" class="col-lg-12" role="toolbar" aria-label="Plot
+    toolbar">
 
-        <div id="hts-num-cols-lg" style="float:left;margin-right:10px">
+        <div id="hts-num-cols-lg">
             <label>Layout</label>
             <div class="btn-group">
 
@@ -24,7 +24,7 @@
             </div>
         </div>
 
-        <div id="hts-num-cols-md" style="float:left;margin-right:10px">
+        <div id="hts-num-cols-md">
             <label>Layout</label>
           <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
             <span id="hts-current-num-cols-md">1 column</span>
@@ -156,20 +156,10 @@ max-width:50%">
 </div>
 {% endblock %}
 
-{% load static %}
-
-{% block stylesheets %}
-<link rel="stylesheet" href="{% static 'vendor/bootstrap-select/css/bootstrap-select.min.css' %}">
-{% endblock %}
-
-{% block headscript %}
-{#<script src="{% static 'vendor/plotly/js/plotly-basic.min.js' %}"></script>#}
-<script src="{% static 'vendor/plotly/js/plotly.min.js' %}"></script>
-{% endblock %}
-
 {% block tailscript %}
-<script src="//code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
-<script src="{% static 'vendor/bootstrap-select/js/bootstrap-select.min.js' %}"></script>
+{% load webpack_loader %}
+{% render_bundle 'plots' 'js' %}
+{#<script src="//cdn.plot.ly/plotly-latest.js"></script>#}
 <script>
 $(function () {
     $(".sortable-panels").sortable({

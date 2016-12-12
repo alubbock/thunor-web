@@ -3,209 +3,190 @@
  * Copyright 2016 Alex Lubbock
  */
 
-window.pyHTS = {
-    csrfToken: null,
+var pyHTS = (function() {
+    var util = {
+        getAttributeFromObjects: function (listOfObjects, attrName) {
+            var attrList = [];
+            $.each(listOfObjects, function (index, object) {
+                attrList.push(object[attrName]);
+            });
+            return attrList;
+        },
+        substringMatcher: function (strs) {
+            return function findMatches(q, cb) {
+                // an array that will be populated with substring matches
+                var matches = [];
 
-    last_edited: null,
-    num_css_unique_colours: 25,
+                // regex used to determine if a string contains the substring `q`
+                var substrRegex = new RegExp(
+                    q.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"), "i");
 
-    plateMap: null,
-    cell_lines_used: [],
-    drugs_used: [],
-    doses_used: [],
+                // iterate through the pool of strings and for any string that
+                // contains the substring `q`, add it to the `matches` array
+                $.each(strs, function (i, str) {
+                    if (substrRegex.test(str)) {
+                        matches.push(str);
+                    }
+                });
 
-    util: {},
-    ajax: {},
-    ui: {},
-    classes: {}
-};
-
-var pyHTS = window.pyHTS;
-
-pyHTS.util.getAttributeFromObjects = function(listOfObjects, attrName) {
-    var attrList = [];
-    $.each(listOfObjects, function(index, object) {
-        attrList.push(object[attrName]);
-    });
-    return attrList;
-};
-
-pyHTS.util.substringMatcher = function(strs) {
-    return function findMatches(q, cb) {
-        // an array that will be populated with substring matches
-        var matches = [];
-
-        // regex used to determine if a string contains the substring `q`
-        var substrRegex = new RegExp(
-            q.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"), "i");
-
-        // iterate through the pool of strings and for any string that
-        // contains the substring `q`, add it to the `matches` array
-        $.each(strs, function (i, str) {
-            if (substrRegex.test(str)) {
-                matches.push(str);
-            }
-        });
-
-        cb(matches);
-    };
-};
-
-pyHTS.util.arrayDiffPositions = function(x, y) {
-    // find positions of elements in x not in y
-    var pos = [];
-    $.each(x, function(i, el) {
-       var this_pos = pyHTS.util.indexOf(el, y);
-       if(this_pos < 0) {
-           pos.push(i);
-       }
-    });
-    return pos;
-};
-
-pyHTS.util.deepEqual = function (x, y) {
-    if ((typeof x == "object" && x != null) &&
-            (typeof y == "object" && y != null)) {
-        if (Object.keys(x).length != Object.keys(y).length) {
-            return false;
-        }
-
-        for (var prop in x) {
-            if (y.hasOwnProperty(prop)) {
-                if (!pyHTS.util.deepEqual(x[prop], y[prop]))
+                cb(matches);
+            };
+        },
+        arrayDiffPositions: function (x, y) {
+            // find positions of elements in x not in y
+            var pos = [];
+            $.each(x, function (i, el) {
+                var this_pos = pyHTS.util.indexOf(el, y);
+                if (this_pos < 0) {
+                    pos.push(i);
+                }
+            });
+            return pos;
+        },
+        deepEqual: function (x, y) {
+            if ((typeof x == "object" && x != null) &&
+                (typeof y == "object" && y != null)) {
+                if (Object.keys(x).length != Object.keys(y).length) {
                     return false;
-            } else
-                return false;
-        }
+                }
 
-        return true;
-    }
-    else return x === y;
-};
+                for (var prop in x) {
+                    if (y.hasOwnProperty(prop)) {
+                        if (!pyHTS.util.deepEqual(x[prop], y[prop]))
+                            return false;
+                    } else
+                        return false;
+                }
 
-// extends indexOf to search for an array within an array
-pyHTS.util.indexOf = function(needle, haystack) {
-    if($.isArray(needle)) {
-        for(var j=0, len=haystack.length; j<len; j++) {
-            if(pyHTS.util.deepEqual(needle, haystack[j])) {
-                return j;
+                return true;
             }
+            else return x === y;
+        },
+        indexOf: function (needle, haystack) {
+            if ($.isArray(needle)) {
+                for (var j = 0, len = haystack.length; j < len; j++) {
+                    if (pyHTS.util.deepEqual(needle, haystack[j])) {
+                        return j;
+                    }
+                }
+                return -1; //not found
+            } else {
+                return $.inArray(needle, haystack);
+            }
+        },
+        allNull: function (arr) {
+            return arr.every(function (v) {
+                return v === null;
+            });
         }
-        return -1; //not found
-    } else {
-        return $.inArray(needle, haystack);
-    }
-};
+    };
 
-pyHTS.util.allNull = function(arr) {
-    return arr.every(function(v) { return v === null; });
-};
+    var onlyUnique = function(value, index, self) {
+        return self.indexOf(value) === index;
+    };
 
-var onlyUnique = function(value, index, self) {
-    return self.indexOf(value) === index;
-};
+    util.unique = function(array) {
+        return array.filter(onlyUnique);
+    };
 
-pyHTS.util.unique = function(array) {
-    return array.filter(onlyUnique);
-};
+    util.doseUnits = [[1e-12, "p"],
+                      [1e-9, "n"],
+                      [1e-6, "μ"],
+                      [1e-3, "m"],
+                      [1, ""]];
 
-pyHTS.util.doseUnits = [[1e-12, "p"],
-                         [1e-9, "n"],
-                         [1e-6, "μ"],
-                         [1e-3, "m"],
-                         [1, ""]];
-
-pyHTS.util.doseFormatter = function(dose) {
-    if(dose === undefined) return "None";
-    var doseMultiplier = 1;
-    var doseSuffix = "";
-    for(var i=0, len=pyHTS.util.doseUnits.length; i<len; i++) {
-        if(dose >= pyHTS.util.doseUnits[i][0]) {
-            doseMultiplier = pyHTS.util.doseUnits[i][0];
-            doseSuffix = pyHTS.util.doseUnits[i][1];
-        }
-    }
-
-    return (parseFloat((dose / doseMultiplier).toPrecision(12)) + " " +
-           doseSuffix + "M");
-};
-
-/**
- * Converts a dose to modified number and multiplier
- * @param dose
- * @returns {*}
- */
-pyHTS.util.doseSplitter = function(dose) {
-    if(dose === undefined) return [null, null];
-    var doseMultiplier = 1;
-    var doseSuffix = "";
-    for(var i=0, len=pyHTS.util.doseUnits.length; i<len; i++) {
-        if(dose >= pyHTS.util.doseUnits[i][0]) {
-            doseMultiplier = pyHTS.util.doseUnits[i][0];
-            doseSuffix = pyHTS.util.doseUnits[i][1];
-        }
-    }
-
-    return [parseFloat((dose / doseMultiplier).toPrecision(12)), doseMultiplier, doseSuffix + "M"];
-};
-
-pyHTS.util.doseParser = function(dose) {
-    var doseParts = dose.split(" ");
-    var multiplier = 1;
-    if(doseParts[1] === undefined)
-        return doseParts[0];
-    if(doseParts[1].length == 2) {
+    util.doseFormatter = function(dose) {
+        if(dose === undefined) return "None";
+        var doseMultiplier = 1;
+        var doseSuffix = "";
         for(var i=0, len=pyHTS.util.doseUnits.length; i<len; i++) {
-            if(doseParts[1][0] == pyHTS.util.doseUnits[i][1]) {
-                multiplier = pyHTS.util.doseUnits[i][0];
-                break;
+            if(dose >= pyHTS.util.doseUnits[i][0]) {
+                doseMultiplier = pyHTS.util.doseUnits[i][0];
+                doseSuffix = pyHTS.util.doseUnits[i][1];
             }
         }
-    }
-    return parseFloat(doseParts[0]) * multiplier;
-};
 
-pyHTS.util.doseSorter = {
-   "doses-pre": function(dose) {
-       //TODO: Sort when multiple doses are present
-       dose = dose.split("<br>");
-       return pyHTS.util.doseParser(dose[0]);
-   }
-};
+        return (parseFloat((dose / doseMultiplier).toPrecision(12)) + " " +
+        doseSuffix + "M");
+    };
 
-pyHTS.util.filterObjectsAttr = function(name, dataSource,
-                                        searchAttribute, returnAttribute) {
-    for(var i=0, len=dataSource.length; i<len; i++) {
-        if(dataSource[i][searchAttribute] === name) {
-            return dataSource[i][returnAttribute];
+    /**
+     * Converts a dose to modified number and multiplier
+     * @param dose
+     * @returns {*}
+     */
+    util.doseSplitter = function(dose) {
+        if(dose === undefined) return [null, null];
+        var doseMultiplier = 1;
+        var doseSuffix = "";
+        for(var i=0, len=pyHTS.util.doseUnits.length; i<len; i++) {
+            if(dose >= pyHTS.util.doseUnits[i][0]) {
+                doseMultiplier = pyHTS.util.doseUnits[i][0];
+                doseSuffix = pyHTS.util.doseUnits[i][1];
+            }
         }
-    }
-    return -1;
-};
 
-pyHTS.util.hasDuplicates = function(array, ignoreNull) {
-    if(ignoreNull === undefined) {
-        ignoreNull = true;
-    }
-    var valuesSoFar = Object.create(null);
-    for (var i=0, len=array.length; i<len; i++) {
-        var value = array[i];
-        if(value == null && ignoreNull) continue;
-        if (value in valuesSoFar) {
-            return true;
+        return [parseFloat((dose / doseMultiplier).toPrecision(12)), doseMultiplier, doseSuffix + "M"];
+    };
+
+    util.doseParser = function(dose) {
+        var doseParts = dose.split(" ");
+        var multiplier = 1;
+        if(doseParts[1] === undefined)
+            return doseParts[0];
+        if(doseParts[1].length == 2) {
+            for(var i=0, len=pyHTS.util.doseUnits.length; i<len; i++) {
+                if(doseParts[1][0] == pyHTS.util.doseUnits[i][1]) {
+                    multiplier = pyHTS.util.doseUnits[i][0];
+                    break;
+                }
+            }
         }
-        valuesSoFar[value] = true;
-    }
-    return false;
-};
+        return parseFloat(doseParts[0]) * multiplier;
+    };
 
-pyHTS.util.padNum = function(num, size) {
-    var s = num + "";
-    while (s.length < size) s = "0" + s;
-    return s;
-};
+    util.doseSorter = {
+        "doses-pre": function(dose) {
+            //TODO: Sort when multiple doses are present
+            dose = dose.split("<br>");
+            return pyHTS.util.doseParser(dose[0]);
+        }
+    };
 
-pyHTS.classes.Well = function(well) {
+    util.filterObjectsAttr = function(name, dataSource,
+                                      searchAttribute, returnAttribute) {
+        for(var i=0, len=dataSource.length; i<len; i++) {
+            if(dataSource[i][searchAttribute] === name) {
+                return dataSource[i][returnAttribute];
+            }
+        }
+        return -1;
+    };
+
+    util.hasDuplicates = function(array, ignoreNull) {
+        if(ignoreNull === undefined) {
+            ignoreNull = true;
+        }
+        var valuesSoFar = Object.create(null);
+        for (var i=0, len=array.length; i<len; i++) {
+            var value = array[i];
+            if(value == null && ignoreNull) continue;
+            if (value in valuesSoFar) {
+                return true;
+            }
+            valuesSoFar[value] = true;
+        }
+        return false;
+    };
+
+    util.padNum = function(num, size) {
+        var s = num + "";
+        while (s.length < size) s = "0" + s;
+        return s;
+    };
+
+    var classes = {};
+    classes.Well = function(well) {
     if(well === undefined) {
         this.cellLine = null;
         this.drugs = [];
@@ -216,8 +197,8 @@ pyHTS.classes.Well = function(well) {
         this.doses = well.doses;
     }
 };
-pyHTS.classes.Well.prototype = {
-    constructor: pyHTS.classes.Well,
+classes.Well.prototype = {
+    constructor: classes.Well,
     setDrug: function(drug, position) {
         if(this.drugs == null) this.drugs = [];
         if(drug == null && position == null) {
@@ -248,7 +229,7 @@ pyHTS.classes.Well.prototype = {
     }
 };
 
-pyHTS.classes.PlateMap = function(plateId, numRows, numCols, wells) {
+classes.PlateMap = function(plateId, numRows, numCols, wells) {
     this.unsaved_changes = false;
     this.plateId = plateId;
     this.numRows = numRows;
@@ -256,12 +237,12 @@ pyHTS.classes.PlateMap = function(plateId, numRows, numCols, wells) {
     this.wells = [];
     for (var w=0, len=(numRows*numCols); w<len; w++) {
         this.wells.push(wells === undefined ?
-            new pyHTS.classes.Well() : new pyHTS.classes.Well(wells[w]));
+            new classes.Well() : new classes.Well(wells[w]));
         this.wells[w].setUnsavedChanges = this.setUnsavedChanges.bind(this);
     }
 };
-pyHTS.classes.PlateMap.prototype = {
-    constructor: pyHTS.classes.PlateMap,
+classes.PlateMap.prototype = {
+    constructor: classes.PlateMap,
     selectionHeight: function(wellIds) {
         var rowNums = this.wellNumsToRowNums(wellIds);
         return Math.max.apply(null, rowNums) - Math.min.apply(null, rowNums) + 1;
@@ -505,7 +486,8 @@ pyHTS.classes.PlateMap.prototype = {
     }
 };
 
-pyHTS.ui.okCancelModal = function(title, text, success_callback,
+    var ui = {};
+ui.okCancelModal = function(title, text, success_callback,
                                   cancel_callback, closed_callback,
                                   ok_label, cancel_label) {
     var $mok = $("#modal-ok-cancel");
@@ -536,11 +518,11 @@ pyHTS.ui.okCancelModal = function(title, text, success_callback,
     }).modal();
 };
 
-pyHTS.ui.okModal = function(title, text, closed_callback) {
+ui.okModal = function(title, text, closed_callback) {
     pyHTS.ui.okCancelModal(title, text, null, null, closed_callback);
 };
 
-pyHTS.ui.glyphiconHtml = function(iconName) {
+ui.glyphiconHtml = function(iconName) {
     return '<span class="pull-right glyphicon glyphicon-'+iconName+
                       '" aria-hidden="true"></span>';
 };
@@ -551,7 +533,7 @@ pyHTS.ui.glyphiconHtml = function(iconName) {
  * @author Eugene Maslovich <ehpc@em42.ru>
  */
 
-pyHTS.ui.loadingModal = (function () {
+ui.loadingModal = (function () {
     // Creating modal dialog's DOM
     var $dialog = $(
         '<div class="modal fade" data-backdrop="static" data-keyboard="false" tabindex="-1" role="dialog" aria-hidden="true" style="padding-top:15%; overflow-y:visible;">' +
@@ -611,21 +593,22 @@ pyHTS.ui.loadingModal = (function () {
 
 })();
 
-pyHTS.ajax.ajax401Handler = function(jqXHR) {
+var ajax = {};
+ajax.ajax401Handler = function(jqXHR) {
     pyHTS.ui.okModal("Authentication required", "The request to the server" +
         " was not authenticated. Please check that you are logged in, e.g." +
         " by refreshing the page.");
     return true;
 };
 
-pyHTS.ajax.ajax404Handler = function(jqXHR) {
+ajax.ajax404Handler = function(jqXHR) {
     pyHTS.ui.okModal("Requested resource not found", "The requested resource" +
         " was not found, or you do not do have access to it. Please check" +
         " you are logged in as the correct user.");
     return true;
 };
 
-pyHTS.ajax.ajax409Handler = function(jqXHR) {
+ajax.ajax409Handler = function(jqXHR) {
     // Is this a known error?
     if(jqXHR.responseJSON.error != null
         && jqXHR.responseJSON.error == "non_empty_plates") {
@@ -643,17 +626,17 @@ pyHTS.ajax.ajax409Handler = function(jqXHR) {
     return false;
 };
 
-pyHTS.ajax.ajaxErrorCallback = function(jqXHR,textStatus,thrownError) {
+ajax.ajaxErrorCallback = function(jqXHR,textStatus,thrownError) {
     var message = 'Communication with the server timed ' +
         'out (perhaps the connection was lost?';
-    if(textStatus == "error" ||
+    if (textStatus == "error" ||
         textStatus == "parsererror") {
-        if(jqXHR != null) {
-            if(jqXHR.status == 401 && pyHTS.ajax.ajax401Handler(jqXHR)) return;
-            if(jqXHR.status == 404 && pyHTS.ajax.ajax404Handler(jqXHR)) return;
-            if(jqXHR.status == 409 && pyHTS.ajax.ajax409Handler(jqXHR)) return;
+        if (jqXHR != null) {
+            if (jqXHR.status == 401 && pyHTS.ajax.ajax401Handler(jqXHR)) return;
+            if (jqXHR.status == 404 && pyHTS.ajax.ajax404Handler(jqXHR)) return;
+            if (jqXHR.status == 409 && pyHTS.ajax.ajax409Handler(jqXHR)) return;
         }
-        if(Raven != null) {
+        if (Raven != null) {
             Raven.captureMessage(thrownError || jqXHR.statusText, {
                 extra: {
                     type: this.type,
@@ -669,7 +652,7 @@ pyHTS.ajax.ajaxErrorCallback = function(jqXHR,textStatus,thrownError) {
         message = 'An unknown error occurred with the ' +
             'server and has been logged. Please bear' +
             ' with us while we look into it.<br><br>'
-            + 'Reference number: '+ Raven.lastEventId();
+            + 'Reference number: ' + Raven.lastEventId();
     } else if (textStatus == 'abort') {
         message = 'Communication with the server was ' +
             'aborted.';
@@ -677,3 +660,19 @@ pyHTS.ajax.ajaxErrorCallback = function(jqXHR,textStatus,thrownError) {
     pyHTS.ui.okModal('Error communicating with server',
         message);
 };
+
+    return({
+        csrfToken: null,
+        last_edited: null,
+        num_css_unique_colours: 25,
+        plateMap: null,
+        cell_lines_used: [],
+        drugs_used: [],
+        doses_used: [],
+        classes: classes,
+        ui: ui,
+        util: util,
+        ajax: ajax
+    });
+})();
+module.exports = pyHTS;

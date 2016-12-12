@@ -87,30 +87,17 @@
 </div>
 <!-- /#wrapper -->
 
-<script src="https://cdn.ravenjs.com/3.8.0/raven.min.js"></script>
+{% load webpack_loader %}{% get_files 'raven' 'js' as raven_js %}
+<script src="{{ raven_js.0.url }}" crossorigin="anonymous"></script>
+
 <script>{% load raven %}{% load pyhts_tags %}Raven.config('{% sentry_public_dsn %}', {
-    environment: '{% sentry_environment %}',
-    release: '{% pyhts_version %}'
+    environment: '{% sentry_environment %}', release: '{% pyhts_version %}'
 }).install();
 {% if user.is_authenticated %}Raven.setUserContext({email: '{{ user.email }}',
-    id: '{{ user.id }}'});{% endif %}
-</script>
+    id: '{{ user.id }}'});{% endif %}</script>
 
-<!-- jQuery -->{% load static %}
-<script src="{% static 'vendor/jquery/jquery.min.js' %}"></script>
+{% render_bundle 'vendor' 'js' %}
+{% render_bundle 'app' 'js' %}
+    {% block tailscript %}{% endblock %}
 
-<!-- Bootstrap Core JavaScript -->
-<script src="{% static 'vendor/bootstrap/js/bootstrap.min.js' %}"></script>
-
-{#    <!-- Metis Menu Plugin JavaScript -->#}
-{#    <script src="{% static 'vendor/metisMenu/metisMenu.min.js' %}"></script>#}
-
-{#    <!-- Morris Charts JavaScript -->#}
-{#    <script src="{% static 'vendor/raphael/raphael.min.js' %}"></script>#}
-{#    <script src="{% static 'vendor/morrisjs/morris.min.js' %}"></script>#}
-{#    <script src="{% static 'data/morris-data.js' %}"></script>#}
-
-{#    <!-- Custom Theme JavaScript -->#}
-{#    <script src="{% static 'dist/js/sb-admin-2.js' %}"></script>#}
-<script src="{% static 'pyhts/js/pyhts.js' %}?v=1"></script>
 {% endblock %}

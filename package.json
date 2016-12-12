@@ -1,0 +1,42 @@
+{
+  "name": "pyhts",
+  "version": "1.0.0",
+  "description": "Python/Django High Throughput Screening (HTS) web app",
+  "main": "index.js",
+  "scripts": {
+    "build": "webpack --config webpack.config.js --progress --colors",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "dependencies": {
+    "bootstrap": "^3.3.7",
+    "bootstrap-fileinput": "^4.3.4",
+    "bootstrap-select": "^1.12.1",
+    "datatables.net": "^1.10.13",
+    "datatables.net-bs": "^1.10.13",
+    "font-awesome": "^4.7.0",
+    "jquery": "^3.1.1",
+    "jquery-ui": "^1.12.1",
+    "jquery-ui-touch-punch": "^0.2.3",
+    "plotly.js": "^1.20.5",
+    "raven-js": "^3.9.0",
+    "typeahead.js": "^0.11.1"
+  },
+  "devDependencies": {
+    "css-loader": "^0.26.1",
+    "expose-loader": "^0.7.1",
+    "extract-text-webpack-plugin": "^1.0.1",
+    "file-loader": "^0.9.0",
+    "ify-loader": "^1.0.3",
+    "style-loader": "^0.13.1",
+    "url-loader": "^0.5.7",
+    "webpack": "^1.13.3",
+    "webpack-bundle-tracker": "^0.1.0"
+  },
+  "browserify": {
+    "transform": [
+      "cwise",
+      "glslify"
+    ]
+  }
+}

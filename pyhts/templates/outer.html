@@ -11,41 +11,30 @@
 
     <title>{% block title %}{% endblock %} | Thunor</title>
 
-    {% load static %}
-<link rel="apple-touch-icon-precomposed" sizes="57x57" href="{% static 'pyhts/favicons/apple-touch-icon-57x57.png' %}" />
-<link rel="apple-touch-icon-precomposed" sizes="114x114" href="{% static 'pyhts/favicons/apple-touch-icon-114x114.png' %}" />
-<link rel="apple-touch-icon-precomposed" sizes="72x72" href="{% static 'pyhts/favicons/apple-touch-icon-72x72.png' %}" />
-<link rel="apple-touch-icon-precomposed" sizes="144x144" href="{% static 'pyhts/favicons/apple-touch-icon-144x144.png' %}" />
-<link rel="apple-touch-icon-precomposed" sizes="60x60" href="{% static 'pyhts/favicons/apple-touch-icon-60x60.png' %}" />
-<link rel="apple-touch-icon-precomposed" sizes="120x120" href="{% static 'pyhts/favicons/apple-touch-icon-120x120.png' %}" />
-<link rel="apple-touch-icon-precomposed" sizes="76x76" href="{% static 'pyhts/favicons/apple-touch-icon-76x76.png' %}" />
-<link rel="apple-touch-icon-precomposed" sizes="152x152" href="{% static 'pyhts/favicons/apple-touch-icon-152x152.png' %}" />
-<link rel="icon" type="image/png" href="{% static 'pyhts/favicons/favicon-196x196.png' %}" sizes="196x196" />
-<link rel="icon" type="image/png" href="{% static 'pyhts/favicons/favicon-96x96.png' %}" sizes="96x96" />
-<link rel="icon" type="image/png" href="{% static 'pyhts/favicons/favicon-32x32.png' %}" sizes="32x32" />
-<link rel="icon" type="image/png" href="{% static 'pyhts/favicons/favicon-16x16.png' %}" sizes="16x16" />
-<link rel="icon" type="image/png" href="{% static 'pyhts/favicons/favicon-128.png' %}" sizes="128x128" />
+{% load webpack_loader %}
+<link rel="apple-touch-icon-precomposed" sizes="57x57" href="{% webpack_static 'favicon/apple-touch-icon-57x57.png' %}" />
+<link rel="apple-touch-icon-precomposed" sizes="114x114" href="{% webpack_static 'favicon/apple-touch-icon-114x114.png' %}" />
+<link rel="apple-touch-icon-precomposed" sizes="72x72" href="{% webpack_static 'favicon/apple-touch-icon-72x72.png' %}" />
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="{% webpack_static 'favicon/apple-touch-icon-144x144.png' %}" />
+<link rel="apple-touch-icon-precomposed" sizes="60x60" href="{% webpack_static 'favicon/apple-touch-icon-60x60.png' %}" />
+<link rel="apple-touch-icon-precomposed" sizes="120x120" href="{% webpack_static 'favicon/apple-touch-icon-120x120.png' %}" />
+<link rel="apple-touch-icon-precomposed" sizes="76x76" href="{% webpack_static 'favicon/apple-touch-icon-76x76.png' %}" />
+<link rel="apple-touch-icon-precomposed" sizes="152x152" href="{% webpack_static 'favicon/apple-touch-icon-152x152.png' %}" />
+<link rel="icon" type="image/png" href="{% webpack_static 'favicon/favicon-196x196.png' %}" sizes="196x196" />
+<link rel="icon" type="image/png" href="{% webpack_static 'favicon/favicon-96x96.png' %}" sizes="96x96" />
+<link rel="icon" type="image/png" href="{% webpack_static 'favicon/favicon-32x32.png' %}" sizes="32x32" />
+<link rel="icon" type="image/png" href="{% webpack_static 'favicon/favicon-16x16.png' %}" sizes="16x16" />
+<link rel="icon" type="image/png" href="{% webpack_static 'favicon/favicon-128.png' %}" sizes="128x128" />
 <meta name="application-name" content="Thunor"/>
 <meta name="msapplication-TileColor" content="#002559" />
-<meta name="msapplication-TileImage" content="{% static 'pyhts/favicons/mstile-144x144.png' %}" />
-<meta name="msapplication-square70x70logo" content="{% static 'pyhts/favicons/mstile-70x70.png' %}" />
-<meta name="msapplication-square150x150logo" content="{% static 'pyhts/favicons/mstile-150x150.png' %}" />
-<meta name="msapplication-wide310x150logo" content="{% static 'pyhts/favicons/mstile-310x150.png' %}" />
-<meta name="msapplication-square310x310logo" content="{% static 'pyhts/favicons/mstile-310x310.png' %}" />
+<meta name="msapplication-TileImage" content="{% webpack_static 'favicon/mstile-144x144.png' %}" />
+<meta name="msapplication-square70x70logo" content="{% webpack_static 'favicon/mstile-70x70.png' %}" />
+<meta name="msapplication-square150x150logo" content="{% webpack_static 'favicon/mstile-150x150.png' %}" />
+<meta name="msapplication-wide310x150logo" content="{% webpack_static 'favicon/mstile-310x150.png' %}" />
+<meta name="msapplication-square310x310logo" content="{% webpack_static 'favicon/mstile-310x310.png' %}" />
 
-
-    <!-- Bootstrap Core CSS -->
-    <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}"
-          rel="stylesheet">
-
-    <!-- Custom Fonts -->
-    <link href="{% static 'vendor/font-awesome/css/font-awesome.min.css' %}"
-          rel="stylesheet" type="text/css">
-
-    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.min.css">
-    <link href="{% static 'pyhts/css/pyhts.css' %}?v=1" rel="stylesheet">
-    {% block stylesheets %}{% endblock %}
-    {% block headscript %}{% endblock %}
+{% render_bundle 'vendor' 'css' %}
+{% render_bundle 'app' 'css' %}
 
     <!--[if lt IE 9]>{# TODO: Make this a non-javascript banner #}
         <script>alert("Sorry, your web browser is unsupported. Please
@@ -56,6 +45,5 @@
 </head>
 
 <body>{% block body %}{% endblock %}
-{% block tailscript %}{% endblock %}
 </body>
 </html>
