@@ -44,7 +44,7 @@ module.exports = {
     },
 
     plugins: [
-        new BundleTracker({filename: "./webpack-stats.json"}),
+        new BundleTracker({filename: "./_state/webpack-stats.json"}),
         new webpack.optimize.OccurenceOrderPlugin(),
         new ExtractTextPlugin("[name]-[chunkhash].css"),
         new webpack.optimize.UglifyJsPlugin({

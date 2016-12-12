@@ -3,3 +3,4 @@ db.sqlite3
 .idea
 _state/
 _conf/
+node_modules/
