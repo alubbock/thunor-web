@@ -9,9 +9,9 @@ module.exports = {
     context: __dirname,
 
     entry: {
-        favicons: glob.sync("./pyhts/static/pyhts/favicons/*"),
-        app:    ["expose?pyHTS!./pyhts/static/pyhts/js/pyhts",
-                 "./pyhts/static/pyhts/css/pyhts.css"],
+        favicons: glob.sync("./pyhts/static/favicons/*"),
+        app:    ["expose?pyHTS!./pyhts/static/js/pyhts",
+                 "./pyhts/static/css/pyhts.css"],
 
         //TODO: Compile more modules from source, removing unneeded components
         plots:  ["expose?Plotly!plotly.js/dist/plotly-gl3d"],
@@ -74,12 +74,12 @@ module.exports = {
             },
             {
                 test: /\.(png|ico)$/,
-                include: path.resolve(__dirname, "pyhts/static/pyhts/favicons"),
+                include: path.resolve(__dirname, "pyhts/static/favicons"),
                 loader: "file?name=favicon/[name].[ext]"
             },
             {
                 test: /\.(png|jpg|gif|ico)$/,
-                exclude: path.resolve(__dirname, "pyhts/static/pyhts/favicons"),
+                exclude: path.resolve(__dirname, "pyhts/static/favicons"),
                 loader: "file?name=img/[name]-[hash].[ext]"
             },
             {test: /\.(woff|woff2)(\?v=\d+\.\d+\.\d+)?$/, loader: "url?limit=10000&mimetype=application/font-woff&name=font/[name]-[hash].[ext]"},
