@@ -52,16 +52,17 @@ class PlateFileParser(object):
         self.file_format = None
         self._db_platefile = None
         self._plate_data = None
-        self._plate_objects = []
+        self._plate_objects = {}
         self._results = []
         self._well_sets = {}
 
         # Get existing plate objects
-        self._plate_objects = list(Plate.objects.filter(
-            dataset_id=dataset.id))
+        for p in Plate.objects.filter(dataset_id=dataset.id):
+            self._plate_objects[p.name] = p
         if self._plate_objects:
             for w in Well.objects.filter(
-                    plate_id__in=[p.id for p in self._plate_objects]).order_by(
+                    plate_id__in=[p.id for p in
+                                  self._plate_objects.values()]).order_by(
                     'plate_id', 'well_num'):
                 self._well_sets.setdefault(w.plate_id, []).append(w.pk)
 
@@ -132,13 +133,15 @@ class PlateFileParser(object):
         except UnicodeDecodeError:
             raise PlateFileParseException('Error opening file with UTF-8 '
                                           'encoding (does file contain '
-                                          'invalid characters?)')
+                                          'non-standard characters?)')
 
         plates = pd.split('Field Group\n\nBarcode:')
 
         if len(plates) == 1:
-            raise PlateFileParseException('File does not appear to be in '
-                                          'Synergy Neo format')
+            plates = pd.split('Barcode\n\nBarcode:')
+            if len(plates) == 1:
+                raise PlateFileParseException('File does not appear to be in '
+                                              'Synergy Neo format')
 
         self._create_db_platefile()
 
@@ -160,18 +163,10 @@ class PlateFileParser(object):
             plate_name = plate_and_timepoint['plate']
             plate_timepoint = plate_and_timepoint['timepoint']
 
-            plate = [p for p in self._plate_objects if p.name == plate_name]
-
-            if len(plate) == 1:
-                plate = plate[0]
-            else:
-                plate = None
+            plate = self._plate_objects.get(plate_name, None)
 
             # Each plate can have multiple assays
             assays = re.split('\n\s*\n', barcode_and_rest[1])
-
-            well_cols = 0
-            well_rows = 0
 
             for a in assays:
                 a_strp = a.strip()
@@ -180,8 +175,6 @@ class PlateFileParser(object):
 
                 well_lines = a.split('\n')
                 assay_name = well_lines[0].strip()
-                # TODO: Throw an error if well rows and cols not same for all
-                # assays
                 well_cols = len(well_lines[1].split())
                 # Minus 2: One for assay name, one for column headers
                 well_rows = len(well_lines) - 2
@@ -189,6 +182,19 @@ class PlateFileParser(object):
                 if plate is None:
                     plate = self._get_or_create_plate(plate_name,
                                                       well_cols, well_rows)
+
+                # Check plate dimensions are as expected
+                if well_cols != plate.width:
+                    raise PlateFileParseException('Unexpected plate width on '
+                                                  'plate with barcode {} '
+                                                  '(expected: {}, got: {})'.
+                                format(barcode, plate.width, well_cols))
+
+                if well_rows != plate.height:
+                    raise PlateFileParseException('Unexpected plate height on '
+                                                  'plate with barcode {} '
+                                                  '(expected: {}, got: {})'.
+                                format(barcode, plate.height, well_rows))
 
                 well_id = 0
                 for row in range(2, len(well_lines)):
@@ -200,12 +206,6 @@ class PlateFileParser(object):
                             value=float(val)
                         ))
                         well_id += 1
-
-            if len(well_measurements) % (well_cols * well_rows) != 0:
-                raise PlateFileParseException('Extracted an unexpected number '
-                                              'of wells from plate (plate: {},'
-                                              ' wells: {})'.format(
-                    plate_name, len(well_measurements)))
 
         if not well_measurements:
             raise PlateFileParseException('File contains no readable '
@@ -272,7 +272,7 @@ class PlateFileParser(object):
             if cell0_val == '' and ws.cell(row, 1).value == 1:
                 scanning_wells = True
                 scan_row = row + 1
-                while scan_row < (ws.nrows) and \
+                while scan_row < ws.nrows and \
                                 ws.cell(scan_row, 0).value != 'Barcode':
                     scan_row += 1
                 well_rows = scan_row - row - 1
@@ -309,18 +309,15 @@ class PlateFileParser(object):
                                           'uploaded to this dataset before')
 
     def _get_or_create_plate(self, plate_name, well_cols, well_rows):
-        plate = [p for p in self._plate_objects if
-                 p.name == plate_name]
+        plate = self._plate_objects.get(plate_name, None)
 
-        if len(plate) == 1:
-            plate = plate[0]
-        else:
+        if plate is None:
             plate = Plate.objects.create(
                 dataset=self.dataset,
                 name=plate_name,
                 width=well_cols,
                 height=well_rows)
-            self._plate_objects.append(plate)
+            self._plate_objects[plate.name] = plate
 
             wells = [Well(plate_id=plate.id, well_num=w) for w in
                      range(well_cols * well_rows)]
@@ -339,7 +336,7 @@ class PlateFileParser(object):
         if len(self._well_sets[plate.id]) != well_cols * well_rows:
             raise PlateFileParseException(
                 'Retrieved {} wells for plate {} (was expecting '
-                '{})'.format(len(plate.well_set),
+                '{})'.format(len(self._well_sets[plate.id]),
                              plate.id,
                              well_cols * well_rows
                              )
