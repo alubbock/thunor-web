@@ -3,15 +3,17 @@ var webpack = require("webpack");
 var BundleTracker = require("webpack-bundle-tracker");
 var ExtractTextPlugin = require("extract-text-webpack-plugin");
 var glob = require("glob");
-var isDebug = (process.env.DJANGO_DEBUG.toLowerCase() === "true");
+var isDebug = (process.env.DJANGO_DEBUG === undefined ? false : process.env.DJANGO_DEBUG.toLowerCase() === "true");
+
+console.log(path.resolve("../_state/webpack-stats.json"));
 
 module.exports = {
     context: __dirname,
 
     entry: {
-        favicons: glob.sync("./pyhts/static/favicons/*"),
-        app:    ["expose?pyHTS!./pyhts/static/js/pyhts",
-                 "./pyhts/static/css/pyhts.css"],
+        favicons: glob.sync("./thunor/favicons/*"),
+        app:    ["expose?pyHTS!./thunor/js/pyhts",
+                 "./thunor/css/pyhts.css"],
 
         //TODO: Compile more modules from source, removing unneeded components
         plots:  ["expose?Plotly!plotly.js/dist/plotly-gl3d"],
@@ -39,12 +41,12 @@ module.exports = {
     },
 
     output: {
-        path: path.resolve("./_state/thunor-static/"),
+        path: path.resolve("../_state/thunor-static/"),
         filename: "[name]-[chunkhash].js"
     },
 
     plugins: [
-        new BundleTracker({filename: "./_state/webpack-stats.json"}),
+        new BundleTracker({path: __dirname, filename: "../_state/webpack-stats-processing.json"}),
         new webpack.optimize.OccurenceOrderPlugin(),
         new ExtractTextPlugin("[name]-[chunkhash].css"),
         new webpack.optimize.UglifyJsPlugin({
@@ -74,12 +76,12 @@ module.exports = {
             },
             {
                 test: /\.(png|ico)$/,
-                include: path.resolve(__dirname, "pyhts/static/favicons"),
+                include: path.resolve(__dirname, "thunor/favicons"),
                 loader: "file?name=favicon/[name].[ext]"
             },
             {
                 test: /\.(png|jpg|gif|ico)$/,
-                exclude: path.resolve(__dirname, "pyhts/static/favicons"),
+                exclude: path.resolve(__dirname, "thunor/favicons"),
                 loader: "file?name=img/[name]-[hash].[ext]"
             },
             {test: /\.(woff|woff2)(\?v=\d+\.\d+\.\d+)?$/, loader: "url?limit=10000&mimetype=application/font-woff&name=font/[name]-[hash].[ext]"},
@@ -94,7 +96,7 @@ module.exports = {
         extensions: ["", ".js"],
         alias: {
             "jquery-ui-js": "jquery-ui/ui",
-            "jquery-ui-css": "jquery-ui/themes/base"
+            "jquery-ui-css": "jquery-ui/themes/base",
         }
     }
 };
