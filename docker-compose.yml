@@ -1,19 +1,27 @@
 version: '2'
 services:
   db:
-    image: postgres:9.6
-    env_file:
-      - ./_conf/thunor.env
-    volumes:
-      - ./_state/postgres-data:/var/lib/postgresql/data
-  web:
-    build: .
-    command: /bin/sh docker-entrypoint.sh
-    volumes:
-      - .:/thunor
-    ports:
-      - "8000:8000"
+    extends:
+      file: docker-compose.base.yml
+      service: db
+  app:
+    extends:
+      file: docker-compose.base.yml
+      service: web
     depends_on:
       - db
-    env_file:
-      - ./_conf/thunor.env
+
+  nginx:
+    image: nginx:mainline
+    volumes:
+      - ./_conf/nginx.base.conf:/etc/nginx/nginx.conf:ro
+      - ./_conf/nginx.site.conf:/etc/nginx/nginx.site.conf:ro
+      - ./_state/logs/nginx/:/var/log/nginx/
+      - ./_state/thunor-files/:/srv/thunor-files/:ro
+      - ./_state/thunor-static/:/srv/thunor-static/:ro
+      - /etc/letsencrypt/:/etc/letsencrypt/:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - app
