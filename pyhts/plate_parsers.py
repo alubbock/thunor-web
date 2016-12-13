@@ -322,9 +322,14 @@ class PlateFileParser(object):
                 height=well_rows)
             self._plate_objects.append(plate)
 
-            Well.objects.bulk_create([Well(plate_id=plate.id,
-                                           well_num=w) for w in
-                                      range(well_cols * well_rows)])
+            wells = [Well(plate_id=plate.id, well_num=w) for w in
+                     range(well_cols * well_rows)]
+            Well.objects.bulk_create(wells)
+
+            # Get the well IDs without an extra select, if the DB backend
+            # supports this (just PostgreSQL as of Django 1.10)
+            if wells[0].pk is not None:
+                self._well_sets[plate.id] = [w.pk for w in wells]
 
         if plate.id not in self._well_sets:
             self._well_sets[plate.id] = list(
