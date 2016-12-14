@@ -661,6 +661,9 @@ ajax.ajaxErrorCallback = function(jqXHR,textStatus,thrownError) {
         message);
 };
 
+var views = {};
+var pub = {};
+
     return({
         csrfToken: null,
         last_edited: null,
@@ -672,7 +675,9 @@ ajax.ajaxErrorCallback = function(jqXHR,textStatus,thrownError) {
         classes: classes,
         ui: ui,
         util: util,
-        ajax: ajax
+        ajax: ajax,
+        views: views,
+        pub: pub
     });
 })();
 module.exports = pyHTS;
