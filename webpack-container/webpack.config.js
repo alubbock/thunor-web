@@ -40,7 +40,8 @@ module.exports = {
                  "jquery-ui-touch-punch",
                  "datatables.net",
                  "datatables.net-bs",
-                 "datatables.net-bs/css/dataTables.bootstrap.css"]
+                 "datatables.net-bs/css/dataTables.bootstrap.css",
+                 "jquery-file-download"]
     },
 
     output: {
