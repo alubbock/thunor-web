@@ -141,7 +141,7 @@
                                     {% if not editable %}disabled{% endif %}
                                     aria-expanded="false"><span
                                     class="hts-active-dose-unit"
-                                    data-dose="1e-9">nM</span>
+                                    data-dose="1e-9">{% if editable %}nM{% endif %}</span>
                                 <span
                                     class="caret"></span></button>
                             <ul class="hts-dose-select dropdown-menu
@@ -308,6 +308,7 @@ $(function () {
         },
 
         completeFlag: false,
+        editableFlag: {% if editable %}true{% else %}false{% endif %},
         redirectURL: '{% url 'pyhts:view_dataset' dataset.id %}',
         {% load jsonify from pyhts_tags %}
         cell_lines: {{ cell_lines|jsonify }},

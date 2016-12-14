@@ -1,6 +1,4 @@
-var ui = require('./modules/ui'),
-    util = require('./modules/util'),
-    ajax = require('./modules/ajax');
+var util = require("./modules/util");
 
 var Well = function(well) {
     if(well === undefined) {
@@ -170,10 +168,10 @@ PlateMap.prototype = {
             wells.push([
                this.wellNumToName(w, true),
                util.filterObjectsAttr(this.wells[w].cellLine,
-                                            state.cell_lines,
+                                            pyHTS.state.cell_lines,
                                             "id", "name").toString().replace(/^-1$/, ""),
                $.map(this.wells[w].drugs, function(drug) {
-                   return util.filterObjectsAttr(drug, state.drugs, "id", "name").toString().replace(/^-1$/, "None");
+                   return util.filterObjectsAttr(drug, pyHTS.state.drugs, "id", "name").toString().replace(/^-1$/, "None");
                }).join("<br>"),
                $.map(this.wells[w].doses, util.doseFormatter).join("<br>")
             ]);
@@ -303,6 +301,10 @@ PlateMap.prototype = {
 };
 
 var plate_designer = function () {
+    var ui = require('./modules/ui'),
+        util = require('./modules/util'),
+        ajax = require('./modules/ajax');
+
     $('#hts-apply-template-multiple').find('select').selectpicker({
         actionsBox: true,
         countSelectedText: function(n, N) {
@@ -874,26 +876,28 @@ var plate_designer = function () {
 
         clearAllInputs();
 
-        if(view == 'overview' || view == 'celllines') {
-            $('#cellline-typeahead').prop('disabled', false).css
+        if(pyHTS.state.editable) {
+            if (view == 'overview' || view == 'celllines') {
+                $('#cellline-typeahead').prop('disabled', false).css
                 ('background-color', 'transparent');
-        } else {
-            $('#cellline-typeahead').prop('disabled', true).css
+            } else {
+                $('#cellline-typeahead').prop('disabled', true).css
                 ('background-color', '');
-        }
+            }
 
-        if(view == 'overview' || view == 'drugs') {
-            $('.hts-drug-typeahead').prop('disabled', false).css
+            if (view == 'overview' || view == 'drugs') {
+                $('.hts-drug-typeahead').prop('disabled', false).css
                 ('background-color', 'transparent');
-        } else {
-            $('.hts-drug-typeahead').prop('disabled', true).css
+            } else {
+                $('.hts-drug-typeahead').prop('disabled', true).css
                 ('background-color', '');
-        }
+            }
 
-        if(view == 'overview' || view == 'doses') {
-            $('.hts-dose-input').prop('disabled', false);
-        } else {
-            $('.hts-dose-input').prop('disabled', true);
+            if (view == 'overview' || view == 'doses') {
+                $('.hts-dose-input').prop('disabled', false);
+            } else {
+                $('.hts-dose-input').prop('disabled', true);
+            }
         }
 
         $('#hts-well-nav').find('li').removeClass('active');
@@ -1008,70 +1012,72 @@ var plate_designer = function () {
         }
     };
 
-    $("#well-all").click(function () {
-        if ($('.hts-well.ui-selected').length) {
-            $('#well-all,.hts-well').removeClass('ui-selected');
-        } else {
-            $('#well-all,.hts-well').addClass('ui-selected');
-            updateInputsWithWellData();
-        }
-        pyHTS.state.last_edited = 'all';
-    });
+    if(pyHTS.state.editableFlag) {
+        $("#well-all").click(function () {
+            if ($('.hts-well.ui-selected').length) {
+                $('#well-all,.hts-well').removeClass('ui-selected');
+            } else {
+                $('#well-all,.hts-well').addClass('ui-selected');
+                updateInputsWithWellData();
+            }
+            pyHTS.state.last_edited = 'all';
+        });
 
-    $('#selectable-well-rows').selectable({
-        start: function (event, ui) {
-            if (pyHTS.state.last_edited != 'row')
-                $('.hts-well').removeClass('ui-selected');
-            pyHTS.state.last_edited = 'row';
-        },
-        selecting: function (event, ui) {
-            var rowNo = $(ui.selecting).data('row');
-            $('#selectable-wells').find('li').filter(function() {
-                return $(this).data('well') >
+        $('#selectable-well-rows').selectable({
+            start: function (event, ui) {
+                if (pyHTS.state.last_edited != 'row')
+                    $('.hts-well').removeClass('ui-selected');
+                pyHTS.state.last_edited = 'row';
+            },
+            selecting: function (event, ui) {
+                var rowNo = $(ui.selecting).data('row');
+                $('#selectable-wells').find('li').filter(function () {
+                    return $(this).data('well') >
                         ((pyHTS.state.plateMap.numCols * (rowNo - 1)) - 1)
-                && $(this).data('well') < (pyHTS.state.plateMap.numCols * rowNo);
-            }).addClass('ui-selected');
-        },
-        unselecting: function (event, ui) {
-            var rowNo = $(ui.unselecting).data('row');
-            $('#selectable-wells').find('li').filter(function() {
-                return $(this).data('well') >
+                        && $(this).data('well') < (pyHTS.state.plateMap.numCols * rowNo);
+                }).addClass('ui-selected');
+            },
+            unselecting: function (event, ui) {
+                var rowNo = $(ui.unselecting).data('row');
+                $('#selectable-wells').find('li').filter(function () {
+                    return $(this).data('well') >
                         ((pyHTS.state.plateMap.numCols * (rowNo - 1)) - 1)
-                && $(this).data('well') < (pyHTS.state.plateMap.numCols * rowNo);
-            }).removeClass('ui-selected');
-        },
-        stop: updateInputsWithWellData
-    });
+                        && $(this).data('well') < (pyHTS.state.plateMap.numCols * rowNo);
+                }).removeClass('ui-selected');
+            },
+            stop: updateInputsWithWellData
+        });
 
-    $('#selectable-well-cols').selectable({
-        start: function (event, ui) {
-            if (pyHTS.state.last_edited != 'col')
-                $('.hts-well').removeClass('ui-selected');
-            pyHTS.state.last_edited = 'col';
-        },
-        selecting: function (event, ui) {
-            var colNo = $(ui.selecting).data('col');
-            $('#selectable-wells').find('li').filter(function() {
-                return $(this).data('well') % pyHTS.state.plateMap.numCols ==
+        $('#selectable-well-cols').selectable({
+            start: function (event, ui) {
+                if (pyHTS.state.last_edited != 'col')
+                    $('.hts-well').removeClass('ui-selected');
+                pyHTS.state.last_edited = 'col';
+            },
+            selecting: function (event, ui) {
+                var colNo = $(ui.selecting).data('col');
+                $('#selectable-wells').find('li').filter(function () {
+                    return $(this).data('well') % pyHTS.state.plateMap.numCols ==
                         (colNo - 1);
-            }).addClass('ui-selected');
-        },
-        unselecting: function (event, ui) {
-            var colNo = $(ui.unselecting).data('col');
-            $('#selectable-wells').find('li').filter(function() {
-                return $(this).data('well') % pyHTS.state.plateMap.numCols ==
+                }).addClass('ui-selected');
+            },
+            unselecting: function (event, ui) {
+                var colNo = $(ui.unselecting).data('col');
+                $('#selectable-wells').find('li').filter(function () {
+                    return $(this).data('well') % pyHTS.state.plateMap.numCols ==
                         (colNo - 1);
-            }).removeClass('ui-selected');
-        },
-        stop: updateInputsWithWellData
-    });
+                }).removeClass('ui-selected');
+            },
+            stop: updateInputsWithWellData
+        });
 
-    $("#selectable-wells").selectable({
-        start: function () {
-            pyHTS.state.last_edited = 'cell';
-        },
-        stop: updateInputsWithWellData
-    });
+        $("#selectable-wells").selectable({
+            start: function () {
+                pyHTS.state.last_edited = 'cell';
+            },
+            stop: updateInputsWithWellData
+        });
+    }
 
     $('#hts-apply-annotation').click(function() {
         submitToWells(this);
