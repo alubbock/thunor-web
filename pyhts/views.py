@@ -72,6 +72,7 @@ def logout(request):
 @login_required
 def dataset_upload(request, dataset_id=None):
     plate_files = None
+    dataset = None
     if dataset_id:
         plate_files = list(PlateFile.objects.filter(dataset_id=dataset_id,
                                         dataset__owner_id=request.user.id).select_related('dataset'))
@@ -80,8 +81,9 @@ def dataset_upload(request, dataset_id=None):
                 HTSDataset.objects.get(id=dataset_id, owner_id=request.user.id)
             except HTSDataset.DoesNotExist:
                 raise Http404()
+        dataset = plate_files[0].dataset
 
-    return render(request, 'plate_upload.html', {'dataset': plate_files[0].dataset,
+    return render(request, 'plate_upload.html', {'dataset': dataset,
                                                  'plate_files': plate_files})
 
 

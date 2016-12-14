@@ -295,29 +295,29 @@
 <script>
 $(function () {
     'use strict';
-    pyHTS.csrfToken = '{{ csrf_token }}';{% if plates.0 %}
-    pyHTS.plateMap = new pyHTS.classes.PlateMap({{ plates.0.id }},
-    {{ plates.0.height }}, {{ plates.0.width }});{% endif %}
+    $.extend(pyHTS.state, {
+        csrfToken: '{{ csrf_token }}',
+        {% if plates.0 %}plateMap: new pyHTS.pub.PlateMap({{ plates.0.id }}, {{ plates.0.height }}, {{ plates.0.width }}),{% endif %}
 
-    pyHTS.plateMapTemplates = {
-        {% for plate_size in plate_sizes %}
-            '{{ plate_size.numCols }}x{{ plate_size.numRows }}':
-                    new pyHTS.classes.PlateMap("MASTER",
-                    {{ plate_size.numRows}}, {{ plate_size.numCols }})
-            {% if not forloop.last %},{% endif %}
-        {% endfor %}
-    };
+        plateMapTemplates: {
+            {% for plate_size in plate_sizes %}
+                '{{ plate_size.numCols }}x{{ plate_size.numRows }}':
+                        new pyHTS.pub.PlateMap("MASTER",{{ plate_size.numRows}}, {{ plate_size.numCols }})
+                {% if not forloop.last %},{% endif %}
+            {% endfor %}
+        },
 
-    pyHTS.completeFlag = false;
-    pyHTS.redirectURL = '{% url 'pyhts:view_dataset' dataset.id %}';
-    {% load jsonify from pyhts_tags %}
-    pyHTS.cell_lines = {{ cell_lines|jsonify }};
-    pyHTS.drugs = {{ drugs|jsonify }};
+        completeFlag: false,
+        redirectURL: '{% url 'pyhts:view_dataset' dataset.id %}',
+        {% load jsonify from pyhts_tags %}
+        cell_lines: {{ cell_lines|jsonify }},
+        drugs: {{ drugs|jsonify }},
 
-    pyHTS.plates = [{% for p in plates %}{{ p.id }}{% if not forloop.last %},{% endif %}{% endfor %}];
-    pyHTS.savedPlates = [{% for p in plates %}{% if p.last_annotated %}{{ p.id }},{% endif %}{% endfor %}];
+        plates: [{% for p in plates %}{{ p.id }}{% if not forloop.last %},{% endif %}{% endfor %}],
+        savedPlates: [{% for p in plates %}{% if p.last_annotated %}{{ p.id }},{% endif %}{% endfor %}]
+    });
 
-    pyHTS.views.plate_designer();
+    pyHTS.views.plate_designer.activate();
 
     {% if plates.0 %}pyHTS.pub.setPlate({{ plates.0.id }});{% endif %}
 });

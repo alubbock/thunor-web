@@ -65,10 +65,6 @@
 <script>
 $(function () {
     'use strict';
-
-    pyHTS.csrfToken = '{{ csrf_token }}';
-    pyHTS.ajaxSettings = {headers: { 'X-CSRFToken': pyHTS.csrfToken }};
-
     var initialPreview = [], initialPreviewConfig = [];
     {% for pf in plate_files %}
         initialPreview.push('{% spaceless %}
@@ -78,7 +74,14 @@ $(function () {
             key:{{ pf.id }}});
     {% endfor %}
 
-    pyHTS.views.plate_upload();
+    $.extend(pyHTS.state, {
+        csrfToken: '{{ csrf_token }}',
+        ajaxSettings: {headers: {'X-CSRFToken': pyHTS.state.csrfToken}},
+        initialPreview: initialPreview,
+        initialPreviewConfig: initialPreviewConfig
+    });
+
+    pyHTS.views.plate_upload.activate();
 
     {% if dataset %}pyHTS.pub.createFileUploadScreen({{ dataset.id }});{% endif %}
     {% if plate_files %}pyHTS.pub.pyHTSUnlockNext2();{% endif %}
