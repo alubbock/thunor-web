@@ -13,6 +13,9 @@ module.exports = {
     entry: {
         favicons: glob.sync("./thunor/favicons/*"),
         app:    ["expose?pyHTS!./thunor/js/pyhts",
+                 "./thunor/js/plots",
+                 "./thunor/js/plate_upload",
+                 "./thunor/js/plate_designer",
                  "./thunor/css/pyhts.css"],
 
         //TODO: Compile more modules from source, removing unneeded components
@@ -46,7 +49,9 @@ module.exports = {
     },
 
     plugins: [
-        new BundleTracker({path: __dirname, filename: "../_state/webpack-stats-processing.json"}),
+        new BundleTracker({path: __dirname,
+            filename: isDebug? "../_state/webpack-stats.json" :
+                    "../_state/webpack-stats-processing.json"}),
         new webpack.optimize.OccurenceOrderPlugin(),
         new ExtractTextPlugin("[name]-[chunkhash].css"),
         new webpack.optimize.UglifyJsPlugin({
