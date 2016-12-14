@@ -84,10 +84,16 @@ var plate_upload = function () {
             btn_selected.click();
         }
     }).focus();
+
+    if(pyHTS.state.datasetId !== null) {
+        createFileUploadScreen(pyHTS.state.datasetId);
+    }
+
+    if(pyHTS.state.initialPreview.length > 0) {
+        pyHTSUnlockNext2();
+    }
 };
 
 module.exports = {
-    activate: plate_upload,
-    createFileUploadScreen: createFileUploadScreen,
-    pyHTSUnlockNext2: pyHTSLockNext2
+    activate: plate_upload
 };

@@ -78,13 +78,12 @@ $(function () {
         csrfToken: '{{ csrf_token }}',
         ajaxSettings: {headers: {'X-CSRFToken': pyHTS.state.csrfToken}},
         initialPreview: initialPreview,
-        initialPreviewConfig: initialPreviewConfig
+        initialPreviewConfig: initialPreviewConfig,
+        datasetId: {% if dataset %}{{ dataset.id }}{% else %}null{% endif %}
     });
 
     pyHTS.views.plate_upload.activate();
 
-    {% if dataset %}pyHTS.pub.createFileUploadScreen({{ dataset.id }});{% endif %}
-    {% if plate_files %}pyHTS.pub.pyHTSUnlockNext2();{% endif %}
 });
 </script>
 {% endblock %}

@@ -302,8 +302,6 @@ PlateMap.prototype = {
     }
 };
 
-var setPlateShadow;
-
 var plate_designer = function () {
     $('#hts-apply-template-multiple').find('select').selectpicker({
         actionsBox: true,
@@ -1360,7 +1358,6 @@ var plate_designer = function () {
             $('#hts-finish-platemap').hide();
         }
     };
-    setPlateShadow = setPlate;
 
     var currentPlatePos = function() {
         return $.inArray($('#hts-current-plate').data('id'), pyHTS.state.plates);
@@ -1399,9 +1396,11 @@ var plate_designer = function () {
         }
     });
 
+    if(pyHTS.state.plates.length > 0) {
+        setPlate(pyHTS.state.plates[0]);
+    }
 };
 module.exports = {
     activate: plate_designer,
-    PlateMap: PlateMap,
-    setPlate: setPlateShadow
+    PlateMap: PlateMap
 };

@@ -10,10 +10,7 @@ var pyHTS = (function() {
         plate_designer: require("./plate_designer")
     };
     var pub = {
-        createFileUploadScreen: views.plate_upload.createFileUploadScreen,
-        pyHTSUnlockNext2: views.plate_upload.pyHTSUnlockNext2,
-        PlateMap: views.plate_designer.PlateMap,
-        setPlate: views.plate_designer.setPlate
+        PlateMap: views.plate_designer.PlateMap
     };
 
     return({

@@ -71,4 +71,4 @@
         ajaxErrorCallback: ajaxErrorCallback
     }
 })();
- module.exports = ajax;
+module.exports = ajax;

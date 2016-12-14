@@ -110,3 +110,4 @@ var ui = (function() {
         loadingModal: loadingModal
     }
 })();
+module.exports = ui;
