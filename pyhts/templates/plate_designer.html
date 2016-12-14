@@ -44,12 +44,14 @@
             </button>
             <ul class="dropdown-menu scrollable-menu" id="hts-plate-list"
                 aria-labelledby="hts-select-plate">
-            {% for plate_size in plate_sizes %}
-                <li data-id="MASTER" data-template="{{ plate_size.numCols }}x{{ plate_size.numRows }}"
-                    class="bg-success"><a href="#">Master
-                    template {% if plate_sizes|length > 1 %}[{{ plate_size.numWells }}
-                    well]{% endif %}</a></li>
-            {% endfor %}
+                {% if editable %}
+                    {% for plate_size in plate_sizes %}
+                        <li data-id="MASTER" data-template="{{ plate_size.numCols }}x{{ plate_size.numRows }}"
+                            class="bg-success"><a href="#">Master
+                            template {% if plate_sizes|length > 1 %}[{{ plate_size.numWells }}
+                            well]{% endif %}</a></li>
+                    {% endfor %}
+                {% endif %}
                 {% for p in plates %}
                 <li data-id="{{ p.id }}"><a href="#">
                     {% if p.last_annotated %}
@@ -60,7 +62,7 @@
         </div>
     </div><!-- panel-heading -->
 
-    <ul id="hts-well-nav" class="nav nav-tabs">
+    <ul id="hts-well-nav" class="nav nav-tabs" role="tablist">
         <li id="hts-well-overview" role="presentation" class="active"><a
                 href="#">Overview</a></li>
         <li id="hts-well-celllines" role="presentation"><a href="#">Cell
@@ -122,19 +124,21 @@
                  aria-expanded="true">
                 <label>Cell Line</label>
                 <input type="text" class="form-control" id="cellline-typeahead"
-                       placeholder="Cell line"/>
+                       placeholder="Cell line" {% if not editable %}disabled{% endif %} />
                 <div class="hts-drug-entry" data-drug-num="1">
                     <label class="hts-drug-num-label">Drug <span
                             class="hts-drug-num">1</span></label>
                     <input type="text" class="form-control hts-drug-typeahead"
-                           placeholder="Drug name"/>
+                           placeholder="Drug name" {% if not editable %}disabled{% endif %}/>
                     <div class="input-group">
                         <input type="text" class="form-control hts-dose-input"
-                               placeholder="Dose"/>
+                               placeholder="Dose"
+                               {% if not editable %}disabled{% endif %} />
                         <div class="input-group-btn">
                             <button type="button" class="btn btn-default
                             dropdown-toggle" data-toggle="dropdown"
                                     aria-haspopup="true"
+                                    {% if not editable %}disabled{% endif %}
                                     aria-expanded="false"><span
                                     class="hts-active-dose-unit"
                                     data-dose="1e-9">nM</span>
@@ -151,6 +155,7 @@
                         </div>
                     </div>
                 </div>
+                {% if editable %}
                 <button type="button" class="btn btn-default
                 btn-sidebar btn-sidebar-nomgn"
                         id="hts-add-drug" style="margin-top:5px">Add another
@@ -211,6 +216,7 @@
                             class="btn btn-default"><i class="fa
                     fa-arrow-down"></i></button>
                 </div>
+                {% endif %}
             </div>
         </div>
 

@@ -15,7 +15,7 @@ class NoDataException(Exception):
     pass
 
 
-def df_single_cl_drug(user_id, dataset_id, cell_line_id, drug_id, assay,
+def df_single_cl_drug(dataset_id, cell_line_id, drug_id, assay,
                       control=None,
                       log2y=False, normalize_as='dr',
                       aggregates=(np.mean, np.min, np.max)):
@@ -23,7 +23,6 @@ def df_single_cl_drug(user_id, dataset_id, cell_line_id, drug_id, assay,
 
     Parameters
     ----------
-    user_id
     dataset_id
     cell_line_id
     drug_id
@@ -49,7 +48,7 @@ def df_single_cl_drug(user_id, dataset_id, cell_line_id, drug_id, assay,
     # with the next query to get all the drug details in a single DB hit
     plate_id_query = WellDrug.objects.filter(
         well__plate__dataset_id=dataset_id,
-        well__plate__dataset__owner_id=user_id,
+        # well__plate__dataset__owner_id=user_id,
         well__cell_line=cell_line_id,
         drug_id=drug_id).annotate(num_drugs=Count(
         'well__welldrug')).filter(

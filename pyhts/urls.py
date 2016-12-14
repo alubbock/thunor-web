@@ -24,17 +24,13 @@ urlpatterns = [
 
     url(r'^dataset/(?P<dataset_id>\d+)/plots/$', views.plots, name='plots'),
 
-    # url(r'^ajax/plate_file/(?P<file_id>\d+)$', views.ajax_get_plates,
-    #     name='ajax_plate_names'),
 
     url(r'^ajax/plot/$', views.ajax_get_plot,
         name='ajax_plot'),
 
-    url(r'^ajax/dataset/(?P<dataset_id>\d+)/groups/$',
-        views.ajax_get_dataset_groups, name='ajax_dataset_groups'),
+    url(r'^ajax/dataset/(?P<dataset_id>\d+)/groupings/$',
+        views.ajax_get_dataset_groupings, name='ajax_dataset_groupings'),
 
-    # url(r'^ajax/plate/table_view', views.ajax_table_view,
-    #     name='ajax_table_view'),
     url(r'^ajax/platefile/upload', views.ajax_upload_platefiles,
         name='ajax_upload_platefiles'),
     url('^ajax/platefile/delete', views.ajax_delete_platefile,
@@ -47,10 +43,11 @@ urlpatterns = [
 
     url(r'^ajax/dataset/all', views.ajax_get_datasets,
         name='ajax_get_datasets'),
+    url(r'^ajax/dataset/by-group/(?P<group_id>\d+)',
+        views.ajax_get_datasets_group, name='ajax_get_datasets_by_group'),
+
     url(r'^ajax/dataset/create', views.ajax_create_dataset,
         name='ajax_create_dataset'),
-    # url(r'^ajax/dataset/set_timepoints', views.ajax_set_timepoints,
-    #     name='ajax_set_timepoints'),
     url(r'^ajax/cellline/create', views.ajax_create_cellline,
         name='ajax_create_cellline'),
     url(r'^ajax/drug/create', views.ajax_create_drug,

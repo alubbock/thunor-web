@@ -3,22 +3,38 @@ from django.db import models
 from django.conf import settings
 from itertools import cycle
 from numpy import repeat
+from guardian.models import UserObjectPermissionBase, GroupObjectPermissionBase
 
 
 class HTSDataset(models.Model):
+    class Meta:
+        permissions = (
+            ('view_plots', 'View plots'),
+            ('view_plate_layout', 'View plate layout'),
+            ('download_data', 'Download data')
+        )
+
     owner = models.ForeignKey(settings.AUTH_USER_MODEL)
     name = models.TextField()
     creation_date = models.DateTimeField(auto_now_add=True)
 
-    @staticmethod
-    def get_plate_file_ids(id):
-        return [p['id'] for p in Plate.objects.filter(
-            plate_file__dataset_id=id).order_by(
-            'plate_file_id', 'id').values('id')]
+    def __str__(self):
+        return '%s' % self.name
 
-    @property
-    def plate_file_ids(self):
-        return self.get_plate_file_ids(self.id)
+    @classmethod
+    def view_dataset_permission_names(cls):
+        """
+        Currently all permission types allow viewing a dataset
+        """
+        return [p[0] for p in cls._meta.permissions]
+
+
+class HTSDatasetUserObjectPermission(UserObjectPermissionBase):
+    content_object = models.ForeignKey(HTSDataset)
+
+
+class HTSDatasetGroupObjectPermission(GroupObjectPermissionBase):
+    content_object = models.ForeignKey(HTSDataset)
 
 
 class PlateFile(models.Model):
@@ -43,7 +59,7 @@ class Drug(models.Model):
 
 
 class PlateMap(object):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         if 'width' in kwargs:
             self.width = kwargs['width']
         if 'height' in kwargs:

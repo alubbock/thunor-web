@@ -39,15 +39,15 @@
         <label>1 Drug/1 Cell Line</label>
         <div class="btn-group">
             <button class="btn btn-success new-plot-btn"
-                    data-dataset-id="{{ dataset_id }}"
+                    data-dataset-id="{{ dataset.id }}"
                     data-control-id="{{ control_id }}"
                     data-plot-type="dr2d">Dose/Response</button>
             <button class="btn btn-success new-plot-btn"
-                    data-dataset-id="{{ dataset_id }}"
+                    data-dataset-id="{{ dataset.id }}"
                     data-control-id="{{ control_id }}"
                     data-plot-type="tc">Time Course</button>
             <button class="btn btn-success new-plot-btn"
-                    data-dataset-id="{{ dataset_id }}"
+                    data-dataset-id="{{ dataset.id }}"
                     data-control-id="{{ control_id }}"
                     data-plot-type="dr3d">Dose/Time/Response (3D)</button>
         </div>
@@ -238,7 +238,7 @@ $(function () {
         var $dataPanel = $('.hts-change-data:last').clone();
 
         $.ajax({
-            url: '/ajax/dataset/'+dat['datasetId']+'/groups/',
+            url: '/ajax/dataset/'+dat['datasetId']+'/groupings/',
             type: 'GET',
             success: function(data) {
                 pushOptionsToSelect(

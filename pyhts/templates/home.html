@@ -12,16 +12,27 @@
 </div>
 <div class="row">
 <div class="col-lg-12">
-    <table id="dataset-table" class="table table-striped table-bordered"
-           width="100%"
-           cellspacing="0">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Date Uploaded</th>
-            </tr>
-        </thead>
-    </table>
+    <ul id="dataset-tabs" class="nav nav-tabs" role="tablist" style="margin-bottom:-1px">
+        <li role="presentation" data-url="{% url 'pyhts:ajax_get_datasets' %}" class="active"><a href="#">My Datasets</a></li>
+        {% for group in request.user.groups.all %}
+            <li role="presentation" data-url="{% url 'pyhts:ajax_get_datasets_by_group' group.id %}">
+                <a href="#">{{ group }}</a></li>
+        {% endfor %}
+    </ul>
+    <div class="tab-content panel" style="border: 1px solid #ddd;
+    padding:10px">
+        <div role="tabpanel">
+            <table id="dataset-table" class="table table-striped table-bordered"
+                   width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Date Uploaded</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
 </div>
 </div>
 {% endblock %}
@@ -29,7 +40,7 @@
 {% block tailscript %}
 <script>
 $(function() {
-    $('#dataset-table').DataTable( {
+    var dataset_table = $('#dataset-table').DataTable( {
         "ajax": '{% url 'pyhts:ajax_get_datasets' %}',
         "columnDefs": [
             {"targets": 0, "data": "name", "render": {
@@ -40,6 +51,16 @@ $(function() {
             {"targets": 1, "data": "creation_date"}
         ]
     } );
+
+    var $datasetTabs = $('#dataset-tabs');
+
+    $datasetTabs.find('li').click(function(e) {
+        e.preventDefault();
+        var $this = $(e.currentTarget);
+        dataset_table.ajax.url($this.data('url')).load();
+        $datasetTabs.find('li').removeClass('active');
+        $this.addClass('active');
+    })
 } );
 </script>
 {% endblock %}

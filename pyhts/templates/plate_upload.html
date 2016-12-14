@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}{% if dataset_id %}Add to Dataset{% else %}Create Dataset{% endif %}{% endblock %}
+{% block title %}{% if dataset %}Add to Dataset{% else %}Create Dataset{% endif %}{% endblock %}
 
 {% block content %}
 {# Plate File Upload #}
 <div class="row">
     <div>
         <div class="container">
-            {% if not dataset_id %}
+            {% if not dataset %}
             <div id="hts-dataset-upload-1" class="panel panel-default">
                 <div class="panel-heading">
                     <span class="h3">Specify Details</span>
@@ -28,7 +28,7 @@
             {% endif %}
 
             <div id="hts-dataset-upload-2"
-                 style="{% if not dataset_id %}display:none{% endif %}"
+                 style="{% if not dataset %}display:none{% endif %}"
                  class="panel
                  panel-default">
                 <div class="panel-heading inline-headers clearfix">
@@ -36,7 +36,7 @@
                     <a id="hts-next-2" role="button" class="btn
                     btn-success
                     pull-right"
-                       href="{% if dataset_id %}{% url 'pyhts:plate_designer' dataset_id %}{% else %}#{% endif %}"
+                       href="{% if dataset %}{% url 'pyhts:plate_designer' dataset.id %}{% else %}#{% endif %}"
                                 style="display:none;padding:3px 12px;">Next
                           <span class="glyphicon glyphicon-arrow-right"
                                 aria-hidden="true"></span>
@@ -154,7 +154,7 @@ $(function () {
         }
     }).focus();
 
-    {% if dataset_id %}pyHTS.ui.createFileUploadScreen({{ dataset_id }});{% endif %}
+    {% if dataset %}pyHTS.ui.createFileUploadScreen({{ dataset.id }});{% endif %}
     {% if plate_files %}pyHTSUnlockNext2();{% endif %}
 });
 </script>
