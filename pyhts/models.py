@@ -43,6 +43,9 @@ class PlateFile(models.Model):
     file = models.FileField(upload_to='plate-files')
     file_format = models.TextField(null=True)
 
+    def __str__(self):
+        return '%s' % self.file.name
+
 
 class CellLine(models.Model):
     name = models.TextField(unique=True)
@@ -64,14 +67,15 @@ class PlateMap(object):
             self.width = kwargs['width']
         if 'height' in kwargs:
             self.height = kwargs['height']
+            if self.height > 26:
+                # TODO: Fail for now - would need row names like AA, AB etc.
+                raise Exception('Plates with height >26 are not yet supported')
 
     @property
     def num_wells(self):
         return self.width * self.height
 
     def row_iterator(self):
-        if self.height > 26:
-            raise Exception('Cannot currently handle well plates > 26 rows')
         return map(chr, range(65, 65 + self.height))
 
     def col_iterator(self):
@@ -80,6 +84,25 @@ class PlateMap(object):
     def well_id_to_name(self, well_id):
         return '{}{}'.format(chr(65 + (well_id // self.width)),
                              (well_id % self.width) + 1)
+
+    def well_name_to_id(self, well_name, raise_error=True):
+        try:
+            row_num = ord(well_name[0]) - 65  # zero-based
+            if row_num < 0 or row_num > (self.height - 1):
+                raise ValueError('Unable to parse well name {} for plate with '
+                                 '{} rows'.format(well_name, self.height))
+
+            col_num = int(well_name[1:]) - 1
+            if col_num < 0 or col_num > (self.width - 1):
+                raise ValueError('Unable to parse well name {} for plate with '
+                                 '{} cols'.format(well_name, self.width))
+
+            return row_num * self.width + col_num
+        except ValueError as e:
+            if raise_error:
+                raise e
+            else:
+                return -1
 
     def well_iterator(self):
         row_it = iter(repeat(list(self.row_iterator()), self.width))
@@ -102,6 +125,9 @@ class Plate(models.Model, PlateMap):
     last_annotated = models.DateTimeField(null=True)
     width = models.IntegerField()
     height = models.IntegerField()
+
+    def __str__(self):
+        return self.name
 
 
 class Well(models.Model):

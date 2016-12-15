@@ -76,7 +76,7 @@ $(function () {
 
     $.extend(pyHTS.state, {
         csrfToken: '{{ csrf_token }}',
-        ajaxSettings: {headers: {'X-CSRFToken': pyHTS.state.csrfToken}},
+        ajaxSettings: {headers: {'X-CSRFToken': '{{ csrf_token}}' } },
         initialPreview: initialPreview,
         initialPreviewConfig: initialPreviewConfig,
         datasetId: {% if dataset %}{{ dataset.id }}{% else %}null{% endif %}

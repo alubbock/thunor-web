@@ -1,15 +1,23 @@
 import re
 from django.core.files.uploadedfile import UploadedFile
 from datetime import timedelta, datetime
-from .models import PlateFile, Plate, Well, WellMeasurement
+from .models import PlateFile, Plate, Well, WellMeasurement, CellLine, Drug,\
+    WellDrug, PlateMap
 from django.db import IntegrityError, transaction
 import xlrd
 import magic
 from functools import wraps
 import collections
-
+import pandas
+import io
+import numpy as np
+import math
 
 class PlateFileParseException(Exception):
+    pass
+
+
+class PlateFileUnknownFormat(PlateFileParseException):
     pass
 
 
@@ -60,11 +68,15 @@ class PlateFileParser(object):
         for p in Plate.objects.filter(dataset_id=dataset.id):
             self._plate_objects[p.name] = p
         if self._plate_objects:
-            for w in Well.objects.filter(
-                    plate_id__in=[p.id for p in
-                                  self._plate_objects.values()]).order_by(
-                    'plate_id', 'well_num'):
-                self._well_sets.setdefault(w.plate_id, []).append(w.pk)
+            self._get_well_sets_db([p.id for p in
+                                    self._plate_objects.values()])
+
+    def _get_well_sets_db(self, plate_ids):
+        """ Reads Well primary keys into a local variable cache """
+        for w in Well.objects.filter(
+                plate_id__in=plate_ids).order_by(
+                'plate_id', 'well_num'):
+            self._well_sets.setdefault(w.plate_id, []).append(w.pk)
 
     def _create_db_platefile(self):
         self._db_platefile = PlateFile.objects.create(
@@ -119,6 +131,225 @@ class PlateFileParser(object):
             else None
 
     @_read_plate_decorator
+    def parse_platefile_vanderbilt_hts(self):
+        """
+        Extracts data from a platefile in Vanderbilt HTS format
+
+        This format includes annotations (cell lines, drugs, doses)
+
+        Notes
+        -----
+
+        Limitations: assumes 384 well plate
+        """
+        self.file_format = 'Vanderbilt HTS Core'
+
+        # Create plates (assume 384 well)
+        # TODO: Check actual plate size
+        pm = PlateMap(width=24, height=16)
+
+        try:
+            pd = pandas.read_csv(io.BytesIO(self._plate_data),
+                                 encoding='utf8',
+                                 dtype={
+                                     'file_name': str,
+                                     'well': str,
+                                     'channel': str,
+                                     'expt_class': str,
+                                     'expt.date': str,
+                                     'plate_name': str,
+                                     'plate_id': str,
+                                     'plate.name': str,
+                                     'uid': str,
+                                     'drug1': str,
+                                     'drug1.conc': np.float64,
+                                     'drug1.units': str,
+                                     'cell.count': np.int64,
+                                     'cell.line': str,
+                                     'image.time': str
+                                 },
+                                 converters={
+                                     'time': lambda t: timedelta(
+                                         hours=float(t)),
+                                     'well': lambda w: pm.well_name_to_id(w,
+                                                           raise_error=False)
+                                 },
+                                 index_col=['plate_name', 'well']
+                                 )
+        except Exception as e:
+            raise PlateFileParseException(e)
+
+        # Sanity checks
+        if 'drug2' in pd.columns.values:
+            raise PlateFileParseException('{} format files with more than '
+                                          'one drug are not yet '
+                                          'supported'.format(self.file_format))
+
+        drug_units = pd['drug1.units'].unique()
+        for du in drug_units:
+            if not isinstance(du, str) and math.isnan(du):
+                continue
+
+            if du != 'M':
+                raise PlateFileParseException(
+                    'Only supported drug concentration unit is M (not {})'.
+                        format(du))
+
+        # OK, we'll assume all is good and start hitting the DB
+        self._create_db_platefile()
+
+        # Get/create cell lines
+        cell_lines = {}
+        for cl in pd['cell.line'].unique():
+            if not isinstance(cl, str):
+                continue
+            cl_obj, _ = CellLine.objects.get_or_create(name=cl)
+            cell_lines[cl] = cl_obj.pk
+
+        # Get/create drugs
+        drugs = {}
+        for dr in pd['drug1'].unique():
+            if not isinstance(dr, str):
+                continue
+            dr_obj, _ = Drug.objects.get_or_create(name=dr)
+            drugs[dr] = dr_obj.pk
+
+        # Get/create plates
+        plate_names = pd.index.get_level_values('plate_name').unique()
+        plates_to_create = {}
+        for pl_name in plate_names:
+            if not isinstance(pl_name, str):
+                continue
+
+            if pl_name not in self._plate_objects.keys():
+                plates_to_create[pl_name] = Plate(
+                    dataset=self.dataset,
+                    name=pl_name,
+                    width=pm.width,
+                    height=pm.height
+                )
+
+        # If any plates are not in the DB, now's the time...
+        if plates_to_create:
+            Plate.objects.bulk_create(plates_to_create.values())
+
+            # Depending on DB backend, we may need to refetch to get the PKs
+            # (Thankfully not PostgreSQL)
+            if plates_to_create[list(plates_to_create)[0]].pk is None:
+                for p in Plate.objects.filter(dataset_id=self.dataset.id):
+                    self._plate_objects[p.name] = p
+            else:
+                # Otherwise, just add the plates into the local cache
+                self._plate_objects.update(plates_to_create)
+
+            # Create the well set objects
+            well_sets_to_create = {}
+            for pl_name in plate_names:
+                if not isinstance(pl_name, str):
+                    continue
+
+                plate = self._plate_objects[pl_name]
+                wells = self._well_sets.get(plate.id, None)
+
+                if not wells:
+                    pl_data = pd.loc[pl_name]
+                    cell_lines_this_plate = {well: set(dat['cell.line']) for
+                                             well, dat in
+                                             pl_data.groupby(level='well')}
+
+                    # Check for more than one cell line defined in same well
+                    dup_wells = [well for well, cl in
+                                 cell_lines_this_plate.items() if len(cl) > 1]
+                    if any(dup_wells):
+                        raise PlateFileParseException(
+                            'Plate {} has more than one cell line defined for '
+                            'well(s): {}'.format(pl_name, ",".join([
+                                pm.well_id_to_name(d) for d in dup_wells])))
+
+                    # Checks complete, create the wells
+                    well_sets_to_create[plate.id] = []
+                    for w in range(pm.num_wells):
+                        cl_id = cell_lines_this_plate.get(w, None)
+                        if cl_id is not None:
+                            cl_id = cell_lines[list(cl_id)[0]]
+                        well_sets_to_create[plate.id].append(
+                            Well(plate_id=plate.id,
+                                 well_num=w,
+                                 cell_line_id=cl_id
+                                 )
+                        )
+
+            # Run the DB query to create the well sets
+            # Use a generator to avoid creating an intermediate list
+            def well_generator():
+                for plate_wells in well_sets_to_create.values():
+                    for well in plate_wells:
+                        yield well
+
+            Well.objects.bulk_create(well_generator())
+
+            # Again, on non-PostgreSQL datasets, we'll need to fetch the PKs
+            if well_sets_to_create and \
+                    well_sets_to_create[list(well_sets_to_create)[0]][0].pk\
+                            is None:
+                self._get_well_sets_db(well_sets_to_create.keys())
+            else:
+                for plate_id, well_objs in well_sets_to_create.items():
+                    self._well_sets[plate_id] = [w.pk for w in well_objs]
+
+        # Add WellDrugs and WellMeasurements
+        well_drugs_to_create = []
+        well_measurements_to_create = []
+        for pl_name in plate_names:
+            if not isinstance(pl_name, str):
+                continue
+
+            plate = self._plate_objects[pl_name]
+            well_set = self._well_sets[plate.id]
+            for well, dat in pd.loc[pl_name].groupby(level='well'):
+                well_id = well_set[well]
+                drug_name = dat['drug1'].unique()
+                if len(drug_name) > 1:
+                    raise PlateFileParseException(
+                        'Plate {}, well {} has more than one drug defined in '
+                        'drug1 column'.format(pl_name, pm.well_id_to_name(
+                            well))
+                    )
+                drug_name = drug_name[0]
+                drug_conc = dat['drug1.conc'].unique()
+                if len(drug_conc) > 1:
+                    raise PlateFileParseException(
+                        'Plate {}, well {} has more than one drug '
+                        'concentration defined in drug1.conc column'.format(
+                            pl_name, pm.well_id_to_name(well))
+                    )
+                drug_conc = drug_conc[0]
+                well_drugs_to_create.append(
+                    WellDrug(
+                        well_id=well_id,
+                        drug_id=drugs[drug_name],
+                        order=0,
+                        dose=drug_conc
+                    )
+                )
+                for _, measurement in dat.iterrows():
+                    well_measurements_to_create.append(
+                        WellMeasurement(
+                            well_id=well_id,
+                            assay='Cell count',
+                            timepoint=measurement['time'],
+                            value=measurement['cell.count']
+                        )
+                    )
+
+        # Fire off the bulk DB queries... and we're done
+        print('beginning save')
+        WellDrug.objects.bulk_create(well_drugs_to_create)
+        WellMeasurement.objects.bulk_create(well_measurements_to_create)
+        print('save complete')
+
+
+    @_read_plate_decorator
     def parse_platefile_synergy_neo(self):
         """
         Extracts data from a platefile
@@ -131,17 +362,17 @@ class PlateFileParser(object):
         try:
             pd = self._str_universal_newlines(pd.decode('utf-8'))
         except UnicodeDecodeError:
-            raise PlateFileParseException('Error opening file with UTF-8 '
-                                          'encoding (does file contain '
-                                          'non-standard characters?)')
+            raise PlateFileUnknownFormat('Error opening file with UTF-8 '
+                                         'encoding (does file contain '
+                                         'non-standard characters?)')
 
         plates = pd.split('Field Group\n\nBarcode:')
 
         if len(plates) == 1:
             plates = pd.split('Barcode\n\nBarcode:')
             if len(plates) == 1:
-                raise PlateFileParseException('File does not appear to be in '
-                                              'Synergy Neo format')
+                raise PlateFileUnknownFormat('File does not appear to be in '
+                                             'Synergy Neo format')
 
         self._create_db_platefile()
 
@@ -361,7 +592,12 @@ class PlateFileParser(object):
         if file_type == 'excel':
             self.parse_platefile_imagexpress()
         elif file_type == 'text':
-            self.parse_platefile_synergy_neo()
+            try:
+                self.parse_platefile_synergy_neo()
+            except PlateFileUnknownFormat:
+                pass
+
+            self.parse_platefile_vanderbilt_hts()
         else:
             raise NotImplementedError()
 
