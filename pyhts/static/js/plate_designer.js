@@ -305,6 +305,8 @@ var plate_designer = function () {
         util = require('./modules/util'),
         ajax = require('./modules/ajax');
 
+    var NUM_CSS_UNIQUE_COLOURS = 25;
+
     $('#hts-apply-template-multiple').find('select').selectpicker({
         actionsBox: true,
         countSelectedText: function(n, N) {
@@ -523,7 +525,7 @@ var plate_designer = function () {
             oldLegendEntries[arrayInsertPos] = newArrayEntry;
 
             // Update the legend
-            var n = arrayInsertPos % pyHTS.state.num_css_unique_colours;
+            var n = arrayInsertPos % NUM_CSS_UNIQUE_COLOURS;
             var $lgnd = $baseLegendItem.clone().data('insertPos', arrayInsertPos);
             var legendText;
             if(data_type == 'cell-line') {
@@ -554,7 +556,7 @@ var plate_designer = function () {
                 $ele = $(ele),
                 this_value,
                 n;
-            for(n = 0; n < pyHTS.state.num_css_unique_colours; n++) {
+            for(n = 0; n < NUM_CSS_UNIQUE_COLOURS; n++) {
                 $ele.removeClass('hts-' + data_type + '-' + n);
             }
             if (data_type == "cell-line") {
@@ -570,7 +572,7 @@ var plate_designer = function () {
                 var loc = util.indexOf(this_value,
                         pyHTS.state[oldLegendEntriesDescriptor]);
                 if(loc >= 0) {
-                    n = loc % pyHTS.state.num_css_unique_colours;
+                    n = loc % NUM_CSS_UNIQUE_COLOURS;
                     $ele.addClass('hts-' + data_type + '-' + n)
                             .addClass('hts-' + data_type);
                 }

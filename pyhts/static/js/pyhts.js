@@ -3,7 +3,6 @@
  * Copyright 2016 Alex Lubbock
  */
 var pyHTS = (function() {
-    var state = require("./modules/state");
     var views = {
         plots: require("./plots"),
         plate_upload: require("./plate_upload"),
@@ -14,7 +13,7 @@ var pyHTS = (function() {
     };
 
     return({
-        state: state,
+        state: {},
         views: views,
         pub: pub
     });

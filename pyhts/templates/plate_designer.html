@@ -307,6 +307,11 @@ $(function () {
             {% endfor %}
         },
 
+        last_edited: null,
+        cell_lines_used: [],
+        drugs_used: [],
+        doses_used: [],
+
         completeFlag: false,
         editableFlag: {% if editable %}true{% else %}false{% endif %},
         redirectURL: '{% url 'pyhts:view_dataset' dataset.id %}',
