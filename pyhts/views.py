@@ -724,10 +724,10 @@ def ajax_get_dataset_groupings(request, dataset_id):
     ).annotate(num_drugs=Count('well__welldrug')).filter(num_drugs=1).\
       values('drug_id', 'drug__name').distinct().order_by('drug__name')
 
-    assays = WellMeasurement.objects.annotate(num_drugs=Count(
-        'well__welldrug')).filter(num_drugs=1).values('assay').distinct(
-
-    ).order_by('assay')
+    assays = WellMeasurement.objects.filter(
+        well__plate__dataset_id=dataset_id).annotate(
+        num_drugs=Count('well__welldrug')).filter(
+        num_drugs=1).values('assay').distinct().order_by('assay')
 
     drug_list = []
     controls_list = [{'id': None, 'name': 'None'}]
