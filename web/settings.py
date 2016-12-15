@@ -250,6 +250,9 @@ DOWNLOADS_URL = '/_thunor_downloads/'
 # Delete ephemeral download files after this amount of time
 DOWNLOAD_EPHEMERAL_PURGE_DAYS = 7
 
+# Gives more options, but may change between versions
+USE_PLOTLY_PROTECTED_API = True
+
 try:
     os.makedirs(DOWNLOADS_ROOT)
 except OSError as exc:

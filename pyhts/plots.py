@@ -6,7 +6,37 @@ import scipy.optimize
 import scipy.interpolate
 import seaborn as sns
 from .helpers import format_dose
+from django.conf import settings
 
+
+def _get_plot_html(figure):
+    """
+    Gets plots HTML from plotly
+
+    Can use the protected plotly API, which has more options but may be
+    changed from version to version
+
+    Parameters
+    ----------
+    figure
+
+    Returns
+    -------
+
+    """
+    if settings.USE_PLOTLY_PROTECTED_API:
+        config = {
+            'showLink': False,
+            'displaylogo': False,
+            'modeBarButtonsToRemove': ['sendDataToCloud']
+        }
+        plot_html, plot_div_id, width, height = opy.offline._plot_html(
+            figure, config=config, validate=True, default_width='100%',
+            default_height='100%', global_requirejs=False)
+        return plot_html
+    else:
+        return opy.plot(figure, auto_open=False, output_type='div',
+                   show_link=False, include_plotlyjs=False)
 
 def plot_dose_response(df, log2=False, assay_name='Assay',
                        control_name=None, title=None, **kwargs):
@@ -108,10 +138,8 @@ def plot_dose_response(df, log2=False, assay_name='Assay',
                        yaxis={'title': yaxis_title},
                        )
     figure = go.Figure(data=data, layout=layout)
-    div = opy.plot(figure, auto_open=False, output_type='div',
-                   show_link=False, include_plotlyjs=False)
 
-    return div
+    return _get_plot_html(figure)
 
 
 def plot_dose_response_3d(df, log2=False, assay_name='Assay',
@@ -159,10 +187,8 @@ def plot_dose_response_3d(df, log2=False, assay_name='Assay',
         )
     )
     figure = go.Figure(data=data, layout=layout)
-    div = opy.plot(figure, auto_open=False, output_type='div',
-                   show_link=False, include_plotlyjs=False)
 
-    return div
+    return _get_plot_html(figure)
 
 
 def plot_timecourse(df, log2=False, assay_name='Assay',
@@ -233,10 +259,8 @@ def plot_timecourse(df, log2=False, assay_name='Assay',
                        yaxis={'title': yaxis_title},
                        )
     figure = go.Figure(data=data, layout=layout)
-    div = opy.plot(figure, auto_open=False, output_type='div',
-                   show_link=False, include_plotlyjs=False)
 
-    return div
+    return _get_plot_html(figure)
 
 
 def ll3u(x, b, c, e):
