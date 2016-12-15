@@ -13,9 +13,6 @@ module.exports = {
     entry: {
         favicons: glob.sync("./thunor/favicons/*"),
         app:    ["expose?pyHTS!./thunor/js/pyhts",
-                 "./thunor/js/plots",
-                 "./thunor/js/plate_upload",
-                 "./thunor/js/plate_designer",
                  "./thunor/css/pyhts.css"],
 
         //TODO: Compile more modules from source, removing unneeded components
@@ -102,7 +99,7 @@ module.exports = {
         extensions: ["", ".js"],
         alias: {
             "jquery-ui-js": "jquery-ui/ui",
-            "jquery-ui-css": "jquery-ui/themes/base",
+            "jquery-ui-css": "jquery-ui/themes/base"
         }
     }
 };

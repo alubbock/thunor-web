@@ -2,10 +2,38 @@ import os
 import magic
 from django.http import HttpResponse
 from django.conf import settings
+from django.views.static import serve
 
 
-def nginx_file(filename, rename_to=None, content_type=None,
-               set_permissions=False):
+def serve_file(request, full_file_name, rename_to=None, content_type=None):
+    """
+    Serve a static file, either directly or using NGINX X-accel-redirect
+
+    Parameters
+    ----------
+    request
+    full_file_name
+    rename_to
+    content_type
+
+    Returns
+    -------
+
+    """
+    if settings.DEBUG:
+        response = serve(request, os.path.basename(full_file_name),
+                         os.path.dirname(full_file_name))
+    else:
+        response = _nginx_file(full_file_name,
+                               rename_to=rename_to,
+                               content_type=content_type)
+
+    # Cookie needed for jquery-file-download plugin
+    response['Set-Cookie'] = 'fileDownload=true; path=/'
+    return response
+
+
+def _nginx_file(filename, rename_to=None, content_type=None):
     """
     Serve a file using nginx's X-Accel-Redirect header
 
@@ -18,16 +46,12 @@ def nginx_file(filename, rename_to=None, content_type=None,
         Rename to this file name for the download
     content_type: str or None
         A mime type. Auto-detected if set to None.
-    set_permissions: bool
-        A mime type
 
     Returns
     -------
     An HttpResponse object with an X-Accel-Redirect
 
     """
-    if set_permissions:
-        os.chmod(filename, 0o0604)
     response = HttpResponse(
         content_type=(content_type or magic.from_file(filename, mime=True)))
     basename = os.path.basename(filename)

@@ -24,8 +24,7 @@ import logging
 import os
 import xlsxwriter
 import tempfile
-from django.views.static import serve
-from .serve_file import nginx_file
+from .serve_file import serve_file
 from django.contrib.sites.shortcuts import get_current_site
 from collections import OrderedDict, defaultdict
 from .helpers import AutoExtendList
@@ -549,12 +548,7 @@ def xlsx_get_annotation_data(request, dataset_id):
                                  drugs[dr_pos].dose)
                         dr_pos += 1
 
-    if settings.DEBUG:
-        return serve(request, os.path.basename(tmp_filename),
-                     os.path.dirname(tmp_filename))
-
-    return nginx_file(tmp_filename,
-                      rename_to=output_filename,
+    return serve_file(request, tmp_filename, rename_to=output_filename,
                       content_type='application/vnd.openxmlformats'
                                    '-officedocument.spreadsheetml.sheet')
 
@@ -621,12 +615,7 @@ def xlsx_get_assay_data(request, dataset_id):
                 val.well.well_num))
             ws.write(val.well.well_num + 1, last_time_col, val.value)
 
-    if settings.DEBUG:
-        return serve(request,
-                     os.path.basename(tmp_filename),
-                     os.path.dirname(tmp_filename))
-
-    return nginx_file(tmp_filename, rename_to=output_filename,
+    return serve_file(request, tmp_filename, rename_to=output_filename,
                       content_type='application/vnd.openxmlformats'
                                    '-officedocument.spreadsheetml.sheet')
 

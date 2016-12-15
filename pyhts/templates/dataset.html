@@ -33,9 +33,11 @@
         <h4>Data Download</h4>
         <p>
         <a href="{% url 'pyhts:download_dataset_annotation' dataset.id %}"
-           role="button" class="btn btn-default">Download annotations (Excel)</a>
+           role="button" class="btn btn-default attachment-download">Download
+            annotations (Excel)</a>
         <a href="{% url 'pyhts:download_dataset_assays' dataset.id %}"
-           role="button" class="btn btn-default">Download assays (Excel)</a>
+           role="button" class="btn btn-default attachment-download">Download
+            assays (Excel)</a>
         </p>
         {% endif %}
     </div>
@@ -49,4 +51,13 @@
                 {{ dataset.last_annotated }}</p>
     </div>
     </div>
+{% endblock %}
+
+{% block tailscript %}
+<script>
+$(function () {
+    'use strict';
+    pyHTS.views.dataset.activate();
+});
+</script>
 {% endblock %}

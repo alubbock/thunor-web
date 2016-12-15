@@ -4,6 +4,7 @@
  */
 var pyHTS = (function() {
     var views = {
+        dataset: require("./dataset"),
         plots: require("./plots"),
         plate_upload: require("./plate_upload"),
         plate_designer: require("./plate_designer")
