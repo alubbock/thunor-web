@@ -1,5 +1,6 @@
 import re
 from django.core.files.uploadedfile import UploadedFile
+from django.utils import timezone
 from datetime import timedelta, datetime
 from .models import PlateFile, Plate, Well, WellMeasurement, CellLine, Drug,\
     WellDrug, PlateMap
@@ -225,6 +226,7 @@ class PlateFileParser(object):
                 plates_to_create[pl_name] = Plate(
                     dataset=self.dataset,
                     name=pl_name,
+                    last_annotated=timezone.now(),
                     width=pm.width,
                     height=pm.height
                 )
@@ -343,11 +345,8 @@ class PlateFileParser(object):
                     )
 
         # Fire off the bulk DB queries... and we're done
-        print('beginning save')
         WellDrug.objects.bulk_create(well_drugs_to_create)
         WellMeasurement.objects.bulk_create(well_measurements_to_create)
-        print('save complete')
-
 
     @_read_plate_decorator
     def parse_platefile_synergy_neo(self):
