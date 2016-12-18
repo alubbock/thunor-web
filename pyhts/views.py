@@ -21,16 +21,15 @@ from operator import itemgetter
 from django.conf import settings
 import pyhts
 import logging
-import os
 import xlsxwriter
 import tempfile
 from .serve_file import serve_file
 from django.contrib.sites.shortcuts import get_current_site
 from collections import OrderedDict, defaultdict
 from .helpers import AutoExtendList
-from plotly.exceptions import PlotlyEmptyDataError
 from guardian.shortcuts import get_objects_for_group, get_perms
 from django.contrib.contenttypes.models import ContentType
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 
 logger = logging.getLogger(__name__)
 
@@ -488,6 +487,7 @@ class DatasetXlsxWriter(object):
 
 
 @login_required
+@xframe_options_sameorigin
 def xlsx_get_annotation_data(request, dataset_id):
     with DatasetXlsxWriter(request, dataset_id, prefix='xlsxannot-') as xlsx:
         tmp_filename = xlsx.tempfile.name
@@ -554,6 +554,7 @@ def xlsx_get_annotation_data(request, dataset_id):
 
 
 @login_required
+@xframe_options_sameorigin
 def xlsx_get_assay_data(request, dataset_id):
     with DatasetXlsxWriter(request, dataset_id, prefix='xlsxassay-') as xlsx:
         tmp_filename = xlsx.tempfile.name
