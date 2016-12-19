@@ -362,7 +362,7 @@ var plate_designer = function () {
 
     var createCellLine = function(name, successCallback) {
         $.ajax({type: 'POST',
-                url: '/ajax/cellline/create',
+                url: ajax.url("create_cellline"),
                 headers: { 'X-CSRFToken': pyHTS.state.csrfToken },
                 data: {'name' : name},
                 success: function(data) {
@@ -381,7 +381,7 @@ var plate_designer = function () {
 
     var createDrug = function(name, successCallback) {
         $.ajax({type: 'POST',
-                url: '/ajax/drug/create',
+                url: ajax.url("create_drug"),
                 headers: { 'X-CSRFToken': pyHTS.state.csrfToken },
                 data: {'name' : name},
                 success: function(data) {
@@ -1250,7 +1250,7 @@ var plate_designer = function () {
 
     var loadPlate = function(plateId) {
         $.ajax({
-            url: '/ajax/plate/load/'+plateId,
+            url: ajax.url("load_plate", plateId),
             type: 'GET',
             success: plateLoadedCallback,
             error: ajax.ajaxErrorCallback,
@@ -1263,7 +1263,7 @@ var plate_designer = function () {
     var savePlate = function(nextPlateToLoad) {
         pyHTS.state.plateMap.loadNext = nextPlateToLoad;
         $.ajax({
-            url: '/ajax/plate/save',
+            url: ajax.url("save_plate"),
             data: JSON.stringify(pyHTS.state.plateMap),
             type: 'POST',
             headers: { 'X-CSRFToken': pyHTS.state.csrfToken },

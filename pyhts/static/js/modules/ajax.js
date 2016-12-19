@@ -35,8 +35,8 @@
     };
 
     var ajaxErrorCallback = function (jqXHR, textStatus, thrownError) {
-        var message = 'Communication with the server timed ' +
-            'out (perhaps the connection was lost?';
+        var message = "Communication with the server timed " +
+            "out (perhaps the connection was lost?";
         if (textStatus == "error" ||
             textStatus == "parsererror") {
             if (jqXHR != null) {
@@ -57,18 +57,44 @@
                     }
                 });
             }
-            message = 'An unknown error occurred with the ' +
-                'server and has been logged. Please bear' +
-                ' with us while we look into it.<br><br>'
-                + 'Reference number: ' + Raven.lastEventId();
-        } else if (textStatus == 'abort') {
-            message = 'Communication with the server was aborted.';
+            message = "An unknown error occurred with the " +
+                "server and has been logged. Please bear" +
+                " with us while we look into it.<br><br>"
+                + "Reference number: " + Raven.lastEventId();
+        } else if (textStatus == "abort") {
+            message = "Communication with the server was aborted.";
         }
-        ui.okModal('Error communicating with server', message);
+        ui.okModal("Error communicating with server", message);
+    };
+
+    var urls = {
+        "get_datasets": "/ajax/dataset/all",
+        "page_view_dataset": "/dataset/{ARG}",
+        "create_cellline": "/ajax/cellline/create",
+        "create_drug": "/ajax/drug/create",
+        "load_plate": "/ajax/plate/load/{ARG}",
+        "save_plate": "/ajax/plate/save",
+        "page_upload_platefile": "/dataset/{ARG}/upload",
+        "upload_platefile": "/ajax/platefile/upload",
+        "delete_platefile": "/ajax/platefile/delete",
+        "create_dataset": "/ajax/dataset/create",
+        "page_annotate_dataset": "/dataset/{URL}/annotate",
+        "dataset_groupings": "/ajax/dataset/{ARG}/groupings",
+        "get_plot": "/ajax/plot"
+    };
+
+    var url = function(view, arg) {
+        var retUrl = urls[view];
+        if(arg !== undefined) {
+          return retUrl.replace("{ARG}", arg);
+        } else {
+            return retUrl;
+        }
     };
 
     return {
-        ajaxErrorCallback: ajaxErrorCallback
+        ajaxErrorCallback: ajaxErrorCallback,
+        url: url
     }
 })();
 module.exports = ajax;

@@ -22,13 +22,13 @@ urlpatterns = [
     url(r'^dataset/(?P<dataset_id>\d+)/download/assays$',
         views.xlsx_get_assay_data, name='download_dataset_assays'),
 
-    url(r'^dataset/(?P<dataset_id>\d+)/plots/$', views.plots, name='plots'),
+    url(r'^dataset/(?P<dataset_id>\d+)/plots$', views.plots, name='plots'),
 
 
-    url(r'^ajax/plot/$', views.ajax_get_plot,
+    url(r'^ajax/plot$', views.ajax_get_plot,
         name='ajax_plot'),
 
-    url(r'^ajax/dataset/(?P<dataset_id>\d+)/groupings/$',
+    url(r'^ajax/dataset/(?P<dataset_id>\d+)/groupings$',
         views.ajax_get_dataset_groupings, name='ajax_dataset_groupings'),
 
     url(r'^ajax/platefile/upload', views.ajax_upload_platefiles,

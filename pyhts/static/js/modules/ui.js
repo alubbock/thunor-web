@@ -39,6 +39,36 @@ var ui = (function() {
             '" aria-hidden="true"></span>';
     };
 
+    $.fn.loadingOverlay = function( action ) {
+        if (action == "show") {
+            return this.each(function(i, ele) {
+                var $ele = $(ele);
+                $loadingOverlay = $ele.find(".loading-overlay");
+                if ($loadingOverlay.length) {
+                    $loadingOverlay.fadeIn();
+                } else {
+                    var overlay = $('<div class="loading-overlay">' +
+                        '<div class="sk-folding-cube">' +
+                        '<div class="sk-cube1 sk-cube"></div>' +
+                        '<div class="sk-cube2 sk-cube"></div>' +
+                        '<div class="sk-cube4 sk-cube"></div>' +
+                        '<div class="sk-cube3 sk-cube"></div>' +
+                        '</div>' +
+                        '<div class="bolt"><i class="fa fa-bolt"></i></div>' +
+                        '</div>');
+                    overlay.appendTo($ele).fadeIn();
+                }
+            });
+        } else if (action == "hide") {
+            return this.each(function(i, ele) {
+                $(ele).find(".loading-overlay").hide();
+            });
+        } else {
+            okModal("Unknown loadingOverlay action: " + action);
+        }
+        return this;
+    };
+
     /**
      * Module for displaying "Waiting for..." dialog using Bootstrap
      *

@@ -1,6 +1,7 @@
-var plots = function() {
-    var ajax = require('./modules/ajax');
+var ajax = require("./modules/ajax");
+var ui = require("./modules/ui");
 
+var plots = function() {
     $(".sortable-panels").sortable({
         tolerance: 'pointer',
         revert: 'invalid',
@@ -60,14 +61,23 @@ var plots = function() {
     });
 
     var pushOptionsToSelect = function ($select, optionList, selectedOption) {
-        for (var i = 0; i < optionList.length; i++) {
+        var len = optionList.length;
+        for (var i = 0; i < len; i++) {
             $select.append(
                 '<option value="' + optionList[i].id + '"' +
                 (optionList[i].id == selectedOption ? ' selected' : '') +
                 '>' + optionList[i].name + '</option>'
             );
         }
-        $select.selectpicker('refresh');
+        if (len == 0) {
+            $select.closest(".bootstrap-select").
+                    find("span").first().text("No options available");
+        } else {
+            if (selectedOption === undefined) {
+                $select.selectpicker("val", optionList[0].id);
+            }
+            $select.selectpicker("refresh");
+        }
     };
 
     // Add new panel
@@ -76,10 +86,10 @@ var plots = function() {
         var dat = $(eNewPlot.currentTarget).data();
         $newPanel.find('.panel').data(dat);
 
-        var $dataPanel = $('.hts-change-data:last').clone();
+        var $dataPanel = $('.hts-change-data').last().clone();
 
         $.ajax({
-            url: '/ajax/dataset/' + dat['datasetId'] + '/groupings/',
+            url: ajax.url("dataset_groupings", dat['datasetId']),
             type: 'GET',
             success: function (data) {
                 pushOptionsToSelect(
@@ -103,11 +113,14 @@ var plots = function() {
                 $dataPanel.find('select.hts-log-transform').val
                 (dat['logTransform']).selectpicker('refresh');
             },
-            error: ajax.ajaxErrorCallback
+            error: ajax.ajaxErrorCallback,
+            // complete: function() { ui.loadingDiv.hide($dataPanel); }
         });
 
+        var $plotPanel = $newPanel.find(".panel-body");
         $dataPanel.find('select').selectpicker();
         $dataPanel.find('form').submit(function (e) {
+            $plotPanel.loadingOverlay("show");
             var $this = $(e.currentTarget),
                 $submit = $this.find('button[type=submit]');
             e.preventDefault();
@@ -116,26 +129,24 @@ var plots = function() {
             });
             $submit.prop('disabled', true).text('Loading...');
             $.ajax({
-                url: '/ajax/plot/?' + $this.serialize(),
+                url: ajax.url("get_plot") + "?" + $this.serialize(),
                 type: 'GET',
                 dataType: 'html',
                 success: function (data) {
-                    var $panelBody = $newPanel.find('.panel-body');
-                    $panelBody.children().not('.hts-change-data').remove();
-                    $panelBody.append(data);
+                    $plotPanel.find(".plotly-graph-div,script").remove();
+                    $plotPanel.append(data);
                     $dataPanel.slideUp();
                 },
                 error: ajax.ajaxErrorCallback,
                 complete: function () {
                     $submit.prop('disabled', false).text('Submit');
+                    $plotPanel.loadingOverlay("hide");
                 }
             });
         }).find('input[type=hidden]').each(function (i, obj) {
             $(obj).val(dat[$(obj).attr('name')]);
         });
-        $dataPanel.prependTo(
-            $newPanel.find('.panel-body')
-        );
+        $dataPanel.prependTo($plotPanel);
 
         $('#welcome-instructional').hide();
         $newPanel.appendTo('.sortable-panels').fadeIn(400, function () {
