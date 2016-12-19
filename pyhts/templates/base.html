@@ -10,7 +10,7 @@
                 <span class="icon-bar"></span>
             </button>
             <a class="navbar-brand" href="{% url 'pyhts:home' %}"><i class="fa fa-bolt"></i> Thunor</a>
-            {% if dataset %}<a class="navbar-brand" href="{% url 'pyhts:view_dataset' dataset.id %}"><i class="fa fa-database"></i>{{ dataset.name|truncatechars:20 }}</a>{% endif %}
+            {% if dataset %}<a class="navbar-brand" href="{% url 'pyhts:view_dataset' dataset.id %}"><i class="fa fa-database"></i> {{ dataset.name|truncatechars:20 }}</a>{% endif %}
         </div>
         {% if user.is_authenticated %}
         <div class="collapse navbar-collapse" id="myNavbar">
