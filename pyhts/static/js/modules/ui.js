@@ -1,8 +1,29 @@
+"use strict";
 var ui = (function() {
+    var modalBase = $(
+        '<div class="modal fade" id="modal-ok-cancel" tabindex="-1"' +
+        ' role="dialog" aria-hidden="true">' +
+        '<div class="modal-dialog">' +
+            '<div class="modal-content">' +
+                '<div class="modal-header"></div>' +
+                '<div class="modal-body"></div>' +
+                '<div class="modal-footer">' +
+                    '<button type="button" class="btn btn-cancel btn-default"' +
+                        ' data-dismiss="modal">Cancel</button>' +
+                    '<button class="btn btn-success btn-ok">OK</button>' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+    '</div>');
+
     var okCancelModal = function (title, text, success_callback,
                                   cancel_callback, closed_callback,
                                   ok_label, cancel_label) {
         var $mok = $("#modal-ok-cancel");
+        if ($mok.length == 0) {
+            $mok = modalBase;
+            $("body").append($mok);
+        }
         if (cancel_callback != null) {
             cancel_label = cancel_label == null ? "Cancel" : cancel_label;
             $mok.find(".btn-cancel").text(cancel_label).show();
@@ -39,23 +60,25 @@ var ui = (function() {
             '" aria-hidden="true"></span>';
     };
 
+    var loadingAnim = '<div class="loading-overlay">' +
+                      '<div class="sk-folding-cube">' +
+                      '<div class="sk-cube1 sk-cube"></div>' +
+                      '<div class="sk-cube2 sk-cube"></div>' +
+                      '<div class="sk-cube4 sk-cube"></div>' +
+                      '<div class="sk-cube3 sk-cube"></div>' +
+                      '</div>' +
+                      '<div class="bolt"><i class="fa fa-bolt"></i></div>' +
+                      '</div>';
+
     $.fn.loadingOverlay = function( action ) {
         if (action == "show") {
             return this.each(function(i, ele) {
                 var $ele = $(ele);
-                $loadingOverlay = $ele.find(".loading-overlay");
+                var $loadingOverlay = $ele.find(".loading-overlay");
                 if ($loadingOverlay.length) {
                     $loadingOverlay.fadeIn();
                 } else {
-                    var overlay = $('<div class="loading-overlay">' +
-                        '<div class="sk-folding-cube">' +
-                        '<div class="sk-cube1 sk-cube"></div>' +
-                        '<div class="sk-cube2 sk-cube"></div>' +
-                        '<div class="sk-cube4 sk-cube"></div>' +
-                        '<div class="sk-cube3 sk-cube"></div>' +
-                        '</div>' +
-                        '<div class="bolt"><i class="fa fa-bolt"></i></div>' +
-                        '</div>');
+                    var overlay = $(loadingAnim);
                     overlay.appendTo($ele).fadeIn();
                 }
             });
@@ -66,69 +89,28 @@ var ui = (function() {
         } else {
             okModal("Unknown loadingOverlay action: " + action);
         }
-        return this;
     };
 
-    /**
-     * Module for displaying "Waiting for..." dialog using Bootstrap
-     *
-     * @author Eugene Maslovich <ehpc@em42.ru>
-     */
     var loadingModal = (function () {
-        // Creating modal dialog's DOM
         var $dialog = $(
-            '<div class="modal fade" data-backdrop="static" data-keyboard="false" tabindex="-1" role="dialog" aria-hidden="true" style="padding-top:15%; overflow-y:visible;">' +
+            '<div id="loading-modal" class="modal fade"' +
+            ' data-backdrop="static" data-keyboard="false"' +
+            ' tabindex="-1" role="dialog" aria-hidden="true">' +
             '<div class="modal-dialog modal-m">' +
             '<div class="modal-content">' +
-            '<div class="modal-header"><h3 style="margin:0;"></h3></div>' +
-            '<div class="modal-body">' +
-            '<div class="progress progress-striped active" style="margin-bottom:0;"><div class="progress-bar" style="width: 100%"></div></div>' +
-            '</div>' +
+            loadingAnim +
             '</div></div></div>');
 
         return {
-            /**
-             * Opens our dialog
-             * @param message Custom message
-             * @param options Custom options:
-             *                  options.dialogSize - bootstrap postfix for dialog size, e.g. "sm", "m";
-             *                  options.progressType - bootstrap postfix for progress bar type, e.g. "success", "warning".
-             */
-            show: function (message, options) {
-                // Assigning defaults
-                if (typeof options === 'undefined') {
-                    options = {};
+            show: function (hideCallback) {
+                $dialog.off("hidden.bs.modal");
+                if (hideCallback !== undefined) {
+                    $dialog.on("hidden.bs.modal", hideCallback);
                 }
-                if (typeof message === 'undefined') {
-                    message = 'Loading';
-                }
-                var settings = $.extend({
-                    dialogSize: 'm',
-                    progressType: '',
-                    onHide: null // This callback runs after the dialog was hidden
-                }, options);
-
-                // Configuring dialog
-                $dialog.find('.modal-dialog').attr('class', 'modal-dialog').addClass('modal-' + settings.dialogSize);
-                $dialog.find('.progress-bar').attr('class', 'progress-bar');
-                if (settings.progressType) {
-                    $dialog.find('.progress-bar').addClass('progress-bar-' + settings.progressType);
-                }
-                $dialog.find('h3').text(message);
-                // Adding callbacks
-                if (typeof settings.onHide === 'function') {
-                    $dialog.off('hidden.bs.modal').on('hidden.bs.modal', function (e) {
-                        settings.onHide.call($dialog);
-                    });
-                }
-                // Opening dialog
                 $dialog.modal();
             },
-            /**
-             * Closes dialog
-             */
             hide: function () {
-                $dialog.modal('hide');
+                $dialog.modal("hide");
             }
         };
     })();

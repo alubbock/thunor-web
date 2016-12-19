@@ -1,6 +1,8 @@
- var ajax = (function () {
-     var ui = require("./ui");
+"use strict";
 
+var ui = require("./ui");
+
+var ajax = (function () {
     var ajax401Handler = function (jqXHR) {
         ui.okModal("Authentication required", "The request to the server" +
             " was not authenticated. Please check that you are logged in, e.g." +
@@ -78,7 +80,7 @@
         "upload_platefile": "/ajax/platefile/upload",
         "delete_platefile": "/ajax/platefile/delete",
         "create_dataset": "/ajax/dataset/create",
-        "page_annotate_dataset": "/dataset/{URL}/annotate",
+        "page_annotate_dataset": "/dataset/{ARG}/annotate",
         "dataset_groupings": "/ajax/dataset/{ARG}/groupings",
         "get_plot": "/ajax/plot"
     };

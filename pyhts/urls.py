@@ -24,7 +24,6 @@ urlpatterns = [
 
     url(r'^dataset/(?P<dataset_id>\d+)/plots$', views.plots, name='plots'),
 
-
     url(r'^ajax/plot$', views.ajax_get_plot,
         name='ajax_plot'),
 

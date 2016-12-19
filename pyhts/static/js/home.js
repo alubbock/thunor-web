@@ -18,6 +18,7 @@ var home = function() {
             },
             {"targets": 1, "data": "creation_date"}
         ],
+        "order": [[1, "desc"]],
         "initComplete": function () {
             $tabContent.loadingOverlay("hide");
         }

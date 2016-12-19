@@ -54,7 +54,10 @@ def handler500(request):
 
 @login_required
 def home(request):
-    return render(request, 'home.html')
+    user_has_datasets = HTSDataset.objects.filter(
+        owner=request.user.id).exists()
+    return render(request, 'home.html', {'user_has_datasets':
+                                         user_has_datasets})
 
 
 @login_required

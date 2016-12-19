@@ -1,6 +1,9 @@
+"use strict";
+
+var ui = require("./modules/ui"),
+    ajax = require("./modules/ajax");
+
 var plate_upload = function () {
-    var ui = require("./modules/ui"),
-        ajax = require("./modules/ajax");
 
     var pyHTSLockNext2 = function () {
         $("#hts-next-2").hide();

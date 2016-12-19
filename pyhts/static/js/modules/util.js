@@ -1,7 +1,12 @@
+"use strict";
+
 var util = (function() {
     var onlyUnique = function (value, index, self) {
         return self.indexOf(value) === index;
     };
+
+    var doseUnits = [[1e-12, "p"], [1e-9, "n"], [1e-6, "μ"], [1e-3, "m"],
+                     [1, ""]];
 
     return {
         getAttributeFromObjects: function (listOfObjects, attrName) {
@@ -81,19 +86,14 @@ var util = (function() {
         unique: function (array) {
             return array.filter(onlyUnique);
         },
-        doseUnits: [[1e-12, "p"],
-            [1e-9, "n"],
-            [1e-6, "μ"],
-            [1e-3, "m"],
-            [1, ""]],
         doseFormatter: function (dose) {
             if (dose === undefined) return "None";
             var doseMultiplier = 1;
             var doseSuffix = "";
-            for (var i = 0, len = util.doseUnits.length; i < len; i++) {
-                if (dose >= util.doseUnits[i][0]) {
-                    doseMultiplier = util.doseUnits[i][0];
-                    doseSuffix = util.doseUnits[i][1];
+            for (var i = 0, len = doseUnits.length; i < len; i++) {
+                if (dose >= doseUnits[i][0]) {
+                    doseMultiplier = doseUnits[i][0];
+                    doseSuffix = doseUnits[i][1];
                 }
             }
             return (parseFloat((dose / doseMultiplier).toPrecision(12)) + " " +
@@ -108,10 +108,10 @@ var util = (function() {
             if (dose === undefined) return [null, null];
             var doseMultiplier = 1;
             var doseSuffix = "";
-            for (var i = 0, len = util.doseUnits.length; i < len; i++) {
-                if (dose >= util.doseUnits[i][0]) {
-                    doseMultiplier = util.doseUnits[i][0];
-                    doseSuffix = util.doseUnits[i][1];
+            for (var i = 0, len = doseUnits.length; i < len; i++) {
+                if (dose >= doseUnits[i][0]) {
+                    doseMultiplier = doseUnits[i][0];
+                    doseSuffix = doseUnits[i][1];
                 }
             }
             return [parseFloat((dose / doseMultiplier).toPrecision(12)), doseMultiplier, doseSuffix + "M"];
@@ -122,9 +122,9 @@ var util = (function() {
             if (doseParts[1] === undefined)
                 return doseParts[0];
             if (doseParts[1].length == 2) {
-                for (var i = 0, len = util.doseUnits.length; i < len; i++) {
-                    if (doseParts[1][0] == util.doseUnits[i][1]) {
-                        multiplier = util.doseUnits[i][0];
+                for (var i = 0, len = doseUnits.length; i < len; i++) {
+                    if (doseParts[1][0] == doseUnits[i][1]) {
+                        multiplier = doseUnits[i][0];
                         break;
                     }
                 }

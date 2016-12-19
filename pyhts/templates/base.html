@@ -1,8 +1,6 @@
 {% extends "outer.html" %}
 {% block body %}
 <div id="wrapper">
-
-    <!-- Navigation -->
     <nav class="navbar navbar-default navbar-static-top" role="navigation" style="margin-bottom: 0">
         <div class="navbar-header">
             <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
@@ -11,16 +9,12 @@
                 <span class="icon-bar"></span>
                 <span class="icon-bar"></span>
             </button>
-            <a class="navbar-brand" href="{% url 'pyhts:home' %}"><i
-                    class="fa fa-bolt"></i> Thunor</a>
-            {% if dataset %}<a class="navbar-brand" href="{% url 'pyhts:view_dataset' dataset.id %}"><i class="fa fa-database"></i>
-                {{ dataset.name|truncatechars:20 }}</a>{% endif %}
+            <a class="navbar-brand" href="{% url 'pyhts:home' %}"><i class="fa fa-bolt"></i> Thunor</a>
+            {% if dataset %}<a class="navbar-brand" href="{% url 'pyhts:view_dataset' dataset.id %}"><i class="fa fa-database"></i>{{ dataset.name|truncatechars:20 }}</a>{% endif %}
         </div>
-        <!-- /.navbar-header -->
         {% if user.is_authenticated %}
         <div class="collapse navbar-collapse" id="myNavbar">
             <ul class="nav navbar-top-links navbar-nav navbar-right">
-                <!-- /.dropdown -->
                 <li class="dropdown">
                     <a class="dropdown-toggle" data-toggle="dropdown" href="#">
                         <i class="fa fa-user fa-fw"></i> {{ user.email }}
@@ -29,21 +23,13 @@
                     <ul class="dropdown-menu">
                         <li><a href="{% url 'pyhts:my_account' %}"><i class="fa fa-user fa-fw"></i>User Profile</a></li>
                         <li class="divider"></li>
-                        <li><a href="{% url 'pyhts:logout' %}"><i class="fa
-                        fa-sign-out
-                        fa-fw"></i>
-                            Logout</a>
+                        <li><a href="{% url 'pyhts:logout' %}"><i class="fa fa-sign-out fa-fw"></i>Logout</a>
                         </li>
                     </ul>
-                    <!-- /.dropdown-user -->
                 </li>
-                <!-- /.dropdown -->
             </ul>
         </div>
         {% endif %}
-        <!-- /.navbar-top-links -->
-
-        <!-- /.navbar-static-side -->
     </nav>
 
     <div id="page-wrapper">
@@ -64,30 +50,7 @@
 
         {% block content %}{% endblock %}
     </div>
-    <!-- /#page-wrapper -->
-
-    {#  Confirmation modal #}
-    <div class="modal fade" id="modal-ok-cancel" tabindex="-1" role="dialog"
-         aria-labelledby="myModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header" style="font-size: 20pt">
-                    ...
-                </div>
-                <div class="modal-body">
-                    ...
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-cancel btn-default"
-                            data-dismiss="modal">Cancel</button>
-                    <button class="btn btn-success btn-ok">OK</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
 </div>
-<!-- /#wrapper -->
 
 {% load webpack_loader %}{% get_files 'raven' 'js' as raven_js %}
 <script src="{{ raven_js.0.url }}" crossorigin="anonymous"></script>
@@ -100,6 +63,6 @@
 
 {% render_bundle 'vendor' 'js' %}
 {% render_bundle 'app' 'js' %}
-    {% block tailscript %}{% endblock %}
+{% block tailscript %}{% endblock %}
 
 {% endblock %}

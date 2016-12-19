@@ -10,7 +10,7 @@
     <div class="panel panel-default" id="hts-plate-panel">
     <div class="panel-heading">
         <div class="pull-right" role="group">
-            <div id="hts-apply-template-multiple" style="display:none">
+            <div id="hts-apply-template-multiple">
             <select multiple title="Apply to plates">{% for p in plates %}
                 <option data-id="{{ p.id }}">{{ p.name }}</option>
             {% endfor %}</select>
@@ -18,8 +18,7 @@
                 btn-default">Apply template <span
                     class="view-str"></span></button>
             </div>
-            <button id="hts-prev-dataset" type="button" class="btn btn-default"
-                                    style="display:none">
+            <button id="hts-prev-dataset" type="button" class="btn btn-default">
                               <span class="glyphicon glyphicon-arrow-left"
                                     aria-hidden="true"></span> Previous
                         </button>
@@ -29,10 +28,10 @@
                                     aria-hidden="true"></span>
                         </button>
             <button id="hts-finish-platemap" type="button" class="btn
-            btn-success" style="display:none">Finish</button>
+            btn-success">Finish</button>
         </div>
 
-        <div class="dropdown" style="display:inline-block" id="hts-plate-dropdown">
+        <div class="dropdown" id="hts-plate-dropdown">
             <button class="btn btn-default dropdown-toggle" type="button"
                     id="hts-select-plate" data-toggle="dropdown"
                     aria-haspopup="true" aria-expanded="true">
@@ -101,7 +100,7 @@
     </div>
 
     <div id="hts-well-table-view" class="panel-body">
-        <table class="table table-bordered" style="width:100%"></table>
+        <table class="table table-bordered"></table>
     </div>
     </div>
 </div>
@@ -141,7 +140,7 @@
                                 <span
                                     class="caret"></span></button>
                             <ul class="hts-dose-select dropdown-menu
-                            dropdown-menu-right" style="min-width:0;width:100%">
+                            dropdown-menu-right">
                               <li data-dose="1e-12"><a href="#">pM</a></li>
                               <li data-dose="1e-9"><a href="#">nM</a></li>
                               <li data-dose="1e-6"><a href="#">&mu;M</a></li>
@@ -154,7 +153,7 @@
                 {% if editable %}
                 <button type="button" class="btn btn-default
                 btn-sidebar btn-sidebar-nomgn"
-                        id="hts-add-drug" style="margin-top:5px">Add another
+                        id="hts-add-drug">Add another
                     drug</button>
                 <hr>
 
@@ -291,14 +290,15 @@
 <script>
 $(function () {
     'use strict';
+    var PlateMap = pyHTS.views.plate_designer.PlateMap;
     $.extend(pyHTS.state, {
         csrfToken: '{{ csrf_token }}',
-        {% if plates.0 %}plateMap: new pyHTS.pub.PlateMap({{ plates.0.id }}, {{ plates.0.height }}, {{ plates.0.width }}),{% endif %}
+        {% if plates.0 %}plateMap: new PlateMap({{ plates.0.id }}, {{ plates.0.height }}, {{ plates.0.width }}),{% endif %}
 
         plateMapTemplates: {
             {% for plate_size in plate_sizes %}
                 '{{ plate_size.numCols }}x{{ plate_size.numRows }}':
-                        new pyHTS.pub.PlateMap("MASTER",{{ plate_size.numRows}}, {{ plate_size.numCols }})
+                        new PlateMap("MASTER",{{ plate_size.numRows}}, {{ plate_size.numCols }})
                 {% if not forloop.last %},{% endif %}
             {% endfor %}
         },

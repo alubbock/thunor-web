@@ -1,4 +1,8 @@
-var util = require("./modules/util");
+"use strict";
+
+var ui = require('./modules/ui'),
+    util = require('./modules/util'),
+    ajax = require('./modules/ajax');
 
 var Well = function(well) {
     if(well === undefined) {
@@ -301,10 +305,6 @@ PlateMap.prototype = {
 };
 
 var plate_designer = function () {
-    var ui = require('./modules/ui'),
-        util = require('./modules/util'),
-        ajax = require('./modules/ajax');
-
     var NUM_CSS_UNIQUE_COLOURS = 25;
 
     $('#hts-apply-template-multiple').find('select').selectpicker({
@@ -341,7 +341,7 @@ var plate_designer = function () {
             return;
         }
 
-        ui.loadingModal.show('Applying template...');
+        ui.loadingModal.show();
 
         pyHTS.state.plateMap.applyTemplateTo = tgtPlateIds;
         pyHTS.state.plateMap.applyTemplateMode = $.inArray(pyHTS.state.currentView,

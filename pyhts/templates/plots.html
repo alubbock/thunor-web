@@ -62,10 +62,10 @@
 {#    {% endfor %}#}
 </div>
 
-<div id="welcome-instructional" class="container" style="margin-top:40px">
+<div id="welcome-instructional" class="container">
   <div class="jumbotron navy row">
       <div class="col-xs-2">
-          <i class="fa fa-hand-o-up" style="font-size: 96px;"></i>
+          <i class="fa fa-hand-o-up"></i>
       </div>
       <div class="col-xs-10">
           <p class="lead">Please add a plot to begin</p>
@@ -73,7 +73,7 @@
   </div>
 </div>
 
-<div class="panel-container col-lg-12 col-md-12" style="display:none">
+<div class="plot-panel panel-container col-lg-12 col-md-12">
     <div class="panel panel-default"
          data-error-bars="sd"
          data-log-transform="log2"
@@ -97,15 +97,12 @@
             </div>
 
         </div>
-        <div class="panel-body" style="position:relative;min-height:300px;overflow:visible">
+        <div class="panel-body">
         </div>
     </div>
 </div>
 
-<div class="hts-change-data container" style="display: none; position:
-absolute; top: 0; left: -1px; z-index: 1024; background: rgba(255,
-255, 255, 0.9); padding: 10px; border: 1px solid #ddd; border-top: none;
-max-width:50%">
+<div class="hts-change-data container">
 <div class="row">
 <form>
     <div class="col-sm-6">

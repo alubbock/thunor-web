@@ -178,6 +178,12 @@ table.dataTable thead .sorting:after {
   font-size: 126px;
   margin-top: 20px;
 }
+#welcome-instructional {
+    margin-top: 40px;
+}
+#welcome-instructional .fa {
+    font-size: 96px;
+}
 @media (max-width: 500px) {
     .jumbotron .fa-bolt {font-size:90px;}
 }
@@ -234,6 +240,7 @@ a[aria-expanded=false] .fa-chevron-down {
 user-select: none;}
 
   #hts-plate-panel {min-width:500px;}
+  #hts-plate-dropdown {display: inline-block;}
   #selectable-well-rows {width:4%; float: left; clear:left; }
   .welllist li { margin: 0; padding: 0 0 4% 0; float: left; width: 4%;
       height: 0; cursor: default; text-align: center; font-size:1em;
@@ -431,8 +438,18 @@ user-select: none;}
 #cellline-typeahead, .hts-drug-entry {
     margin-bottom: 15px;
 }
-.hts-drug-num {
+.hts-dose-select {
+    min-width:0;
+    width:100%
+}
+#hts-add-drug {
+    margin-top:5px;
+}
+#hts-apply-template-multiple, .hts-drug-num, #hts-prev-dataset, #hts-finish-platemap {
     display: none;
+}
+.modal-header {
+    font-size: 20pt;
 }
 /** Loading indicators **/
 .loading-overlay {
@@ -444,6 +461,22 @@ user-select: none;}
     top:0;
     width:100%;
     height:100%;
+}
+#loading-modal {
+    padding-top:15%;
+    overflow-y:visible;
+}
+#loading-modal .loading-overlay {
+    display: block;
+    background: none;
+}
+#loading-modal .modal-dialog {
+    height: 200px;
+    width: 200px;
+}
+#loading-modal .modal-content {
+    height: 200px;
+    width: 200px;
 }
 .loading-overlay .bolt {
     position: relative;
@@ -550,10 +583,10 @@ user-select: none;}
     opacity: 0;
   }
 }
-/*@-webkit-keyframes lightning {*/
-    /*0%, 40% { opacity: 0;}*/
-    /*40%, 80% { opacity: 1; }*/
-/*}*/
+@-webkit-keyframes lightning {
+    0%, 55%, 75%, 100% { opacity: 0; }
+    60% { opacity: 1; }
+}
 @keyframes lightning {
     0%, 55%, 75%, 100% { opacity: 0; }
     60% { opacity: 1; }
@@ -561,10 +594,17 @@ user-select: none;}
 
 /** End loading indicators **/
 #hts-well-table-view { display: none; }
+#hts-well-table-view table { width:100%; }
 #hts-apply-template-multiple { display: inline-block; }
 
-.panel-container {
+.plot-panel {
     border: 1px solid transparent;
+    display: none;
+}
+.plot-panel .panel-body {
+    position:relative;
+    min-height:300px;
+    overflow:visible;
 }
 .panel-placeholder {
     border: 1px solid #999;
@@ -574,11 +614,27 @@ user-select: none;}
        #bbb 10px, #bbb 20px
     );
 }
+#hts-next-1, #hts-next-2 {
+    display: none;
+    padding: 3px 12px;
+}
 #plot-toolbar {
     margin: 10px 0;
 }
 #plot-toolbar .dropdown-menu {
     z-index: 2000;
+}
+.hts-change-data {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: -1px;
+    z-index: 1024;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-top: none;
+    max-width: 50%
 }
 #hts-num-cols-lg, #hts-num-cols-md {
     float:left;

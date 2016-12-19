@@ -1,20 +1,20 @@
+"use strict";
+
+var ui = require("./modules/ui");
+
 var dataset = function() {
-    var ui = require("./modules/ui");
 
     $("a.attachment-download").click(function(e) {
         e.preventDefault();
-        ui.loadingModal.show("Preparing download. This may take several" +
-            " minutes for large datasets...");
-        $this = $(e.currentTarget);
+        ui.loadingModal.show();
+        var $this = $(e.currentTarget);
         $.fileDownload($this.attr("href"), {
-            successCallback: function() {
+            successCallback: function () {
                 ui.loadingModal.hide();
             },
-            failCallback: function(html, url) {
-                // TODO: Log error with Raven
+            failCallback: function () {
                 ui.loadingModal.hide();
-                ui.okModal("Error", "There was an error downloading your" +
-                    " file");
+                throw new Error("Error downloading file");
             }
         });
         return false;
