@@ -131,8 +131,8 @@ def plot_dose_response(df, log2=False, assay_name='Assay',
     if log2:
         yaxis_title = 'log2({})'.format(yaxis_title)
     layout = go.Layout(title=title or 'Dose/response',
-                       font={'family': '"Helvetica Neue",Helvetica,Arial,'
-                                       'sans-serif'},
+                       # font={'family': '"Helvetica Neue",Helvetica,Arial,'
+                       #                 'sans-serif'},
                        xaxis={'title': 'Dose (M)',
                               'type': 'log'},
                        yaxis={'title': yaxis_title},
@@ -173,8 +173,8 @@ def plot_dose_response_3d(df, log2=False, assay_name='Assay',
     ]
     layout = go.Layout(
         title=title or '3D Dose/Response',
-        font={'family': '"Helvetica Neue",Helvetica,Arial,'
-                        'sans-serif'},
+        # font={'family': '"Helvetica Neue",Helvetica,Arial,'
+        #                 'sans-serif'},
         autosize=True,
         scene=scene,
         # width=500,
@@ -253,8 +253,8 @@ def plot_timecourse(df, log2=False, assay_name='Assay',
     if log2:
         yaxis_title = 'log2({})'.format(yaxis_title)
     layout = go.Layout(title=title or 'Time Course',
-                       font={'family': '"Helvetica Neue",Helvetica,Arial,'
-                                       'sans-serif'},
+                       # font={'family': '"Helvetica Neue",Helvetica,Arial,'
+                       #                 'sans-serif'},
                        xaxis={'title': 'Time (hours)'},
                        yaxis={'title': yaxis_title},
                        )

@@ -13,6 +13,7 @@ module.exports = {
     entry: {
         favicons: glob.sync("./thunor/favicons/*"),
         app:    ["expose?pyHTS!./thunor/js/pyhts",
+                 "./thunor/css/fonts.css",
                  "./thunor/css/pyhts.css"],
 
         //TODO: Compile more modules from source, removing unneeded components
