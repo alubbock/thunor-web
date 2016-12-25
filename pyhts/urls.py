@@ -1,12 +1,16 @@
-from django.conf.urls import url
+from django.conf.urls import url, include
 from django.views.generic import RedirectView
 from . import views
+import pyhts.api.urls as api_urls
 
 app_name = 'pyhts'
 urlpatterns = [
     url(r'^$', views.home, name='home'),
 
+    url(r'^api/', include(api_urls)),
+
     url('^accounts$', views.my_account, name='my_account'),
+
     url('^logout$', views.logout, name='logout'),
 
     url(r'^tags/(?P<tag_type>cell_lines|drugs)$', views.tag_editor,

@@ -790,7 +790,7 @@ def view_dataset(request, dataset_id):
         dataset = HTSDataset.objects.filter(id=dataset_id)\
         .select_related('owner')\
         .annotate(last_upload=Max('platefile__upload_date'),
-                  last_annotated=Max('plate__last_annotated')).get()
+                  last_annotated=Max('plates__last_annotated')).get()
     except HTSDataset.DoesNotExist:
         raise Http404()
 
@@ -881,7 +881,7 @@ def ajax_get_dataset_groupings(request, dataset_id):
     cell_lines = Well.objects.filter(
         cell_line__isnull=False,
         plate__dataset_id=dataset_id).annotate(
-        num_drugs=Count('welldrug')).filter(
+        num_drugs=Count('drugs')).filter(
         num_drugs=1).select_related(
     ).values('cell_line_id', 'cell_line__name').distinct().order_by(
         'cell_line__name')
@@ -896,7 +896,7 @@ def ajax_get_dataset_groupings(request, dataset_id):
         drug__isnull=False,
         dose__isnull=False,
         well__plate__dataset_id=dataset_id,
-    ).annotate(num_drugs=Count('well__welldrug')).filter(num_drugs=1).\
+    ).annotate(num_drugs=Count('well__drugs')).filter(num_drugs=1).\
       values('drug_id', 'drug__name').distinct().order_by('drug__name')
 
     drug_tags = DrugTag.objects.filter(

@@ -59,7 +59,8 @@ INSTALLED_APPS = [
     'invitations',
     'guardian',
     'crispy_forms',
-    'webpack_loader'
+    'webpack_loader',
+    'rest_framework'
 ]
 
 SITE_ID = 1

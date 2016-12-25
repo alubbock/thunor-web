@@ -1,0 +1,17 @@
+{% extends "rest_framework/base.html" %}
+
+{% block bootstrap_navbar_variant %}navbar-default{% endblock %}
+
+{% block branding %}
+<a class="navbar-brand" href="{% url 'pyhts:home' %}"><i class="fa
+fa-bolt"></i> Thunor REST API</a>
+{% endblock %}
+
+{% block title %}{{ name }} | Thunor REST API{% endblock %}
+
+{% block style %}
+{% include "favicons.html" %}
+{% load webpack_loader %}
+{% render_bundle 'vendor' 'css' %}
+{% render_bundle 'app' 'css' %}
+{% endblock %}

@@ -19,6 +19,8 @@ from django.conf import settings
 from pyhts.views import handler500, handler404
 
 urlpatterns = [
+    url(r'^api/auth/', include('rest_framework.urls',
+                               namespace='rest_framework')),
     url(r'^accounts/', include('allauth.urls')),
     url(r'^admin/', admin.site.urls),
     url(r'', include('pyhts.urls')),
