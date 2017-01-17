@@ -612,8 +612,8 @@ user-select: none;}
 }
 .plot-panel .panel-body {
     position:relative;
-    min-height:300px;
-    overflow:visible;
+    height:450px;
+    /*overflow:visible;*/
 }
 .panel-placeholder {
     border: 1px solid #999;
@@ -671,7 +671,6 @@ user-select: none;}
     margin-left: 10px;
 }
 .sortable-panels .panel-body {
-    overflow-x: hidden;
     padding: 0;
 }
 .sortable-panels .panel {
@@ -682,4 +681,7 @@ user-select: none;}
 }
 .panel-heading .glyphicon-th {
     cursor: pointer;
+}
+.plotly-graph-div {
+    overflow-x: hidden;
 }

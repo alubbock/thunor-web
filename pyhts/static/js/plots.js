@@ -6,10 +6,13 @@ var plots = function() {
         tolerance: "pointer",
         revert: "invalid",
         handle: ".panel-heading",
-        placeholder: "panel-placeholder col-lg-12",
+        placeholder: "panel-placeholder",
         forceHelperSize: false,
         forcePlaceholderSize: true,
-        zIndex: 2000
+        zIndex: 2000,
+        activate: function( event, ui ) {
+          $(ui.placeholder).height($(ui.helper).height());
+        }
     });
 
     var setColumns = function (numColsMd, numColsLg) {
