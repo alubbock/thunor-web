@@ -4,7 +4,14 @@ var home = function() {
     var $tabContent = $(".tab-content");
     $tabContent.loadingOverlay("show");
     var dataset_table = $("#dataset-table").DataTable({
-        "ajax": ajax.url("get_datasets"),
+        "ajax": {
+            "url": ajax.url("get_datasets"),
+            "timeout": 15000,
+            "error": ajax.ajaxErrorCallback,
+            "complete": function() {
+                $tabContent.loadingOverlay("hide");
+            }
+        },
         "columnDefs": [
             {
                 "targets": 0,
@@ -30,9 +37,7 @@ var home = function() {
         e.preventDefault();
         $tabContent.loadingOverlay("show");
         var $this = $(e.currentTarget);
-        dataset_table.ajax.url($this.data("url")).load(function () {
-            $tabContent.loadingOverlay("hide");
-        });
+        dataset_table.ajax.url($this.data("url")).load();
         $datasetTabs.find("li").removeClass("active");
         $this.addClass("active");
     });
