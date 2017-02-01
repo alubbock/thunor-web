@@ -19,7 +19,7 @@ var plate_upload = function () {
             uploadAsync: false,
             deleteUrl: ajax.url("delete_platefile"),
             allowedFileExtensions: ["xls", "xlsx", "txt", "csv", "tsv"],
-            maxFileSize: 102400,
+            maxFileSize: 153600,
             maxFileCount: 20,
             minFileCount: 1,
             initialPreview: pyHTS.state.initialPreview,
