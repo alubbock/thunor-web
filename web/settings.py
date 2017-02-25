@@ -228,6 +228,8 @@ CRISPY_TEMPLATE_PACK = 'bootstrap3'
 # https://docs.djangoproject.com/en/1.10/howto/static-files/
 
 STATIC_URL = os.environ.get('DJANGO_STATIC_URL', '/static/')
+STATIC_ROOT = os.path.join(STATE_DIR, 'thunor-static')
+STATICFILES_FINDERS = ['django.contrib.staticfiles.finders.AppDirectoriesFinder',]
 STATICFILES_DIRS = (os.path.join(STATE_DIR, 'thunor-static'), )
 WEBPACK_LOADER = {
     'DEFAULT': {
