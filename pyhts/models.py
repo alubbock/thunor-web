@@ -125,6 +125,8 @@ class Plate(models.Model, PlateMap):
     last_annotated = models.DateTimeField(null=True)
     width = models.IntegerField()
     height = models.IntegerField()
+    expt_id = models.TextField(null=True)
+    expt_date = models.DateField(null=True)
 
     def __str__(self):
         return self.name
