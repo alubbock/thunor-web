@@ -40,7 +40,7 @@ INTERNAL_IPS = '127.0.0.1'
 # Application definition
 
 INSTALLED_APPS = [
-    'pyhts',
+    'pyhts.apps.PyhtsConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
