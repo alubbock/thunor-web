@@ -34,6 +34,7 @@ def _read_plate_decorator(func):
 
 
 class PlateFileParser(object):
+    _ZERO_TIMEDELTA = timedelta(0)
     _RE_TIME_HOURS = r'(?P<time_hours>[0-9]+)[-_\s]*(h\W|hr|hour)'
     _RE_PLATE_TIME_HOURS = r'(?P<plate_id>.+)-' + _RE_TIME_HOURS
     regexes = {'time_hours': re.compile(_RE_TIME_HOURS, re.IGNORECASE),
@@ -153,48 +154,54 @@ class PlateFileParser(object):
             pd = pandas.read_csv(io.BytesIO(self._plate_data),
                                  encoding='utf8',
                                  dtype={
-                                     'file_name': str,
-                                     'well': str,
-                                     'channel': str,
-                                     'expt_class': str,
-                                     'expt.date': str,
-                                     'plate_name': str,
-                                     'plate_id': str,
-                                     'plate.name': str,
-                                     'uid': str,
+                                     'expt.id': str,
+                                     'upid': str,
+                                     'cell.line': str,
                                      'drug1': str,
                                      'drug1.conc': np.float64,
                                      'drug1.units': str,
+                                     'drug2': str,
+                                     'drug2.conc': np.float64,
+                                     'drug2.units': str,
                                      'cell.count': np.int64,
-                                     'cell.line': str,
-                                     'image.time': str
                                  },
                                  converters={
                                      'time': lambda t: timedelta(
                                          hours=float(t)),
-                                     'well': lambda w: pm.well_name_to_id(w,
-                                                           raise_error=False)
+                                     'well': lambda w: pm.well_name_to_id(w),
+                                     'expt.date': lambda
+                                         d: datetime.strptime(
+                                           d, '%Y-%m-%d').date()
                                  },
-                                 index_col=['plate_name', 'well']
+                                 index_col=['upid', 'well']
                                  )
         except Exception as e:
             raise PlateFileParseException(e)
 
         # Sanity checks
-        if 'drug2' in pd.columns.values:
-            raise PlateFileParseException('{} format files with more than '
-                                          'one drug are not yet '
-                                          'supported'.format(self.file_format))
+        if (pd['cell.count'] < 0).any():
+            raise PlateFileParseException('cell.count contains negative '
+                                          'values')
 
-        drug_units = pd['drug1.units'].unique()
-        for du in drug_units:
-            if not isinstance(du, str) and math.isnan(du):
-                continue
+        if (pd['time'] < self._ZERO_TIMEDELTA).any():
+            raise PlateFileParseException('time contains negative value(s)')
 
-            if du != 'M':
-                raise PlateFileParseException(
-                    'Only supported drug concentration unit is M (not {})'.
-                        format(du))
+        drug_no = 1
+        drug_nums = []
+        while ('drug%d' % drug_no) in pd.columns.values:
+            if (pd['drug%d.conc' % drug_no] < 0).any():
+                raise PlateFileParseException('drug%d.conc contains negative '
+                                              'value(s)' % drug_no)
+            for du in pd['drug%d.units' % drug_no].unique():
+                if not isinstance(du, str) and math.isnan(du):
+                    continue
+
+                if du != 'M':
+                    raise PlateFileParseException(
+                        'Only supported drug concentration unit is M (not {})'.
+                            format(du))
+            drug_nums.append(drug_no)
+            drug_no += 1
 
         # OK, we'll assume all is good and start hitting the DB
         self._create_db_platefile()
@@ -209,26 +216,49 @@ class PlateFileParser(object):
 
         # Get/create drugs
         drugs = {}
-        for dr in pd['drug1'].unique():
-            if not isinstance(dr, str):
-                continue
-            dr_obj, _ = Drug.objects.get_or_create(name=dr)
-            drugs[dr] = dr_obj.pk
+        for drug_no in drug_nums:
+            for dr in pd['drug%d' % drug_no].unique():
+                if not isinstance(dr, str):
+                    continue
+                dr_obj, _ = Drug.objects.get_or_create(name=dr)
+                drugs[dr] = dr_obj.pk
 
         # Get/create plates
-        plate_names = pd.index.get_level_values('plate_name').unique()
+        plate_names = pd.index.get_level_values('upid').unique()
         plates_to_create = {}
         for pl_name in plate_names:
             if not isinstance(pl_name, str):
                 continue
 
             if pl_name not in self._plate_objects.keys():
+                if 'expt.id' in pd.columns.values:
+                    expt_id = pd.loc[pl_name]['expt.id'].unique()
+                    if len(expt_id) > 1:
+                        raise PlateFileParseException('Plate %s contains '
+                                                      'more than one '
+                                                      'expt.id' % pl_name)
+                    expt_id = expt_id[0]
+                else:
+                    expt_id = None
+
+                if 'expt.date' in pd.columns.values:
+                    expt_date = pd.loc[pl_name]['expt.date'].unique()
+                    if len(expt_date) > 1:
+                        raise PlateFileParseException('Plate %s contains '
+                                                      'more than one '
+                                                      'expt.date' % pl_name)
+                    expt_date = expt_date[0]
+                else:
+                    expt_date = None
+
                 plates_to_create[pl_name] = Plate(
                     dataset=self.dataset,
                     name=pl_name,
                     last_annotated=timezone.now(),
                     width=pm.width,
-                    height=pm.height
+                    height=pm.height,
+                    expt_id=expt_id,
+                    expt_date=expt_date
                 )
 
         # If any plates are not in the DB, now's the time...
@@ -310,30 +340,34 @@ class PlateFileParser(object):
             well_set = self._well_sets[plate.id]
             for well, dat in pd.loc[pl_name].groupby(level='well'):
                 well_id = well_set[well]
-                drug_name = dat['drug1'].unique()
-                if len(drug_name) > 1:
-                    raise PlateFileParseException(
-                        'Plate {}, well {} has more than one drug defined in '
-                        'drug1 column'.format(pl_name, pm.well_id_to_name(
-                            well))
+                for drug_no in drug_nums:
+                    drug_name = dat['drug%d' % drug_no].unique()
+                    if len(drug_name) > 1:
+                        raise PlateFileParseException(
+                            'Plate {}, well {} has more than one drug defined '
+                            'in drug%d column'.format(
+                                pl_name, pm.well_id_to_name(well), drug_no
+                            )
+                        )
+                    drug_name = drug_name[0]
+                    drug_conc = dat['drug%d.conc' % drug_no].unique()
+                    if len(drug_conc) > 1:
+                        raise PlateFileParseException(
+                            'Plate {}, well {} has more than one drug '
+                            'concentration defined in drug%d.conc '
+                            'column'.format(
+                                pl_name, pm.well_id_to_name(well), drug_no
+                            )
+                        )
+                    drug_conc = drug_conc[0]
+                    well_drugs_to_create.append(
+                        WellDrug(
+                            well_id=well_id,
+                            drug_id=drugs[drug_name],
+                            order=(drug_no - 1),
+                            dose=drug_conc
+                        )
                     )
-                drug_name = drug_name[0]
-                drug_conc = dat['drug1.conc'].unique()
-                if len(drug_conc) > 1:
-                    raise PlateFileParseException(
-                        'Plate {}, well {} has more than one drug '
-                        'concentration defined in drug1.conc column'.format(
-                            pl_name, pm.well_id_to_name(well))
-                    )
-                drug_conc = drug_conc[0]
-                well_drugs_to_create.append(
-                    WellDrug(
-                        well_id=well_id,
-                        drug_id=drugs[drug_name],
-                        order=0,
-                        dose=drug_conc
-                    )
-                )
                 for _, measurement in dat.iterrows():
                     well_measurements_to_create.append(
                         WellMeasurement(
