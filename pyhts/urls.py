@@ -29,6 +29,8 @@ urlpatterns = [
 
     url(r'^ajax/dataset/(?P<dataset_id>\d+)/groupings$',
         views.ajax_get_dataset_groupings, name='ajax_dataset_groupings'),
+    url(r'^ajax/dataset/delete', views.ajax_delete_dataset,
+        name='ajax_delete_dataset'),
 
     url(r'^ajax/platefile/upload', views.ajax_upload_platefiles,
         name='ajax_upload_platefiles'),

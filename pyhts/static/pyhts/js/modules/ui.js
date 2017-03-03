@@ -24,7 +24,7 @@ var ui = (function() {
             $mok = modalBase;
             $("body").append($mok);
         }
-        if (cancel_callback != null) {
+        if (cancel_callback != null || cancel_label != null) {
             cancel_label = cancel_label == null ? "Cancel" : cancel_label;
             $mok.find(".btn-cancel").text(cancel_label).show();
         } else {

@@ -292,7 +292,6 @@ $(function () {
     'use strict';
     var PlateMap = pyHTS.views.plate_designer.PlateMap;
     $.extend(pyHTS.state, {
-        csrfToken: '{{ csrf_token }}',
         {% if plates.0 %}plateMap: new PlateMap({{ plates.0.id }}, {{ plates.0.height }}, {{ plates.0.width }}),{% endif %}
 
         plateMapTemplates: {

@@ -4,6 +4,9 @@ var ui = require("./modules/ui"),
     ajax = require("./modules/ajax");
 
 var plate_upload = function () {
+    var ajaxSettings = {
+        headers: {"X-CSRFToken": ajax.getCsrfToken()}
+    };
 
     var pyHTSLockNext2 = function () {
         $("#hts-next-2").hide();
@@ -28,8 +31,8 @@ var plate_upload = function () {
             uploadExtraData: {
                 dataset_id: dataset_id
             },
-            ajaxSettings: pyHTS.state.ajaxSettings,
-            ajaxDeleteSettings: pyHTS.state.ajaxSettings
+            ajaxSettings: ajaxSettings,
+            ajaxDeleteSettings: ajaxSettings
         }).on("filelock", pyHTSLockNext2)
             .on("filereset", pyHTSLockNext2)
             .on("filebatchuploadcomplete", pyHTSUnlockNext2)
@@ -50,7 +53,7 @@ var plate_upload = function () {
         $.ajax({
             type: "POST",
             url: ajax.url("create_dataset"),
-            headers: {"X-CSRFToken": pyHTS.state.csrfToken},
+            headers: {"X-CSRFToken": ajax.getCsrfToken() },
             data: {"name": name},
             success: function (data) {
                 if (data.id) {

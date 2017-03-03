@@ -6,6 +6,7 @@ from django.contrib.auth.models import Group
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, \
     HttpResponseServerError, HttpResponseNotFound
+from django.contrib import messages
 from django.db import transaction
 from django.db.models import Q, Count, Max
 from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, \
@@ -138,6 +139,26 @@ def ajax_upload_platefiles(request):
         response['errorkeys'] = list(errors.keys())
 
     return JsonResponse(response)
+
+
+def ajax_delete_dataset(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({}, status=401)
+
+    dataset_id = request.POST.get('dataset_id')
+    try:
+        n_deleted, _ = HTSDataset.objects.filter(id=dataset_id,
+                                                 owner_id=request.user.id).\
+            delete()
+    except ValueError:
+        raise Http404()
+
+    if n_deleted < 1:
+        raise Http404()
+
+    messages.success(request, 'Dataset deleted successfully')
+
+    return JsonResponse({'success': True})
 
 
 def ajax_delete_platefile(request):

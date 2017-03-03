@@ -49,6 +49,13 @@
                 {{ dataset.last_upload }}</p>
             <p><strong>Most recent annotation</strong><br>
                 {{ dataset.last_annotated }}</p>
+        {% if request.user.id == dataset.owner.id %}
+        <p class="lead"><strong>Destructive Operations</strong></p>
+            <input type="hidden" id="dataset-id" name="dataset-id" value=
+                    "{{ dataset.id }}">
+            <button id="btn-delete-dataset" class="btn btn-danger">Delete
+            Dataset</button>
+        {% endif %}
     </div>
     </div>
 {% endblock %}

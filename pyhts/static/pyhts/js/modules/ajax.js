@@ -3,6 +3,30 @@
 var ui = require("./ui");
 
 var ajax = (function () {
+    var csrfToken = null;
+
+    var getCookie = function (name) {
+     var cookieValue = null;
+     if (document.cookie && document.cookie != "") {
+         var cookies = document.cookie.split(";");
+         for(var i = 0, cookieLen = cookies.length; i < cookieLen; i++) {
+             var cookie = jQuery.trim(cookies[i]);
+             if (cookie.substring(0, name.length + 1) == (name + "=")) {
+                 cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+             break;
+         }
+     }
+     }
+     return cookieValue;
+    };
+
+    var getCsrfToken = function() {
+        if (csrfToken == null) {
+            csrfToken = getCookie("csrftoken");
+        }
+      return csrfToken;
+    };
+
     var ajax401Handler = function (jqXHR) {
         ui.okModal("Authentication required", "The request to the server" +
             " was not authenticated. Please check that you are logged in, e.g." +
@@ -71,11 +95,13 @@ var ajax = (function () {
 
     var urls = {
         "get_datasets": "/ajax/dataset/all",
+        "delete_dataset": "/ajax/dataset/delete",
         "page_view_dataset": "/dataset/{ARG}",
         "create_cellline": "/ajax/cellline/create",
         "create_drug": "/ajax/drug/create",
         "load_plate": "/ajax/plate/load/{ARG}",
         "save_plate": "/ajax/plate/save",
+        "page_datasets": "/",
         "page_upload_platefile": "/dataset/{ARG}/upload",
         "upload_platefile": "/ajax/platefile/upload",
         "delete_platefile": "/ajax/platefile/delete",
@@ -96,6 +122,7 @@ var ajax = (function () {
 
     return {
         ajaxErrorCallback: ajaxErrorCallback,
+        getCsrfToken: getCsrfToken,
         url: url
     }
 })();
