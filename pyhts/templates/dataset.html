@@ -50,6 +50,10 @@
             <p><strong>Most recent annotation</strong><br>
                 {{ dataset.last_annotated }}</p>
         {% if request.user.id == dataset.owner.id %}
+        <p class="lead"><strong>Permissions</strong></p>
+            <a href="{% url 'pyhts:view_dataset_permissions' dataset.id %}"
+            role="button" class="btn btn-default">View/Edit Dataset
+                Permissions</a>
         <p class="lead"><strong>Destructive Operations</strong></p>
             <input type="hidden" id="dataset-id" name="dataset-id" value=
                     "{{ dataset.id }}">

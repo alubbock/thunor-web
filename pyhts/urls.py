@@ -12,6 +12,8 @@ urlpatterns = [
     url(r'^dataset/add$', views.dataset_upload, name='plate_upload'),
     url(r'^dataset/(?P<dataset_id>\d+)/$', views.view_dataset,
         name='view_dataset'),
+    url(r'^dataset/(?P<dataset_id>\d+)/permissions$',
+        views.view_dataset_permissions, name='view_dataset_permissions'),
     url(r'^dataset/(?P<dataset_id>\d+)/upload$', views.dataset_upload,
         name='plate_upload'),
     url(r'^dataset/(?P<dataset_id>\d+)/annotate$', views.plate_designer,
@@ -29,6 +31,9 @@ urlpatterns = [
 
     url(r'^ajax/dataset/(?P<dataset_id>\d+)/groupings$',
         views.ajax_get_dataset_groupings, name='ajax_dataset_groupings'),
+    url(r'^ajax/dataset/set-permission$',
+        views.ajax_set_dataset_group_permission,
+        name='ajax_set_dataset_group_permission'),
     url(r'^ajax/dataset/delete', views.ajax_delete_dataset,
         name='ajax_delete_dataset'),
 

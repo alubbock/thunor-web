@@ -28,7 +28,8 @@ from .serve_file import serve_file
 from django.contrib.sites.shortcuts import get_current_site
 from collections import OrderedDict, defaultdict
 from .helpers import AutoExtendList
-from guardian.shortcuts import get_objects_for_group, get_perms
+from guardian.shortcuts import get_objects_for_group, get_perms, \
+    get_groups_with_perms, assign_perm, remove_perm
 from django.contrib.contenttypes.models import ContentType
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 
@@ -707,6 +708,66 @@ def view_dataset(request, dataset_id):
     response = render(request, 'dataset.html', {'dataset': dataset,
                                                 'perms': perms})
     return response
+
+
+@login_required
+def view_dataset_permissions(request, dataset_id):
+    try:
+        dataset = HTSDataset.objects.get(id=dataset_id)
+    except HTSDataset.DoesNotExist:
+        raise Http404()
+
+    if dataset.owner_id != request.user.id:
+        raise Http404()
+
+    available_perms = {p[0]: p[1] for p in HTSDataset._meta.permissions}
+
+    all_groups = request.user.groups.all()
+    groups_with_perms = get_groups_with_perms(dataset, True)
+
+    group_perms = {}
+    for gr in all_groups:
+        matching_gr_perms = groups_with_perms.get(gr, [])
+        group_perms[gr] = [(perm, perm in matching_gr_perms) for perm in
+                           available_perms.keys()]
+
+    response = render(request, 'dataset-permissions.html', {
+        'dataset': dataset, 'available_perms': available_perms,
+         'group_perms': group_perms})
+
+    return response
+
+
+@login_required
+def ajax_set_dataset_group_permission(request):
+    try:
+        dataset_id = int(request.POST['dataset_id'])
+        group_id = int(request.POST['group_id'])
+        perm_id = request.POST['perm_id']
+        state = request.POST['state'].lower() == 'true'
+    except (KeyError, ValueError):
+        return JsonResponse({}, status=400)
+
+    try:
+        dataset = HTSDataset.objects.get(pk=dataset_id)
+    except HTSDataset.DoesNotExist:
+        raise Http404()
+
+    # Does user own this dataset?
+    if dataset.owner_id != request.user.id:
+        raise Http404()
+
+    # Is user a member of the requested group?
+    try:
+        group = request.user.groups.get(pk=group_id)
+    except Group.DoesNotExist:
+        raise Http404()
+
+    # Assign or remove the permission as requested
+    permission_fn = assign_perm if state else remove_perm
+    permission_fn(perm_id, group, dataset)
+
+    return JsonResponse({'success': True})
 
 
 def ajax_get_dataset_groupings(request, dataset_id):

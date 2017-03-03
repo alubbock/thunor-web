@@ -22,6 +22,9 @@ module.exports = {
                  "bootstrap/dist/css/bootstrap.css",
                  "font-awesome/css/font-awesome.css",
 
+                 "bootstrap-switch", //toggle switch widget
+                 "bootstrap-switch/dist/css/bootstrap3/bootstrap-switch.css",
+
                  "bootstrap-fileinput",//uploader
                  "bootstrap-fileinput/css/fileinput.css",//uploader
                  "bootstrap-select",//plate mapper

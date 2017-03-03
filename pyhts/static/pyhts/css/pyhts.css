@@ -141,6 +141,13 @@ table.dataTable thead .sorting:after {
   font-family: fontawesome;
   color: rgba(50, 50, 50, 0.5);
 }
+table.generic-table {
+    margin-bottom: 10px;
+}
+table.generic-table th, table.generic-table td {
+    border: 1px solid #ccc;
+    padding: 10px;
+}
 .btn-circle {
   width: 30px;
   height: 30px;

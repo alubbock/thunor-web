@@ -12,6 +12,7 @@
     "bootstrap": "^3.3.7",
     "bootstrap-fileinput": "^4.3.4",
     "bootstrap-select": "^1.12.1",
+    "bootstrap-switch": "^3.3.4",
     "datatables.net": "^1.10.13",
     "datatables.net-bs": "^1.10.13",
     "font-awesome": "^4.7.0",

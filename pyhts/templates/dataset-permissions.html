@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Permissions: {{ dataset.name }}{% endblock %}
+
+{% block content %}
+<input type="hidden" name="dataset-id" id="dataset-id" value="{{ dataset.id }}">
+<table class="generic-table">
+<thead>
+    <th>Group</th>
+    {% for _, perm_label in available_perms.items %}
+    <th>{{ perm_label }}</th>
+    {% endfor %}
+</thead>
+<tbody>
+{% for group, perms_present in group_perms.items %}
+    <tr><td>{{ group.name }}</td>
+    {% for perm in perms_present %}
+        <td><input type="checkbox" name="{{ group.id }}_{{ perm.0 }}"
+                   data-group-id="{{ group.id }}" data-perm-id="{{ perm.0 }}"
+                {% if perm.1 %}checked{% endif %}></td>
+    {% endfor %}
+    </tr>
+{% endfor %}
+</tbody>
+</table>
+
+<a href="{% url 'pyhts:view_dataset' dataset.id %}"
+role="button" class="btn btn-default">Back to Dataset</a>
+{% endblock %}
+
+{% block tailscript %}
+<script>
+$(function () {
+    'use strict';
+    pyHTS.views.dataset_permissions.activate();
+});
+</script>
+{% endblock %}

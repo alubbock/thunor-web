@@ -106,6 +106,7 @@ var ajax = (function () {
         "upload_platefile": "/ajax/platefile/upload",
         "delete_platefile": "/ajax/platefile/delete",
         "create_dataset": "/ajax/dataset/create",
+        "set_dataset_group_permission": "/ajax/dataset/set-permission",
         "page_annotate_dataset": "/dataset/{ARG}/annotate",
         "dataset_groupings": "/ajax/dataset/{ARG}/groupings",
         "get_plot": "/ajax/plot"
