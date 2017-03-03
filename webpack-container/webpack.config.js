@@ -5,8 +5,6 @@ var ExtractTextPlugin = require("extract-text-webpack-plugin");
 var glob = require("glob");
 var isDebug = (process.env.DJANGO_DEBUG === undefined ? false : process.env.DJANGO_DEBUG.toLowerCase() === "true");
 
-console.log(path.resolve("../_state/webpack-stats.json"));
-
 module.exports = {
     context: __dirname,
 
@@ -43,14 +41,13 @@ module.exports = {
     },
 
     output: {
-        path: path.resolve("../_state/thunor-static/"),
+        path: path.resolve("../_state/webpack-bundles/"),
         filename: "[name]-[chunkhash].js"
     },
 
     plugins: [
         new BundleTracker({path: __dirname,
-            filename: isDebug? "../_state/webpack-stats.json" :
-                    "../_state/webpack-stats-processing.json"}),
+            filename: "../_state/webpack-bundles/webpack-stats.json"}),
         new webpack.optimize.OccurenceOrderPlugin(),
         new ExtractTextPlugin("[name]-[chunkhash].css"),
         new webpack.optimize.UglifyJsPlugin({

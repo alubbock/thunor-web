@@ -229,13 +229,12 @@ CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
 STATIC_URL = os.environ.get('DJANGO_STATIC_URL', '/static/')
 STATIC_ROOT = os.path.join(STATE_DIR, 'thunor-static')
-STATICFILES_FINDERS = ['django.contrib.staticfiles.finders.AppDirectoriesFinder',]
-STATICFILES_DIRS = (os.path.join(STATE_DIR, 'thunor-static'), )
+STATICFILES_DIRS = (os.path.join(STATE_DIR, 'webpack-bundles'), )
 WEBPACK_LOADER = {
     'DEFAULT': {
         'CACHE': not DEBUG,
         'BUNDLE_DIR_NAME': '',
-        'STATS_FILE': os.path.join(STATE_DIR, 'webpack-stats.json'),
+        'STATS_FILE': os.path.join(STATIC_ROOT, 'webpack-stats.json'),
         'POLL_INTERVAL': 0.1,
         'TIMEOUT': None,
         'IGNORE': ['.+\.map']
