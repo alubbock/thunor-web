@@ -28,15 +28,35 @@ def _get_plot_html(figure):
         config = {
             'showLink': False,
             'displaylogo': False,
-            'modeBarButtonsToRemove': ['sendDataToCloud']
+            'modeBarButtonsToRemove': ['sendDataToCloud', 'toImage'],
+            'modeBarButtonsToAdd': [{
+                'name': 'Save plot as SVG image',
+                'icon': '__thunor_svg_icon__',
+                'click': '__thunor_svg_fn__'
+            },
+            {
+                'name': 'Save plot as PNG image',
+                'icon': '__thunor_png_icon__',
+                'click': '__thunor_png_fn__'
+            }
+            ]
         }
         plot_html, plot_div_id, width, height = opy.offline._plot_html(
             figure, config=config, validate=True, default_width='100%',
             default_height='100%', global_requirejs=False)
+        plot_html = plot_html.replace('"__thunor_svg_icon__"',
+                                      'Plotly.Icons[\'camera-retro\']')
+        plot_html = plot_html.replace('"__thunor_png_icon__"',
+                                      'Plotly.Icons[\'camera\']')
+        plot_html = plot_html.replace('"__thunor_svg_fn__"',
+                                      'pyHTS.views.plots.downloadSvg')
+        plot_html = plot_html.replace('"__thunor_png_fn__"',
+                                      'pyHTS.views.plots.downloadPng')
         return plot_html
     else:
         return opy.plot(figure, auto_open=False, output_type='div',
-                   show_link=False, include_plotlyjs=False)
+                        show_link=False, include_plotlyjs=False)
+
 
 def plot_dose_response(df, log2=False, assay_name='Assay',
                        control_name=None, title=None, **kwargs):
@@ -293,6 +313,7 @@ def find_ic50(x_interp, y_interp):
 
 
 def dip_rate(times, cell_counts):
+    """ Fits a DIP rate based on a list of cell counts """
     log2_cell_counts = np.log2(cell_counts)
     t_secs = [t.total_seconds() for t in times.index.get_level_values(0)]
     slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(

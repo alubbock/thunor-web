@@ -1,6 +1,38 @@
 var ajax = require("./modules/ajax");
 var ui = require("./modules/ui");
 
+var downloadSvg = function(gd) {
+    return downloadImage(gd, "svg");
+};
+
+var downloadPng = function(gd) {
+    return downloadImage(gd, "png");
+};
+
+var downloadImage = function(gd, fmt) {
+    // Plotly.Lib.notifier('Taking snapshot - this may take a few seconds', 'long');
+    //
+    // if(Plotly.Lib.isIE()) {
+    //     Plotly.Lib.notifier('IE only supports svg.  Changing format to svg.', 'long');
+    //     fmt = 'svg';
+    // }
+
+    var $gd = $(gd);
+    var filename = $gd.find(".gtitle").text();
+    var width = $gd.width();
+    var height = $gd.height();
+
+    Plotly.downloadImage(gd, {'format': fmt, 'filename': filename,
+                              'width': width, 'height': height})
+      .then(function(filename) {
+          // Plotly.Lib.notifier('Snapshot succeeded - ' + filename, 'long');
+      })
+      .catch(function() {
+          // Plotly.Lib.notifier('Sorry there was a problem downloading your' +
+          //     ' snapshot!', 'long');
+      });
+};
+
 var plots = function() {
     $(".sortable-panels").sortable({
         tolerance: "pointer",
@@ -162,4 +194,9 @@ var plots = function() {
             .slideToggle();
     });
 };
-module.exports = {activate: plots};
+module.exports = {
+    activate: plots,
+    downloadSvg: downloadSvg,
+    downloadPng: downloadPng,
+    downloadImage: downloadImage
+};
