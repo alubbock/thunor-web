@@ -9,7 +9,8 @@
                 <span class="icon-bar"></span>
                 <span class="icon-bar"></span>
             </button>
-            <a class="navbar-brand" href="{% url 'pyhts:home' %}"><i class="fa fa-bolt"></i> Thunor</a>
+            <a class="navbar-brand" href="{% url 'pyhts:home' %}"><i
+                    class="fa fa-bolt"></i> {{ SITE_NAME }}</a>
             {% if dataset %}<a class="navbar-brand" href="{% url 'pyhts:view_dataset' dataset.id %}"><i class="fa fa-database"></i> {{ dataset.name|truncatechars:20 }}</a>{% endif %}
         </div>
         {% if user.is_authenticated %}
@@ -51,6 +52,7 @@
         {% block content %}{% endblock %}
     </div>
 </div>
+<div class="powered-by">Powered by <i class="fa fa-bolt"></i> Thunor</div>
 
 {% load webpack_loader %}{% get_files 'raven' 'js' as raven_js %}
 <script src="{{ raven_js.0.url }}" crossorigin="anonymous"></script>

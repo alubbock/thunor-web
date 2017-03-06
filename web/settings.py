@@ -32,8 +32,8 @@ SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ['DJANGO_DEBUG'].lower() == 'true'
 
-ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost' if
-                               DEBUG else '').split(' ')
+HOSTNAME = os.environ.get('DJANGO_HOSTNAME', 'localhost')
+ALLOWED_HOSTS = [HOSTNAME, ]
 
 INTERNAL_IPS = '127.0.0.1'
 
@@ -93,6 +93,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'pyhts.context_processors.site_branding'
             ],
         },
     },

@@ -9,6 +9,11 @@ class PyhtsConfig(AppConfig):
     name = 'pyhts'
 
     def ready(self):
+        # Set the site name now so we don't have to hit the DB on every view
+        from django.contrib.sites.models import Site
+        settings.SITE_NAME = Site.objects.get_current().name
+
+        # Add a hook for new users to get added to a default group
         post_save.connect(add_to_default_group,
                           sender=settings.AUTH_USER_MODEL)
 

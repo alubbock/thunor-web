@@ -34,6 +34,11 @@ body {
         float: none;
     }
 }
+.powered-by {
+    text-align: center;
+    color: #ccc;
+    padding-top: 10px;
+}
 .navbar-default .navbar-nav>.open>a, .navbar-default .navbar-nav>.open>a:focus, .navbar-default .navbar-nav>.open>a:hover {
     color: #fff;
 }

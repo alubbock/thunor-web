@@ -3,6 +3,7 @@
 from __future__ import unicode_literals
 
 from django.db import migrations
+from django.conf import settings
 
 
 def insert_sites(apps, schema_editor):
@@ -11,7 +12,7 @@ def insert_sites(apps, schema_editor):
     Site.objects.all().delete()
 
     # Register SITE_ID = 1
-    Site.objects.create(pk=1, domain='thunor.lolab.xyz', name='Thunor')
+    Site.objects.create(pk=1, domain=settings.HOSTNAME, name='Thunor')
 
 
 class Migration(migrations.Migration):
