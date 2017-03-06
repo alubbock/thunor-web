@@ -4,7 +4,7 @@ set -e
 
 THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 BASE_DIR="$( dirname "${THIS_DIR}" )"
-DJANGO_STATIC_URL="$( grep DJANGO_STATIC_URL _conf/thunor.env | awk -F\= '{gsub(/"/,"",$2);print $2}' - )"
+DJANGO_STATIC_URL="$( grep ^DJANGO_STATIC_URL= _conf/thunor.env | awk -F\= '{gsub(/"/,"",$2);print $2}' - )"
 
 mkdir -p $BASE_DIR/_state/webpack-bundles
 
@@ -20,5 +20,5 @@ else
   SITE_NAME="$( docker exec thunor_app_1 python manage.py shell -c 'from django.contrib.sites.models import Site; print(Site.objects.get_current().name)' )"
 fi
 cp $THIS_DIR/thunor/502.html $BASE_DIR/_state/thunor-static/
-sed -i '' 's|{{ SITE_NAME }}|'"${SITE_NAME}"'|g' $BASE_DIR/_state/thunor-static/502.html
-sed -i '' 's|{{ DJANGO_STATIC_URL }}|'"${DJANGO_STATIC_URL}"'|g' $BASE_DIR/_state/thunor-static/502.html
+sed -i'' 's|{{ SITE_NAME }}|'"${SITE_NAME}"'|g' $BASE_DIR/_state/thunor-static/502.html
+sed -i'' 's|{{ DJANGO_STATIC_URL }}|'"${DJANGO_STATIC_URL}"'|g' $BASE_DIR/_state/thunor-static/502.html

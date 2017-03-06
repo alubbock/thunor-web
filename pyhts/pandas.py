@@ -55,8 +55,14 @@ def df_single_cl_drug(dataset_id, cell_line_id, drug_id, assay,
         num_drugs=1
         ).values_list('well__plate_id', flat=True).distinct()
 
+    # We need to filter for num_drugs=1 again because the drug might be present
+    # in isolation and in combination on the same plate
     drugs = list(WellDrug.objects.filter(
-        drug_id__in=drug_ids, well__plate__in=plate_id_query).select_related(
+        drug_id__in=drug_ids, well__cell_line=cell_line_id,
+        well__plate__in=plate_id_query).annotate(num_drugs=Count(
+        'well__welldrug')).filter(
+        num_drugs=1
+        ).select_related(
         'drug', 'well', 'well__cell_line').order_by(
         'well__plate_id', 'well__well_num'))
 
