@@ -226,8 +226,14 @@ table.generic-table th, table.generic-table td {
     border: 1px solid #ddd; border-top:0;
     padding:10px;position:relative;border-radius:0 0 5px 5px
 }
-.messages {
-  margin-top:20px;
+.messages > div:first-child {
+  margin-top:30px;
+}
+.messages > div:last-child {
+    margin-bottom:0;
+}
+.page-header {
+    margin: 30px 0 20px 0;
 }
 a[aria-expanded=true] .fa-chevron-up {
    display: none;
@@ -246,7 +252,7 @@ a[aria-expanded=false] .fa-chevron-down {
 #hts-move-selection button {
     width:25%;
 }
-  #page-wrapper {margin:0;}
+  #page-wrapper {margin:0;padding-bottom:20px;}
 
   #selectable-wells .ui-selecting { background: #FECA40; }
   #selectable-wells .ui-selected { background: #F39814; color: white; }
