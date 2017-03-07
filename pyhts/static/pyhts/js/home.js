@@ -33,8 +33,15 @@ var home = function() {
 
     var $datasetTabs = $("#dataset-tabs");
 
+    var lastTabClick = 0;
+
     $datasetTabs.find("li").click(function (e) {
         e.preventDefault();
+        var dateNow = Date.now();
+        if(dateNow - lastTabClick < 500) {
+            return;
+        }
+        lastTabClick = dateNow;
         $tabContent.loadingOverlay("show");
         var $this = $(e.currentTarget);
         dataset_table.ajax.url($this.data("url")).load();
