@@ -4,6 +4,7 @@ var ui = require("./modules/ui"),
     ajax = require("./modules/ajax");
 
 var delete_dataset = function() {
+    ui.loadingModal.show();
     $.ajax({type: 'POST',
             url: ajax.url("delete_dataset"),
             headers: { 'X-CSRFToken': ajax.getCsrfToken() },
@@ -12,6 +13,9 @@ var delete_dataset = function() {
                 window.location = ajax.url("page_datasets");
             },
             error: ajax.ajaxErrorCallback,
+            complete: function() {
+                ui.loadingModal.hide();
+            },
             dataType: 'json'});
 };
 

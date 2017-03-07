@@ -5,6 +5,7 @@ var ui = require("./modules/ui"),
 
 var set_dataset_group_permission = function(dataset_id, group_id, perm_id,
                                             state, $caller) {
+    ui.loadingModal.show();
     $.ajax({type: 'POST',
             url: ajax.url("set_dataset_group_permission"),
             headers: { 'X-CSRFToken': ajax.getCsrfToken() },
@@ -30,7 +31,6 @@ var dataset_permissions = function() {
     $("input[type=checkbox]").bootstrapSwitch({
         'onSwitchChange': function(event, state) {
             var $target = $(event.currentTarget);
-            ui.loadingModal.show();
             set_dataset_group_permission(
                 $('#dataset-id').val(),
                 $target.data('group-id'),
