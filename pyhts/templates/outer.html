@@ -31,16 +31,8 @@
 <meta name="msapplication-square150x150logo" content="{% webpack_static 'favicon/mstile-150x150.png' %}" />
 <meta name="msapplication-wide310x150logo" content="{% webpack_static 'favicon/mstile-310x150.png' %}" />
 <meta name="msapplication-square310x310logo" content="{% webpack_static 'favicon/mstile-310x310.png' %}" />
-
 {% render_bundle 'vendor' 'css' %}
 {% render_bundle 'app' 'css' %}
-
-<!--[if lt IE 9]>{# TODO: Make this a non-javascript banner #}
-    <script>alert("Sorry, your web browser is unsupported. Please
-    upgrade to Internet Explorer 9 or higher, or use a recent version of
-     Google Chrome or Mozilla Firefox");</script>
-<![endif]-->
-
 </head>
 
 <body>{% block body %}{% endblock %}
