@@ -472,7 +472,8 @@ user-select: none;}
 #hts-add-drug {
     margin-top:5px;
 }
-#hts-apply-template-multiple, .hts-drug-num, #hts-prev-dataset, #hts-finish-platemap {
+#hts-apply-template-multiple, #hts-apply-template-multiple select,
+.hts-drug-num, #hts-prev-dataset, #hts-finish-platemap {
     display: none;
 }
 .modal-header {
