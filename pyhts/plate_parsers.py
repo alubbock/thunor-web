@@ -573,6 +573,9 @@ class PlateFileParser(object):
                                           'uploaded to this dataset before')
 
     def _get_or_create_plate(self, plate_name, well_cols, well_rows):
+        if plate_name is None or plate_name == '':
+            raise PlateFileParseException('Plate name must not be empty')
+
         plate = self._plate_objects.get(plate_name, None)
 
         if plate is None:
@@ -618,10 +621,6 @@ class PlateFileParser(object):
         mimetype = magic.from_buffer(self._plate_data, mime=True)
         file_type = self.supported_mimetypes.get(mimetype, None)
 
-        if not file_type:
-            raise PlateFileParseException('File type not supported: {}'.
-                                          format(mimetype))
-
         if file_type == 'excel':
             self.parse_platefile_imagexpress()
         elif file_type == 'text':
@@ -632,7 +631,8 @@ class PlateFileParser(object):
 
             self.parse_platefile_vanderbilt_hts()
         else:
-            raise NotImplementedError()
+            raise PlateFileParseException('File type not supported: {}'.
+                                          format(mimetype))
 
     def parse_all(self):
         self._results = []
