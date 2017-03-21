@@ -80,12 +80,15 @@ module.exports = {
             },
             {
                 test: /\.(png|ico)$/,
-                include: path.resolve(__dirname, "thunor/favicons"),
+                include: [
+                    path.resolve(__dirname, "thunor/favicons"),
+                    path.resolve(__dirname, "../pyhts/static/pyhts/favicons")
+                ],
                 loader: "file?name=favicon/[name].[ext]"
             },
             {
                 test: /\.(png|jpg|gif|ico)$/,
-                exclude: path.resolve(__dirname, "thunor/favicons"),
+                exclude: /\/favicons\//,
                 loader: "file?name=img/[name]-[hash].[ext]"
             },
             {test: /\.(woff|woff2)(\?v=\d+\.\d+\.\d+)?$/, loader: "url?limit=10000&mimetype=application/font-woff&name=font/[name]-[hash].[ext]"},
