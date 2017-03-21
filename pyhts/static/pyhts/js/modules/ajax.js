@@ -27,14 +27,21 @@ var ajax = (function () {
       return csrfToken;
     };
 
-    var ajax401Handler = function (jqXHR) {
+    var ajax400Handler = function (jqXHR) {
+        ui.okModal("Invalid request", "The request was invalid. The server" +
+            " returned the following extra information:<br><br>" +
+            jqXHR.responseText);
+        return true;
+    };
+
+    var ajax401Handler = function () {
         ui.okModal("Authentication required", "The request to the server" +
             " was not authenticated. Please check that you are logged in, e.g." +
             " by refreshing the page.");
         return true;
     };
 
-    var ajax404Handler = function (jqXHR) {
+    var ajax404Handler = function () {
         ui.okModal("Requested resource not found", "The requested" +
             " resource" +
             " was not found, or you do not do have access to it. Please check" +
@@ -66,6 +73,7 @@ var ajax = (function () {
         if (textStatus == "error" ||
             textStatus == "parsererror") {
             if (jqXHR != null) {
+                if (jqXHR.status == 400 && ajax400Handler(jqXHR)) return;
                 if (jqXHR.status == 401 && ajax401Handler(jqXHR)) return;
                 if (jqXHR.status == 404 && ajax404Handler(jqXHR)) return;
                 if (jqXHR.status == 409 && ajax409Handler(jqXHR)) return;

@@ -746,7 +746,7 @@ def ajax_set_dataset_group_permission(request):
         perm_id = request.POST['perm_id']
         state = request.POST['state'].lower() == 'true'
     except (KeyError, ValueError):
-        return JsonResponse({}, status=400)
+        return JsonResponse({'error': 'Malformed Request'}, status=400)
 
     try:
         dataset = HTSDataset.objects.get(pk=dataset_id)
@@ -828,14 +828,23 @@ def ajax_get_plot(request):
         return JsonResponse({}, status=401)
 
     try:
+        plot_meta_type = request.GET['plotMetaType']
+        plot_type = request.GET['plotType']
+
         dataset_id = int(request.GET['datasetId'])
-        cell_line_id = int(request.GET['cellLineId'])
-        drug_id = int(request.GET['drugId'])
+        cell_line_id = request.GET.get('cellLineId')
+        drug_id = request.GET.get('drugId')
+
+        if plot_type != 'dip' and (cell_line_id is None or not drug_id):
+            raise Http404()
+
+        cell_line_id = int(cell_line_id) if cell_line_id is not None else None
+        drug_id = int(drug_id) if drug_id is not None else None
+
         assay = request.GET['assayId']
         control_id = request.GET['controlId']
-        error_bars = request.GET['errorBars']
+        error_bars = request.GET.get('errorBars')
         yaxis = request.GET['logTransform']
-        plot_type = request.GET['plotType']
 
         if control_id == 'null':
             control_id = None
@@ -857,7 +866,8 @@ def ajax_get_plot(request):
         plot_type_str = 'Time Course'
         normalize_as = 'tc'
     else:
-        raise Http404()
+        return HttpResponse('Unimplemented plot type: %s' % plot_type,
+                            status=400)
 
     if error_bars == 'sd':
         aggregates = (np.mean, np.std)
@@ -882,7 +892,9 @@ def ajax_get_plot(request):
                                log2y=yaxis == 'log2', normalize_as=normalize_as,
                                aggregates=aggregates)
     except NoDataException:
-        raise Http404()
+        return HttpResponse('No data found for this request. This drug/cell '
+                            'line/assay combination may not exist.',
+                            status=400)
 
     html = plot_fn(dr['df'],
                    log2=dr['log2y'],

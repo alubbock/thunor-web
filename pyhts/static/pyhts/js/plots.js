@@ -115,6 +115,115 @@ var plots = function() {
         }
     };
 
+    var setButtonGroupOptions = function($btnGroup, options) {
+        var optionKeys = Object.keys(options);
+        var numOptions = optionKeys.length;
+        var $currentOptions = $btnGroup.find("label");
+        var optionsDelta = $currentOptions.length - numOptions;
+        var $lastOption = $currentOptions.last();
+        if (optionsDelta != 0) {
+            if(optionsDelta < 0) {
+                var $newOption = $lastOption.clone().removeClass("active");
+                $newOption.find("input").attr("checked", false).change(selectPlotType);
+                for (var optI=optionsDelta; optI<0; optI++) {
+                    $btnGroup.append($newOption.clone(true));
+                }
+            } else {
+                // $btnGroup.find("label").last().addClass("active")
+                //         .find("input").attr("checked", true);
+                // $btnGroup.find("input").last().click();
+                $currentOptions.slice(numOptions).remove();
+                // if (!($btnGroup.find("input:checked").length)) {
+                //     $btnGroup.find("label").first().click();
+                // }
+                // $btnGroup.button();
+            }
+            $btnGroup.removeClass("btn-group-1 btn-group-2 btn-group-3" +
+                " btn-group-4").addClass("btn-group-"+numOptions);
+            $currentOptions = $btnGroup.find("label");
+        }
+        for(var i=0; i<numOptions; i++) {
+            var $optionI = $currentOptions.eq(i);
+            $optionI.find("span").text(options[optionKeys[i]]);
+            $optionI.find("input").val(optionKeys[i]);
+        }
+    };
+
+    var setSelectPicker = function($selectPicker, newState) {
+        $selectPicker.prop("disabled", !newState).selectpicker("refresh");
+        $selectPicker.closest(".form-group").toggle(newState);
+    };
+
+    var setRadio = function($radioDiv, newState) {
+        var lbls = $radioDiv.find("label");
+        if(newState) {
+            lbls.removeClass("disabled");
+        } else {
+            lbls.addClass("disabled");
+        }
+        $radioDiv.closest(".form-group").toggle(newState);
+    };
+
+    var setPlotType = function($dataPanel, plotType) {
+        var setErrorBars = true;
+        if (plotType == "dr3d") {
+            setErrorBars = false;
+        }
+        setRadio($dataPanel.find(".hts-error-bars"), setErrorBars);
+    };
+
+    var selectPlotType = function(e) {
+        var $target = $(e.target);
+        var $dataPanel = $target.closest(".hts-change-data");
+        var plotType = $dataPanel.find(".hts-plot-type").find("input:checked").val();
+        setPlotType($dataPanel, plotType);
+    };
+
+    var setPlotCategory = function($dataPanel, plotMetaType) {
+        var $drug = $dataPanel.find("select.hts-change-drug");
+        var $cellLine = $dataPanel.find("select.hts-change-cell-line");
+        var setCellLine = true, setDrug = true;
+        if (plotMetaType == "cellline") {
+            setDrug = false;
+        } else if (plotMetaType == "drug") {
+            setCellLine = false;
+        }
+        setSelectPicker($drug, setDrug);
+        setSelectPicker($cellLine, setCellLine);
+    };
+
+    var selectPlotCategory = function(e) {
+      var $target = $(e.target);
+      var $dataPanel = $target.closest(".hts-change-data");
+      var $btnGroup = $dataPanel.find(".hts-plot-type");
+      var plotMetaType = $target.val();
+      if(plotMetaType == "combo") {
+          setButtonGroupOptions($btnGroup, {
+              "dr2d": "Dose/Response",
+              "tc": "Time Course",
+              "dr3d": "3D Dose/Time/Response"
+          });
+      } else {
+          setButtonGroupOptions($btnGroup, {"dip": "DIP Rate"});
+      }
+      setPlotCategory($dataPanel, plotMetaType);
+      $btnGroup.find("label").first().button("toggle");
+    };
+
+    // Change data panel
+    $(".hts-change-data-btn").click(function(e) {
+        var $currentTgt = $(e.currentTarget);
+        var $parentTgt = $currentTgt.parent();
+        var $dataPanel = $currentTgt.closest(".panel").find(".hts-change-data");
+        if($parentTgt.hasClass("open")) {
+            $parentTgt.removeClass("open");
+            $dataPanel.hide();
+        } else {
+            $parentTgt.addClass("open");
+            $dataPanel.show();
+        }
+    });
+
     // Add new panel
     $(".new-plot-btn").click(function (eNewPlot) {
         var $newPanel = $(".panel-container:last").clone(true);
@@ -122,6 +231,9 @@ var plots = function() {
         $newPanel.find(".panel").data(dat);
 
         var $dataPanel = $(".hts-change-data").last().clone();
+
+        $dataPanel.find("input[name=plotMetaType]").change(selectPlotCategory);
+        $dataPanel.find("input[name=plotType]").change(selectPlotType);
 
         $.ajax({
             url: ajax.url("dataset_groupings", dat["datasetId"]),
@@ -152,6 +264,7 @@ var plots = function() {
         });
 
         var $plotPanel = $newPanel.find(".panel-body");
+        var $changeDataBtn = $newPanel.find(".hts-change-data-btn");
         $dataPanel.find("select").selectpicker();
         $dataPanel.find("form").submit(function (e) {
             $plotPanel.loadingOverlay("show");
@@ -169,11 +282,11 @@ var plots = function() {
                 success: function (data) {
                     $plotPanel.find(".plotly-graph-div,script").remove();
                     $plotPanel.append(data);
-                    $dataPanel.slideUp();
+                    $changeDataBtn.click();
                 },
                 error: ajax.ajaxErrorCallback,
                 complete: function () {
-                    $submit.prop("disabled", false).text("Submit");
+                    $submit.prop("disabled", false).text("Show Plot");
                     $plotPanel.loadingOverlay("hide");
                 }
             });
@@ -182,17 +295,10 @@ var plots = function() {
         });
         $dataPanel.prependTo($plotPanel);
 
-        $("#welcome-instructional").hide();
         $newPanel.appendTo(".sortable-panels").fadeIn(400, function () {
-            $dataPanel.slideDown();
+            $changeDataBtn.click();
         });
-    });
-
-    // Change data panel
-    $(".hts-change-data-btn").click(function (e) {
-        $(e.currentTarget).closest(".panel").find(".hts-change-data")
-            .slideToggle();
-    });
+    }).first().click();
 };
 module.exports = {
     activate: plots,
