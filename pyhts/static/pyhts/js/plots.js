@@ -295,7 +295,7 @@ var plots = function() {
         });
         $dataPanel.prependTo($plotPanel);
 
-        $newPanel.appendTo(".sortable-panels").fadeIn(400, function () {
+        $newPanel.prependTo(".sortable-panels").fadeIn(400, function () {
             $changeDataBtn.click();
         });
     }).first().click();
