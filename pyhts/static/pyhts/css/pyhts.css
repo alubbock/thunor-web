@@ -702,6 +702,9 @@ user-select: none;}
     margin-left: 0;
     display: block;
 }
+.hts-change-data .btn {
+    overflow-x: hidden;
+}
 .btn-group-1 label { width: 100%; }
 .btn-group-2 label { width: 50%; }
 .btn-group-3 label { width: 33.333%; }
