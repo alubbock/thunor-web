@@ -900,13 +900,16 @@ def ajax_get_plot(request):
     try:
         if plot_type == 'dip':
             if plot_meta_type == 'drug':
-                df_doses, df_vals, df_controls, drug_name = \
-                    df_drug_unaggregated(
-                    dataset_id=dataset_id,
-                    drug_id=drug_id,
-                    assay=assay,
-                    control=control_id
-                )
+                try:
+                    df_doses, df_vals, df_controls, drug_name = \
+                        df_drug_unaggregated(
+                        dataset_id=dataset_id,
+                        drug_id=drug_id,
+                        assay=assay,
+                        control=control_id
+                    )
+                except NotImplementedError:
+                    return HttpResponse('Not implemented', status=400)
                 return HttpResponse(plot_dip(df_doses, df_vals, df_controls,
                                              assay_name=assay,
                                              log2=yaxis == 'log2',
