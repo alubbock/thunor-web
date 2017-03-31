@@ -99,15 +99,15 @@ def calculate_dip(df_timecourses, control, selector_fn=tyson1,
         assay_vals = np.log2(assay_vals)
     n_total = len(t_secs)
 
-    t_secs_ctrl = [x.total_seconds() for x in
-                   control.index.get_level_values(0)]
-
-    ctrl_slope, ctrl_intercept, ctrl_r, ctrl_p, ctrl_std_err = \
-        scipy.stats.linregress(
-        t_secs_ctrl, np.log2(control['value']))
-
-    # Interpolation fn for the control timecourse
-    ctrl_interp = lambda x: x*ctrl_slope+ctrl_intercept
+    # t_secs_ctrl = [x.total_seconds() for x in
+    #                control.index.get_level_values(0)]
+    #
+    # ctrl_slope, ctrl_intercept, ctrl_r, ctrl_p, ctrl_std_err = \
+    #     scipy.stats.linregress(
+    #     t_secs_ctrl, np.log2(control['value']))
+    #
+    # # Interpolation fn for the control timecourse
+    # ctrl_interp = lambda x: x*ctrl_slope+ctrl_intercept
 
     dip = None
     dip_selector = -np.inf
@@ -162,7 +162,8 @@ def plot_dip(df_doses, df_vals, df_controls, log2=True, assay_name='Assay',
             well_ids = dose_dat['well_id']
             doses.append(dose)
             dip_rates.append(calculate_dip(df_vals.loc[list(well_ids)],
-                                           control=df_controls.loc[cell_line],
+                                           # control=df_controls.loc[cell_line],
+                                           control=None,
                                            apply_log2=log2))
 
         traces.append(go.Scatter(x=doses,

@@ -811,7 +811,8 @@ def ajax_get_dataset_groupings(request, dataset_id):
     drug_list = []
     controls_list = [{'id': None, 'name': 'None'}]
     if dataset.control_handling == 'A1':
-        controls_list = [{'id': 'A1', 'name': 'Enabled'}]
+        # controls_list = [{'id': 'A1', 'name': 'Enabled'}]
+        controls_list = [{'id': 'A1', 'name': 'Unused'}]
 
     for dr in drug_objs:
         this_entry = {'id': dr['drug_id'], 'name': dr['drug__name']}
@@ -886,10 +887,13 @@ def ajax_get_plot(request):
     try:
         dataset = HTSDataset.objects.get(pk=dataset_id)
         if dataset.control_handling != 'A1':
-            control_id = int(control_id)
-        elif control_id != 'A1':
-            raise HttpResponse('Controls must be enabled for this dataset',
-                               status=400)
+            if control_id is not None:
+                control_id = int(control_id)
+        else:
+            if control_id != 'A1':
+                return HttpResponse('Controls must be enabled for this '
+                                    'dataset', status=400)
+            control_id = None
     except HTSDataset.DoesNotExist:
         raise Http404()
 
@@ -903,11 +907,11 @@ def ajax_get_plot(request):
                 try:
                     df_doses, df_vals, df_controls, drug_name = \
                         df_drug_unaggregated(
-                        dataset_id=dataset_id,
-                        drug_id=drug_id,
-                        assay=assay,
-                        control=control_id
-                    )
+                            dataset_id=dataset_id,
+                            drug_id=drug_id,
+                            assay=assay,
+                            control=control_id
+                        )
                 except NotImplementedError:
                     return HttpResponse('Not implemented', status=400)
                 return HttpResponse(plot_dip(df_doses, df_vals, df_controls,
