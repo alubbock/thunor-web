@@ -15,6 +15,74 @@ class NoDataException(Exception):
     pass
 
 
+def df_drug_unaggregated(dataset_id, drug_id, assay, control=None):
+    well_info = WellDrug.objects.filter(well__plate__dataset_id=dataset_id,
+                                        drug_id=drug_id).annotate(
+        num_drugs=Count('well__welldrug')).filter(
+        num_drugs=1).select_related('well', 'well__cell_line').order_by(
+             'well__cell_line_id', 'dose', 'well__plate_id', 'well__well_num')
+
+    # print(pd.DataFrame.from_records(well_info.values()))
+    df_doses = queryset_to_dataframe(well_info,
+                                     columns=('dose', 'well_id',
+                                              'well__cell_line__name'),
+                                     rename_columns=('dose', 'well_id',
+                                                     'cell_line'),
+                                     index=('well__cell_line__name', 'dose'))
+
+    # TODO: Make this more efficient
+    drug_name = well_info.first().drug.name
+
+    timecourses = WellMeasurement.objects.filter(well_id__in=(
+        well.well_id for well in well_info), assay=assay).order_by(
+        'well_id', 'timepoint')
+
+    df_vals = queryset_to_dataframe(timecourses,
+                                    columns=('well_id', 'timepoint', 'value'),
+                                    index=('well_id', 'timepoint'))
+
+    df_controls = None
+    if control == 'A1':
+        controls = WellMeasurement.objects.filter(
+            well__plate__dataset_id=dataset_id,
+            well__well_num=0,
+            assay=assay).select_related(
+            'well').order_by('well__cell_line', 'timepoint')
+
+        df_controls = queryset_to_dataframe(controls,
+                                            columns=('well__cell_line__name',
+                                                     'timepoint', 'value'),
+                                            rename_columns=('cell_line',
+                                                            'timepoint',
+                                                            'value'),
+                                            index=('well__cell_line__name',
+                                                   'timepoint'))
+    elif control is not None:
+        raise NotImplementedError()
+
+    return df_doses, df_vals, df_controls, drug_name
+
+
+def queryset_to_dataframe(queryset, columns, index=None, rename_columns=None):
+    df = pd.DataFrame.from_records(
+        (x for x in queryset.values_list(*columns)),
+        # queryset.values(*columns),
+        columns=columns,
+        index=index
+    )
+    if rename_columns:
+        if index:
+            df.columns = [new for old, new in zip(columns, rename_columns)
+                          if old not in index]
+            df.index.names = [rename_columns[columns.index(nm)] for nm in
+                              df.index.names]
+        else:
+            df.columns = rename_columns
+    # if index:
+    #     df.set_index(index, inplace=True)
+    return df
+
+
 def df_single_cl_drug(dataset_id, cell_line_id, drug_id, assay,
                       control=None,
                       log2y=False, normalize_as='dr',
@@ -57,14 +125,29 @@ def df_single_cl_drug(dataset_id, cell_line_id, drug_id, assay,
 
     # We need to filter for num_drugs=1 again because the drug might be present
     # in isolation and in combination on the same plate
-    drugs = list(WellDrug.objects.filter(
+    drugs = WellDrug.objects.filter(
         drug_id__in=drug_ids, well__cell_line=cell_line_id,
         well__plate__in=plate_id_query).annotate(num_drugs=Count(
         'well__welldrug')).filter(
         num_drugs=1
         ).select_related(
         'drug', 'well', 'well__cell_line').order_by(
-        'well__plate_id', 'well__well_num'))
+        'well__plate_id', 'well__well_num')
+
+    # drug_cl_intersection = pd.DataFrame.from_records([[dr.well.plate_id,
+    #                          dr.well.well_num,
+    #                          dr.drug_id,
+    #                          dr.dose] for
+    #                          dr in drugs], columns=('plate',
+    #                                                 'well',
+    #                                                 'drug',
+    #                                                 'dose'))
+
+    drug_cl_intersection = queryset_to_dataframe(
+        drugs,
+        columns=('well__plate_id', 'well__well_num', 'drug_id', 'dose'),
+        rename_columns=('plate', 'well', 'drug', 'dose')
+    )
 
     if not drugs:
         raise NoDataException()
@@ -83,25 +166,23 @@ def df_single_cl_drug(dataset_id, cell_line_id, drug_id, assay,
     if control and control_name is None:
         raise NoDataException()
 
-    drug_cl_intersection = pd.DataFrame([[dr.well.plate_id,
-                             dr.well.well_num,
-                             dr.drug_id,
-                             dr.dose] for
-                             dr in drugs], columns=('plate',
-                                                    'well',
-                                                    'drug',
-                                                    'dose'))
-
     # Get the assay values
-    vals = pd.DataFrame(list(WellMeasurement.objects.filter(
+    # vals = pd.DataFrame(list(WellMeasurement.objects.filter(
+    #     well_id__in=[dr.well_id for dr in drugs], assay=assay).order_by(
+    #     'timepoint', 'well__plate_id', 'well__well_num').\
+    #     values_list('timepoint', 'well__plate_id', 'well__well_num', 'value')),
+    #                     columns=('time', 'plate', 'well', 'value'))
+    vals = queryset_to_dataframe(WellMeasurement.objects.filter(
         well_id__in=[dr.well_id for dr in drugs], assay=assay).order_by(
-        'timepoint', 'well__plate_id', 'well__well_num').\
-        values_list('timepoint', 'well__plate_id', 'well__well_num', 'value')),
-                        columns=('time', 'plate', 'well', 'value'))
+        'timepoint', 'well__plate_id', 'well__well_num'),
+            columns=('timepoint', 'well__plate_id', 'well__well_num', 'value'),
+            rename_columns=('time', 'plate', 'well', 'value')
+    )
 
     df_all = pd.merge(vals, drug_cl_intersection, how='outer',
-                      on=['plate', 'well'])
+                      on=['plate', 'well'], sort=False)
     df_all.set_index(['drug', 'plate', 'time', 'dose'], inplace=True)
+    df_all.sortlevel(inplace=True)
 
     main_df = df_all.loc[drug_id] if control else df_all
     main_vals = main_df['value']

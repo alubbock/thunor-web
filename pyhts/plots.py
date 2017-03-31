@@ -58,8 +58,139 @@ def _get_plot_html(figure):
                         show_link=False, include_plotlyjs=False)
 
 
+def adjusted_r_squared(r, n, p):
+    """
+    Calculate adjusted r-squared value from r value
+
+    Parameters
+    ----------
+    r: float
+        r value (between 0 and 1)
+    n: int
+        number of sample data points
+    p: int
+        number of free parameters used in fit
+
+    Returns
+    -------
+    float
+        Adjusted r-squared value
+    """
+    denom = n - p - 1
+    if denom < 1:
+        return np.nan
+    return 1 - (1 - r ** 2) * ((n - 1) / denom)
+
+
+def rmsd(predictions, targets):
+    return np.linalg.norm(predictions - targets) / np.sqrt(len(predictions))
+
+
+def tyson1(adj_r_sq, rmse, n):
+    return adj_r_sq * ((1 - rmse) ** 2) * ((n - 3) ** 0.25)
+
+
+def calculate_dip(df_timecourses, control, selector_fn=tyson1,
+                  apply_log2=True):
+    t_secs = [t.total_seconds() for t
+              in df_timecourses.index.get_level_values(1)]
+    assay_vals = df_timecourses['value']
+    if apply_log2:
+        assay_vals = np.log2(assay_vals)
+    n_total = len(t_secs)
+
+    t_secs_ctrl = [x.total_seconds() for x in
+                   control.index.get_level_values(0)]
+
+    ctrl_slope, ctrl_intercept, ctrl_r, ctrl_p, ctrl_std_err = \
+        scipy.stats.linregress(
+        t_secs_ctrl, np.log2(control['value']))
+
+    # Interpolation fn for the control timecourse
+    ctrl_interp = lambda x: x*ctrl_slope+ctrl_intercept
+
+    dip = None
+    dip_selector = -np.inf
+    # dip_best_i = None
+    opt_list = []
+    # print(t_secs)
+    # print(list(assay_vals))
+    if n_total < 3:
+        return None
+    for i in range(n_total - 2):
+        x = t_secs[i:]
+        y = assay_vals[i:]
+        slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(
+            x, y)
+
+        n = len(x)
+        adj_r_sq = adjusted_r_squared(r_value, n, 1)
+        predictions = np.multiply(x, slope) + intercept
+        rmse = rmsd(predictions, assay_vals[i:])
+        new_dip_selector = selector_fn(adj_r_sq, rmse, n)
+        opt_list.append(new_dip_selector)
+        if new_dip_selector > dip_selector:
+            dip_selector = new_dip_selector
+            dip = slope
+            # dip_best_i = i
+
+    # print(opt_list)
+    # print(dip_best_i)
+    # print(dip)
+
+    return dip
+
+
+def plot_dip(df_doses, df_vals, df_controls, log2=True, assay_name='Assay',
+             title=None):
+    # Dataframe with time point as index
+    traces = []
+
+    cell_lines = df_doses.index.levels[df_doses.index.names.index('cell_line')]
+
+    colours = sns.color_palette("husl", len(cell_lines))
+    HILL_FN = ll4
+
+    for cell_line, dose_and_well_id in df_doses.groupby(level='cell_line'):
+        c = colours.pop()
+        this_colour = 'rgb(%d, %d, %d)' % (c[0] * 255, c[1] * 255, c[2] * 255)
+        # doses = dose_and_well_id.index.levels[
+        #             dose_and_well_id.index.names.index('dose')].values
+        dip_rates = []
+        doses = []
+        for dose, dose_dat in dose_and_well_id.groupby(level='dose'):
+            well_ids = dose_dat['well_id']
+            doses.append(dose)
+            dip_rates.append(calculate_dip(df_vals.loc[list(well_ids)],
+                                           control=df_controls.loc[cell_line],
+                                           apply_log2=log2))
+
+        traces.append(go.Scatter(x=doses,
+                                 y=dip_rates,
+                                 mode='lines+markers',
+                                 line={'color': this_colour},
+                                 name=cell_line,
+                                 marker={'size': 5},)
+                     )
+    y0_max = max([tr['y'][0] for tr in traces])
+    for tr in traces:
+        tr['y'] = tr['y'] / y0_max
+
+    data = go.Data(traces)
+    yaxis_title = 'Relative DIP[{}{}]'.format('log2 ' if log2 else '',
+                                            assay_name)
+    layout = go.Layout(title=title,
+                       xaxis={'title': 'Dose (M)',
+                              'type': 'log'},
+                       yaxis={'title': yaxis_title},
+                       )
+    figure = go.Figure(data=data, layout=layout)
+
+    return _get_plot_html(figure)
+
+
 def plot_dose_response(df, log2=False, assay_name='Assay',
-                       control_name=None, title=None, **kwargs):
+                       control_name=None, title='Dose/response', **kwargs):
     # Dataframe with time point as index
     traces = []
 
@@ -150,7 +281,7 @@ def plot_dose_response(df, log2=False, assay_name='Assay',
         yaxis_title = assay_name
     if log2:
         yaxis_title = 'log2({})'.format(yaxis_title)
-    layout = go.Layout(title=title or 'Dose/response',
+    layout = go.Layout(title=title,
                        # font={'family': '"Helvetica Neue",Helvetica,Arial,'
                        #                 'sans-serif'},
                        xaxis={'title': 'Dose (M)',
@@ -163,7 +294,8 @@ def plot_dose_response(df, log2=False, assay_name='Assay',
 
 
 def plot_dose_response_3d(df, log2=False, assay_name='Assay',
-                          control_name=None, title=None, **kwargs):
+                          control_name=None, title='3D Dose/Response',
+                          **kwargs):
 
     data_matrix = df['mean'].unstack()
     # Convert nanoseconds to hours
@@ -192,7 +324,7 @@ def plot_dose_response_3d(df, log2=False, assay_name='Assay',
         )
     ]
     layout = go.Layout(
-        title=title or '3D Dose/Response',
+        title=title,
         # font={'family': '"Helvetica Neue",Helvetica,Arial,'
         #                 'sans-serif'},
         autosize=True,
@@ -212,7 +344,8 @@ def plot_dose_response_3d(df, log2=False, assay_name='Assay',
 
 
 def plot_timecourse(df, log2=False, assay_name='Assay',
-                    control_name=None, title=None, t0_extrapolated=False):
+                    control_name=None, title='Time Course',
+                    t0_extrapolated=False):
     # Dataframe with time point as index
     traces = []
 
@@ -272,7 +405,7 @@ def plot_timecourse(df, log2=False, assay_name='Assay',
         yaxis_title = assay_name
     if log2:
         yaxis_title = 'log2({})'.format(yaxis_title)
-    layout = go.Layout(title=title or 'Time Course',
+    layout = go.Layout(title=title,
                        # font={'family': '"Helvetica Neue",Helvetica,Arial,'
                        #                 'sans-serif'},
                        xaxis={'title': 'Time (hours)'},
@@ -310,12 +443,3 @@ def find_ic50(x_interp, y_interp):
         return hill_interpolate[0]
     else:
         return None
-
-
-def dip_rate(times, cell_counts):
-    """ Fits a DIP rate based on a list of cell counts """
-    log2_cell_counts = np.log2(cell_counts)
-    t_secs = [t.total_seconds() for t in times.index.get_level_values(0)]
-    slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(
-        t_secs, log2_cell_counts)
-    return slope

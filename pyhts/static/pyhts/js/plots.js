@@ -164,19 +164,18 @@ var plots = function() {
         $radioDiv.closest(".form-group").toggle(newState);
     };
 
-    var setPlotType = function($dataPanel, plotType) {
+    var setPlotType = function($dataPanel) {
+        var plotType = $dataPanel.find(".hts-plot-type").find("input:checked").val();
         var setErrorBars = true;
-        if (plotType == "dr3d") {
+        if (plotType == "dr3d" || plotType == "dip") {
             setErrorBars = false;
         }
         setRadio($dataPanel.find(".hts-error-bars"), setErrorBars);
     };
 
     var selectPlotType = function(e) {
-        var $target = $(e.target);
-        var $dataPanel = $target.closest(".hts-change-data");
-        var plotType = $dataPanel.find(".hts-plot-type").find("input:checked").val();
-        setPlotType($dataPanel, plotType);
+        var $dataPanel = $(e.target).closest(".hts-change-data");
+        setPlotType($dataPanel);
     };
 
     var setPlotCategory = function($dataPanel, plotMetaType) {
@@ -190,6 +189,7 @@ var plots = function() {
         }
         setSelectPicker($drug, setDrug);
         setSelectPicker($cellLine, setCellLine);
+        setPlotType($dataPanel);
     };
 
     var selectPlotCategory = function(e) {

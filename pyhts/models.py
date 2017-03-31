@@ -13,10 +13,15 @@ class HTSDataset(models.Model):
             ('view_plate_layout', 'View plate layout'),
             ('download_data', 'Download data')
         )
+    CONTROL_CHOICES = (
+        (None, 'Unspecified'),
+        ('A1', 'Well A1')
+    )
 
     owner = models.ForeignKey(settings.AUTH_USER_MODEL)
     name = models.TextField()
     creation_date = models.DateTimeField(auto_now_add=True)
+    control_handling = models.TextField(null=True, choices=CONTROL_CHOICES)
 
     def __str__(self):
         return '%s' % self.name
@@ -100,7 +105,7 @@ class PlateMap(object):
             return row_num * self.width + col_num
         except ValueError as e:
             if raise_error:
-                raise e
+                raise ValueError('Invalid well name: {}'.format(well_name))
             else:
                 return -1
 

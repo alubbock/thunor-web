@@ -12,8 +12,9 @@ from django.db.models import Q, Count, Max
 from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, \
     Well, WellMeasurement, WellDrug
 import json
-from .plots import plot_dose_response, plot_dose_response_3d, plot_timecourse
-from .pandas import df_single_cl_drug, NoDataException
+from .plots import plot_dose_response, plot_dose_response_3d, \
+    plot_timecourse, plot_dip
+from .pandas import df_single_cl_drug, df_drug_unaggregated, NoDataException
 from .plate_parsers import PlateFileParser
 import numpy as np
 import datetime
@@ -799,6 +800,9 @@ def ajax_get_dataset_groupings(request, dataset_id):
     ).annotate(num_drugs=Count('well__welldrug')).filter(num_drugs=1).\
       values('drug_id', 'drug__name').distinct().order_by('drug__name')
 
+    if dataset.control_handling == 'A1':
+        drug_objs = drug_objs.exclude(well__well_num=0)
+
     assays = WellMeasurement.objects.filter(
         well__plate__dataset_id=dataset_id).annotate(
         num_drugs=Count('well__welldrug')).filter(
@@ -806,6 +810,8 @@ def ajax_get_dataset_groupings(request, dataset_id):
 
     drug_list = []
     controls_list = [{'id': None, 'name': 'None'}]
+    if dataset.control_handling == 'A1':
+        controls_list = [{'id': 'A1', 'name': 'Enabled'}]
 
     for dr in drug_objs:
         this_entry = {'id': dr['drug_id'], 'name': dr['drug__name']}
@@ -848,8 +854,6 @@ def ajax_get_plot(request):
 
         if control_id == 'null':
             control_id = None
-        else:
-            control_id = int(control_id)
     except (KeyError, ValueError):
         raise Http404()
 
@@ -865,6 +869,9 @@ def ajax_get_plot(request):
         plot_fn = plot_timecourse
         plot_type_str = 'Time Course'
         normalize_as = 'tc'
+    elif plot_type == 'dip':
+        # TODO
+        pass
     else:
         return HttpResponse('Unimplemented plot type: %s' % plot_type,
                             status=400)
@@ -878,6 +885,11 @@ def ajax_get_plot(request):
 
     try:
         dataset = HTSDataset.objects.get(pk=dataset_id)
+        if dataset.control_handling != 'A1':
+            control_id = int(control_id)
+        elif control_id != 'A1':
+            raise HttpResponse('Controls must be enabled for this dataset',
+                               status=400)
     except HTSDataset.DoesNotExist:
         raise Http404()
 
@@ -886,11 +898,28 @@ def ajax_get_plot(request):
         raise Http404
 
     try:
-        dr = df_single_cl_drug(dataset_id=dataset_id,
-                               cell_line_id=cell_line_id,
-                               drug_id=drug_id, assay=assay, control=control_id,
-                               log2y=yaxis == 'log2', normalize_as=normalize_as,
-                               aggregates=aggregates)
+        if plot_type == 'dip':
+            if plot_meta_type == 'drug':
+                df_doses, df_vals, df_controls, drug_name = \
+                    df_drug_unaggregated(
+                    dataset_id=dataset_id,
+                    drug_id=drug_id,
+                    assay=assay,
+                    control=control_id
+                )
+                return HttpResponse(plot_dip(df_doses, df_vals, df_controls,
+                                             assay_name=assay,
+                                             log2=yaxis == 'log2',
+                                             title='DIP rates for {'
+                                                   '}'.format(drug_name)))
+            else:
+                return HttpResponse('Not implemented', status=400)
+        else:
+            dr = df_single_cl_drug(dataset_id=dataset_id,
+                                   cell_line_id=cell_line_id,
+                                   drug_id=drug_id, assay=assay, control=control_id,
+                                   log2y=yaxis == 'log2', normalize_as=normalize_as,
+                                   aggregates=aggregates)
     except NoDataException:
         return HttpResponse('No data found for this request. This drug/cell '
                             'line/assay combination may not exist.',
