@@ -12,7 +12,7 @@ if [ "$1" = "--no-container" ]; then
   echo "Processing staticfiles outside of container; do not use in production"
   cd $THIS_DIR && npm run build && cd -
   python $BASE_DIR/manage.py collectstatic --no-input --ignore pyhts
-  SITE_NAME="$( python manage.py shell -c 'from django.contrib.sites.models import Site; print(Site.objects.get_current().name)' )"
+  SITE_NAME="$( python $BASE_DIR/manage.py shell -c 'from django.contrib.sites.models import Site; print(Site.objects.get_current().name)' )"
 else
   docker build -t thunor_webpack $THIS_DIR
   docker run --rm -v $BASE_DIR/_state:/_state -v $BASE_DIR/pyhts/static/pyhts:/node-build/thunor thunor_webpack

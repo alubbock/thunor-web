@@ -51,11 +51,14 @@ def df_drug_unaggregated(dataset_id, drug_id, assay, control=None):
 
         df_controls = queryset_to_dataframe(controls,
                                             columns=('well__cell_line__name',
+                                                     'well__plate__id',
                                                      'timepoint', 'value'),
                                             rename_columns=('cell_line',
+                                                            'plate',
                                                             'timepoint',
                                                             'value'),
                                             index=('well__cell_line__name',
+                                                   'well__plate__id',
                                                    'timepoint'))
     elif control is not None:
         raise NotImplementedError()

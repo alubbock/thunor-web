@@ -9,6 +9,9 @@ from .helpers import format_dose
 from django.conf import settings
 
 
+SECONDS_IN_HOUR = 3600
+
+
 def _get_plot_html(figure):
     """
     Gets plots HTML from plotly
@@ -90,24 +93,11 @@ def tyson1(adj_r_sq, rmse, n):
     return adj_r_sq * ((1 - rmse) ** 2) * ((n - 3) ** 0.25)
 
 
-def calculate_dip(df_timecourses, control, selector_fn=tyson1,
-                  apply_log2=True):
-    t_secs = [t.total_seconds() for t
-              in df_timecourses.index.get_level_values(1)]
-    assay_vals = df_timecourses['value']
-    if apply_log2:
-        assay_vals = np.log2(assay_vals)
-    n_total = len(t_secs)
-
-    # t_secs_ctrl = [x.total_seconds() for x in
-    #                control.index.get_level_values(0)]
-    #
-    # ctrl_slope, ctrl_intercept, ctrl_r, ctrl_p, ctrl_std_err = \
-    #     scipy.stats.linregress(
-    #     t_secs_ctrl, np.log2(control['value']))
-    #
-    # # Interpolation fn for the control timecourse
-    # ctrl_interp = lambda x: x*ctrl_slope+ctrl_intercept
+def calculate_dip(df_timecourses, selector_fn=tyson1):
+    t_hours = [t.total_seconds() / SECONDS_IN_HOUR for t
+              in df_timecourses.index.get_level_values(0)]
+    assay_vals = np.log2(df_timecourses['value'])
+    n_total = len(t_hours)
 
     dip = None
     dip_selector = -np.inf
@@ -118,7 +108,7 @@ def calculate_dip(df_timecourses, control, selector_fn=tyson1,
     if n_total < 3:
         return None
     for i in range(n_total - 2):
-        x = t_secs[i:]
+        x = t_hours[i:]
         y = assay_vals[i:]
         slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(
             x, y)
@@ -141,7 +131,7 @@ def calculate_dip(df_timecourses, control, selector_fn=tyson1,
     return dip
 
 
-def plot_dip(df_doses, df_vals, df_controls, log2=True, assay_name='Assay',
+def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
              title=None):
     # Dataframe with time point as index
     traces = []
@@ -156,30 +146,66 @@ def plot_dip(df_doses, df_vals, df_controls, log2=True, assay_name='Assay',
         this_colour = 'rgb(%d, %d, %d)' % (c[0] * 255, c[1] * 255, c[2] * 255)
         # doses = dose_and_well_id.index.levels[
         #             dose_and_well_id.index.names.index('dose')].values
+
+        control = df_controls.loc[cell_line]
+        ctrl_dip_plates = []
+        for plate, plate_dat in control.groupby(level='plate'):
+            t_hours_ctrl = [x.total_seconds() / 3600 for x in
+                            plate_dat.index.get_level_values(
+                               plate_dat.index.names.index('timepoint'))]
+
+            ctrl_slope, ctrl_intercept, ctrl_r, ctrl_p, ctrl_std_err = \
+                scipy.stats.linregress(
+                t_hours_ctrl, np.log2(plate_dat['value']))
+            ctrl_dip_plates.append(ctrl_slope)
+
+        ctrl_dip = np.mean(ctrl_dip_plates)
+
         dip_rates = []
         doses = []
         for dose, dose_dat in dose_and_well_id.groupby(level='dose'):
-            well_ids = dose_dat['well_id']
-            doses.append(dose)
-            dip_rates.append(calculate_dip(df_vals.loc[list(well_ids)],
-                                           # control=df_controls.loc[cell_line],
-                                           control=None,
-                                           apply_log2=log2))
+            for well in dose_dat['well_id']:
+                doses.append(dose)
+                dip_rates.append(calculate_dip(df_vals.loc[well]))
 
-        traces.append(go.Scatter(x=doses,
-                                 y=dip_rates,
-                                 mode='lines+markers',
-                                 line={'color': this_colour},
+        doses = [min(doses) / 10] + doses
+        dip_rates = [ctrl_dip] + dip_rates
+
+        popt, pcov = scipy.optimize.curve_fit(HILL_FN,
+                                              doses,
+                                              dip_rates,
+                                              maxfev=100000)
+
+        log_dose_min = int(np.floor(np.log10(min(doses[1:]))))
+        log_dose_max = int(np.ceil(np.log10(max(doses))))
+
+        dose_x_range = np.concatenate(
+            # [np.arange(2, 11) * 10 ** dose_mag
+            [0.5 * np.arange(3, 21) * 10 ** dose_mag
+             for dose_mag in range(log_dose_min, log_dose_max + 1)], axis=0)
+
+        dose_x_range = np.append([10 ** log_dose_min], dose_x_range, axis=0)
+
+        if not is_absolute:
+            popt[1] /= popt[2]
+            popt[2] = 1
+
+        dip_rate_fit = HILL_FN(dose_x_range, *popt)
+
+        traces.append(go.Scatter(x=dose_x_range,
+                                 y=dip_rate_fit,
+                                 mode='lines',
+                                 line={'shape': 'spline',
+                                       'color': this_colour,
+                                       'width': 3},
                                  name=cell_line,
                                  marker={'size': 5},)
                      )
-    y0_max = max([tr['y'][0] for tr in traces])
-    for tr in traces:
-        tr['y'] = tr['y'] / y0_max
 
     data = go.Data(traces)
-    yaxis_title = 'Relative DIP[{}{}]'.format('log2 ' if log2 else '',
-                                            assay_name)
+    yaxis_title = 'DIP Rate'
+    if not is_absolute:
+        yaxis_title = 'Relative ' + yaxis_title
     layout = go.Layout(title=title,
                        xaxis={'title': 'Dose (M)',
                               'type': 'log'},

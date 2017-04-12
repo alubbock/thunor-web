@@ -810,9 +810,6 @@ def ajax_get_dataset_groupings(request, dataset_id):
 
     drug_list = []
     controls_list = [{'id': None, 'name': 'None'}]
-    if dataset.control_handling == 'A1':
-        # controls_list = [{'id': 'A1', 'name': 'Enabled'}]
-        controls_list = [{'id': 'A1', 'name': 'Unused'}]
 
     for dr in drug_objs:
         this_entry = {'id': dr['drug_id'], 'name': dr['drug__name']}
@@ -848,10 +845,11 @@ def ajax_get_plot(request):
         cell_line_id = int(cell_line_id) if cell_line_id is not None else None
         drug_id = int(drug_id) if drug_id is not None else None
 
-        assay = request.GET['assayId']
-        control_id = request.GET['controlId']
+        assay = request.GET.get('assayId', 'Cell count')
+        control_id = request.GET.get('controlId')
         error_bars = request.GET.get('errorBars')
-        yaxis = request.GET['logTransform']
+        yaxis = request.GET.get('logTransform', 'None')
+        dip_absolute = request.GET.get('dipType', 'rel') == 'abs'
 
         if control_id == 'null':
             control_id = None
@@ -890,10 +888,7 @@ def ajax_get_plot(request):
             if control_id is not None:
                 control_id = int(control_id)
         else:
-            if control_id != 'A1':
-                return HttpResponse('Controls must be enabled for this '
-                                    'dataset', status=400)
-            control_id = None
+            control_id = 'A1'
     except HTSDataset.DoesNotExist:
         raise Http404()
 
@@ -914,14 +909,18 @@ def ajax_get_plot(request):
                         )
                 except NotImplementedError:
                     return HttpResponse('Not implemented', status=400)
+                if df_controls is None:
+                    return HttpResponse('No control is set up for this '
+                                        'dataset', status=400)
                 return HttpResponse(plot_dip(df_doses, df_vals, df_controls,
-                                             assay_name=assay,
-                                             log2=yaxis == 'log2',
-                                             title='DIP rates for {'
-                                                   '}'.format(drug_name)))
+                                             is_absolute=dip_absolute,
+                                             title='DIP rates for {}'.format(
+                                                 drug_name)))
             else:
                 return HttpResponse('Not implemented', status=400)
         else:
+            if control_id == 'A1':
+                control_id = None
             dr = df_single_cl_drug(dataset_id=dataset_id,
                                    cell_line_id=cell_line_id,
                                    drug_id=drug_id, assay=assay, control=control_id,

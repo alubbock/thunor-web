@@ -144,6 +144,7 @@ var plots = function() {
         }
         for(var i=0; i<numOptions; i++) {
             var $optionI = $currentOptions.eq(i);
+            var $optionI = $currentOptions.eq(i);
             $optionI.find("span").text(options[optionKeys[i]]);
             $optionI.find("input").val(optionKeys[i]);
         }
@@ -155,21 +156,35 @@ var plots = function() {
     };
 
     var setRadio = function($radioDiv, newState) {
-        var lbls = $radioDiv.find("label");
+        var radio = $radioDiv.find("input[type=radio]");
         if(newState) {
-            lbls.removeClass("disabled");
+            radio.removeClass("disabled");
         } else {
-            lbls.addClass("disabled");
+            radio.addClass("disabled");
         }
         $radioDiv.closest(".form-group").toggle(newState);
     };
 
     var setPlotType = function($dataPanel) {
         var plotType = $dataPanel.find(".hts-plot-type").find("input:checked").val();
-        var setErrorBars = true;
+        var setErrorBars = true,
+            showControl = true,
+            showAssay = true,
+            showYaxisScale = true,
+            showDipType = false;
         if (plotType == "dr3d" || plotType == "dip") {
             setErrorBars = false;
         }
+        if (plotType == "dip") {
+            showControl = false;
+            showAssay = false;
+            showYaxisScale = false;
+            showDipType = true;
+        }
+        setSelectPicker($dataPanel.find(".hts-change-control"), showControl);
+        setSelectPicker($dataPanel.find(".hts-change-assay"), showAssay);
+        setRadio($dataPanel.find(".hts-log-transform"), showYaxisScale);
+        setRadio($dataPanel.find(".hts-dip-type"), showDipType);
         setRadio($dataPanel.find(".hts-error-bars"), setErrorBars);
     };
 
