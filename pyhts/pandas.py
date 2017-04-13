@@ -15,12 +15,19 @@ class NoDataException(Exception):
     pass
 
 
-def df_drug_unaggregated(dataset_id, drug_id, assay, control=None):
+def df_drug_unaggregated(dataset_id, drug_id, cell_line_id,
+                         assay, control=None):
+    if drug_id is None:
+        raise NotImplementedError()
+
     well_info = WellDrug.objects.filter(well__plate__dataset_id=dataset_id,
                                         drug_id=drug_id).annotate(
         num_drugs=Count('well__welldrug')).filter(
         num_drugs=1).select_related('well', 'well__cell_line').order_by(
              'well__cell_line_id', 'dose', 'well__plate_id', 'well__well_num')
+
+    if cell_line_id:
+        well_info = well_info.filter(well__cell_line_id=cell_line_id)
 
     # print(pd.DataFrame.from_records(well_info.values()))
     df_doses = queryset_to_dataframe(well_info,
@@ -48,6 +55,9 @@ def df_drug_unaggregated(dataset_id, drug_id, assay, control=None):
             well__well_num=0,
             assay=assay).select_related(
             'well').order_by('well__cell_line', 'timepoint')
+
+        if cell_line_id:
+            controls = controls.filter(well__cell_line_id=cell_line_id)
 
         df_controls = queryset_to_dataframe(controls,
                                             columns=('well__cell_line__name',

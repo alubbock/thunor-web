@@ -214,7 +214,8 @@ var plots = function() {
       var plotMetaType = $target.val();
       if(plotMetaType == "combo") {
           setButtonGroupOptions($btnGroup, {
-              "dr2d": "Dose/Response",
+              "dip": "DIP Rate",
+              // "dr2d": "Dose/Response",
               "tc": "Time Course",
               "dr3d": "3D Dose/Time/Response"
           });

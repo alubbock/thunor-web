@@ -112,14 +112,14 @@
             <label for="hts-plot-type">Plot Type</label>
             <div class="hts-plot-type btn-group btn-group-3"
                  data-toggle="buttons">
-{#              <label class="btn btn-primary active">#}
-{#                  <input type="radio" name="plotType" value="dip"#}
-{#                         autocomplete="off" checked><span>DIP Rate</span>#}
-{#              </label>#}
-                <label class="btn btn-primary active">
-                  <input type="radio" name="plotType" value="dr2d"
-                         autocomplete="off" checked><span>Dose/Response</span>
-                </label>
+              <label class="btn btn-primary active">
+                  <input type="radio" name="plotType" value="dip"
+                         autocomplete="off" checked><span>DIP Rate</span>
+              </label>
+{#                <label class="btn btn-primary active">#}
+{#                  <input type="radio" name="plotType" value="dr2d"#}
+{#                         autocomplete="off" checked><span>Dose/Response</span>#}
+{#                </label>#}
                 <label class="btn btn-primary">
                   <input type="radio" name="plotType" value="tc"
                          autocomplete="off"><span>Time Course</span>
@@ -147,7 +147,7 @@
                 title="Loading...">
         </select>
     </div>
-    <div class="form-group">
+    <div class="form-group" style="display:none">
         <label for="hts-change-assay">Assay</label>
         <select name="assayId" class="hts-change-assay form-control"
                 title="Loading...">
@@ -155,12 +155,12 @@
     </div>
     </div>
     <div class="col-sm-6">
-    <div class="form-group">
+    <div class="form-group" style="display:none">
         <label for="hts-change-control">Control</label>
         <select name="controlId" class="hts-change-control form-control">
         </select>
     </div>
-    <div class="form-group">
+    <div class="form-group" style="display:none">
         <label for="hts-error-bars">Error Bars</label>
         <div class="hts-error-bars btn-group btn-group-3"
              data-toggle="buttons">
@@ -178,7 +178,7 @@
           </label>
         </div>
     </div>
-    <div class="form-group">
+    <div class="form-group" style="display:none">
         <label for="hts-log-transform">Vertical axis</label>
         <div class="hts-log-transform btn-group btn-group-2"
              data-toggle="buttons">
@@ -192,7 +192,7 @@
           </label>
         </div>
     </div>
-    <div class="form-group" style="display:none">
+    <div class="form-group">
         <label for="hts-dip-type">DIP type</label>
         <div class="hts-dip-type btn-group btn-group-2"
              data-toggle="buttons">

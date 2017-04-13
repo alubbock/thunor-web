@@ -898,12 +898,13 @@ def ajax_get_plot(request):
 
     try:
         if plot_type == 'dip':
-            if plot_meta_type == 'drug':
+            if plot_meta_type == 'drug' or plot_meta_type == 'combo':
                 try:
                     df_doses, df_vals, df_controls, drug_name = \
                         df_drug_unaggregated(
                             dataset_id=dataset_id,
                             drug_id=drug_id,
+                            cell_line_id=cell_line_id,
                             assay=assay,
                             control=control_id
                         )
@@ -912,10 +913,14 @@ def ajax_get_plot(request):
                 if df_controls is None:
                     return HttpResponse('No control is set up for this '
                                         'dataset', status=400)
+                title = 'DIP rates for {}'.format(drug_name)
+                if cell_line_id:
+                    cell_line_name = df_doses.index.levels[
+                        df_doses.index.names.index('cell_line')][0]
+                    title += ' on {}'.format(cell_line_name)
                 return HttpResponse(plot_dip(df_doses, df_vals, df_controls,
                                              is_absolute=dip_absolute,
-                                             title='DIP rates for {}'.format(
-                                                 drug_name)))
+                                             title=title))
             else:
                 return HttpResponse('Not implemented', status=400)
         else:

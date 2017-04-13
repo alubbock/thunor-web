@@ -138,14 +138,14 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
 
     cell_lines = df_doses.index.levels[df_doses.index.names.index('cell_line')]
 
+    show_replicates = len(cell_lines) == 1
+
     colours = sns.color_palette("husl", len(cell_lines))
     HILL_FN = ll4
 
     for cell_line, dose_and_well_id in df_doses.groupby(level='cell_line'):
         c = colours.pop()
         this_colour = 'rgb(%d, %d, %d)' % (c[0] * 255, c[1] * 255, c[2] * 255)
-        # doses = dose_and_well_id.index.levels[
-        #             dose_and_well_id.index.names.index('dose')].values
 
         control = df_controls.loc[cell_line]
         ctrl_dip_plates = []
@@ -186,8 +186,10 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
 
         dose_x_range = np.append([10 ** log_dose_min], dose_x_range, axis=0)
 
+        divisor = 1
         if not is_absolute:
-            popt[1] /= popt[2]
+            divisor = popt[2]
+            popt[1] /= divisor
             popt[2] = 1
 
         dip_rate_fit = HILL_FN(dose_x_range, *popt)
@@ -198,15 +200,48 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
                                  line={'shape': 'spline',
                                        'color': this_colour,
                                        'width': 3},
-                                 name=cell_line,
-                                 marker={'size': 5},)
+                                 legendgroup=cell_line,
+                                 showlegend=not show_replicates,
+                                 # hoverinfo='skip' if show_replicates else
+                                 # 'all',
+                                 name=cell_line)
                      )
+
+        if show_replicates:
+            y_trace = dip_rates[1:]
+            if not is_absolute:
+                y_trace /= divisor
+                ctrl_dip_plates /= divisor
+            traces.append(go.Scatter(x=doses[1:],
+                                     y=y_trace,
+                                     mode='markers',
+                                     line={'shape': 'spline',
+                                           'color': this_colour,
+                                           'width': 3},
+                                     legendgroup=cell_line,
+                                     showlegend=False,
+                                     name='Replicate',
+                                     marker={'size': 5})
+                          )
+            traces.append(go.Scatter(x=[doses[0]] * len(ctrl_dip_plates),
+                                     y=ctrl_dip_plates,
+                                     mode='markers',
+                                     line={'shape': 'spline',
+                                           'color': 'black',
+                                           'width': 3},
+                                     hoverinfo='y+text',
+                                     text='Control',
+                                     legendgroup=cell_line,
+                                     showlegend=False,
+                                     marker={'size': 5})
+                          )
 
     data = go.Data(traces)
     yaxis_title = 'DIP Rate'
     if not is_absolute:
         yaxis_title = 'Relative ' + yaxis_title
     layout = go.Layout(title=title,
+                       hovermode='closest' if show_replicates else 'x',
                        xaxis={'title': 'Dose (M)',
                               'type': 'log'},
                        yaxis={'title': yaxis_title},
