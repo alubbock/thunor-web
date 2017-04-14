@@ -17,28 +17,31 @@ class NoDataException(Exception):
 
 def df_drug_unaggregated(dataset_id, drug_id, cell_line_id,
                          assay, control=None):
-    if drug_id is None:
-        raise NotImplementedError()
-
-    well_info = WellDrug.objects.filter(well__plate__dataset_id=dataset_id,
-                                        drug_id=drug_id).annotate(
+    well_info = WellDrug.objects.filter(
+        well__plate__dataset_id=dataset_id).annotate(
         num_drugs=Count('well__welldrug')).filter(
-        num_drugs=1).select_related('well', 'well__cell_line').order_by(
-             'well__cell_line_id', 'dose', 'well__plate_id', 'well__well_num')
+        num_drugs=1).select_related('well', 'well__cell_line', 'drug')
+
+    if drug_id:
+        well_info = well_info.filter(drug_id=drug_id).order_by(
+             'well__cell_line__name', 'dose', 'well__plate_id',
+             'well__well_num')
 
     if cell_line_id:
-        well_info = well_info.filter(well__cell_line_id=cell_line_id)
+        well_info = well_info.filter(
+            well__cell_line_id=cell_line_id).order_by(
+            'drug__name', 'dose', 'well__plate_id', 'well__well_num')
 
-    # print(pd.DataFrame.from_records(well_info.values()))
-    df_doses = queryset_to_dataframe(well_info,
-                                     columns=('dose', 'well_id',
-                                              'well__cell_line__name'),
-                                     rename_columns=('dose', 'well_id',
-                                                     'cell_line'),
-                                     index=('well__cell_line__name', 'dose'))
+    if control == 'A1':
+        well_info = well_info.exclude(well__well_num=0)
+    elif control == 0:
+        well_info = well_info.exclude(dose=0)
 
-    # TODO: Make this more efficient
-    drug_name = well_info.first().drug.name
+    df_doses = queryset_to_dataframe(
+        well_info,
+        columns=('dose', 'well_id', 'well__cell_line__name', 'drug__name'),
+        rename_columns=('dose', 'well_id', 'cell_line', 'drug'),
+        index=('drug__name', 'well__cell_line__name', 'dose'))
 
     timecourses = WellMeasurement.objects.filter(well_id__in=(
         well.well_id for well in well_info), assay=assay).order_by(
@@ -49,12 +52,21 @@ def df_drug_unaggregated(dataset_id, drug_id, cell_line_id,
                                     index=('well_id', 'timepoint'))
 
     df_controls = None
-    if control == 'A1':
+    if control is not None:
         controls = WellMeasurement.objects.filter(
             well__plate__dataset_id=dataset_id,
-            well__well_num=0,
             assay=assay).select_related(
             'well').order_by('well__cell_line', 'timepoint')
+        if control == 'A1':
+            controls = controls.filter(well__well_num=0)
+        elif control == 0:
+            controls = WellMeasurement.objects.filter(
+                well__welldrug__dose=0,
+            ).annotate(
+                num_drugs=Count('well__welldrug')).filter(
+                num_drugs=1)
+        else:
+            raise NotImplementedError()
 
         if cell_line_id:
             controls = controls.filter(well__cell_line_id=cell_line_id)
@@ -70,10 +82,10 @@ def df_drug_unaggregated(dataset_id, drug_id, cell_line_id,
                                             index=('well__cell_line__name',
                                                    'well__plate__id',
                                                    'timepoint'))
-    elif control is not None:
-        raise NotImplementedError()
 
-    return df_doses, df_vals, df_controls, drug_name
+    return {'doses': df_doses,
+            'assays': df_vals,
+            'controls': df_controls}
 
 
 def queryset_to_dataframe(queryset, columns, index=None, rename_columns=None):
@@ -91,13 +103,11 @@ def queryset_to_dataframe(queryset, columns, index=None, rename_columns=None):
                               df.index.names]
         else:
             df.columns = rename_columns
-    # if index:
-    #     df.set_index(index, inplace=True)
     return df
 
 
 def df_single_cl_drug(dataset_id, cell_line_id, drug_id, assay,
-                      control=None,
+                      # control=None,
                       log2y=False, normalize_as='dr',
                       aggregates=(np.mean, np.min, np.max)):
     """
@@ -122,8 +132,8 @@ def df_single_cl_drug(dataset_id, cell_line_id, drug_id, assay,
     """
     # TODO: Check drug/cell line combos split across more than one plate
     drug_ids = [drug_id]
-    if control is not None:
-        drug_ids.append(control)
+    # if control is not None:
+    #     drug_ids.append(control)
 
     # This query isn't executed immediately - Django internally combines it
     # with the next query to get all the drug details in a single DB hit
@@ -167,17 +177,17 @@ def df_single_cl_drug(dataset_id, cell_line_id, drug_id, assay,
 
     cell_line_name = drugs[0].well.cell_line.name
     drug_name = None
-    control_name = None
+    # control_name = None
     for dr in drugs:
         if dr.drug_id == drug_id:
             drug_name = dr.drug.name
-        if dr.drug_id == control:
-            control_name = dr.drug.name
-        if drug_name is not None and control_name is not None:
-            break
+        # if dr.drug_id == control:
+        #     control_name = dr.drug.name
+        # if drug_name is not None and control_name is not None:
+        #     break
 
-    if control and control_name is None:
-        raise NoDataException()
+    # if control and control_name is None:
+    #     raise NoDataException()
 
     # Get the assay values
     # vals = pd.DataFrame(list(WellMeasurement.objects.filter(
@@ -197,48 +207,49 @@ def df_single_cl_drug(dataset_id, cell_line_id, drug_id, assay,
     df_all.set_index(['drug', 'plate', 'time', 'dose'], inplace=True)
     df_all.sortlevel(inplace=True)
 
-    main_df = df_all.loc[drug_id] if control else df_all
+    # main_df = df_all.loc[drug_id] if control else df_all
+    main_df = df_all
     main_vals = main_df['value']
 
     if main_vals.shape[0] == 0:
         raise NoDataException
 
     t0_extrapolated = False
-    if control is not None:
-        if normalize_as == 'dr':
-            ctrl_means = df_all.loc[control].groupby(
-                level=['plate', 'time']).mean()['value']
-        elif normalize_as == 'tc':
-            ctrl_means = df_all.loc[(df_all.index.get_level_values('drug') ==
-                                    control) &
-                                    (df_all.index.get_level_values('time') ==
-                                    TIME_0)].\
-                groupby(level='plate').mean()['value']
-            if ctrl_means.shape[0] == 0:
-                # No time zero; extrapolate using exp growth model
-                t0_extrapolated = True
-                ctrl_means = df_all.loc[
-                    (df_all.index.get_level_values('drug') == control),
-                    'value'].groupby(level=['plate']).agg(extrapolate_time0)
-        else:
-            raise Exception('Invalid normalize_as value: ' + normalize_as)
-
-        if ctrl_means.shape[0] == 0:
-            raise NoDataException
-
-        for row in range(main_vals.shape[0]):
-            # idx = [plate, time, dose]
-            idx = main_vals.index.values[row]
-
-            if normalize_as == 'dr':
-                main_vals.set_value(row,
-                                    main_vals.iloc[row] /
-                                    ctrl_means.loc[idx[0], idx[1]],
-                                    takeable=True)
-            elif normalize_as == 'tc':
-                main_vals.set_value(row,
-                                    main_vals.iloc[row] /
-                                    ctrl_means.loc[idx[0]], takeable=True)
+    # if control is not None:
+    #     if normalize_as == 'dr':
+    #         ctrl_means = df_all.loc[control].groupby(
+    #             level=['plate', 'time']).mean()['value']
+    #     elif normalize_as == 'tc':
+    #         ctrl_means = df_all.loc[(df_all.index.get_level_values('drug') ==
+    #                                 control) &
+    #                                 (df_all.index.get_level_values('time') ==
+    #                                 TIME_0)].\
+    #             groupby(level='plate').mean()['value']
+    #         if ctrl_means.shape[0] == 0:
+    #             # No time zero; extrapolate using exp growth model
+    #             t0_extrapolated = True
+    #             ctrl_means = df_all.loc[
+    #                 (df_all.index.get_level_values('drug') == control),
+    #                 'value'].groupby(level=['plate']).agg(extrapolate_time0)
+    #     else:
+    #         raise Exception('Invalid normalize_as value: ' + normalize_as)
+    #
+    #     if ctrl_means.shape[0] == 0:
+    #         raise NoDataException
+    #
+    #     for row in range(main_vals.shape[0]):
+    #         # idx = [plate, time, dose]
+    #         idx = main_vals.index.values[row]
+    #
+    #         if normalize_as == 'dr':
+    #             main_vals.set_value(row,
+    #                                 main_vals.iloc[row] /
+    #                                 ctrl_means.loc[idx[0], idx[1]],
+    #                                 takeable=True)
+    #         elif normalize_as == 'tc':
+    #             main_vals.set_value(row,
+    #                                 main_vals.iloc[row] /
+    #                                 ctrl_means.loc[idx[0]], takeable=True)
 
     if log2y:
         main_vals = np.log2(main_vals)
@@ -248,7 +259,7 @@ def df_single_cl_drug(dataset_id, cell_line_id, drug_id, assay,
 
     return {'df': df, 'log2y': log2y,
             'assay_name': assay,
-            'control_name': control_name,
+            # 'control_name': control_name,
             'drug_name': drug_name,
             'cell_line_name': cell_line_name,
             't0_extrapolated': t0_extrapolated}

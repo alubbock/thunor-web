@@ -840,19 +840,22 @@ def ajax_get_plot(request):
         drug_id = request.GET.get('drugId')
 
         if plot_type != 'dip' and (cell_line_id is None or not drug_id):
-            raise Http404()
+            return HttpResponse('DIP plots require a cell line or drug ID',
+                                status=400)
 
-        cell_line_id = int(cell_line_id) if cell_line_id is not None else None
-        drug_id = int(drug_id) if drug_id is not None else None
+        if cell_line_id is not None:
+            cell_line_id = int(cell_line_id)
+        if drug_id is not None:
+            drug_id = int(drug_id)
 
-        assay = request.GET.get('assayId', 'Cell count')
-        control_id = request.GET.get('controlId')
+        assay = request.GET.get('assayId')
+        # control_id = request.GET.get('controlId')
         error_bars = request.GET.get('errorBars')
         yaxis = request.GET.get('logTransform', 'None')
         dip_absolute = request.GET.get('dipType', 'rel') == 'abs'
 
-        if control_id == 'null':
-            control_id = None
+        # if control_id == 'null':
+        #     control_id = None
     except (KeyError, ValueError):
         raise Http404()
 
@@ -884,11 +887,18 @@ def ajax_get_plot(request):
 
     try:
         dataset = HTSDataset.objects.get(pk=dataset_id)
-        if dataset.control_handling != 'A1':
-            if control_id is not None:
-                control_id = int(control_id)
-        else:
+        if dataset.control_handling == 'A1':
+            if assay is None:
+                assay = 'Cell count'
             control_id = 'A1'
+        elif dataset.control_handling is None:
+            control_id = 0
+            if assay is None:
+                # TODO: This should be handled better!
+                assay = 'lum:Lum'
+        else:
+            return HttpResponse('Unknown control handling: ' +
+                                dataset.control_handling, status=400)
     except HTSDataset.DoesNotExist:
         raise Http404()
 
@@ -898,38 +908,40 @@ def ajax_get_plot(request):
 
     try:
         if plot_type == 'dip':
-            if plot_meta_type == 'drug' or plot_meta_type == 'combo':
-                try:
-                    df_doses, df_vals, df_controls, drug_name = \
-                        df_drug_unaggregated(
-                            dataset_id=dataset_id,
-                            drug_id=drug_id,
-                            cell_line_id=cell_line_id,
-                            assay=assay,
-                            control=control_id
-                        )
-                except NotImplementedError:
-                    return HttpResponse('Not implemented', status=400)
-                if df_controls is None:
-                    return HttpResponse('No control is set up for this '
-                                        'dataset', status=400)
-                title = 'DIP rates for {}'.format(drug_name)
-                if cell_line_id:
-                    cell_line_name = df_doses.index.levels[
-                        df_doses.index.names.index('cell_line')][0]
-                    title += ' on {}'.format(cell_line_name)
-                return HttpResponse(plot_dip(df_doses, df_vals, df_controls,
-                                             is_absolute=dip_absolute,
-                                             title=title))
-            else:
+            try:
+                df_data = \
+                    df_drug_unaggregated(
+                        dataset_id=dataset_id,
+                        drug_id=drug_id,
+                        cell_line_id=cell_line_id,
+                        assay=assay,
+                        control=control_id
+                    )
+            except NotImplementedError:
                 return HttpResponse('Not implemented', status=400)
+            if df_data['controls'] is None:
+                return HttpResponse('No control is set up for this '
+                                    'dataset', status=400)
+            title = 'DIP rates'
+            if drug_id:
+                drug_name = df_data['doses'].index.get_level_values(
+                    'drug')[0]
+                title += ' for {}'.format(drug_name)
+            if cell_line_id:
+                cell_line_name = df_data['doses'].index.get_level_values(
+                    'cell_line')[0]
+                title += ' on {}'.format(cell_line_name)
+            return HttpResponse(plot_dip(df_data['doses'],
+                                         df_data['assays'],
+                                         df_data['controls'],
+                                         is_absolute=dip_absolute,
+                                         title=title))
         else:
-            if control_id == 'A1':
-                control_id = None
             dr = df_single_cl_drug(dataset_id=dataset_id,
                                    cell_line_id=cell_line_id,
-                                   drug_id=drug_id, assay=assay, control=control_id,
-                                   log2y=yaxis == 'log2', normalize_as=normalize_as,
+                                   drug_id=drug_id, assay=assay,
+                                   log2y=yaxis == 'log2',
+                                   normalize_as=normalize_as,
                                    aggregates=aggregates)
     except NoDataException:
         return HttpResponse('No data found for this request. This drug/cell '
@@ -939,7 +951,7 @@ def ajax_get_plot(request):
     html = plot_fn(dr['df'],
                    log2=dr['log2y'],
                    assay_name=assay,
-                   control_name=dr['control_name'],
+                   # control_name=dr['control_name'],
                    t0_extrapolated=dr['t0_extrapolated'],
                    title='{} of {} on {} cells'.format(
                        plot_type_str,

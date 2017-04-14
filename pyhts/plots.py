@@ -131,35 +131,56 @@ def calculate_dip(df_timecourses, selector_fn=tyson1):
     return dip
 
 
+def per_plate_dip(control):
+    ctrl_dip_plates = []
+    for plate, plate_dat in control.groupby(level='plate'):
+        t_hours_ctrl = [x.total_seconds() / 3600 for x in
+                        plate_dat.index.get_level_values(
+                            plate_dat.index.names.index('timepoint'))]
+
+        ctrl_slope, ctrl_intercept, ctrl_r, ctrl_p, ctrl_std_err = \
+            scipy.stats.linregress(
+                t_hours_ctrl, np.log2(plate_dat['value']))
+        ctrl_dip_plates.append(ctrl_slope)
+
+    return ctrl_dip_plates
+
+
 def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
              title=None):
     # Dataframe with time point as index
     traces = []
 
-    cell_lines = df_doses.index.levels[df_doses.index.names.index('cell_line')]
+    cell_lines = df_doses.index.get_level_values('cell_line').unique()
+    drugs = df_doses.index.get_level_values('drug').unique()
 
-    show_replicates = len(cell_lines) == 1
+    if len(cell_lines) > 1 and len(drugs) > 1:
+        raise NotImplementedError()
 
-    colours = sns.color_palette("husl", len(cell_lines))
+    show_replicates = len(cell_lines) == 1 and len(drugs) == 1
+
+    if len(drugs) > 1:
+        group_by = 'drug'
+        num_groups = len(drugs)
+        control = df_controls.loc[cell_lines[0]]
+        ctrl_dip_plates = per_plate_dip(control)
+        ctrl_dip = np.mean(ctrl_dip_plates)
+    else:
+        group_by = 'cell_line'
+        num_groups = len(cell_lines)
+
+    colours = sns.color_palette("husl", num_groups)
+
     HILL_FN = ll4
 
-    for cell_line, dose_and_well_id in df_doses.groupby(level='cell_line'):
+    for group_name, dose_and_well_id in df_doses.groupby(level=group_by):
         c = colours.pop()
         this_colour = 'rgb(%d, %d, %d)' % (c[0] * 255, c[1] * 255, c[2] * 255)
 
-        control = df_controls.loc[cell_line]
-        ctrl_dip_plates = []
-        for plate, plate_dat in control.groupby(level='plate'):
-            t_hours_ctrl = [x.total_seconds() / 3600 for x in
-                            plate_dat.index.get_level_values(
-                               plate_dat.index.names.index('timepoint'))]
-
-            ctrl_slope, ctrl_intercept, ctrl_r, ctrl_p, ctrl_std_err = \
-                scipy.stats.linregress(
-                t_hours_ctrl, np.log2(plate_dat['value']))
-            ctrl_dip_plates.append(ctrl_slope)
-
-        ctrl_dip = np.mean(ctrl_dip_plates)
+        if group_by == 'cell_line':
+            control = df_controls.loc[group_name]
+            ctrl_dip_plates = per_plate_dip(control)
+            ctrl_dip = np.mean(ctrl_dip_plates)
 
         dip_rates = []
         doses = []
@@ -168,13 +189,22 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
                 doses.append(dose)
                 dip_rates.append(calculate_dip(df_vals.loc[well]))
 
-        doses = [min(doses) / 10] + doses
-        dip_rates = [ctrl_dip] + dip_rates
+        doses = [min(doses) / 10] * len(ctrl_dip_plates) + doses
+        dip_rates = ctrl_dip_plates + dip_rates
 
-        popt, pcov = scipy.optimize.curve_fit(HILL_FN,
-                                              doses,
-                                              dip_rates,
-                                              maxfev=100000)
+        popt = None
+        y_val = np.mean(dip_rates)
+        try:
+            popt, pcov = scipy.optimize.curve_fit(HILL_FN,
+                                                  doses,
+                                                  dip_rates,
+                                                  maxfev=100000)
+
+            if popt[1] > popt[2]:
+                # TODO: Maybe try another fit of some kind?
+                popt = None
+        except RuntimeError:
+            pass
 
         log_dose_min = int(np.floor(np.log10(min(doses[1:]))))
         log_dose_max = int(np.ceil(np.log10(max(doses))))
@@ -188,23 +218,35 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
 
         divisor = 1
         if not is_absolute:
-            divisor = popt[2]
-            popt[1] /= divisor
-            popt[2] = 1
+            if popt is None:
+                divisor = y_val
+                y_val = 1
+            else:
+                divisor = popt[2]
+                if divisor <= 0:
+                    # Cells not growing in control?
+                    popt = None
+                else:
+                    popt[1] /= divisor
+                    popt[2] = 1
 
-        dip_rate_fit = HILL_FN(dose_x_range, *popt)
+        if popt is None:
+            dip_rate_fit = [y_val] * len(dose_x_range)
+        else:
+            dip_rate_fit = HILL_FN(dose_x_range, *popt)
 
         traces.append(go.Scatter(x=dose_x_range,
                                  y=dip_rate_fit,
                                  mode='lines',
                                  line={'shape': 'spline',
                                        'color': this_colour,
+                                       'dash': 5 if popt is None else 'solid',
                                        'width': 3},
-                                 legendgroup=cell_line,
+                                 legendgroup=group_name,
                                  showlegend=not show_replicates,
                                  # hoverinfo='skip' if show_replicates else
                                  # 'all',
-                                 name=cell_line)
+                                 name=group_name)
                      )
 
         if show_replicates:
@@ -218,7 +260,7 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
                                      line={'shape': 'spline',
                                            'color': this_colour,
                                            'width': 3},
-                                     legendgroup=cell_line,
+                                     legendgroup=group_name,
                                      showlegend=False,
                                      name='Replicate',
                                      marker={'size': 5})
@@ -231,7 +273,7 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
                                            'width': 3},
                                      hoverinfo='y+text',
                                      text='Control',
-                                     legendgroup=cell_line,
+                                     legendgroup=group_name,
                                      showlegend=False,
                                      marker={'size': 5})
                           )

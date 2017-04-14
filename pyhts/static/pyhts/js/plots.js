@@ -168,7 +168,7 @@ var plots = function() {
     var setPlotType = function($dataPanel) {
         var plotType = $dataPanel.find(".hts-plot-type").find("input:checked").val();
         var setErrorBars = true,
-            showControl = true,
+            // showControl = true,
             showAssay = true,
             showYaxisScale = true,
             showDipType = false;
@@ -176,12 +176,12 @@ var plots = function() {
             setErrorBars = false;
         }
         if (plotType == "dip") {
-            showControl = false;
+            // showControl = false;
             showAssay = false;
             showYaxisScale = false;
             showDipType = true;
         }
-        setSelectPicker($dataPanel.find(".hts-change-control"), showControl);
+        // setSelectPicker($dataPanel.find(".hts-change-control"), showControl);
         setSelectPicker($dataPanel.find(".hts-change-assay"), showAssay);
         setRadio($dataPanel.find(".hts-log-transform"), showYaxisScale);
         setRadio($dataPanel.find(".hts-dip-type"), showDipType);
@@ -267,10 +267,10 @@ var plots = function() {
                     $dataPanel.find("select.hts-change-assay"),
                     data.assays,
                     dat["assayId"]);
-                pushOptionsToSelect(
-                    $dataPanel.find("select.hts-change-control"),
-                    data.controls,
-                    dat["controlId"]);
+                // pushOptionsToSelect(
+                //     $dataPanel.find("select.hts-change-control"),
+                //     data.controls,
+                //     dat["controlId"]);
                 $dataPanel.find("select.hts-error-bars").val
                 (dat["errorBars"]).selectpicker("refresh");
                 $dataPanel.find("select.hts-log-transform").val
