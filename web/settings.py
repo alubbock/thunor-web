@@ -300,12 +300,12 @@ LOGGING = {
         },
         'raven': {
             'level': 'DEBUG',
-            'handlers': [] if DEBUG else ['console'],
+            'handlers': ['console'],
             'propagate': False,
         },
         'sentry.errors': {
             'level': 'DEBUG',
-            'handlers': [] if DEBUG else ['console'],
+            'handlers': ['console'],
             'propagate': False,
         },
     },
