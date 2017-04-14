@@ -67,16 +67,29 @@ var ajax = (function () {
         return false;
     };
 
+    var ajax502Handler = function (jqXHR) {
+        ui.okModal("Server unavailable", "The server is currently" +
+            " unavailable. Please try your request again in a few minutes" +
+            " (code 502).");
+        return true;
+    };
+
     var ajaxErrorCallback = function (jqXHR, textStatus, thrownError) {
         var message = "Communication with the server timed " +
-            "out (perhaps the connection was lost?";
+            "out. Please check your internet connection and try again.",
+            subject = "Error communicating with server";
         if (textStatus == "error" ||
             textStatus == "parsererror") {
             if (jqXHR != null) {
+                if (jqXHR.status === 0) {
+                    ui.okModal(subject, message);
+                    return;
+                }
                 if (jqXHR.status == 400 && ajax400Handler(jqXHR)) return;
                 if (jqXHR.status == 401 && ajax401Handler(jqXHR)) return;
                 if (jqXHR.status == 404 && ajax404Handler(jqXHR)) return;
                 if (jqXHR.status == 409 && ajax409Handler(jqXHR)) return;
+                if (jqXHR.status == 502 && ajax502Handler(jqXHR)) return;
             }
             if (Raven != null) {
                 Raven.captureMessage(thrownError || jqXHR.statusText, {
@@ -98,7 +111,7 @@ var ajax = (function () {
         } else if (textStatus == "abort") {
             message = "Communication with the server was aborted.";
         }
-        ui.okModal("Error communicating with server", message);
+        ui.okModal(subject, message);
     };
 
     var urls = {
