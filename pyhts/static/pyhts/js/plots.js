@@ -167,25 +167,19 @@ var plots = function() {
 
     var setPlotType = function($dataPanel) {
         var plotType = $dataPanel.find(".hts-plot-type").find("input:checked").val();
-        var setErrorBars = true,
-            // showControl = true,
+        var showErrorBars = false,
             showAssay = true,
             showYaxisScale = true,
             showDipType = false;
-        if (plotType == "dr3d" || plotType == "dip") {
-            setErrorBars = false;
-        }
         if (plotType == "dip") {
-            // showControl = false;
             showAssay = false;
             showYaxisScale = false;
             showDipType = true;
         }
-        // setSelectPicker($dataPanel.find(".hts-change-control"), showControl);
         setSelectPicker($dataPanel.find(".hts-change-assay"), showAssay);
         setRadio($dataPanel.find(".hts-log-transform"), showYaxisScale);
         setRadio($dataPanel.find(".hts-dip-type"), showDipType);
-        setRadio($dataPanel.find(".hts-error-bars"), setErrorBars);
+        setRadio($dataPanel.find(".hts-error-bars"), showErrorBars);
     };
 
     var selectPlotType = function(e) {

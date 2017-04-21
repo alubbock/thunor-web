@@ -12,9 +12,8 @@ from django.db.models import Q, Count, Max
 from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, \
     Well, WellMeasurement, WellDrug
 import json
-from .plots import plot_dose_response, plot_dose_response_3d, \
-    plot_timecourse, plot_dip
-from .pandas import df_single_cl_drug, df_drug_unaggregated, NoDataException
+from .plots import plot_dose_response_3d, plot_time_course, plot_dip
+from .pandas import df_doses_assays_controls, NoDataException
 from .plate_parsers import PlateFileParser
 import numpy as np
 import datetime
@@ -832,7 +831,6 @@ def ajax_get_plot(request):
         return JsonResponse({}, status=401)
 
     try:
-        plot_meta_type = request.GET['plotMetaType']
         plot_type = request.GET['plotType']
 
         dataset_id = int(request.GET['datasetId'])
@@ -849,41 +847,25 @@ def ajax_get_plot(request):
             drug_id = int(drug_id)
 
         assay = request.GET.get('assayId')
-        # control_id = request.GET.get('controlId')
-        error_bars = request.GET.get('errorBars')
         yaxis = request.GET.get('logTransform', 'None')
         dip_absolute = request.GET.get('dipType', 'rel') == 'abs'
 
-        # if control_id == 'null':
-        #     control_id = None
     except (KeyError, ValueError):
         raise Http404()
 
-    normalize_as = 'dr'
-
-    if plot_type == 'dr2d':
-        plot_fn = plot_dose_response
-        plot_type_str = 'Dose/Response'
-    elif plot_type == 'dr3d':
+    if plot_type == 'dr3d':
         plot_fn = plot_dose_response_3d
         plot_type_str = 'Dose/Response/Time'
     elif plot_type == 'tc':
-        plot_fn = plot_timecourse
+        plot_fn = plot_time_course
         plot_type_str = 'Time Course'
-        normalize_as = 'tc'
     elif plot_type == 'dip':
-        # TODO
+        plot_fn = plot_dip
+        plot_type_str = 'DIP rates'
         pass
     else:
         return HttpResponse('Unimplemented plot type: %s' % plot_type,
                             status=400)
-
-    if error_bars == 'sd':
-        aggregates = (np.mean, np.std)
-    elif error_bars == 'range':
-        aggregates = (np.mean, np.min, np.max)
-    else:
-        aggregates = (np.mean, )
 
     try:
         dataset = HTSDataset.objects.get(pk=dataset_id)
@@ -907,55 +889,36 @@ def ajax_get_plot(request):
         raise Http404
 
     try:
-        if plot_type == 'dip':
-            try:
-                df_data = \
-                    df_drug_unaggregated(
-                        dataset_id=dataset_id,
-                        drug_id=drug_id,
-                        cell_line_id=cell_line_id,
-                        assay=assay,
-                        control=control_id
-                    )
-            except NotImplementedError:
-                return HttpResponse('Not implemented', status=400)
-            title = 'DIP rates'
-            if drug_id:
-                drug_name = df_data['doses'].index.get_level_values(
-                    'drug')[0]
-                title += ' for {}'.format(drug_name)
-            if cell_line_id:
-                cell_line_name = df_data['doses'].index.get_level_values(
-                    'cell_line')[0]
-                title += ' on {}'.format(cell_line_name)
-            return HttpResponse(plot_dip(df_data['doses'],
-                                         df_data['assays'],
-                                         df_data['controls'],
-                                         is_absolute=dip_absolute,
-                                         title=title))
-        else:
-            dr = df_single_cl_drug(dataset_id=dataset_id,
-                                   cell_line_id=cell_line_id,
-                                   drug_id=drug_id, assay=assay,
-                                   log2y=yaxis == 'log2',
-                                   normalize_as=normalize_as,
-                                   aggregates=aggregates)
+        df_data = df_doses_assays_controls(
+            dataset_id=dataset_id,
+            drug_id=drug_id,
+            cell_line_id=cell_line_id,
+            assay=assay,
+            control=control_id
+        )
+
+        if drug_id:
+            drug_name = df_data['doses'].index.get_level_values(
+                'drug')[0]
+            plot_type_str += ' for {}'.format(drug_name)
+        if cell_line_id:
+            cell_line_name = df_data['doses'].index.get_level_values(
+                'cell_line')[0]
+            plot_type_str += ' on {}'.format(cell_line_name)
+
+        return HttpResponse(plot_fn(df_data['doses'],
+                                    df_data['assays'],
+                                    df_data['controls'],
+                                    is_absolute=dip_absolute,
+                                    doublings=yaxis == 'log2',
+                                    assay_name=assay,
+                                    title=plot_type_str))
     except NoDataException:
         return HttpResponse('No data found for this request. This drug/cell '
                             'line/assay combination may not exist.',
                             status=400)
-
-    html = plot_fn(dr['df'],
-                   log2=dr['log2y'],
-                   assay_name=assay,
-                   # control_name=dr['control_name'],
-                   t0_extrapolated=dr['t0_extrapolated'],
-                   title='{} of {} on {} cells'.format(
-                       plot_type_str,
-                       dr['drug_name'],
-                       dr['cell_line_name']))
-
-    return HttpResponse(html)
+    except NotImplementedError:
+        return HttpResponse('Not implemented', status=400)
 
 
 @login_required
