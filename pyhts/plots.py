@@ -164,7 +164,6 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
         num_groups = len(drugs)
         control = df_controls.loc[cell_lines[0]]
         ctrl_dip_plates = per_plate_dip(control)
-        ctrl_dip = np.mean(ctrl_dip_plates)
     else:
         group_by = 'cell_line'
         num_groups = len(cell_lines)
@@ -180,7 +179,6 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
         if group_by == 'cell_line':
             control = df_controls.loc[group_name]
             ctrl_dip_plates = per_plate_dip(control)
-            ctrl_dip = np.mean(ctrl_dip_plates)
 
         dip_rates = []
         doses = []

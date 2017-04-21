@@ -41,7 +41,7 @@ def df_drug_unaggregated(dataset_id, drug_id, cell_line_id,
         well_info,
         columns=('dose', 'well_id', 'well__cell_line__name', 'drug__name'),
         rename_columns=('dose', 'well_id', 'cell_line', 'drug'),
-        index=('drug__name', 'well__cell_line__name', 'dose'))
+        index=('drug', 'cell_line', 'dose'))
 
     timecourses = WellMeasurement.objects.filter(well_id__in=(
         well.well_id for well in well_info), assay=assay).order_by(
@@ -79,8 +79,8 @@ def df_drug_unaggregated(dataset_id, drug_id, cell_line_id,
                                                             'plate',
                                                             'timepoint',
                                                             'value'),
-                                            index=('well__cell_line__name',
-                                                   'well__plate__id',
+                                            index=('cell_line',
+                                                   'plate',
                                                    'timepoint'))
 
     return {'doses': df_doses,
@@ -89,21 +89,11 @@ def df_drug_unaggregated(dataset_id, drug_id, cell_line_id,
 
 
 def queryset_to_dataframe(queryset, columns, index=None, rename_columns=None):
-    df = pd.DataFrame.from_records(
+    return pd.DataFrame.from_records(
         (x for x in queryset.values_list(*columns)),
-        # queryset.values(*columns),
-        columns=columns,
+        columns=rename_columns or columns,
         index=index
     )
-    if rename_columns:
-        if index:
-            df.columns = [new for old, new in zip(columns, rename_columns)
-                          if old not in index]
-            df.index.names = [rename_columns[columns.index(nm)] for nm in
-                              df.index.names]
-        else:
-            df.columns = rename_columns
-    return df
 
 
 def df_single_cl_drug(dataset_id, cell_line_id, drug_id, assay,
