@@ -162,8 +162,11 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
     if len(drugs) > 1:
         group_by = 'drug'
         num_groups = len(drugs)
-        control = df_controls.loc[cell_lines[0]]
-        ctrl_dip_plates = per_plate_dip(control)
+        try:
+            control = df_controls.loc[cell_lines[0]]
+            ctrl_dip_plates = per_plate_dip(control)
+        except KeyError:
+            ctrl_dip_plates = []
     else:
         group_by = 'cell_line'
         num_groups = len(cell_lines)
@@ -177,8 +180,11 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
         this_colour = 'rgb(%d, %d, %d)' % (c[0] * 255, c[1] * 255, c[2] * 255)
 
         if group_by == 'cell_line':
-            control = df_controls.loc[group_name]
-            ctrl_dip_plates = per_plate_dip(control)
+            try:
+                control = df_controls.loc[group_name]
+                ctrl_dip_plates = per_plate_dip(control)
+            except KeyError:
+                ctrl_dip_plates = []
 
         dip_rates = []
         doses = []

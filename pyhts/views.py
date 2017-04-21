@@ -919,9 +919,6 @@ def ajax_get_plot(request):
                     )
             except NotImplementedError:
                 return HttpResponse('Not implemented', status=400)
-            if df_data['controls'] is None:
-                return HttpResponse('No control is set up for this '
-                                    'dataset', status=400)
             title = 'DIP rates'
             if drug_id:
                 drug_name = df_data['doses'].index.get_level_values(
