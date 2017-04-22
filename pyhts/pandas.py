@@ -38,8 +38,8 @@ def df_doses_assays_controls(dataset_id, drug_id, cell_line_id,
     if df_doses.shape[0] == 3 and df_doses.isnull().values.all():
         raise NoDataException()
 
-    timecourses = WellMeasurement.objects.filter(well_id__in=(
-        well.well_id for well in well_info), assay=assay).order_by(
+    timecourses = WellMeasurement.objects.filter(
+        well_id__in=df_doses['well_id'].unique(), assay=assay).order_by(
         'well_id', 'timepoint')
 
     df_vals = queryset_to_dataframe(timecourses,

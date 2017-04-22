@@ -95,8 +95,8 @@ def tyson1(adj_r_sq, rmse, n):
 
 def calculate_dip(df_timecourses, selector_fn=tyson1):
     t_hours = [t.total_seconds() / SECONDS_IN_HOUR for t
-              in df_timecourses.index.get_level_values(0)]
-    assay_vals = np.log2(df_timecourses['value'])
+              in df_timecourses.index.get_level_values(level='timepoint')]
+    assay_vals = np.log2(df_timecourses)
     n_total = len(t_hours)
 
     dip = None
@@ -193,7 +193,7 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
         for dose, dose_dat in dose_and_well_id.groupby(level='dose'):
             for well in dose_dat['well_id']:
                 doses.append(dose)
-                dip_rates.append(calculate_dip(df_vals.loc[well]))
+                dip_rates.append(calculate_dip(df_vals.loc[well, 'value']))
 
         doses = [np.min(doses) / 10] * len(ctrl_dip_plates) + doses
         dip_rates = ctrl_dip_plates + dip_rates
