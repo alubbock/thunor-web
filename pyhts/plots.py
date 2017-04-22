@@ -131,19 +131,19 @@ def calculate_dip(df_timecourses, selector_fn=tyson1):
     return dip
 
 
-def per_plate_dip(control):
-    ctrl_dip_plates = []
-    for plate, plate_dat in control.groupby(level='plate'):
+def per_well_control_dip(control):
+    ctrl_dip_wells = []
+    for well, well_dat in control.groupby(level='well_id'):
         t_hours_ctrl = [x.total_seconds() / 3600 for x in
-                        plate_dat.index.get_level_values(
-                            plate_dat.index.names.index('timepoint'))]
+                        well_dat.index.get_level_values(
+                            well_dat.index.names.index('timepoint'))]
 
         ctrl_slope, ctrl_intercept, ctrl_r, ctrl_p, ctrl_std_err = \
             scipy.stats.linregress(
-                t_hours_ctrl, np.log2(plate_dat['value']))
-        ctrl_dip_plates.append(ctrl_slope)
+                t_hours_ctrl, np.log2(well_dat['value']))
+        ctrl_dip_wells.append(ctrl_slope)
 
-    return ctrl_dip_plates
+    return ctrl_dip_wells
 
 
 def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
@@ -164,9 +164,9 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
         num_groups = len(drugs)
         try:
             control = df_controls.loc[cell_lines[0]]
-            ctrl_dip_plates = per_plate_dip(control)
+            ctrl_dip_wells = per_well_control_dip(control)
         except KeyError:
-            ctrl_dip_plates = []
+            ctrl_dip_wells = []
     else:
         group_by = 'cell_line'
         num_groups = len(cell_lines)
@@ -184,9 +184,9 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
         if group_by == 'cell_line':
             try:
                 control = df_controls.loc[group_name]
-                ctrl_dip_plates = per_plate_dip(control)
-            except KeyError:
-                ctrl_dip_plates = []
+                ctrl_dip_wells = per_well_control_dip(control)
+            except (KeyError, AttributeError):
+                ctrl_dip_wells = []
 
         dip_rates = []
         doses = []
@@ -195,8 +195,8 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
                 doses.append(dose)
                 dip_rates.append(calculate_dip(df_vals.loc[well, 'value']))
 
-        doses = [np.min(doses) / 10] * len(ctrl_dip_plates) + doses
-        dip_rates = ctrl_dip_plates + dip_rates
+        doses = [np.min(doses) / 10] * len(ctrl_dip_wells) + doses
+        dip_rates = ctrl_dip_wells + dip_rates
 
         popt = None
         y_val = np.mean(dip_rates)
@@ -263,7 +263,7 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
             y_trace = dip_rates[1:]
             if not is_absolute:
                 y_trace /= divisor
-                ctrl_dip_plates /= divisor
+                ctrl_dip_wells /= divisor
             traces.append(go.Scatter(x=doses[1:],
                                      y=y_trace,
                                      mode='markers',
@@ -275,8 +275,8 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
                                      name='Replicate',
                                      marker={'size': 5})
                           )
-            traces.append(go.Scatter(x=[doses[0]] * len(ctrl_dip_plates),
-                                     y=ctrl_dip_plates,
+            traces.append(go.Scatter(x=[doses[0]] * len(ctrl_dip_wells),
+                                     y=ctrl_dip_wells,
                                      mode='markers',
                                      line={'shape': 'spline',
                                            'color': 'black',
@@ -407,6 +407,29 @@ def plot_time_course(df_doses, df_vals, df_controls,
     colours = sns.color_palette("husl", len(df_doses.index.get_level_values(
         level='dose').unique()))
 
+    # Controls
+    if df_controls is not None:
+        is_first_control = True
+        for well_id, timecourse in df_controls.groupby(level='well_id'):
+            timecourse = timecourse['value']
+            if doublings:
+                timecourse = np.log2(timecourse)
+                timecourse -= timecourse[0]
+            traces.append(go.Scatter(
+                x=[t.total_seconds() / SECONDS_IN_HOUR for t in
+                   timecourse.index.get_level_values('timepoint')],
+                y=timecourse,
+                mode='lines+markers',
+                line={'color': 'black',
+                      'shape': 'spline'},
+                marker={'size': 5},
+                name='Control',
+                legendgroup='__Control',
+                showlegend=is_first_control
+            ))
+            is_first_control = False
+
+    # Experiment (non-control)
     for dose, wells in df_doses.groupby(level='dose'):
         c = colours.pop()
         this_colour = 'rgb(%d, %d, %d)' % (c[0] * 255, c[1] * 255, c[2] * 255)

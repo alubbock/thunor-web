@@ -12,7 +12,8 @@ def df_doses_assays_controls(dataset_id, drug_id, cell_line_id,
     well_info = WellDrug.objects.filter(
         well__plate__dataset_id=dataset_id).annotate(
         num_drugs=Count('well__welldrug')).filter(
-        num_drugs=1).select_related('well', 'well__cell_line', 'drug')
+        num_drugs=1).select_related('well', 'well__cell_line',
+                                    'well__plate', 'drug')
 
     if drug_id:
         well_info = well_info.filter(drug_id=drug_id).order_by(
@@ -31,9 +32,13 @@ def df_doses_assays_controls(dataset_id, drug_id, cell_line_id,
 
     df_doses = queryset_to_dataframe(
         well_info,
-        columns=('dose', 'well_id', 'well__cell_line__name', 'drug__name'),
-        rename_columns=('dose', 'well_id', 'cell_line', 'drug'),
+        columns=('dose', 'well_id', 'well__cell_line__name', 'drug__name',
+                 'well__plate_id'),
+        rename_columns=('dose', 'well_id', 'cell_line', 'drug', 'plate_id'),
         index=('drug', 'cell_line', 'dose'))
+
+    plate_ids = df_doses['plate_id'].unique()
+    del df_doses['plate_id']
 
     if df_doses.shape[0] == 3 and df_doses.isnull().values.all():
         raise NoDataException()
@@ -52,13 +57,13 @@ def df_doses_assays_controls(dataset_id, drug_id, cell_line_id,
     df_controls = None
     if control is not None:
         controls = WellMeasurement.objects.filter(
-            well__plate__dataset_id=dataset_id,
+            well__plate_id__in=plate_ids,
             assay=assay).select_related(
             'well').order_by('well__cell_line', 'timepoint')
         if control == 'A1':
             controls = controls.filter(well__well_num=0)
         elif control == 0:
-            controls = WellMeasurement.objects.filter(
+            controls = controls.filter(
                 well__welldrug__dose=0,
             ).annotate(
                 num_drugs=Count('well__welldrug')).filter(
@@ -72,14 +77,21 @@ def df_doses_assays_controls(dataset_id, drug_id, cell_line_id,
         df_controls = queryset_to_dataframe(controls,
                                             columns=('well__cell_line__name',
                                                      'well__plate__id',
-                                                     'timepoint', 'value'),
+                                                     'well_id',
+                                                     'timepoint',
+                                                     'value'),
                                             rename_columns=('cell_line',
                                                             'plate',
+                                                            'well_id',
                                                             'timepoint',
                                                             'value'),
                                             index=('cell_line',
                                                    'plate',
+                                                   'well_id',
                                                    'timepoint'))
+
+        if df_controls.shape[0] == 4 and df_controls.isnull().values.all():
+            df_controls = None
 
     return {'doses': df_doses,
             'assays': df_vals,
