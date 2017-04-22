@@ -35,6 +35,9 @@ def df_doses_assays_controls(dataset_id, drug_id, cell_line_id,
         rename_columns=('dose', 'well_id', 'cell_line', 'drug'),
         index=('drug', 'cell_line', 'dose'))
 
+    if df_doses.shape[0] == 3 and df_doses.isnull().values.all():
+        raise NoDataException()
+
     timecourses = WellMeasurement.objects.filter(well_id__in=(
         well.well_id for well in well_info), assay=assay).order_by(
         'well_id', 'timepoint')
@@ -42,6 +45,9 @@ def df_doses_assays_controls(dataset_id, drug_id, cell_line_id,
     df_vals = queryset_to_dataframe(timecourses,
                                     columns=('well_id', 'timepoint', 'value'),
                                     index=('well_id', 'timepoint'))
+
+    if df_vals.shape[0] == 2 and df_vals.isnull().values.all():
+        raise NoDataException()
 
     df_controls = None
     if control is not None:
