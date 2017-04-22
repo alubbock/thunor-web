@@ -175,6 +175,8 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
 
     HILL_FN = ll4
 
+    annotations = []
+
     for group_name, dose_and_well_id in df_doses.groupby(level=group_by):
         c = colours.pop()
         this_colour = 'rgb(%d, %d, %d)' % (c[0] * 255, c[1] * 255, c[2] * 255)
@@ -193,7 +195,7 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
                 doses.append(dose)
                 dip_rates.append(calculate_dip(df_vals.loc[well]))
 
-        doses = [min(doses) / 10] * len(ctrl_dip_plates) + doses
+        doses = [np.min(doses) / 10] * len(ctrl_dip_plates) + doses
         dip_rates = ctrl_dip_plates + dip_rates
 
         popt = None
@@ -221,7 +223,8 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
         dose_x_range = np.append([10 ** log_dose_min], dose_x_range, axis=0)
 
         divisor = 1
-        if not is_absolute:
+        popt_rel = None
+        if not is_absolute or show_replicates:
             if popt is None:
                 divisor = y_val
                 y_val = 1
@@ -229,10 +232,13 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
                 divisor = popt[2]
                 if divisor <= 0:
                     # Cells not growing in control?
-                    popt = None
+                    popt_rel = None
                 else:
-                    popt[1] /= divisor
-                    popt[2] = 1
+                    popt_rel = popt.copy()
+                    popt_rel[1] /= divisor
+                    popt_rel[2] = 1
+        if not is_absolute:
+            popt = popt_rel
 
         if popt is None:
             dip_rate_fit = [y_val] * len(dose_x_range)
@@ -282,6 +288,29 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
                                      marker={'size': 5})
                           )
 
+            if popt is not None:
+                annotation_label = ''
+                if popt[3] < np.max(dose_x_range):
+                    annotation_label += 'EC50: {} '.format(format_dose(
+                        popt[3], sig_digits=5
+                    ))
+                if popt_rel is not None:
+                    ic50 = find_ic50(dose_x_range,
+                                     HILL_FN(dose_x_range, *popt_rel))
+                    if ic50:
+                        annotation_label += 'IC50: {} '.format(format_dose(
+                            ic50, sig_digits=5
+                        ))
+                if annotation_label:
+                    annotations.append({
+                        'x': 0.5,
+                        'y': 1.1,
+                        'xref': 'paper',
+                        'yref': 'paper',
+                        'showarrow': False,
+                        'text': annotation_label
+                    })
+
     data = go.Data(traces)
     yaxis_title = 'DIP Rate'
     if not is_absolute:
@@ -291,6 +320,7 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
                        xaxis={'title': 'Dose (M)',
                               'type': 'log'},
                        yaxis={'title': yaxis_title},
+                       annotations=annotations,
                        )
     figure = go.Figure(data=data, layout=layout)
 
@@ -429,7 +459,6 @@ def ll4(x, b, c, d, e):
      - d: max response
      - e: EC50
      """
-    # return c+(d-c)/(1+np.exp(b*(np.log(x)-np.log(e))))
     return c+(d-c)/(1+10**(b*(np.log10(x)-np.log10(e))))
 
 
