@@ -415,7 +415,7 @@ def plot_time_course(df_doses, df_vals, df_controls,
             timecourse = df_vals.loc[well_id, 'value']
             if doublings:
                 timecourse = np.log2(timecourse)
-                timecourse -= np.min(timecourse)
+                timecourse -= timecourse[0]
             traces.append(go.Scatter(
                 x=[t.total_seconds() / SECONDS_IN_HOUR for t in
                    timecourse.index.get_level_values('timepoint')],
@@ -431,7 +431,7 @@ def plot_time_course(df_doses, df_vals, df_controls,
 
     data = go.Data(traces)
     if doublings:
-        assay_name = "Normalised log2 {}".format(assay_name)
+        assay_name = "Change in log2 {}".format(assay_name)
     layout = go.Layout(title=title,
                        xaxis={'title': 'Time (hours)',
                               'dtick': 12},
