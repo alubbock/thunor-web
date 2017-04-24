@@ -4,7 +4,7 @@ set -e
 
 THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 BASE_DIR="$( dirname "${THIS_DIR}" )"
-DJANGO_STATIC_URL="$( grep ^DJANGO_STATIC_URL= _conf/thunor.env | awk -F\= '{gsub(/"/,"",$2);print $2}' - )"
+DJANGO_STATIC_URL="$( grep ^DJANGO_STATIC_URL= $BASE_DIR/_conf/thunor.env | awk -F\= '{gsub(/"/,"",$2);print $2}' - )"
 
 mkdir -p $BASE_DIR/_state/webpack-bundles
 

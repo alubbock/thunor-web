@@ -15,7 +15,7 @@ module.exports = {
                  "./thunor/css/pyhts.css"],
 
         //TODO: Compile more modules from source, removing unneeded components
-        plots:  ["expose?Plotly!plotly.js/dist/plotly-gl3d"],
+        plots:  ["expose?Plotly!./plotly"],
         raven:  ["expose?Raven!raven-js"],
         vendor: ["expose?jQuery!expose?$!jquery",      // sitewide
                  "bootstrap/dist/js/bootstrap",
@@ -68,12 +68,12 @@ module.exports = {
 
     module: {
         loaders: [
-            // {
-            //     // required by plotly
-            //     test: /\.js$/,
-            //     // include: [/node_modules\/(plotly|glsl-|gl-|cwise)/],
-            //     loader: "ify"
-            // },
+            {
+                // required by plotly
+                test: /node_modules/,
+                include: [/node_modules\/(plotly|glsl-|gl-|cwise)/],
+                loader: "ify"
+            },
             {
                 test: /\.css$/,
                 loader: ExtractTextPlugin.extract("css-loader")
