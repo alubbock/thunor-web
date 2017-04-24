@@ -6,7 +6,7 @@ var modules = [
 ];
 
 // TODO: Make 3D plots optional
-modules.push(require("plotly.js/lib/surface"));
+// modules.push(require("plotly.js/lib/surface"));
 
 Plotly.register(modules);
 

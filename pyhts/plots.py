@@ -147,7 +147,8 @@ def per_well_control_dip(control):
 
 
 def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
-             title=None, **kwargs):
+             title=None, display_fit_params=False, fit_params_sort='ic50',
+             **kwargs):
     # Dataframe with time point as index
     traces = []
 
@@ -176,6 +177,7 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
     HILL_FN = ll4
 
     annotations = []
+    fit_params = []
 
     for group_name, dose_and_well_id in df_doses.groupby(level=group_by):
         c = colours.pop()
@@ -199,6 +201,7 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
         dip_rates = ctrl_dip_wells + dip_rates
 
         popt = None
+        emax = None
         y_val = np.mean(dip_rates)
         try:
             popt, pcov = scipy.optimize.curve_fit(HILL_FN,
@@ -212,6 +215,9 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
         except RuntimeError:
             pass
 
+        if popt is not None:
+            emax = popt[2]
+
         log_dose_min = int(np.floor(np.log10(min(doses[1:]))))
         log_dose_max = int(np.ceil(np.log10(max(doses))))
 
@@ -224,7 +230,7 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
 
         divisor = 1
         popt_rel = None
-        if not is_absolute or show_replicates:
+        if not is_absolute or show_replicates or display_fit_params:
             if popt is None:
                 divisor = y_val
                 y_val = 1
@@ -301,6 +307,10 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
                         annotation_label += 'IC50: {} '.format(format_dose(
                             ic50, sig_digits=5
                         ))
+                if emax is not None:
+                    annotation_label += 'Emax: {}'.format(format_dose(
+                        emax, sig_digits=5
+                    ))
                 if annotation_label:
                     annotations.append({
                         'x': 0.5,
@@ -311,17 +321,43 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
                         'text': annotation_label
                     })
 
-    data = go.Data(traces)
-    yaxis_title = 'DIP Rate'
-    if not is_absolute:
-        yaxis_title = 'Relative ' + yaxis_title
-    layout = go.Layout(title=title,
-                       hovermode='closest' if show_replicates else 'x',
-                       xaxis={'title': 'Dose (M)',
-                              'type': 'log'},
-                       yaxis={'title': yaxis_title},
-                       annotations=annotations,
-                       )
+        if display_fit_params:
+            fit_params.append([group_name,  # Cell line or drug
+                               emax,  # Emax
+                               popt[3] if popt is not None else None,  # EC50
+                               find_ic50(dose_x_range,
+                                         HILL_FN(dose_x_range, *popt_rel)) if
+                               popt_rel is not None else None          # IC50
+                               ])
+
+    if display_fit_params:
+        sort_ind = {'emax': 1, 'ec50': 2}.get(fit_params_sort, 3)
+        # Sort lists by chosen index, then transpose and unpack into separate
+        # lists. The sort order key ensures that Nones appear at the start
+        # of the sort.
+        groups, emax_list, ec50_list, ic50_list = map(list, zip(
+            *sorted(fit_params, key=lambda x: (x[sort_ind] is not None,
+                                               x[sort_ind]))))
+
+        data = [go.Bar(x=groups, y=emax_list, name='Emax'),
+                go.Bar(x=groups, y=ec50_list, name='EC50'),
+                go.Bar(x=groups, y=ic50_list, name='IC50')]
+        layout = go.Layout(title=title,
+                           barmode='group',
+                           yaxis={'title': 'Dose (M)'})
+    else:
+        data = go.Data(traces)
+        yaxis_title = 'Dose/Response'
+        if not is_absolute:
+            yaxis_title = 'Relative ' + yaxis_title
+        layout = go.Layout(title=title,
+                           hovermode='closest' if show_replicates else 'x',
+                           xaxis={'title': 'Dose (M)',
+                                  'type': 'log'},
+                           yaxis={'title': yaxis_title},
+                           annotations=annotations,
+                           )
+
     figure = go.Figure(data=data, layout=layout)
 
     return _get_plot_html(figure)

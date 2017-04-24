@@ -11,4 +11,5 @@ COPY package.json $BUILD_DIR
 RUN npm install
 
 COPY webpack.config.js $BUILD_DIR
+COPY plotly.js $BUILD_DIR
 ENTRYPOINT ["npm", "run", "build"]

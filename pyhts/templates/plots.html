@@ -112,22 +112,23 @@
             <label for="hts-plot-type">Plot Type</label>
             <div class="hts-plot-type btn-group btn-group-3"
                  data-toggle="buttons">
-              <label class="btn btn-primary active">
-                  <input type="radio" name="plotType" value="dip"
-                         autocomplete="off" checked><span>DIP Rate</span>
-              </label>
-{#                <label class="btn btn-primary active">#}
-{#                  <input type="radio" name="plotType" value="dr2d"#}
-{#                         autocomplete="off" checked><span>Dose/Response</span>#}
-{#                </label>#}
                 <label class="btn btn-primary">
                   <input type="radio" name="plotType" value="tc"
                          autocomplete="off"><span>Time Course</span>
                 </label>
-                <label class="btn btn-primary">
-                  <input type="radio" name="plotType" value="dr3d"
-                         autocomplete="off"><span>3D Dose/Time/Response</span>
-                </label>
+              <label class="btn btn-primary active">
+                  <input type="radio" name="plotType" value="dip"
+                         autocomplete="off" checked><span>Dose/Response</span>
+              </label>
+                  <label class="btn btn-primary">
+                  <input type="radio" name="plotType" value="dippar"
+                         autocomplete="off"><span>Dose/Response
+                      Parameters</span>
+              </label>
+{#                <label class="btn btn-primary">#}
+{#                  <input type="radio" name="plotType" value="dr3d"#}
+{#                         autocomplete="off"><span>3D Dose/Time/Response</span>#}
+{#                </label>#}
             </div>
         </div>
     </div>
@@ -193,7 +194,7 @@
         </div>
     </div>
     <div class="form-group">
-        <label for="hts-dip-type">DIP type</label>
+        <label for="hts-dip-type">Vertical axis</label>
         <div class="hts-dip-type btn-group btn-group-2"
              data-toggle="buttons">
           <label class="btn btn-default active">
@@ -203,6 +204,24 @@
           <label class="btn btn-default">
             <input type="radio" name="dipType" value="abs"
                    autocomplete="off"> Absolute
+          </label>
+        </div>
+    </div>
+    <div class="form-group" style="display:none">
+        <label for="hts-dippar-sort">Sort By</label>
+        <div class="hts-dippar-sort btn-group btn-group-3"
+             data-toggle="buttons">
+          <label class="btn btn-default active">
+            <input type="radio" name="dipParSort" value="ic50"
+                   autocomplete="off" checked disabled> IC50
+          </label>
+          <label class="btn btn-default">
+            <input type="radio" name="dipParSort" value="ec50"
+                   autocomplete="off" disabled> EC50
+          </label>
+          <label class="btn btn-default">
+            <input type="radio" name="dipParSort" value="emax"
+                   autocomplete="off" disabled> Emax
           </label>
         </div>
     </div>

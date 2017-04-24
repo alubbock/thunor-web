@@ -837,8 +837,8 @@ def ajax_get_plot(request):
         cell_line_id = request.GET.get('cellLineId')
         drug_id = request.GET.get('drugId')
 
-        if plot_type != 'dip' and (cell_line_id is None or not drug_id):
-            return HttpResponse('DIP plots require a cell line or drug ID',
+        if cell_line_id is None and drug_id is None:
+            return HttpResponse('A cell line ID or drug ID is required',
                                 status=400)
 
         if cell_line_id is not None:
@@ -853,16 +853,22 @@ def ajax_get_plot(request):
     except (KeyError, ValueError):
         raise Http404()
 
+    display_fit_params = False
+    dip_par_sort = request.GET.get('dipParSort', 'ic50')
+
     if plot_type == 'dr3d':
         plot_fn = plot_dose_response_3d
-        plot_type_str = 'Dose/Response/Time'
+        plot_type_str = 'Dose/response/time'
     elif plot_type == 'tc':
         plot_fn = plot_time_course
-        plot_type_str = 'Time Course'
+        plot_type_str = 'Time course'
     elif plot_type == 'dip':
         plot_fn = plot_dip
-        plot_type_str = 'DIP rates'
-        pass
+        plot_type_str = 'Dose/response'
+    elif plot_type == 'dippar':
+        plot_fn = plot_dip
+        plot_type_str = 'Dose/response parameters'
+        display_fit_params = True
     else:
         return HttpResponse('Unimplemented plot type: %s' % plot_type,
                             status=400)
@@ -911,6 +917,8 @@ def ajax_get_plot(request):
                                     df_data['controls'],
                                     is_absolute=dip_absolute,
                                     doublings=yaxis == 'log2',
+                                    display_fit_params=display_fit_params,
+                                    fit_params_sort=dip_par_sort,
                                     assay_name=assay,
                                     title=plot_type_str))
     except NoDataException:

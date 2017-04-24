@@ -170,16 +170,24 @@ var plots = function() {
         var showErrorBars = false,
             showAssay = true,
             showYaxisScale = true,
-            showDipType = false;
-        if (plotType == "dip") {
+            showDipType = false,
+            showDipParSort = false;
+        if (plotType === "dip") {
             showAssay = false;
             showYaxisScale = false;
             showDipType = true;
+        }
+        if (plotType === "dippar") {
+            showAssay = false;
+            showYaxisScale = false;
+            showDipType = false;
+            showDipParSort = true;
         }
         setSelectPicker($dataPanel.find(".hts-change-assay"), showAssay);
         setRadio($dataPanel.find(".hts-log-transform"), showYaxisScale);
         setRadio($dataPanel.find(".hts-dip-type"), showDipType);
         setRadio($dataPanel.find(".hts-error-bars"), showErrorBars);
+        setRadio($dataPanel.find(".hts-dippar-sort"), showDipParSort);
     };
 
     var selectPlotType = function(e) {
@@ -208,13 +216,16 @@ var plots = function() {
       var plotMetaType = $target.val();
       if(plotMetaType == "combo") {
           setButtonGroupOptions($btnGroup, {
-              "dip": "DIP Rate",
-              // "dr2d": "Dose/Response",
               "tc": "Time Course",
-              "dr3d": "3D Dose/Time/Response"
+              // "dr2d": "Dose/Response",
+              "dip": "Dose/Response",
+              "dippar": "Dose/Response Parameters"
           });
       } else {
-          setButtonGroupOptions($btnGroup, {"dip": "DIP Rate"});
+          setButtonGroupOptions($btnGroup, {
+              "dip": "Dose/Response",
+              "dippar": "Dose/Response Parameters"
+          });
       }
       setPlotCategory($dataPanel, plotMetaType);
       $btnGroup.find("label").first().button("toggle");
