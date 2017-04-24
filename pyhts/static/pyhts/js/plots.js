@@ -158,9 +158,9 @@ var plots = function() {
     var setRadio = function($radioDiv, newState) {
         var radio = $radioDiv.find("input[type=radio]");
         if(newState) {
-            radio.removeClass("disabled");
+            radio.prop("disabled", false);
         } else {
-            radio.addClass("disabled");
+            radio.prop("disabled", true);
         }
         $radioDiv.closest(".form-group").toggle(newState);
     };
