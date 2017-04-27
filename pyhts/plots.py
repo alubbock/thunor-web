@@ -100,11 +100,9 @@ def calculate_dip(df_timecourses, selector_fn=tyson1):
     n_total = len(t_hours)
 
     dip = None
+    final_std_err = None
     dip_selector = -np.inf
-    # dip_best_i = None
     opt_list = []
-    # print(t_secs)
-    # print(list(assay_vals))
     if n_total < 3:
         return None
     for i in range(n_total - 2):
@@ -122,17 +120,14 @@ def calculate_dip(df_timecourses, selector_fn=tyson1):
         if new_dip_selector > dip_selector:
             dip_selector = new_dip_selector
             dip = slope
-            # dip_best_i = i
+            final_std_err = std_err
 
-    # print(opt_list)
-    # print(dip_best_i)
-    # print(dip)
-
-    return dip
+    return dip, final_std_err
 
 
 def per_well_control_dip(control):
     ctrl_dip_wells = []
+    std_errs = []
     for well, well_dat in control.groupby(level='well_id'):
         t_hours_ctrl = [x.total_seconds() / 3600 for x in
                         well_dat.index.get_level_values(
@@ -142,8 +137,9 @@ def per_well_control_dip(control):
             scipy.stats.linregress(
                 t_hours_ctrl, np.log2(well_dat['value']))
         ctrl_dip_wells.append(ctrl_slope)
+        std_errs.append(ctrl_std_err)
 
-    return ctrl_dip_wells
+    return ctrl_dip_wells, std_errs
 
 
 def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
@@ -165,9 +161,10 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
         num_groups = len(drugs)
         try:
             control = df_controls.loc[cell_lines[0]]
-            ctrl_dip_wells = per_well_control_dip(control)
+            ctrl_dip_wells, ctrl_dip_std_err = per_well_control_dip(control)
         except KeyError:
             ctrl_dip_wells = []
+            ctrl_dip_std_err = []
     else:
         group_by = 'cell_line'
         num_groups = len(cell_lines)
@@ -186,28 +183,39 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
         if group_by == 'cell_line':
             try:
                 control = df_controls.loc[group_name]
-                ctrl_dip_wells = per_well_control_dip(control)
+                ctrl_dip_wells, ctrl_dip_std_err = per_well_control_dip(
+                    control)
             except (KeyError, AttributeError):
                 ctrl_dip_wells = []
+                ctrl_dip_std_err = []
 
         dip_rates = []
+        dip_std_errs = []
         doses = []
         for dose, dose_dat in dose_and_well_id.groupby(level='dose'):
             for well in dose_dat['well_id']:
                 doses.append(dose)
-                dip_rates.append(calculate_dip(df_vals.loc[well, 'value']))
+                dip, std_err = calculate_dip(df_vals.loc[well, 'value'])
+                dip_rates.append(dip)
+                dip_std_errs.append(std_err)
 
         doses = [np.min(doses) / 10] * len(ctrl_dip_wells) + doses
         dip_rates = ctrl_dip_wells + dip_rates
+        dip_rates_std_err = ctrl_dip_std_err + dip_std_errs
 
         popt = None
         emax = None
         y_val = np.mean(dip_rates)
+        curve_initial_guess = ll4_initials(doses, dip_rates)
         try:
             popt, pcov = scipy.optimize.curve_fit(HILL_FN,
                                                   doses,
                                                   dip_rates,
-                                                  maxfev=100000)
+                                                  p0=curve_initial_guess,
+                                                  sigma=dip_rates_std_err
+                                                  )
+            # popt = scipy.optimize.fmin_bfgs(lambda params: np.sum(np.power(
+            #     HILL_FN(doses, *params) - dip_rates, 2)), curve_initial_guess)
 
             if popt[1] > popt[2]:
                 # TODO: Maybe try another fit of some kind?
@@ -216,7 +224,7 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
             pass
 
         if popt is not None:
-            emax = popt[2]
+            emax = popt[1]
 
         log_dose_min = int(np.floor(np.log10(min(doses[1:]))))
         log_dose_max = int(np.ceil(np.log10(max(doses))))
@@ -233,7 +241,8 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
         if not is_absolute or show_replicates or display_fit_params:
             if popt is None:
                 divisor = y_val
-                y_val = 1
+                if not is_absolute:
+                    y_val = 1
             else:
                 divisor = popt[2]
                 if divisor <= 0:
@@ -308,9 +317,7 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
                             ic50, sig_digits=5
                         ))
                 if emax is not None:
-                    annotation_label += 'Emax: {}'.format(format_dose(
-                        emax, sig_digits=5
-                    ))
+                    annotation_label += 'Emax: {0:.5g}'.format(emax)
                 if annotation_label:
                     annotations.append({
                         'x': 0.5,
@@ -344,10 +351,10 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
                 go.Bar(x=groups, y=ic50_list, name='IC50')]
         layout = go.Layout(title=title,
                            barmode='group',
-                           yaxis={'title': 'Dose (M)'})
+                           yaxis={'title': 'Parameter value'})
     else:
         data = go.Data(traces)
-        yaxis_title = 'Dose/Response'
+        yaxis_title = 'DIP rate'
         if not is_absolute:
             yaxis_title = 'Relative ' + yaxis_title
         layout = go.Layout(title=title,
@@ -508,17 +515,14 @@ def ll3u(x, b, c, e):
 
 def ll4(x, b, c, d, e):
     """
-    @yannabraham from Github Gist
-    https://gist.github.com/yannabraham/5f210fed773785d8b638
+    Four parameter log-logistic function
 
-    This function is basically a copy of the LL.4 function from the R drc
-    package with
      - b: hill slope
      - c: min response
      - d: max response
      - e: EC50
      """
-    return c+(d-c)/(1+10**(b*(np.log10(x)-np.log10(e))))
+    return c+(d-c)/(1+np.exp(b*(np.log(x)-np.log(e))))
 
 
 def find_ic50(x_interp, y_interp):
@@ -535,3 +539,35 @@ def extrapolate_time0(dat):
     return 2**scipy.stats.linregress(
         [t.item() for t in means.index.values],
         np.log2(list(means))).intercept
+
+
+def _response_transform(y, c_val, d_val):
+    return np.log((d_val - y) / (y - c_val))
+
+
+def _find_be_ll4(x, y, c_val, d_val, slope_scaling_factor=1,
+                 dose_transform=np.log,
+                 dose_inv_transform=np.exp):
+    slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(
+        dose_transform(x),
+        _response_transform(y, c_val, d_val)
+    )
+    b_val = slope_scaling_factor * slope
+    e_val = dose_inv_transform(-intercept / (slope_scaling_factor * b_val))
+
+    return b_val, e_val
+
+
+def _find_cd_ll4(y, scale=0.001):
+    ymin = np.min(y)
+    ymax = np.max(y)
+    len_y_range = scale * (ymax - ymin)
+
+    return ymin - len_y_range, ymax + len_y_range
+
+
+def ll4_initials(x, y):
+    c_val, d_val = _find_cd_ll4(y)
+    b_val, e_val = _find_be_ll4(x, y, c_val, d_val)
+
+    return b_val, c_val, d_val, e_val
