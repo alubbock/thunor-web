@@ -3,7 +3,7 @@ django-allauth==0.28.0
 django-crispy-forms==1.6.1
 django-custom-user==0.6
 django-guardian==1.4.6
-django-invitations==1.8
+git+git://github.com/bee-keeper/django-invitations.git@a4df93e598e5cc87674c81b07daf2338eeb8b5eb
 django-webpack-loader==0.4.1
 uwsgi==2.0.14
 psycopg2==2.6.2
