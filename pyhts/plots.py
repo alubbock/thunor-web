@@ -217,7 +217,7 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
             # popt = scipy.optimize.fmin_bfgs(lambda params: np.sum(np.power(
             #     HILL_FN(doses, *params) - dip_rates, 2)), curve_initial_guess)
 
-            if popt[1] > popt[2]:
+            if popt[1] > popt[2] or popt[0] < 0:
                 # TODO: Maybe try another fit of some kind?
                 popt = None
         except RuntimeError:
