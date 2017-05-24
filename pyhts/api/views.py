@@ -216,14 +216,18 @@ class DatasetAssays(ThunorDatasetAPIView):
         for w, drugs in wells.items():
             combinations[(w[0], tuple(drugs.values()))] = None
 
-        response = [{
-            'cell_line': c[0].name,
-            'drugs': [d.name for d in c[1]]
-        } for c in combinations.keys()]
+        cell_lines = set((c[0].id, c[0].name) for c in combinations.keys())
+        drugs = set(((d.id, d.name) for d in c[1])
+                    for c in combinations.keys())
+
+        # response = [{
+        #     'cell_line': c[0].name,
+        #     'drugs': [d.name for d in c[1]]
+        # } for c in combinations.keys()]
 
         return Response({
             'dataset_name': dataset.name,
             'dataset': reverse('pyhts:api:dataset-detail', args=[
                 dataset.id], request=request, format=kwargs.get('format',
                                                                 None)),
-            'combinations': response})
+            'cell_lines': cell_lines, 'drugs': drugs})
