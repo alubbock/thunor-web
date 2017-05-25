@@ -375,8 +375,12 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
         layout = go.Layout(title=title,
                            hovermode='closest' if show_replicates else 'x',
                            xaxis={'title': 'Dose (M)',
+                                  'range': np.log10((1e-12, 1e-5)),
                                   'type': 'log'},
-                           yaxis={'title': yaxis_title},
+                           yaxis={'title': yaxis_title,
+                                  'range': (-0.02, 0.07) if is_absolute else
+                                  (-0.2, 1.2)
+                                  },
                            annotations=annotations,
                            )
 
@@ -513,11 +517,14 @@ def plot_time_course(df_doses, df_vals, df_controls,
     data = go.Data(traces)
     if doublings:
         assay_name = "Change in log2 {}".format(assay_name)
+    max_time = df_vals.index.get_level_values('timepoint').max()
     layout = go.Layout(title=title,
                        xaxis={'title': 'Time (hours)',
+                              'range': (0, 120) if max_time <=
+                                       np.timedelta64(120, 'h') else None,
                               'dtick': 12},
                        yaxis={'title': assay_name,
-                              'type': None if doublings else 'log'},
+                              'range': (-2, 7) if doublings else None},
                        )
     figure = go.Figure(data=data, layout=layout)
 
