@@ -188,7 +188,7 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
         if group_by != 'drug':
             try:
                 control = df_controls.loc[
-                    group_name if group_name == 'cell_line' else group_name[0]
+                    group_name if group_by == 'cell_line' else group_name[0]
                 ]
                 ctrl_dip_wells, ctrl_dip_std_err = per_well_control_dip(
                     control)
