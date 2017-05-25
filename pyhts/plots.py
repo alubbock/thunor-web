@@ -353,9 +353,17 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
             *sorted(fit_params, key=lambda x: (x[sort_ind] is not None,
                                                x[sort_ind]))))
 
-        data = [go.Bar(x=groups, y=emax_list, name='Emax'),
-                go.Bar(x=groups, y=ec50_list, name='EC50'),
-                go.Bar(x=groups, y=ic50_list, name='IC50')]
+        data = [go.Bar(x=groups, y=emax_list, name='Emax',
+                       visible=True if fit_params_sort == 'emax' else
+                       'legendonly'),
+                go.Bar(x=groups, y=ec50_list, name='EC50',
+                       visible=True if fit_params_sort == 'ec50' else
+                       'legendonly'
+                       ),
+                go.Bar(x=groups, y=ic50_list, name='IC50',
+                       visible=True if fit_params_sort == 'ic50' else
+                       'legendonly'
+                       )]
         layout = go.Layout(title=title,
                            barmode='group',
                            yaxis={'title': 'Parameter value'})
