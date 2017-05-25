@@ -1,6 +1,7 @@
 import pandas as pd
 from .models import WellDrug, WellMeasurement
 from django.db.models import Count
+from collections import Iterable
 
 
 class NoDataException(Exception):
@@ -9,6 +10,11 @@ class NoDataException(Exception):
 
 def df_doses_assays_controls(dataset_id, drug_id, cell_line_id,
                              assay, control=None):
+    if isinstance(drug_id, Iterable) and len(drug_id) == 1:
+        drug_id = drug_id[0]
+    if isinstance(cell_line_id, Iterable) and len(cell_line_id) == 1:
+        cell_line_id = cell_line_id[0]
+
     well_info = WellDrug.objects.filter(
         well__plate__dataset_id=dataset_id).annotate(
         num_drugs=Count('well__welldrug')).filter(
@@ -16,14 +22,25 @@ def df_doses_assays_controls(dataset_id, drug_id, cell_line_id,
                                     'well__plate', 'drug')
 
     if drug_id:
-        well_info = well_info.filter(drug_id=drug_id).order_by(
+        if isinstance(drug_id, int):
+            well_info = well_info.filter(drug_id=drug_id)
+        elif isinstance(drug_id, Iterable):
+            well_info = well_info.filter(drug_id__in=drug_id)
+        else:
+            raise NotImplementedError()
+
+        if not cell_line_id:
+            well_info = well_info.order_by(
              'well__cell_line__name', 'dose', 'well__plate_id',
              'well__well_num')
 
     if cell_line_id:
-        well_info = well_info.filter(
-            well__cell_line_id=cell_line_id).order_by(
-            'drug__name', 'dose', 'well__plate_id', 'well__well_num')
+        if isinstance(cell_line_id, int):
+            well_info = well_info.filter(well__cell_line_id=cell_line_id)
+        elif isinstance(cell_line_id, Iterable):
+            well_info = well_info.filter(well__cell_line_id__in=cell_line_id)
+        else:
+            raise NotImplementedError()
 
     if control == 'A1':
         well_info = well_info.exclude(well__well_num=0)
@@ -71,8 +88,10 @@ def df_doses_assays_controls(dataset_id, drug_id, cell_line_id,
         else:
             raise NotImplementedError()
 
-        if cell_line_id:
+        if cell_line_id and isinstance(cell_line_id, int):
             controls = controls.filter(well__cell_line_id=cell_line_id)
+        elif cell_line_id and isinstance(cell_line_id, Iterable):
+            controls = controls.filter(well__cell_line_id__in=cell_line_id)
 
         df_controls = queryset_to_dataframe(controls,
                                             columns=('well__cell_line__name',

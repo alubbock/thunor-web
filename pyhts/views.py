@@ -219,7 +219,6 @@ def ajax_save_plate(request):
         raise Exception('Query did not update the expected number of objects')
 
     if apply_mode != 'normal':
-        print(apply_mode)
         # If we're applying a template, check the target plates are empty
         # Get plate names where plate has >0 cell lines specified
         if apply_mode in ['all', 'celllines']:
@@ -278,7 +277,6 @@ def ajax_save_plate(request):
             # we'll need to get the existing well information before the
             # delete
             for wd in WellDrug.objects.filter(well__plate_id__in=plate_ids):
-                print(wd.well_id, wd.order, wd.drug_id, wd.dose)
                 if apply_mode == 'drugs' and wd.dose is not None:
                     well_drugs_to_create[(wd.well_id, wd.order)] = \
                         [None, wd.dose]
@@ -834,17 +832,19 @@ def ajax_get_plot(request):
         plot_type = request.GET['plotType']
 
         dataset_id = int(request.GET['datasetId'])
-        cell_line_id = request.GET.get('cellLineId')
-        drug_id = request.GET.get('drugId')
+        cell_line_id = request.GET.getlist('cellLineId')
+        drug_id = request.GET.getlist('drugId')
 
         if cell_line_id is None and drug_id is None:
             return HttpResponse('A cell line ID or drug ID is required',
                                 status=400)
 
-        if cell_line_id is not None:
-            cell_line_id = int(cell_line_id)
-        if drug_id is not None:
-            drug_id = int(drug_id)
+        if not cell_line_id or not drug_id:
+            return HttpResponse('Please enter at least one cell line and '
+                               'drug', status=400)
+
+        cell_line_id = [int(cl) for cl in cell_line_id]
+        drug_id = [int(dr) for dr in drug_id]
 
         assay = request.GET.get('assayId')
         yaxis = request.GET.get('logTransform', 'None')
@@ -856,12 +856,15 @@ def ajax_get_plot(request):
     display_fit_params = False
     dip_par_sort = request.GET.get('dipParSort', 'ic50')
 
-    if plot_type == 'dr3d':
-        plot_fn = plot_dose_response_3d
-        plot_type_str = 'Dose/response/time'
-    elif plot_type == 'tc':
+    # if plot_type == 'dr3d':
+    #     plot_fn = plot_dose_response_3d
+    #     plot_type_str = 'Dose/response/time'
+    if plot_type == 'tc':
         plot_fn = plot_time_course
         plot_type_str = 'Time course'
+        if len(drug_id) > 1 or len(cell_line_id) > 1:
+            return HttpResponse('Please select exactly one cell line and '
+                                'drug for time course plot', status=400)
     elif plot_type == 'dip':
         plot_fn = plot_dip
         plot_type_str = 'Dose/response'
@@ -903,11 +906,11 @@ def ajax_get_plot(request):
             control=control_id
         )
 
-        if drug_id:
+        if drug_id and len(drug_id) == 1:
             drug_name = df_data['doses'].index.get_level_values(
                 'drug')[0]
             plot_type_str += ' for {}'.format(drug_name)
-        if cell_line_id:
+        if cell_line_id and len(cell_line_id) == 1:
             cell_line_name = df_data['doses'].index.get_level_values(
                 'cell_line')[0]
             plot_type_str += ' on {}'.format(cell_line_name)

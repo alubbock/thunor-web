@@ -33,6 +33,17 @@ var downloadImage = function(gd, fmt) {
       });
 };
 
+var selectPickerOptionsMultiple = {
+  actionsBox: true,
+  countSelectedText: function(n, N) {
+    return n + " of " + N + " selected";
+  },
+  selectedTextFormat: "count > 5",
+  maxOptions: false,
+  tickIcon: "glyphicon-ok",
+  title: "Please select an option"
+};
+
 var plots = function() {
     $(".sortable-panels").sortable({
         tolerance: "pointer",
@@ -104,7 +115,7 @@ var plots = function() {
                 ">" + optionList[i].name + "</option>"
             );
         }
-        if (len == 0) {
+        if (len === 0) {
             $select.closest(".bootstrap-select").
                     find("span").first().text("No options available");
         } else {
@@ -115,40 +126,39 @@ var plots = function() {
         }
     };
 
-    var setButtonGroupOptions = function($btnGroup, options) {
-        var optionKeys = Object.keys(options);
-        var numOptions = optionKeys.length;
-        var $currentOptions = $btnGroup.find("label");
-        var optionsDelta = $currentOptions.length - numOptions;
-        var $lastOption = $currentOptions.last();
-        if (optionsDelta != 0) {
-            if(optionsDelta < 0) {
-                var $newOption = $lastOption.clone().removeClass("active");
-                $newOption.find("input").attr("checked", false).change(selectPlotType);
-                for (var optI=optionsDelta; optI<0; optI++) {
-                    $btnGroup.append($newOption.clone(true));
-                }
-            } else {
-                // $btnGroup.find("label").last().addClass("active")
-                //         .find("input").attr("checked", true);
-                // $btnGroup.find("input").last().click();
-                $currentOptions.slice(numOptions).remove();
-                // if (!($btnGroup.find("input:checked").length)) {
-                //     $btnGroup.find("label").first().click();
-                // }
-                // $btnGroup.button();
-            }
-            $btnGroup.removeClass("btn-group-1 btn-group-2 btn-group-3" +
-                " btn-group-4").addClass("btn-group-"+numOptions);
-            $currentOptions = $btnGroup.find("label");
-        }
-        for(var i=0; i<numOptions; i++) {
-            var $optionI = $currentOptions.eq(i);
-            var $optionI = $currentOptions.eq(i);
-            $optionI.find("span").text(options[optionKeys[i]]);
-            $optionI.find("input").val(optionKeys[i]);
-        }
-    };
+    // var setButtonGroupOptions = function($btnGroup, options) {
+    //     var optionKeys = Object.keys(options);
+    //     var numOptions = optionKeys.length;
+    //     var $currentOptions = $btnGroup.find("label");
+    //     var optionsDelta = $currentOptions.length - numOptions;
+    //     var $lastOption = $currentOptions.last();
+    //     if (optionsDelta !== 0) {
+    //         if(optionsDelta < 0) {
+    //             var $newOption = $lastOption.clone().removeClass("active");
+    //             $newOption.find("input").attr("checked", false).change(selectPlotType);
+    //             for (var optI=optionsDelta; optI<0; optI++) {
+    //                 $btnGroup.append($newOption.clone(true));
+    //             }
+    //         } else {
+    //             // $btnGroup.find("label").last().addClass("active")
+    //             //         .find("input").attr("checked", true);
+    //             // $btnGroup.find("input").last().click();
+    //             $currentOptions.slice(numOptions).remove();
+    //             // if (!($btnGroup.find("input:checked").length)) {
+    //             //     $btnGroup.find("label").first().click();
+    //             // }
+    //             // $btnGroup.button();
+    //         }
+    //         $btnGroup.removeClass("btn-group-1 btn-group-2 btn-group-3" +
+    //             " btn-group-4").addClass("btn-group-"+numOptions);
+    //         $currentOptions = $btnGroup.find("label");
+    //     }
+    //     for(var i=0; i<numOptions; i++) {
+    //         var $optionI = $currentOptions.eq(i);
+    //         $optionI.find("span").text(options[optionKeys[i]]);
+    //         $optionI.find("input").val(optionKeys[i]);
+    //     }
+    // };
 
     var setSelectPicker = function($selectPicker, newState) {
         $selectPicker.prop("disabled", !newState).selectpicker("refresh");
@@ -183,6 +193,42 @@ var plots = function() {
             showDipType = false;
             showDipParSort = true;
         }
+
+        // Select multiple cell lines/drugs or not
+        var $changeCL = $dataPanel.find("select.hts-change-cell-line"),
+            $changeDrug = $dataPanel.find("select.hts-change-drug"),
+            $changeCLDrug = $changeCL.add($changeDrug),
+            $actionBtns = $dataPanel.find(
+                "div.hts-change-cell-line,div.hts-change-drug"
+            ).find(".bs-actionsbox");
+        if (plotType === "tc") {
+            // Need to manually set value to avoid buggy behaviour
+            var clVal = $changeCL.val()[0],
+                drVal = $changeDrug.val()[0];
+
+            $changeCLDrug
+                .prop("multiple", false)
+                .selectpicker({maxOptions: 1, tickIcon: ""});
+
+            $changeCL.val(clVal);
+            $changeDrug.val(drVal);
+            $changeCLDrug.selectpicker("render");
+            $actionBtns.hide();
+        } else {
+            // only do the refresh if necessary, i.e. if last plot type was tc
+            if($changeCLDrug.prop("multiple") === false) {
+                $changeCLDrug
+                    .prop("multiple", true)
+                    .selectpicker(selectPickerOptionsMultiple);
+
+                $changeCL.val([$changeCL.val()]);
+                $changeDrug.val([$changeDrug.val()]);
+
+                $changeCLDrug.selectpicker("render");
+
+                $actionBtns.show();
+            }
+        }
         setSelectPicker($dataPanel.find(".hts-change-assay"), showAssay);
         setRadio($dataPanel.find(".hts-log-transform"), showYaxisScale);
         setRadio($dataPanel.find(".hts-dip-type"), showDipType);
@@ -195,41 +241,41 @@ var plots = function() {
         setPlotType($dataPanel);
     };
 
-    var setPlotCategory = function($dataPanel, plotMetaType) {
-        var $drug = $dataPanel.find("select.hts-change-drug");
-        var $cellLine = $dataPanel.find("select.hts-change-cell-line");
-        var setCellLine = true, setDrug = true;
-        if (plotMetaType == "cellline") {
-            setDrug = false;
-        } else if (plotMetaType == "drug") {
-            setCellLine = false;
-        }
-        setSelectPicker($drug, setDrug);
-        setSelectPicker($cellLine, setCellLine);
-        setPlotType($dataPanel);
-    };
-
-    var selectPlotCategory = function(e) {
-      var $target = $(e.target);
-      var $dataPanel = $target.closest(".hts-change-data");
-      var $btnGroup = $dataPanel.find(".hts-plot-type");
-      var plotMetaType = $target.val();
-      if(plotMetaType == "combo") {
-          setButtonGroupOptions($btnGroup, {
-              "tc": "Time Course",
-              // "dr2d": "Dose/Response",
-              "dip": "Dose/Response",
-              "dippar": "Dose/Response Parameters"
-          });
-      } else {
-          setButtonGroupOptions($btnGroup, {
-              "dip": "Dose/Response",
-              "dippar": "Dose/Response Parameters"
-          });
-      }
-      setPlotCategory($dataPanel, plotMetaType);
-      $btnGroup.find("label").first().button("toggle");
-    };
+    // var setPlotCategory = function($dataPanel, plotMetaType) {
+    //     var $drug = $dataPanel.find("select.hts-change-drug");
+    //     var $cellLine = $dataPanel.find("select.hts-change-cell-line");
+    //     var setCellLine = true, setDrug = true;
+    //     if (plotMetaType == "cellline") {
+    //         setDrug = false;
+    //     } else if (plotMetaType == "drug") {
+    //         setCellLine = false;
+    //     }
+    //     setSelectPicker($drug, setDrug);
+    //     setSelectPicker($cellLine, setCellLine);
+    //     setPlotType($dataPanel);
+    // };
+    //
+    // var selectPlotCategory = function(e) {
+    //   var $target = $(e.target);
+    //   var $dataPanel = $target.closest(".hts-change-data");
+    //   var $btnGroup = $dataPanel.find(".hts-plot-type");
+    //   var plotMetaType = $target.val();
+    //   if(plotMetaType == "combo") {
+    //       setButtonGroupOptions($btnGroup, {
+    //           "tc": "Time Course",
+    //           // "dr2d": "Dose/Response",
+    //           "dip": "Dose/Response",
+    //           "dippar": "Dose/Response Parameters"
+    //       });
+    //   } else {
+    //       setButtonGroupOptions($btnGroup, {
+    //           "dip": "Dose/Response",
+    //           "dippar": "Dose/Response Parameters"
+    //       });
+    //   }
+    //   setPlotCategory($dataPanel, plotMetaType);
+    //   $btnGroup.find("label").first().button("toggle");
+    // };
 
     // Change data panel
     $(".hts-change-data-btn").click(function(e) {
@@ -253,21 +299,29 @@ var plots = function() {
 
         var $dataPanel = $(".hts-change-data").last().clone();
 
-        $dataPanel.find("input[name=plotMetaType]").change(selectPlotCategory);
+        // $dataPanel.find("input[name=plotMetaType]").change(selectPlotCategory);
         $dataPanel.find("input[name=plotType]").change(selectPlotType);
+
+        var $cellLineSelect = $dataPanel.find("select.hts-change-cell-line"),
+            $drugSelect = $dataPanel.find("select.hts-change-drug");
+
+        $cellLineSelect.selectpicker(selectPickerOptionsMultiple);
+        $drugSelect.selectpicker(selectPickerOptionsMultiple);
 
         $.ajax({
             url: ajax.url("dataset_groupings", dat["datasetId"]),
             type: "GET",
             success: function (data) {
                 pushOptionsToSelect(
-                    $dataPanel.find("select.hts-change-cell-line"),
+                    $cellLineSelect,
                     data.cellLines,
                     dat["cellLineId"]);
+                $cellLineSelect.title = "Select cell line(s)";
                 pushOptionsToSelect(
-                    $dataPanel.find("select.hts-change-drug"),
+                    $drugSelect,
                     data.drugs,
                     dat["drugId"]);
+                $drugSelect.title = "Select drug(s)";
                 pushOptionsToSelect(
                     $dataPanel.find("select.hts-change-assay"),
                     data.assays,
@@ -286,7 +340,7 @@ var plots = function() {
 
         var $plotPanel = $newPanel.find(".panel-body");
         var $changeDataBtn = $newPanel.find(".hts-change-data-btn");
-        $dataPanel.find("select").selectpicker();
+        // $dataPanel.find("select").selectpicker();
         $dataPanel.find("form").submit(function (e) {
             $plotPanel.loadingOverlay("show");
             var $this = $(e.currentTarget),

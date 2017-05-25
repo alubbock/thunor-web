@@ -151,23 +151,23 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
     cell_lines = df_doses.index.get_level_values('cell_line').unique()
     drugs = df_doses.index.get_level_values('drug').unique()
 
-    if len(cell_lines) > 1 and len(drugs) > 1:
-        raise NotImplementedError()
-
     show_replicates = len(cell_lines) == 1 and len(drugs) == 1
 
-    if len(drugs) > 1:
+    if len(drugs) > 1 and len(cell_lines) == 1:
         group_by = 'drug'
         num_groups = len(drugs)
         try:
             control = df_controls.loc[cell_lines[0]]
             ctrl_dip_wells, ctrl_dip_std_err = per_well_control_dip(control)
-        except KeyError:
+        except (KeyError, AttributeError):
             ctrl_dip_wells = []
             ctrl_dip_std_err = []
-    else:
+    elif len(cell_lines) > 1 and len(drugs) == 1:
         group_by = 'cell_line'
         num_groups = len(cell_lines)
+    else:
+        group_by = ('cell_line', 'drug')
+        num_groups = len(drugs) * len(cell_lines)
 
     colours = sns.color_palette("husl", num_groups)
 
@@ -177,12 +177,19 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
     fit_params = []
 
     for group_name, dose_and_well_id in df_doses.groupby(level=group_by):
+        if group_by == ('cell_line', 'drug'):
+            join_char = " " if display_fit_params else "<br>"
+            group_name_disp = join_char.join(group_name)
+        else:
+            group_name_disp = group_name
         c = colours.pop()
         this_colour = 'rgb(%d, %d, %d)' % (c[0] * 255, c[1] * 255, c[2] * 255)
 
-        if group_by == 'cell_line':
+        if group_by != 'drug':
             try:
-                control = df_controls.loc[group_name]
+                control = df_controls.loc[
+                    group_name if group_name == 'cell_line' else group_name[0]
+                ]
                 ctrl_dip_wells, ctrl_dip_std_err = per_well_control_dip(
                     control)
             except (KeyError, AttributeError):
@@ -267,11 +274,11 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
                                        'color': this_colour,
                                        'dash': 5 if popt is None else 'solid',
                                        'width': 3},
-                                 legendgroup=group_name,
+                                 legendgroup=group_name_disp,
                                  showlegend=not show_replicates,
                                  # hoverinfo='skip' if show_replicates else
                                  # 'all',
-                                 name=group_name)
+                                 name=group_name_disp)
                      )
 
         if show_replicates:
@@ -285,7 +292,7 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
                                      line={'shape': 'spline',
                                            'color': this_colour,
                                            'width': 3},
-                                     legendgroup=group_name,
+                                     legendgroup=group_name_disp,
                                      showlegend=False,
                                      name='Replicate',
                                      marker={'size': 5})
@@ -298,7 +305,7 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
                                            'width': 3},
                                      hoverinfo='y+text',
                                      text='Control',
-                                     legendgroup=group_name,
+                                     legendgroup=group_name_disp,
                                      showlegend=False,
                                      marker={'size': 5})
                           )
@@ -329,7 +336,7 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
                     })
 
         if display_fit_params:
-            fit_params.append([group_name,  # Cell line or drug
+            fit_params.append([group_name_disp,  # Cell line or drug
                                emax,  # Emax
                                popt[3] if popt is not None else None,  # EC50
                                find_ic50(dose_x_range,

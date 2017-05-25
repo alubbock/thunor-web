@@ -83,47 +83,47 @@
 
 <div class="hts-change-data container">
 <form>
-<div class="row">
-    <div class="col-sm-12">
-        <div class="form-group">
-            <label for="hts-plot-meta-type">Plot Category</label>
-        <div class="hts-plot-meta-type btn-group
-        btn-group-3"
-             data-toggle="buttons">
-          <label class="btn btn-primary">
-            <input type="radio" name="plotMetaType" value="cellline"
-                   autocomplete="off"> Cell Line
-          </label>
-          <label class="btn btn-primary">
-            <input type="radio" name="plotMetaType" value="drug"
-                   autocomplete="off"> Drug
-          </label>
-          <label class="btn btn-primary active">
-            <input type="radio" name="plotMetaType" value="combo"
-                   autocomplete="off" checked> Combination
-          </label>
-        </div>
-        </div>
-    </div>
-</div>
+{#<div class="row">#}
+{#    <div class="col-sm-12">#}
+{#        <div class="form-group">#}
+{#            <label for="hts-plot-meta-type">Plot Category</label>#}
+{#        <div class="hts-plot-meta-type btn-group#}
+{#        btn-group-3"#}
+{#             data-toggle="buttons">#}
+{#          <label class="btn btn-primary">#}
+{#            <input type="radio" name="plotMetaType" value="cellline"#}
+{#                   autocomplete="off"> Cell Line#}
+{#          </label>#}
+{#          <label class="btn btn-primary">#}
+{#            <input type="radio" name="plotMetaType" value="drug"#}
+{#                   autocomplete="off"> Drug#}
+{#          </label>#}
+{#          <label class="btn btn-primary active">#}
+{#            <input type="radio" name="plotMetaType" value="combo"#}
+{#                   autocomplete="off" checked> Combination#}
+{#          </label>#}
+{#        </div>#}
+{#        </div>#}
+{#    </div>#}
+{#</div>#}
 <div class="row">
     <div class="col-sm-12">
         <div class="form-group">
             <label for="hts-plot-type">Plot Type</label>
             <div class="hts-plot-type btn-group btn-group-3"
                  data-toggle="buttons">
-                <label class="btn btn-primary">
-                  <input type="radio" name="plotType" value="tc"
-                         autocomplete="off"><span>Time Course</span>
-                </label>
               <label class="btn btn-primary active">
                   <input type="radio" name="plotType" value="dip"
                          autocomplete="off" checked><span>Dose/Response</span>
               </label>
-                  <label class="btn btn-primary">
+              <label class="btn btn-primary">
                   <input type="radio" name="plotType" value="dippar"
                          autocomplete="off"><span>Dose/Response
                       Parameters</span>
+              </label>
+              <label class="btn btn-primary">
+                  <input type="radio" name="plotType" value="tc"
+                         autocomplete="off"><span>Time Course</span>
               </label>
 {#                <label class="btn btn-primary">#}
 {#                  <input type="radio" name="plotType" value="dr3d"#}
@@ -138,14 +138,14 @@
     <input type="hidden" name="datasetId">
     <div class="form-group">
         <label for="hts-change-cell-line">Cell Line</label>
-        <select name="cellLineId" class="hts-change-cell-line form-control"
-                title="Loading...">
+        <select multiple data-live-search="true" name="cellLineId"
+                class="hts-change-cell-line form-control" title="Loading...">
         </select>
     </div>
     <div class="form-group">
         <label for="hts-change-drug">Drug</label>
-        <select name="drugId" class="hts-change-drug form-control"
-                title="Loading...">
+        <select multiple data-live-search="true" name="drugId"
+        class="hts-change-drug form-control" title="Loading...">
         </select>
     </div>
     <div class="form-group" style="display:none">
