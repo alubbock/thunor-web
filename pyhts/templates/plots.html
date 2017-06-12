@@ -113,17 +113,17 @@
             <div class="hts-plot-type btn-group btn-group-3"
                  data-toggle="buttons">
               <label class="btn btn-primary active">
+                  <input type="radio" name="plotType" value="tc"
+                         autocomplete="off" checked><span>Time Course</span>
+              </label>
+              <label class="btn btn-primary">
                   <input type="radio" name="plotType" value="dip"
-                         autocomplete="off" checked><span>Dose/Response</span>
+                         autocomplete="off"><span>Dose Response</span>
               </label>
               <label class="btn btn-primary">
                   <input type="radio" name="plotType" value="dippar"
-                         autocomplete="off"><span>Dose/Response
+                         autocomplete="off"><span>Dose Response
                       Parameters</span>
-              </label>
-              <label class="btn btn-primary">
-                  <input type="radio" name="plotType" value="tc"
-                         autocomplete="off"><span>Time Course</span>
               </label>
 {#                <label class="btn btn-primary">#}
 {#                  <input type="radio" name="plotType" value="dr3d"#}
@@ -179,7 +179,7 @@
           </label>
         </div>
     </div>
-    <div class="form-group" style="display:none">
+    <div class="form-group">
         <label for="hts-log-transform">Vertical axis</label>
         <div class="hts-log-transform btn-group btn-group-2"
              data-toggle="buttons">
@@ -189,11 +189,11 @@
           </label>
           <label class="btn btn-default">
             <input type="radio" name="logTransform" value="None"
-                   autocomplete="off"> Raw
+                   autocomplete="off"> Linear
           </label>
         </div>
     </div>
-    <div class="form-group">
+    <div class="form-group" style="display:none">
         <label for="hts-dip-type">Vertical axis</label>
         <div class="hts-dip-type btn-group btn-group-2"
              data-toggle="buttons">

@@ -40,9 +40,14 @@ var selectPickerOptionsMultiple = {
   },
   selectedTextFormat: "count > 5",
   maxOptions: false,
-  tickIcon: "glyphicon-ok",
   title: "Please select an option"
 };
+
+var selectPickerOptionsSingle = {
+  title: "Please select an option",
+  maxOptions: 1
+};
+
 
 var plots = function() {
     $(".sortable-panels").sortable({
@@ -194,6 +199,13 @@ var plots = function() {
             showDipParSort = true;
         }
 
+        // Only show assay selection if the dataset contains more than one
+        // assay
+        var $changeAssay = $dataPanel.find("select.hts-change-assay");
+        if (showAssay && $changeAssay.length <= 1) {
+            showAssay = false;
+        }
+
         // Select multiple cell lines/drugs or not
         var $changeCL = $dataPanel.find("select.hts-change-cell-line"),
             $changeDrug = $dataPanel.find("select.hts-change-drug"),
@@ -206,28 +218,19 @@ var plots = function() {
             var clVal = $changeCL.val()[0],
                 drVal = $changeDrug.val()[0];
 
-            $changeCLDrug
-                .prop("multiple", false)
-                .selectpicker({maxOptions: 1, tickIcon: ""});
+            $changeCL.selectpicker("val", clVal);
+            $changeDrug.selectpicker("val", drVal);
 
-            $changeCL.val(clVal);
-            $changeDrug.val(drVal);
-            $changeCLDrug.selectpicker("render");
+            $changeCLDrug
+                .selectpicker(selectPickerOptionsSingle)
+                .selectpicker("refresh");
             $actionBtns.hide();
         } else {
-            // only do the refresh if necessary, i.e. if last plot type was tc
-            if($changeCLDrug.prop("multiple") === false) {
-                $changeCLDrug
-                    .prop("multiple", true)
-                    .selectpicker(selectPickerOptionsMultiple);
-
-                $changeCL.val([$changeCL.val()]);
-                $changeDrug.val([$changeDrug.val()]);
-
-                $changeCLDrug.selectpicker("render");
-
-                $actionBtns.show();
-            }
+            $changeCLDrug
+                .selectpicker(selectPickerOptionsMultiple)
+                .selectpicker("refresh")
+                .selectpicker("render");
+            $actionBtns.show();
         }
         setSelectPicker($dataPanel.find(".hts-change-assay"), showAssay);
         setRadio($dataPanel.find(".hts-log-transform"), showYaxisScale);
@@ -305,8 +308,8 @@ var plots = function() {
         var $cellLineSelect = $dataPanel.find("select.hts-change-cell-line"),
             $drugSelect = $dataPanel.find("select.hts-change-drug");
 
-        $cellLineSelect.selectpicker(selectPickerOptionsMultiple);
-        $drugSelect.selectpicker(selectPickerOptionsMultiple);
+        $cellLineSelect.selectpicker(selectPickerOptionsSingle);
+        $drugSelect.selectpicker(selectPickerOptionsSingle);
 
         $.ajax({
             url: ajax.url("dataset_groupings", dat["datasetId"]),
