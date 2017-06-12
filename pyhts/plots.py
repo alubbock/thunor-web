@@ -364,8 +364,21 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
                        visible=True if fit_params_sort == 'ic50' else
                        'legendonly'
                        )]
+        if fit_params_sort == 'ec50':
+            yvals = ec50_list
+        elif fit_params_sort == 'ic50':
+            yvals = ic50_list
+        else:
+            yvals = emax_list
+        annotations = [{'x': x, 'y': 0, 'text': '<em>N/A</em>',
+                        'xanchor': 'center', 'yanchor': 'bottom',
+                        'showarrow': False,
+                        'font': {'color': 'rgba(150, 150, 150, 1)'}}
+                       for x, y in zip(groups, yvals) if y is None]
+
         layout = go.Layout(title=title,
                            barmode='group',
+                           annotations=annotations,
                            yaxis={'title': 'Parameter value'})
     else:
         data = go.Data(traces)
