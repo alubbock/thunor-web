@@ -179,6 +179,32 @@
           </label>
         </div>
     </div>
+    <div class="form-group" style="display:none">
+        <label for="hts-dippar-sort">Sort By</label>
+        <div class="hts-dippar-sort btn-group btn-group-5"
+             data-toggle="buttons">
+          <label class="btn btn-default active">
+            <input type="radio" name="dipParSort" value="ic50"
+                   autocomplete="off" checked disabled> IC50
+          </label>
+          <label class="btn btn-default">
+            <input type="radio" name="dipParSort" value="ec50"
+                   autocomplete="off" disabled> EC50
+          </label>
+          <label class="btn btn-default">
+            <input type="radio" name="dipParSort" value="emax"
+                   autocomplete="off" disabled> Emax
+          </label>
+          <label class="btn btn-default">
+            <input type="radio" name="dipParSort" value="hill"
+                   autocomplete="off" disabled> Hill
+          </label>
+          <label class="btn btn-default">
+            <input type="radio" name="dipParSort" value="auc"
+                   autocomplete="off" disabled> AUC
+          </label>
+        </div>
+    </div>
     <div class="form-group">
         <label for="hts-log-transform">Vertical axis</label>
         <div class="hts-log-transform btn-group btn-group-2"
@@ -204,24 +230,6 @@
           <label class="btn btn-default">
             <input type="radio" name="dipType" value="abs"
                    autocomplete="off"> Absolute
-          </label>
-        </div>
-    </div>
-    <div class="form-group" style="display:none">
-        <label for="hts-dippar-sort">Sort By</label>
-        <div class="hts-dippar-sort btn-group btn-group-3"
-             data-toggle="buttons">
-          <label class="btn btn-default active">
-            <input type="radio" name="dipParSort" value="ic50"
-                   autocomplete="off" checked disabled> IC50
-          </label>
-          <label class="btn btn-default">
-            <input type="radio" name="dipParSort" value="ec50"
-                   autocomplete="off" disabled> EC50
-          </label>
-          <label class="btn btn-default">
-            <input type="radio" name="dipParSort" value="emax"
-                   autocomplete="off" disabled> Emax
           </label>
         </div>
     </div>

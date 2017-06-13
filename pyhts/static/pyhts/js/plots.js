@@ -244,42 +244,6 @@ var plots = function() {
         setPlotType($dataPanel);
     };
 
-    // var setPlotCategory = function($dataPanel, plotMetaType) {
-    //     var $drug = $dataPanel.find("select.hts-change-drug");
-    //     var $cellLine = $dataPanel.find("select.hts-change-cell-line");
-    //     var setCellLine = true, setDrug = true;
-    //     if (plotMetaType == "cellline") {
-    //         setDrug = false;
-    //     } else if (plotMetaType == "drug") {
-    //         setCellLine = false;
-    //     }
-    //     setSelectPicker($drug, setDrug);
-    //     setSelectPicker($cellLine, setCellLine);
-    //     setPlotType($dataPanel);
-    // };
-    //
-    // var selectPlotCategory = function(e) {
-    //   var $target = $(e.target);
-    //   var $dataPanel = $target.closest(".hts-change-data");
-    //   var $btnGroup = $dataPanel.find(".hts-plot-type");
-    //   var plotMetaType = $target.val();
-    //   if(plotMetaType == "combo") {
-    //       setButtonGroupOptions($btnGroup, {
-    //           "tc": "Time Course",
-    //           // "dr2d": "Dose/Response",
-    //           "dip": "Dose/Response",
-    //           "dippar": "Dose/Response Parameters"
-    //       });
-    //   } else {
-    //       setButtonGroupOptions($btnGroup, {
-    //           "dip": "Dose/Response",
-    //           "dippar": "Dose/Response Parameters"
-    //       });
-    //   }
-    //   setPlotCategory($dataPanel, plotMetaType);
-    //   $btnGroup.find("label").first().button("toggle");
-    // };
-
     // Change data panel
     $(".hts-change-data-btn").click(function(e) {
         var $currentTgt = $(e.currentTarget);

@@ -712,6 +712,7 @@ div.hts-change-cell-line .bs-actionsbox,div.hts-change-drug .bs-actionsbox {
 .btn-group-2 label { width: 50%; }
 .btn-group-3 label { width: 33.333%; }
 .btn-group-4 label { width: 25%; }
+.btn-group-5 label { width: 20%; }
 @media (max-width: 767px) {
     .hts-change-data .btn-group {
         height: auto;
@@ -729,7 +730,8 @@ div.hts-change-cell-line .bs-actionsbox,div.hts-change-drug .bs-actionsbox {
         border-top-right-radius: 0;
         margin-bottom: 15px;
     }
-    .btn-group-1 label, .btn-group-2 label, .btn-group-3 label, .btn-group-4 label {
+    .btn-group-1 label, .btn-group-2 label, .btn-group-3 label,
+    .btn-group-4 label, .btn-group-5 label {
         width: 100%;
     }
 }

@@ -919,7 +919,7 @@ def ajax_get_plot(request):
                                     df_data['assays'],
                                     df_data['controls'],
                                     is_absolute=dip_absolute,
-                                    doublings=yaxis == 'log2',
+                                    log_yaxis=yaxis == 'log2',
                                     display_fit_params=display_fit_params,
                                     fit_params_sort=dip_par_sort,
                                     assay_name=assay,

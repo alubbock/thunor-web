@@ -336,41 +336,54 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
                     })
 
         if display_fit_params:
-            fit_params.append([group_name_disp,  # Cell line or drug
-                               emax,  # Emax
-                               popt[3] if popt is not None else None,  # EC50
-                               find_ic50(dose_x_range,
-                                         HILL_FN(dose_x_range, *popt_rel)) if
-                               popt_rel is not None else None          # IC50
-                               ])
+            if popt is None:
+                auc = None
+            else:
+                auc = find_auc(hill_slope=popt[0], ec50=popt[3],
+                               min_conc=min(dose_x_range))
+            fit_params.append({'label': group_name_disp,  # Cell line or drug
+                               'emax': emax,  # Emax
+                               'ec50': popt[3] if popt is not None else None,
+                               'ic50': find_ic50(dose_x_range,
+                                                 HILL_FN(dose_x_range,
+                                                         *popt_rel)) \
+                                       if popt_rel is not None else None,
+                               'hill': popt[0] if popt is not None else None,
+                               'auc': auc
+                               })
 
     if display_fit_params:
-        sort_ind = {'emax': 1, 'ec50': 2}.get(fit_params_sort, 3)
         # Sort lists by chosen index, then transpose and unpack into separate
         # lists. The sort order key ensures that Nones appear at the start
         # of the sort.
-        groups, emax_list, ec50_list, ic50_list = map(list, zip(
-            *sorted(fit_params, key=lambda x: (x[sort_ind] is not None,
-                                               x[sort_ind]))))
+        fit_params = sorted(fit_params, key=lambda x:
+            (x[fit_params_sort] is not None, x[fit_params_sort])
+        )
+        groups, emax_list, ec50_list, ic50_list, hill_list, auc_list = \
+            map(list, zip(*[fp.values() for fp in fit_params]))
 
-        data = [go.Bar(x=groups, y=emax_list, name='Emax',
-                       visible=True if fit_params_sort == 'emax' else
-                       'legendonly'),
-                go.Bar(x=groups, y=ec50_list, name='EC50',
-                       visible=True if fit_params_sort == 'ec50' else
-                       'legendonly'
-                       ),
-                go.Bar(x=groups, y=ic50_list, name='IC50',
-                       visible=True if fit_params_sort == 'ic50' else
-                       'legendonly'
-                       )]
-        if fit_params_sort == 'ec50':
-            yvals = ec50_list
-        elif fit_params_sort == 'ic50':
-            yvals = ic50_list
-        else:
-            yvals = emax_list
+        yaxis_title = 'Parameter value'
+        if fit_params_sort in ('ic50', 'ec50'):
+            data = [go.Bar(x=groups, y=ec50_list, name='EC50',
+                           visible=True if fit_params_sort == 'ec50' else
+                           'legendonly'
+                           ),
+                    go.Bar(x=groups, y=ic50_list, name='IC50',
+                           visible=True if fit_params_sort == 'ic50' else
+                           'legendonly'
+                           )]
+        elif fit_params_sort == 'emax':
+            data = [go.Bar(x=groups, y=emax_list, name='Emax')]
+            yaxis_title = 'Emax value'
+        elif fit_params_sort == 'hill':
+            data = [go.Bar(x=groups, y=hill_list, name='Hill coeff.')]
+            yaxis_title = 'Hill coefficient'
+        elif fit_params_sort == 'auc':
+            data = [go.Bar(x=groups, y=auc_list, name='AUC')]
+            yaxis_title = 'Area under curve (AUC)'
+        yvals = [fp[fit_params_sort] for fp in fit_params]
         annotations = [{'x': x, 'y': 0, 'text': '<em>N/A</em>',
+                        'textangle': 90,
                         'xanchor': 'center', 'yanchor': 'bottom',
                         'showarrow': False,
                         'font': {'color': 'rgba(150, 150, 150, 1)'}}
@@ -379,7 +392,9 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
         layout = go.Layout(title=title,
                            barmode='group',
                            annotations=annotations,
-                           yaxis={'title': 'Parameter value'})
+                           yaxis={'title': yaxis_title,
+                                  'type': 'log' if kwargs['log_yaxis'] else
+                                  None})
     else:
         data = go.Data(traces)
         yaxis_title = 'DIP rate'
@@ -402,7 +417,7 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
     return _get_plot_html(figure)
 
 
-def plot_dose_response_3d(df_doses, df_vals, df_controls, doublings=False,
+def plot_dose_response_3d(df_doses, df_vals, df_controls, log_yaxis=False,
                           assay_name='Assay', title='3D Dose/Response',
                           **kwargs):
 
@@ -431,7 +446,7 @@ def plot_dose_response_3d(df_doses, df_vals, df_controls, doublings=False,
     # Convert to matrix form
     data_matrix = df_means.unstack()
 
-    if doublings:
+    if log_yaxis:
         data_matrix = np.log2(data_matrix)
         data_matrix -= data_matrix.iloc[0, :]
 
@@ -475,7 +490,7 @@ def plot_dose_response_3d(df_doses, df_vals, df_controls, doublings=False,
 
 
 def plot_time_course(df_doses, df_vals, df_controls,
-                     doublings=False, assay_name='Assay', title=None,
+                     log_yaxis=False, assay_name='Assay', title=None,
                      **kwargs):
     traces = []
 
@@ -487,7 +502,7 @@ def plot_time_course(df_doses, df_vals, df_controls,
         is_first_control = True
         for well_id, timecourse in df_controls.groupby(level='well_id'):
             timecourse = timecourse['value']
-            if doublings:
+            if log_yaxis:
                 timecourse = np.log2(timecourse)
                 timecourse -= timecourse[0]
             traces.append(go.Scatter(
@@ -511,7 +526,7 @@ def plot_time_course(df_doses, df_vals, df_controls,
 
         for well_idx, well_id in enumerate(wells['well_id']):
             timecourse = df_vals.loc[well_id, 'value']
-            if doublings:
+            if log_yaxis:
                 timecourse = np.log2(timecourse)
                 timecourse -= timecourse[0]
             traces.append(go.Scatter(
@@ -528,7 +543,7 @@ def plot_time_course(df_doses, df_vals, df_controls,
             ))
 
     data = go.Data(traces)
-    if doublings:
+    if log_yaxis:
         assay_name = "Change in log2 {}".format(assay_name)
     max_time = df_vals.index.get_level_values('timepoint').max()
     layout = go.Layout(title=title,
@@ -537,7 +552,7 @@ def plot_time_course(df_doses, df_vals, df_controls,
                                        np.timedelta64(120, 'h') else None,
                               'dtick': 12},
                        yaxis={'title': assay_name,
-                              'range': (-2, 7) if doublings else None},
+                              'range': (-2, 7) if log_yaxis else None},
                        )
     figure = go.Figure(data=data, layout=layout)
 
@@ -567,6 +582,12 @@ def find_ic50(x_interp, y_interp):
         return hill_interpolate[0]
     else:
         return None
+
+
+def find_auc(hill_slope, ec50, min_conc):
+    min_conc_hill = min_conc ** hill_slope
+    return (np.log10((ec50 ** hill_slope + min_conc_hill) / min_conc_hill) /
+            hill_slope)
 
 
 def extrapolate_time0(dat):
