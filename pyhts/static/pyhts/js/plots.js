@@ -34,16 +34,16 @@ var downloadImage = function(gd, fmt) {
 };
 
 var selectPickerOptionsMultiple = {
-  actionsBox: true,
   countSelectedText: function(n, N) {
     return n + " of " + N + " selected";
   },
-  selectedTextFormat: "count > 5",
+  selectedTextFormat: "count > 4",
   maxOptions: false,
   title: "Please select an option"
 };
 
 var selectPickerOptionsSingle = {
+  actionsBox: true,
   title: "Please select an option",
   maxOptions: 1
 };
