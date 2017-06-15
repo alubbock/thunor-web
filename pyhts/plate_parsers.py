@@ -368,15 +368,17 @@ class PlateFileParser(object):
                             dose=drug_conc
                         )
                     )
-                for _, measurement in dat.iterrows():
-                    well_measurements_to_create.append(
-                        WellMeasurement(
-                            well_id=well_id,
-                            assay='Cell count',
-                            timepoint=measurement['time'],
-                            value=measurement['cell.count']
-                        )
+
+                well_measurements_to_create.extend([
+                    WellMeasurement(
+                        well_id=well_id,
+                        assay='Cell count',
+                        timepoint=measurement.time,
+                        value=measurement._1
                     )
+                    for measurement in
+                    dat[['time', 'cell.count']].itertuples(index=False)
+                ])
 
         # Fire off the bulk DB queries...
         WellDrug.objects.bulk_create(well_drugs_to_create)
