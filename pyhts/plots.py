@@ -338,7 +338,8 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
                 auc = None
             else:
                 auc = find_auc(hill_slope=popt[0], ec50=popt[3],
-                               min_conc=min(dose_x_range))
+                               e0=popt[1], emax=popt[2],
+                               min_conc=1e-12)
             fit_params.append({'label': group_name_disp,  # Cell line or drug
                                'emax': emax,  # Emax
                                'ec50': popt[3] if popt is not None else None,
@@ -582,10 +583,12 @@ def find_ic50(x_interp, y_interp):
         return None
 
 
-def find_auc(hill_slope, ec50, min_conc):
+def find_auc(hill_slope, ec50, e0, emax, min_conc):
+    if emax > e0:
+        emax, e0 = e0, emax
     min_conc_hill = min_conc ** hill_slope
     return (np.log10((ec50 ** hill_slope + min_conc_hill) / min_conc_hill) /
-            hill_slope)
+            hill_slope) * ((e0 - emax) / e0)
 
 
 def extrapolate_time0(dat):
