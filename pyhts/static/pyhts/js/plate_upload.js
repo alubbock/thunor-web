@@ -25,6 +25,7 @@ var plate_upload = function () {
             maxFileSize: 153600,
             maxFileCount: 20,
             minFileCount: 1,
+            allowedPreviewTypes: false,
             initialPreview: pyHTS.state.initialPreview,
             initialPreviewConfig: pyHTS.state.initialPreviewConfig,
             overwriteInitial: false,
