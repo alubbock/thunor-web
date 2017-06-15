@@ -18,8 +18,7 @@ def df_doses_assays_controls(dataset_id, drug_id, cell_line_id,
     well_info = WellDrug.objects.filter(
         well__plate__dataset_id=dataset_id).annotate(
         num_drugs=Count('well__welldrug')).filter(
-        num_drugs=1).select_related('well', 'well__cell_line',
-                                    'well__plate', 'drug')
+        num_drugs=1)
 
     if drug_id:
         if isinstance(drug_id, int):
@@ -119,7 +118,7 @@ def df_doses_assays_controls(dataset_id, drug_id, cell_line_id,
 
 def queryset_to_dataframe(queryset, columns, index=None, rename_columns=None):
     return pd.DataFrame.from_records(
-        (x for x in queryset.values_list(*columns)),
+        queryset.values_list(*columns).iterator(),
         columns=rename_columns or columns,
         index=index
     )

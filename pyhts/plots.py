@@ -9,7 +9,7 @@ from .helpers import format_dose
 from django.conf import settings
 
 
-SECONDS_IN_HOUR = 3600
+SECONDS_IN_HOUR = 3600.0
 
 
 def _get_plot_html(figure):
@@ -85,24 +85,21 @@ def adjusted_r_squared(r, n, p):
     return 1 - (1 - r ** 2) * ((n - 1) / denom)
 
 
-def rmsd(predictions, targets):
-    return np.linalg.norm(predictions - targets) / np.sqrt(len(predictions))
-
-
 def tyson1(adj_r_sq, rmse, n):
     return adj_r_sq * ((1 - rmse) ** 2) * ((n - 3) ** 0.25)
 
 
 def calculate_dip(df_timecourses, selector_fn=tyson1):
-    t_hours = [t.total_seconds() / SECONDS_IN_HOUR for t
-              in df_timecourses.index.get_level_values(level='timepoint')]
-    assay_vals = np.log2(df_timecourses)
+    t_hours = np.array(df_timecourses.index.get_level_values(
+        level='timepoint').total_seconds()) / SECONDS_IN_HOUR
+
+    assay_vals = np.log2(np.array(df_timecourses))
     n_total = len(t_hours)
 
     dip = None
     final_std_err = None
     dip_selector = -np.inf
-    opt_list = []
+    # opt_list = []
     if n_total < 3:
         return None
     for i in range(n_total - 2):
@@ -113,10 +110,10 @@ def calculate_dip(df_timecourses, selector_fn=tyson1):
 
         n = len(x)
         adj_r_sq = adjusted_r_squared(r_value, n, 1)
-        predictions = np.multiply(x, slope) + intercept
-        rmse = rmsd(predictions, assay_vals[i:])
+        predictions = np.add(np.multiply(x, slope), intercept)
+        rmse = np.linalg.norm(predictions - y) / np.sqrt(n)
         new_dip_selector = selector_fn(adj_r_sq, rmse, n)
-        opt_list.append(new_dip_selector)
+        # opt_list.append(new_dip_selector)
         if new_dip_selector > dip_selector:
             dip_selector = new_dip_selector
             dip = slope
@@ -129,7 +126,7 @@ def per_well_control_dip(control):
     ctrl_dip_wells = []
     std_errs = []
     for well, well_dat in control.groupby(level='well_id'):
-        t_hours_ctrl = [x.total_seconds() / 3600 for x in
+        t_hours_ctrl = [x.total_seconds() / SECONDS_IN_HOUR for x in
                         well_dat.index.get_level_values(
                             well_dat.index.names.index('timepoint'))]
 
@@ -156,18 +153,22 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
     if len(drugs) > 1 and len(cell_lines) == 1:
         group_by = 'drug'
         num_groups = len(drugs)
-        try:
-            control = df_controls.loc[cell_lines[0]]
-            ctrl_dip_wells, ctrl_dip_std_err = per_well_control_dip(control)
-        except (KeyError, AttributeError):
-            ctrl_dip_wells = []
-            ctrl_dip_std_err = []
     elif len(cell_lines) > 1 and len(drugs) == 1:
         group_by = 'cell_line'
         num_groups = len(cell_lines)
     else:
         group_by = ('cell_line', 'drug')
         num_groups = len(drugs) * len(cell_lines)
+
+    ctrl_dip_data = {}
+    for cell_line in cell_lines:
+        try:
+            ctrl_dip_wells, ctrl_dip_std_err = per_well_control_dip(
+                df_controls.loc[cell_line])
+        except (KeyError, AttributeError):
+            ctrl_dip_wells = []
+            ctrl_dip_std_err = []
+        ctrl_dip_data[cell_line] = (ctrl_dip_wells, ctrl_dip_std_err)
 
     colours = sns.color_palette("husl", num_groups)
 
@@ -185,16 +186,13 @@ def plot_dip(df_doses, df_vals, df_controls, is_absolute=True,
         c = colours.pop()
         this_colour = 'rgb(%d, %d, %d)' % (c[0] * 255, c[1] * 255, c[2] * 255)
 
-        if group_by != 'drug':
-            try:
-                control = df_controls.loc[
-                    group_name if group_by == 'cell_line' else group_name[0]
-                ]
-                ctrl_dip_wells, ctrl_dip_std_err = per_well_control_dip(
-                    control)
-            except (KeyError, AttributeError):
-                ctrl_dip_wells = []
-                ctrl_dip_std_err = []
+        if group_by == 'cell_line':
+            cl_name = group_name
+        elif group_by == 'drug':
+            cl_name = cell_lines[0]
+        else:
+            cl_name = group_name[0]
+        ctrl_dip_wells, ctrl_dip_std_err = ctrl_dip_data[cl_name]
 
         dip_rates = []
         dip_std_errs = []
