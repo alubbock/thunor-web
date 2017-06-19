@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import collections
-import re
-from datetime import timedelta
+from django.utils.cache import get_conditional_response
+from calendar import timegm
 
 
 def format_dose(num, sig_digits=12):
@@ -28,6 +28,14 @@ def format_dose(num, sig_digits=12):
             multiplier = i
     return ('{0:.' + str(sig_digits) + 'g} {1}M').format(
         num/multiplier, _prefix[multiplier])
+
+
+def not_modified(request, etag=None, last_modified=None):
+    return get_conditional_response(
+        request,
+        etag=etag,
+        last_modified=timegm(last_modified.utctimetuple())
+    ) is not None
 
 
 class AutoExtendList(list):
