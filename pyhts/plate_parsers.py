@@ -1,7 +1,7 @@
 import re
 from django.core.files.uploadedfile import UploadedFile
 from django.utils import timezone
-from datetime import timedelta, datetime
+from datetime import timedelta
 from .models import PlateFile, Plate, Well, WellMeasurement, CellLine, Drug,\
     WellDrug, PlateMap
 from django.db import IntegrityError, transaction
@@ -9,10 +9,10 @@ import xlrd
 import magic
 from functools import wraps
 import collections
-import pandas
 import io
-import numpy as np
+from pydrc.io import read_vanderbilt_hts_single_df
 import math
+
 
 class PlateFileParseException(Exception):
     pass
@@ -151,30 +151,7 @@ class PlateFileParser(object):
         pm = PlateMap(width=24, height=16)
 
         try:
-            pd = pandas.read_csv(io.BytesIO(self._plate_data),
-                                 encoding='utf8',
-                                 dtype={
-                                     'expt.id': str,
-                                     'upid': str,
-                                     'cell.line': str,
-                                     'drug1': str,
-                                     'drug1.conc': np.float64,
-                                     'drug1.units': str,
-                                     'drug2': str,
-                                     'drug2.conc': np.float64,
-                                     'drug2.units': str,
-                                     'cell.count': np.int64,
-                                 },
-                                 converters={
-                                     'time': lambda t: timedelta(
-                                         hours=float(t)),
-                                     'well': lambda w: pm.well_name_to_id(w),
-                                     'expt.date': lambda
-                                         d: datetime.strptime(
-                                           d, '%Y-%m-%d').date()
-                                 },
-                                 index_col=['upid', 'well']
-                                 )
+            pd = read_vanderbilt_hts_single_df(io.BytesIO(self._plate_data))
         except Exception as e:
             raise PlateFileParseException(e)
 

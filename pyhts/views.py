@@ -12,8 +12,12 @@ from django.db.models import Q, Count, Max
 from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, \
     Well, WellMeasurement, WellDrug
 import json
-from .plots import plot_dose_response_3d, plot_time_course, plot_dip
-from .pandas import df_doses_assays_controls, NoDataException
+from pydrc.plots import plot_time_course, plot_dip, plot_dip_params
+from pydrc.dip import dip_fit_params
+from pydrc.io import write_hdf
+from .plots import get_plot_html
+from .pandas import df_doses_assays_controls, df_dip_rates, NoDataException
+from .tasks import precalculate_dip_rates
 from .plate_parsers import PlateFileParser
 import numpy as np
 import datetime
@@ -115,8 +119,10 @@ def ajax_upload_platefiles(request):
     errors = {}
     pfp = PlateFileParser(files, dataset=dataset)
     results = pfp.parse_all()
+    some_success = False
     for f_idx, res in enumerate(results):
         if res['success']:
+            some_success = True
             initial_previews.append(preview_template.render({
                 'plate_file_format': res['file_format']}))
             initial_preview_config.append({'key': res['id'], 'caption':
@@ -130,6 +136,10 @@ def ajax_upload_platefiles(request):
                 initial_preview_config.append({'caption': files[f_idx].name})
                 errors[f_idx] = 'File {} had error: {}'.format(
                     files[f_idx].name, str(res['error']))
+
+    if some_success:
+        # TODO: Hand this off to celery for asynchronous processing
+        precalculate_dip_rates(dataset.id)
 
     response = {
         'initialPreview': initial_previews,
@@ -434,6 +444,43 @@ def ajax_get_datasets_group(request, group_id):
         return JsonResponse({'data': list()})
 
     return JsonResponse({'data': list(datasets)})
+
+
+@login_required
+@xframe_options_sameorigin
+def download_dataset_hdf5(request, dataset_id):
+    try:
+        dataset = HTSDataset.objects.get(pk=dataset_id)
+
+        if dataset.owner_id != request.user.id and not \
+                request.user.has_perm('download_data', dataset):
+            raise Http404()
+
+        df_data = df_doses_assays_controls(
+            dataset=dataset,
+            drug_id=None,
+            cell_line_id=None,
+            assay=None,
+
+        )
+
+        import io
+        with tempfile.NamedTemporaryFile('wb',
+                                         dir=settings.DOWNLOADS_ROOT,
+                                         suffix='.h5',
+                                         delete=False) as tf:
+            tf.close()
+            tmp_filename = tf.name
+            write_hdf(df_data, tmp_filename)
+
+        output_filename = '{}.h5'.format(dataset.name)
+
+        return serve_file(request, tmp_filename, rename_to=output_filename,
+                          content_type='application/x-hdf5')
+    except HTSDataset.DoesNotExist:
+        raise Http404()
+    except NoDataException:
+        return HttpResponse('No data found for this request', status=400)
 
 
 class DatasetXlsxWriter(object):
@@ -769,9 +816,6 @@ def ajax_set_dataset_group_permission(request):
 
 
 def ajax_get_dataset_groupings(request, dataset_id):
-    if not request.user.is_authenticated():
-        return JsonResponse({}, status=401)
-
     try:
         dataset = HTSDataset.objects.get(pk=dataset_id)
     except HTSDataset.DoesNotExist:
@@ -841,55 +885,22 @@ def ajax_get_plot(request):
 
         if not cell_line_id or not drug_id:
             return HttpResponse('Please enter at least one cell line and '
-                               'drug', status=400)
+                                'drug', status=400)
 
         cell_line_id = [int(cl) for cl in cell_line_id]
         drug_id = [int(dr) for dr in drug_id]
 
         assay = request.GET.get('assayId')
         yaxis = request.GET.get('logTransform', 'None')
-        dip_absolute = request.GET.get('dipType', 'rel') == 'abs'
 
     except (KeyError, ValueError):
         raise Http404()
 
-    display_fit_params = False
-    dip_par_sort = request.GET.get('dipParSort', 'ic50')
-
-    # if plot_type == 'dr3d':
-    #     plot_fn = plot_dose_response_3d
-    #     plot_type_str = 'Dose/response/time'
-    if plot_type == 'tc':
-        plot_fn = plot_time_course
-        plot_type_str = 'Time course'
-        if len(drug_id) > 1 or len(cell_line_id) > 1:
-            return HttpResponse('Please select exactly one cell line and '
-                                'drug for time course plot', status=400)
-    elif plot_type == 'dip':
-        plot_fn = plot_dip
-        plot_type_str = 'Dose/response'
-    elif plot_type == 'dippar':
-        plot_fn = plot_dip
-        plot_type_str = 'Dose/response parameters'
-        display_fit_params = True
-    else:
-        return HttpResponse('Unimplemented plot type: %s' % plot_type,
-                            status=400)
-
     try:
         dataset = HTSDataset.objects.get(pk=dataset_id)
-        if dataset.control_handling == 'A1':
-            if assay is None:
-                assay = 'Cell count'
-            control_id = 'A1'
-        elif dataset.control_handling is None:
-            control_id = 0
-            if assay is None:
-                # TODO: This should be handled better!
-                assay = 'lum:Lum'
-        else:
-            return HttpResponse('Unknown control handling: ' +
-                                dataset.control_handling, status=400)
+        new_assay = dataset.dip_assay
+        if assay is None:
+            assay = new_assay
     except HTSDataset.DoesNotExist:
         raise Http404()
 
@@ -897,39 +908,86 @@ def ajax_get_plot(request):
             'view_plots', dataset):
         raise Http404
 
-    try:
-        df_data = df_doses_assays_controls(
+    if plot_type == 'tc':
+        if len(drug_id) > 1 or len(cell_line_id) > 1:
+            return HttpResponse('Please select exactly one cell line and '
+                                'drug for time course plot', status=400)
+
+        try:
+            df_data = df_doses_assays_controls(
+                dataset=dataset,
+                drug_id=drug_id,
+                cell_line_id=cell_line_id,
+                assay=assay
+            )
+        except NoDataException:
+            return HttpResponse('No data found for this request. This '
+                                'drug/cell line/assay combination may not '
+                                'exist.', status=400)
+        title = _extend_title('Time course', df_data['doses'], drug_id,
+                              cell_line_id)
+        plot_fig = plot_time_course(
+            df_data['doses'],
+            df_data['assays'].loc[assay],
+            df_data['controls'].loc[assay],
+            title=title,
+            log_yaxis=yaxis == 'log2',
+            assay_name=assay
+        )
+    elif plot_type in ('dip', 'dippar'):
+        plot_type_str = 'Dose/response'
+        if plot_type == 'dippar':
+            plot_type_str += ' parameters'
+        # Fetch the DIP rates from the DB
+        ctrl_dip_data, expt_dip_data = df_dip_rates(
             dataset_id=dataset_id,
             drug_id=drug_id,
             cell_line_id=cell_line_id,
-            assay=assay,
-            control=control_id
+            control=dataset.control_id
         )
-
-        if drug_id and len(drug_id) == 1:
-            drug_name = df_data['doses'].index.get_level_values(
-                'drug')[0]
-            plot_type_str += ' for {}'.format(drug_name)
-        if cell_line_id and len(cell_line_id) == 1:
-            cell_line_name = df_data['doses'].index.get_level_values(
-                'cell_line')[0]
-            plot_type_str += ' on {}'.format(cell_line_name)
-
-        return HttpResponse(plot_fn(df_data['doses'],
-                                    df_data['assays'],
-                                    df_data['controls'],
-                                    is_absolute=dip_absolute,
-                                    log_yaxis=yaxis == 'log2',
-                                    display_fit_params=display_fit_params,
-                                    fit_params_sort=dip_par_sort,
-                                    assay_name=assay,
-                                    title=plot_type_str))
-    except NoDataException:
-        return HttpResponse('No data found for this request. This drug/cell '
-                            'line/assay combination may not exist.',
+        # Fit Hill curves and compute parameters
+        fit_params = dip_fit_params(
+            ctrl_dip_data, expt_dip_data,
+            include_dip_rates=plot_type == 'dip',
+        )
+        title = _extend_title(plot_type_str, expt_dip_data, drug_id,
+                              cell_line_id)
+        if plot_type == 'dippar':
+            dip_par_sort = request.GET.get('dipParSort', None)
+            if dip_par_sort is None:
+                return HttpResponse('Dose response parameter sort field is '
+                                    'required')
+            plot_fig = plot_dip_params(
+                fit_params,
+                fit_params_sort=dip_par_sort,
+                log_yaxis=yaxis == 'log2',
+                title=title
+            )
+        else:
+            dip_absolute = request.GET.get('dipType', 'rel') == 'abs'
+            plot_fig = plot_dip(
+                fit_params,
+                is_absolute=dip_absolute,
+                title=title
+            )
+    else:
+        return HttpResponse('Unimplemented plot type: %s' % plot_type,
                             status=400)
-    except NotImplementedError:
-        return HttpResponse('Not implemented', status=400)
+
+    return HttpResponse(get_plot_html(plot_fig))
+
+
+def _extend_title(title, df, drug_id, cell_line_id):
+    if drug_id and len(drug_id) == 1:
+        drug_name = df.index.get_level_values(
+            'drug')[0]
+        title += ' for {}'.format(drug_name)
+    if cell_line_id and len(cell_line_id) == 1:
+        cell_line_name = df.index.get_level_values(
+            'cell_line')[0]
+        title += ' on {}'.format(cell_line_name)
+
+    return title
 
 
 @login_required

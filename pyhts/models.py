@@ -1,8 +1,7 @@
 from __future__ import unicode_literals
 from django.db import models
 from django.conf import settings
-from itertools import cycle
-from numpy import repeat
+from pydrc.io import PlateMap
 from guardian.models import UserObjectPermissionBase, GroupObjectPermissionBase
 
 
@@ -32,6 +31,31 @@ class HTSDataset(models.Model):
         Currently all permission types allow viewing a dataset
         """
         return [p[0] for p in cls._meta.permissions]
+
+    @property
+    def dip_assay(self):
+        if self.control_handling == 'A1':
+            assay = 'Cell count'
+        elif self.control_handling is None:
+            # TODO: Better detection of cell count proxy assay
+            assay = 'lum:Lum'
+        else:
+            raise ValueError('Unknown control handling: ' +
+                             self.control_handling)
+
+        return assay
+
+    @property
+    def control_id(self):
+        if self.control_handling == 'A1':
+            control_id = 'A1'
+        elif self.control_handling is None:
+            control_id = 0
+        else:
+            raise ValueError('Unknown control handling: ' +
+                             self.control_handling)
+
+        return control_id
 
 
 class HTSDatasetUserObjectPermission(UserObjectPermissionBase):
@@ -64,61 +88,6 @@ class Drug(models.Model):
 
     def __str__(self):
         return '%s (%d)' % (self.name, self.id)
-
-
-class PlateMap(object):
-    def __init__(self, **kwargs):
-        if 'width' in kwargs:
-            self.width = kwargs['width']
-        if 'height' in kwargs:
-            self.height = kwargs['height']
-            if self.height > 26:
-                # TODO: Fail for now - would need row names like AA, AB etc.
-                raise Exception('Plates with height >26 are not yet supported')
-
-    @property
-    def num_wells(self):
-        return self.width * self.height
-
-    def row_iterator(self):
-        return map(chr, range(65, 65 + self.height))
-
-    def col_iterator(self):
-        return range(1, self.width + 1)
-
-    def well_id_to_name(self, well_id):
-        return '{}{}'.format(chr(65 + (well_id // self.width)),
-                             (well_id % self.width) + 1)
-
-    def well_name_to_id(self, well_name, raise_error=True):
-        try:
-            row_num = ord(well_name[0]) - 65  # zero-based
-            if row_num < 0 or row_num > (self.height - 1):
-                raise ValueError('Unable to parse well name {} for plate with '
-                                 '{} rows'.format(well_name, self.height))
-
-            col_num = int(well_name[1:]) - 1
-            if col_num < 0 or col_num > (self.width - 1):
-                raise ValueError('Unable to parse well name {} for plate with '
-                                 '{} cols'.format(well_name, self.width))
-
-            return row_num * self.width + col_num
-        except ValueError as e:
-            if raise_error:
-                raise ValueError('Invalid well name: {}'.format(well_name))
-            else:
-                return -1
-
-    def well_iterator(self):
-        row_it = iter(repeat(list(self.row_iterator()), self.width))
-        col_it = cycle(self.col_iterator())
-        for i in range(self.num_wells):
-            yield {'well': i,
-                   'row': next(row_it),
-                   'col': next(col_it)}
-
-    def well_list(self):
-        return list(self.well_iterator())
 
 
 class Plate(models.Model, PlateMap):
@@ -179,3 +148,13 @@ class WellDrug(models.Model):
                                                        self.drug.name,
                                                        self.well.well_num,
                                                        self.well.plate.name)
+
+
+class WellStatistic(models.Model):
+    class Meta:
+        pass
+
+    well = models.ForeignKey(Well)
+    stat_name = models.TextField()
+    stat_date = models.DateTimeField(auto_now=True)
+    value = models.FloatField()

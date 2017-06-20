@@ -1,5 +1,5 @@
 import pandas as pd
-from .models import WellDrug, WellMeasurement
+from .models import WellDrug, WellMeasurement, WellStatistic
 from django.db.models import Count
 from collections import Iterable
 
@@ -8,43 +8,66 @@ class NoDataException(Exception):
     pass
 
 
-def df_doses_assays_controls(dataset_id, drug_id, cell_line_id,
-                             assay, control=None):
-    if isinstance(drug_id, Iterable) and len(drug_id) == 1:
-        drug_id = drug_id[0]
-    if isinstance(cell_line_id, Iterable) and len(cell_line_id) == 1:
-        cell_line_id = cell_line_id[0]
+def _add_int_or_list_filter(queryset, field_name, field_value):
+    if field_value is None:
+        return queryset
+    if isinstance(field_value, int):
+        return queryset.filter(**{field_name: field_value})
+    if isinstance(field_value, Iterable):
+        return queryset.filter(**{'{}__in'.format(field_name): field_value})
 
+    raise NotImplementedError()
+
+
+def _queryset_well_info(dataset_id, drug_id, cell_line_id, control):
+    drug_id = drug_id[0] if isinstance(drug_id, Iterable) and \
+        len(drug_id) == 1 else drug_id
+    cell_line_id = cell_line_id[0] if isinstance(cell_line_id, Iterable) and \
+        len(cell_line_id) == 1 else cell_line_id
     well_info = WellDrug.objects.filter(
         well__plate__dataset_id=dataset_id).annotate(
         num_drugs=Count('well__welldrug')).filter(
         num_drugs=1)
 
-    if drug_id:
-        if isinstance(drug_id, int):
-            well_info = well_info.filter(drug_id=drug_id)
-        elif isinstance(drug_id, Iterable):
-            well_info = well_info.filter(drug_id__in=drug_id)
-        else:
-            raise NotImplementedError()
+    well_info = _add_int_or_list_filter(well_info, 'drug_id', drug_id)
+    well_info = _add_int_or_list_filter(well_info, 'well__cell_line_id',
+                                        cell_line_id)
 
-        if not cell_line_id:
+    if drug_id and not cell_line_id:
             well_info = well_info.order_by(
              'well__cell_line__name', 'dose', 'well__plate_id',
              'well__well_num')
-
-    if cell_line_id:
-        if isinstance(cell_line_id, int):
-            well_info = well_info.filter(well__cell_line_id=cell_line_id)
-        elif isinstance(cell_line_id, Iterable):
-            well_info = well_info.filter(well__cell_line_id__in=cell_line_id)
-        else:
-            raise NotImplementedError()
 
     if control == 'A1':
         well_info = well_info.exclude(well__well_num=0)
     elif control == 0:
         well_info = well_info.exclude(dose=0)
+
+    return well_info, drug_id, cell_line_id
+
+
+def _apply_control_filter(queryset, control, cell_line_id):
+    if control == 'A1':
+        queryset = queryset.filter(well__well_num=0)
+    elif control == 0:
+        queryset = queryset.filter(
+            well__welldrug__dose=0,
+        ).annotate(
+            num_drugs=Count('well__welldrug')).filter(
+            num_drugs=1)
+    else:
+        raise NotImplementedError()
+
+    return _add_int_or_list_filter(queryset, 'well__cell_line_id',
+                                   cell_line_id)
+
+
+def df_doses_assays_controls(dataset, drug_id, cell_line_id, assay):
+    dataset_id = dataset.id
+    control = dataset.control_id
+
+    well_info, drug_id, cell_line_id = _queryset_well_info(
+        dataset_id, drug_id, cell_line_id, control)
 
     df_doses = queryset_to_dataframe(
         well_info,
@@ -60,60 +83,109 @@ def df_doses_assays_controls(dataset_id, drug_id, cell_line_id,
         raise NoDataException()
 
     timecourses = WellMeasurement.objects.filter(
-        well_id__in=df_doses['well_id'].unique(), assay=assay).order_by(
+        well_id__in=df_doses['well_id'].unique()).order_by(
         'well_id', 'timepoint')
 
-    df_vals = queryset_to_dataframe(timecourses,
-                                    columns=('well_id', 'timepoint', 'value'),
-                                    index=('well_id', 'timepoint'))
+    if assay is not None:
+        timecourses = timecourses.filter(assay=assay)
 
-    if df_vals.shape[0] == 2 and df_vals.isnull().values.all():
+    df_vals = queryset_to_dataframe(
+        timecourses,
+        columns=('assay', 'well_id', 'timepoint', 'value'),
+        index=('assay', 'well_id', 'timepoint'))
+
+    if df_vals.isnull().values.all():
         raise NoDataException()
 
     df_controls = None
     if control is not None:
         controls = WellMeasurement.objects.filter(
-            well__plate_id__in=plate_ids,
-            assay=assay).select_related(
+            well__plate_id__in=plate_ids).select_related(
             'well').order_by('well__cell_line', 'timepoint')
-        if control == 'A1':
-            controls = controls.filter(well__well_num=0)
-        elif control == 0:
-            controls = controls.filter(
-                well__welldrug__dose=0,
-            ).annotate(
-                num_drugs=Count('well__welldrug')).filter(
-                num_drugs=1)
-        else:
-            raise NotImplementedError()
-
-        if cell_line_id and isinstance(cell_line_id, int):
-            controls = controls.filter(well__cell_line_id=cell_line_id)
-        elif cell_line_id and isinstance(cell_line_id, Iterable):
-            controls = controls.filter(well__cell_line_id__in=cell_line_id)
+        if assay is not None:
+            controls = controls.filter(assay=assay)
+        controls = _apply_control_filter(controls, control, cell_line_id)
 
         df_controls = queryset_to_dataframe(controls,
-                                            columns=('well__cell_line__name',
+                                            columns=('assay',
+                                                     'well__cell_line__name',
                                                      'well__plate__id',
                                                      'well_id',
                                                      'timepoint',
                                                      'value'),
-                                            rename_columns=('cell_line',
+                                            rename_columns=('assay',
+                                                            'cell_line',
                                                             'plate',
                                                             'well_id',
                                                             'timepoint',
                                                             'value'),
-                                            index=('cell_line',
+                                            index=('assay',
+                                                   'cell_line',
                                                    'plate',
                                                    'well_id',
                                                    'timepoint'))
 
-        if df_controls.shape[0] == 4 and df_controls.isnull().values.all():
+        if df_controls.isnull().values.all():
             df_controls = None
 
     return {'doses': df_doses,
             'assays': df_vals,
-            'controls': df_controls}
+            'controls': df_controls,
+            'dip_assay_name': dataset.dip_assay}
+
+
+def df_dip_rates(dataset_id, drug_id, cell_line_id, control=None):
+    well_info, drug_id, cell_line_id = _queryset_well_info(
+        dataset_id, drug_id, cell_line_id, control)
+
+    dip_stats = ('dip_rate', 'dip_fit_std_err')
+
+    df_doses = queryset_to_dataframe(
+        WellStatistic.objects.filter(
+            well_id__in=well_info.values_list('well_id'),
+            stat_name__in=dip_stats,
+        ),
+        columns=('stat_name', 'value', 'well__welldrug__dose', 'well_id',
+                 'well__cell_line__name', 'well__welldrug__drug__name',
+                 'well__plate_id'),
+        rename_columns=('stat_name', 'value', 'dose', 'well_id', 'cell_line',
+                        'drug', 'plate_id'),
+        index=('drug', 'cell_line', 'dose')
+    )
+
+    plate_ids = df_doses['plate_id'].unique()
+    del df_doses['plate_id']
+
+    if df_doses.isnull().values.all():
+        raise NoDataException()
+
+    df_doses = df_doses.pivot_table(
+        index=('drug', 'cell_line', 'dose', 'well_id'),
+        columns='stat_name', values=['value'])['value']
+
+    df_controls = None
+    if control is not None:
+        controls = WellStatistic.objects.filter(
+            well__plate_id__in=plate_ids,
+            stat_name__in=dip_stats,
+            )
+        controls = _apply_control_filter(controls, control, cell_line_id)
+
+        df_controls = queryset_to_dataframe(
+            controls,
+            columns=('well__cell_line__name', 'well_id', 'stat_name', 'value'),
+            rename_columns=('cell_line', 'well_id', 'stat_name', 'value'),
+            index=('cell_line', 'well_id')
+        )
+
+        if df_controls.isnull().values.all():
+            df_controls = None
+        else:
+            df_controls = df_controls.pivot_table(
+                index=('cell_line', 'well_id'),
+                columns='stat_name', values=['value'])['value']
+
+    return df_controls, df_doses
 
 
 def queryset_to_dataframe(queryset, columns, index=None, rename_columns=None):

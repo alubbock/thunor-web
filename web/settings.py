@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/1.10/ref/settings/
 """
 
 import os
-import raven
+import sys
 import pyhts
 from django.contrib import messages
 import errno
@@ -36,6 +36,9 @@ HOSTNAME = os.environ.get('DJANGO_HOSTNAME', 'localhost')
 ALLOWED_HOSTS = [HOSTNAME, ]
 
 INTERNAL_IPS = '127.0.0.1'
+
+# Add the pydrc submodule to the path
+sys.path.insert(0, os.path.join(BASE_DIR, 'pydrc'))
 
 # Application definition
 

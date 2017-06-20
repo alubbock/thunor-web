@@ -1,0 +1,3 @@
+[submodule "pydrc"]
+	path = pydrc
+	url = https://github.com/alubbock/pydrc.git
