@@ -139,7 +139,7 @@ def ajax_upload_platefiles(request):
 
     if some_success:
         # TODO: Hand this off to celery for asynchronous processing
-        precalculate_dip_rates(dataset.id)
+        precalculate_dip_rates(dataset)
 
     response = {
         'initialPreview': initial_previews,

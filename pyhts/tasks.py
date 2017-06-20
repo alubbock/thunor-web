@@ -4,8 +4,14 @@ from pydrc.dip import dip_rates
 import itertools
 
 
-def precalculate_dip_rates(dataset_id):
-    dataset = HTSDataset.objects.get(pk=dataset_id)
+def precalculate_dip_rates(dataset_or_id):
+    if isinstance(dataset_or_id, HTSDataset):
+        dataset = dataset_or_id
+    elif isinstance(dataset_or_id, int):
+        dataset = HTSDataset.objects.get(pk=dataset_or_id)
+    else:
+        raise ValueError('Argument must be an HTSDataset or an integer '
+                         'primary key')
     df_data = df_doses_assays_controls(
         dataset=dataset,
         drug_id=None,
@@ -44,6 +50,12 @@ def precalculate_dip_rates(dataset_id):
         for well_stat in
         expt_dip_data.itertuples(index=False)
     ])
+
+    # Delete any existing WellStatistics
+    WellStatistic.objects.filter(
+        well__plate__dataset=dataset.id,
+        stat_name__in=['dip_rate', 'dip_fit_std_err']
+    ).delete()
 
     WellStatistic.objects.bulk_create(
         itertools.chain.from_iterable(well_stats_to_create)
