@@ -39,8 +39,7 @@
         <label>Plots</label>
         <div class="btn-group">
             <button class="btn btn-success new-plot-btn"
-                    data-dataset-id="{{ dataset.id }}"
-                    data-control-id="{{ control_id }}"><i class="glyphicon
+                    data-dataset-id="{{ dataset.id }}"><i class="glyphicon
                     glyphicon-plus"></i> Add plot</button>
         </div>
     </div>
@@ -55,8 +54,7 @@
 </div>
 
 <div class="plot-panel panel-container col-lg-12 col-md-12">
-    <div class="panel panel-default" data-error-bars="sd"
-         data-log-transform="log2">
+    <div class="panel panel-default">
         <div class="panel-heading">
             <i class="glyphicon glyphicon-th"></i>
 
@@ -77,35 +75,9 @@
 
         </div>
         <div class="panel-body">
-        </div>
-    </div>
-</div>
 
-<div class="hts-change-data container">
+                    <div class="hts-change-data container" data-loaded="false">
 <form>
-{#<div class="row">#}
-{#    <div class="col-sm-12">#}
-{#        <div class="form-group">#}
-{#            <label for="hts-plot-meta-type">Plot Category</label>#}
-{#        <div class="hts-plot-meta-type btn-group#}
-{#        btn-group-3"#}
-{#             data-toggle="buttons">#}
-{#          <label class="btn btn-primary">#}
-{#            <input type="radio" name="plotMetaType" value="cellline"#}
-{#                   autocomplete="off"> Cell Line#}
-{#          </label>#}
-{#          <label class="btn btn-primary">#}
-{#            <input type="radio" name="plotMetaType" value="drug"#}
-{#                   autocomplete="off"> Drug#}
-{#          </label>#}
-{#          <label class="btn btn-primary active">#}
-{#            <input type="radio" name="plotMetaType" value="combo"#}
-{#                   autocomplete="off" checked> Combination#}
-{#          </label>#}
-{#        </div>#}
-{#        </div>#}
-{#    </div>#}
-{#</div>#}
 <div class="row">
     <div class="col-sm-12">
         <div class="form-group">
@@ -125,10 +97,6 @@
                          autocomplete="off"><span>Dose Response
                       Parameters</span>
               </label>
-{#                <label class="btn btn-primary">#}
-{#                  <input type="radio" name="plotType" value="dr3d"#}
-{#                         autocomplete="off"><span>3D Dose/Time/Response</span>#}
-{#                </label>#}
             </div>
         </div>
     </div>
@@ -243,6 +211,13 @@
 </div>
 </form>
 </div>
+
+
+        </div>
+    </div>
+</div>
+
+
 {% endblock %}
 
 {% block tailscript %}

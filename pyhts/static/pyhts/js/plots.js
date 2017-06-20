@@ -10,27 +10,13 @@ var downloadPng = function(gd) {
 };
 
 var downloadImage = function(gd, fmt) {
-    // Plotly.Lib.notifier('Taking snapshot - this may take a few seconds', 'long');
-    //
-    // if(Plotly.Lib.isIE()) {
-    //     Plotly.Lib.notifier('IE only supports svg.  Changing format to svg.', 'long');
-    //     fmt = 'svg';
-    // }
-
     var $gd = $(gd);
     var filename = $gd.find(".gtitle").text();
     var width = $gd.width();
     var height = $gd.height();
 
-    Plotly.downloadImage(gd, {'format': fmt, 'filename': filename,
-                              'width': width, 'height': height})
-      .then(function(filename) {
-          // Plotly.Lib.notifier('Snapshot succeeded - ' + filename, 'long');
-      })
-      .catch(function() {
-          // Plotly.Lib.notifier('Sorry there was a problem downloading your' +
-          //     ' snapshot!', 'long');
-      });
+    Plotly.downloadImage(gd, {"format": fmt, "filename": filename,
+                              "width": width, "height": height});
 };
 
 var selectPickerOptionsMultiple = {
@@ -39,17 +25,17 @@ var selectPickerOptionsMultiple = {
   },
   selectedTextFormat: "count > 4",
   maxOptions: false,
-  title: "Please select an option"
 };
 
 var selectPickerOptionsSingle = {
   actionsBox: true,
-  title: "Please select an option",
   maxOptions: 1
 };
 
 
 var plots = function() {
+    var plotOptionsCache = {};
+
     $(".sortable-panels").sortable({
         tolerance: "pointer",
         revert: "invalid",
@@ -104,13 +90,6 @@ var plots = function() {
         setColumns(mdCols, mdCols);
     });
 
-    $(".panel-close-btn").on("click", function () {
-        $(this).closest(".panel-container")[$(this).data("effect")](400,
-            function () {
-                $(this).remove();
-            });
-    });
-
     var pushOptionsToSelect = function ($select, optionList, selectedOption) {
         var len = optionList.length;
         for (var i = 0; i < len; i++) {
@@ -130,40 +109,6 @@ var plots = function() {
             $select.selectpicker("refresh");
         }
     };
-
-    // var setButtonGroupOptions = function($btnGroup, options) {
-    //     var optionKeys = Object.keys(options);
-    //     var numOptions = optionKeys.length;
-    //     var $currentOptions = $btnGroup.find("label");
-    //     var optionsDelta = $currentOptions.length - numOptions;
-    //     var $lastOption = $currentOptions.last();
-    //     if (optionsDelta !== 0) {
-    //         if(optionsDelta < 0) {
-    //             var $newOption = $lastOption.clone().removeClass("active");
-    //             $newOption.find("input").attr("checked", false).change(selectPlotType);
-    //             for (var optI=optionsDelta; optI<0; optI++) {
-    //                 $btnGroup.append($newOption.clone(true));
-    //             }
-    //         } else {
-    //             // $btnGroup.find("label").last().addClass("active")
-    //             //         .find("input").attr("checked", true);
-    //             // $btnGroup.find("input").last().click();
-    //             $currentOptions.slice(numOptions).remove();
-    //             // if (!($btnGroup.find("input:checked").length)) {
-    //             //     $btnGroup.find("label").first().click();
-    //             // }
-    //             // $btnGroup.button();
-    //         }
-    //         $btnGroup.removeClass("btn-group-1 btn-group-2 btn-group-3" +
-    //             " btn-group-4").addClass("btn-group-"+numOptions);
-    //         $currentOptions = $btnGroup.find("label");
-    //     }
-    //     for(var i=0; i<numOptions; i++) {
-    //         var $optionI = $currentOptions.eq(i);
-    //         $optionI.find("span").text(options[optionKeys[i]]);
-    //         $optionI.find("input").val(optionKeys[i]);
-    //     }
-    // };
 
     var setSelectPicker = function($selectPicker, newState) {
         $selectPicker.prop("disabled", !newState).selectpicker("refresh");
@@ -244,7 +189,41 @@ var plots = function() {
         setPlotType($dataPanel);
     };
 
-    // Change data panel
+    // Data panel events
+    $("input[name=plotType]").change(selectPlotType);
+    $(".hts-change-data > form").submit(function (e) {
+        var $plotPanel = $(this).closest(".plot-panel");
+        var $plotPanelBody = $plotPanel.find(".panel-body");
+        var $dataPanel = $plotPanelBody.find(".hts-change-data");
+        var $changeDataBtn = $plotPanel.find(".hts-change-data-btn");
+        $plotPanelBody.loadingOverlay("show");
+        var $this = $(e.currentTarget),
+            $submit = $this.find("button[type=submit]");
+        e.preventDefault();
+        $.each($this.serializeArray(), function (i, ele) {
+            $plotPanel.data(ele.name, ele.value);
+        });
+        $submit.prop("disabled", true).text("Loading...");
+        $.ajax({
+            url: ajax.url("get_plot") + "?" + $this.serialize(),
+            type: "GET",
+            dataType: "html",
+            success: function (data) {
+                $plotPanelBody.find(".plotly-graph-div,script").remove();
+                $plotPanelBody.append(data);
+                $changeDataBtn.click();
+                $dataPanel.data("loaded", "true");
+            },
+            error: ajax.ajaxErrorCallback,
+            complete: function () {
+                $submit.prop("disabled", false).text("Show Plot");
+                $plotPanelBody.loadingOverlay("hide");
+            }
+        });
+    });
+    // End data panel events
+
+    // Plot panel events
     $(".hts-change-data-btn").click(function(e) {
         var $currentTgt = $(e.currentTarget);
         var $parentTgt = $currentTgt.parent();
@@ -253,91 +232,75 @@ var plots = function() {
             $parentTgt.removeClass("open");
             $dataPanel.hide();
         } else {
+            if($dataPanel.data("loaded") === false) {
+                prepareDataPanel($dataPanel.closest(".plot-panel"));
+            }
             $parentTgt.addClass("open");
             $dataPanel.show();
         }
     });
 
-    // Add new panel
-    $(".new-plot-btn").click(function (eNewPlot) {
-        var $newPanel = $(".panel-container:last").clone(true);
-        var dat = $(eNewPlot.currentTarget).data();
-        $newPanel.find(".panel").data(dat);
-
-        var $dataPanel = $(".hts-change-data").last().clone();
-
-        // $dataPanel.find("input[name=plotMetaType]").change(selectPlotCategory);
-        $dataPanel.find("input[name=plotType]").change(selectPlotType);
+    var prepareDataPanel = function($plotPanel) {
+        var $dataPanel = $plotPanel.find(".hts-change-data");
+        $dataPanel.find("select.hts-change-cell-line,select.hts-change-drug")
+            .selectpicker(selectPickerOptionsSingle);
+        $dataPanel.data("loaded", true);
+        var dat = $plotPanel.find(".panel").data();
+        $dataPanel.find("input[type=hidden]").each(function (i, obj) {
+            $(obj).val(dat[$(obj).attr("name")]);
+        });
 
         var $cellLineSelect = $dataPanel.find("select.hts-change-cell-line"),
             $drugSelect = $dataPanel.find("select.hts-change-drug");
 
-        $cellLineSelect.selectpicker(selectPickerOptionsSingle);
-        $drugSelect.selectpicker(selectPickerOptionsSingle);
+        var populatePlotPanelOptions = function(data) {
+            $cellLineSelect.selectpicker({title: "Please select a cell line"});
+            pushOptionsToSelect(
+                $cellLineSelect,
+                data.cellLines,
+                dat["cellLineId"]);
+            $drugSelect.selectpicker({title: "Please select a drug"});
+            pushOptionsToSelect(
+                $drugSelect,
+                data.drugs,
+                dat["drugId"]);
+            pushOptionsToSelect(
+                $dataPanel.find("select.hts-change-assay"),
+                data.assays,
+                dat["assayId"]);
 
-        $.ajax({
-            url: ajax.url("dataset_groupings", dat["datasetId"]),
-            type: "GET",
-            success: function (data) {
-                pushOptionsToSelect(
-                    $cellLineSelect,
-                    data.cellLines,
-                    dat["cellLineId"]);
-                $cellLineSelect.title = "Select cell line(s)";
-                pushOptionsToSelect(
-                    $drugSelect,
-                    data.drugs,
-                    dat["drugId"]);
-                $drugSelect.title = "Select drug(s)";
-                pushOptionsToSelect(
-                    $dataPanel.find("select.hts-change-assay"),
-                    data.assays,
-                    dat["assayId"]);
-                // pushOptionsToSelect(
-                //     $dataPanel.find("select.hts-change-control"),
-                //     data.controls,
-                //     dat["controlId"]);
-                $dataPanel.find("select.hts-error-bars").val
-                (dat["errorBars"]).selectpicker("refresh");
-                $dataPanel.find("select.hts-log-transform").val
-                (dat["logTransform"]).selectpicker("refresh");
-            },
-            error: ajax.ajaxErrorCallback
-        });
+            if(!plotOptionsCache.hasOwnProperty(dat["datasetId"])) {
+                plotOptionsCache[dat["datasetId"]] = data;
+            }
+        };
 
-        var $plotPanel = $newPanel.find(".panel-body");
-        var $changeDataBtn = $newPanel.find(".hts-change-data-btn");
-        // $dataPanel.find("select").selectpicker();
-        $dataPanel.find("form").submit(function (e) {
-            $plotPanel.loadingOverlay("show");
-            var $this = $(e.currentTarget),
-                $submit = $this.find("button[type=submit]");
-            e.preventDefault();
-            $.each($this.serializeArray(), function (i, ele) {
-                $newPanel.data(ele.name, ele.value);
-            });
-            $submit.prop("disabled", true).text("Loading...");
+        if(plotOptionsCache.hasOwnProperty(dat["datasetId"])) {
+            populatePlotPanelOptions(plotOptionsCache[dat["datasetId"]]);
+        } else {
             $.ajax({
-                url: ajax.url("get_plot") + "?" + $this.serialize(),
+                url: ajax.url("dataset_groupings", dat["datasetId"]),
                 type: "GET",
-                dataType: "html",
-                success: function (data) {
-                    $plotPanel.find(".plotly-graph-div,script").remove();
-                    $plotPanel.append(data);
-                    $changeDataBtn.click();
-                },
-                error: ajax.ajaxErrorCallback,
-                complete: function () {
-                    $submit.prop("disabled", false).text("Show Plot");
-                    $plotPanel.loadingOverlay("hide");
-                }
+                success: populatePlotPanelOptions,
+                error: ajax.ajaxErrorCallback
             });
-        }).find("input[type=hidden]").each(function (i, obj) {
-            $(obj).val(dat[$(obj).attr("name")]);
-        });
-        $dataPanel.prependTo($plotPanel);
+        }
+    };
 
-        $newPanel.prependTo(".sortable-panels").fadeIn(400, function () {
+    $(".panel-close-btn").on("click", function () {
+        $(this).closest(".panel-container")[$(this).data("effect")](400,
+            function () {
+                $(this).remove();
+            });
+    });
+
+    // Add new panel
+    $(".new-plot-btn").click(function (eNewPlot) {
+        var $plotPanel = $(".panel-container").last().clone(true, true);
+        var dat = $(eNewPlot.currentTarget).data();
+        $plotPanel.find(".panel").data(dat);
+        var $changeDataBtn = $plotPanel.find(".hts-change-data-btn");
+
+        $plotPanel.prependTo(".sortable-panels").fadeIn(400, function () {
             $changeDataBtn.click();
         });
     }).first().click();
