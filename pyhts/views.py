@@ -926,10 +926,14 @@ def ajax_get_plot(request):
                                 'exist.', status=400)
         title = _extend_title('Time course', df_data['doses'], drug_id,
                               cell_line_id)
+        if df_data['controls'] is None:
+            df_controls = None
+        else:
+            df_controls = df_data['controls'].loc[assay]
         plot_fig = plot_time_course(
             df_data['doses'],
             df_data['assays'].loc[assay],
-            df_data['controls'].loc[assay],
+            df_controls,
             title=title,
             log_yaxis=yaxis == 'log2',
             assay_name=assay
