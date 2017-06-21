@@ -58,19 +58,23 @@
         <div class="panel-heading">
             <i class="glyphicon glyphicon-th"></i>
 
-            <span class="pull-right panel-close-btn" data-effect="fadeOut">
+            <span class="pull-right panel-close-btn"
+                  title="Close plot"
+                  data-effect="fadeOut">
                 <i class="fa fa-times"></i>
             </span>
 
             <div class="btn-group">
               <button type="button" class="hts-change-data-btn btn
-              btn-default
-              dropdown-toggle" aria-haspopup="true">
+              btn-default dropdown-toggle" aria-haspopup="true">
                 <span class="fa fa-exchange"></span>
                 <span>Change Plot</span>
                 <span class="caret"></span>
               </button>
-              <div class="dropdown-menu hidden"></div>
+
+              <button type="button" class="btn btn-default panel-copy-btn">
+                <span><i class="fa fa-clone"></i> Duplicate</span>
+              </button>
             </div>
 
         </div>

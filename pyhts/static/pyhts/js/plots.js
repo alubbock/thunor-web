@@ -19,12 +19,21 @@ var downloadImage = function(gd, fmt) {
                               "width": width, "height": height});
 };
 
+var uuid = function() {
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,
+        function(c) {
+            var r = Math.random()*16|0, v = c === "x" ? r : (r&0x3|0x8);
+            return v.toString(16);
+        }
+    );
+};
+
 var selectPickerOptionsMultiple = {
   countSelectedText: function(n, N) {
     return n + " of " + N + " selected";
   },
   selectedTextFormat: "count > 4",
-  maxOptions: false,
+  maxOptions: false
 };
 
 var selectPickerOptionsSingle = {
@@ -254,12 +263,16 @@ var plots = function() {
             $drugSelect = $dataPanel.find("select.hts-change-drug");
 
         var populatePlotPanelOptions = function(data) {
-            $cellLineSelect.selectpicker({title: "Please select a cell line"});
+            var clTitle = "Please select a cell line",
+                drTitle = "Please select a drug";
+            $cellLineSelect.selectpicker({title: clTitle})
+                .attr("title", clTitle);
             pushOptionsToSelect(
                 $cellLineSelect,
                 data.cellLines,
                 dat["cellLineId"]);
-            $drugSelect.selectpicker({title: "Please select a drug"});
+            $drugSelect.selectpicker({title: drTitle})
+                .attr("title", drTitle);
             pushOptionsToSelect(
                 $drugSelect,
                 data.drugs,
@@ -291,6 +304,46 @@ var plots = function() {
             function () {
                 $(this).remove();
             });
+    });
+
+    $(".panel-copy-btn").on("click", function() {
+        var $panel = $(this).closest(".panel-container");
+        var $newPanel = $panel.clone(true, true);
+
+        // The selectpickers need reinitialising after a clone
+        $newPanel.find(".bootstrap-select").replaceWith(function() {
+            return $("select", this).removeData("selectpicker");
+        });
+        setPlotType($newPanel.find(".hts-change-data"));
+        var $newSelects = $newPanel.find("select");
+        $panel.find("select").each(function(i, obj) {
+            $newSelects.eq(i).selectpicker("val", $(obj).val());
+        });
+
+        // The drag/drop sets manual co-ordinates, so these need removing too,
+        // except for the display element
+        $newPanel.removeAttr("style").css("display", "block");
+
+        // Plotly sets an HTML ID for the graph div, this will need changing
+        // and the plotly javascript will need executing for the new div
+        var $plotly = $newPanel.find(".plotly-graph-div");
+        var oldPlotlyId = $plotly.attr("id");
+        var newPlotlyId = uuid();
+        $plotly.attr("id", newPlotlyId);
+        var $plotlyScript = $plotly.parent().find("script");
+        var plotlyJS = $plotlyScript.html();
+        if (plotlyJS !== undefined) {
+            plotlyJS = plotlyJS.replace(oldPlotlyId, newPlotlyId);
+            $plotlyScript.html(plotlyJS);
+        }
+
+        $newPanel.insertAfter($panel).fadeIn(400);
+        $("html, body").animate({
+            scrollTop: $newPanel.offset().top
+        }, 400);
+        if(plotlyJS !== undefined) {
+            setTimeout(new Function(plotlyJS), 1);
+        }
     });
 
     // Add new panel
