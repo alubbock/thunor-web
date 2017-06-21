@@ -939,12 +939,17 @@ def ajax_get_plot(request):
         if plot_type == 'dippar':
             plot_type_str += ' parameters'
         # Fetch the DIP rates from the DB
-        ctrl_dip_data, expt_dip_data = df_dip_rates(
-            dataset_id=dataset_id,
-            drug_id=drug_id,
-            cell_line_id=cell_line_id,
-            control=dataset.control_id
-        )
+        try:
+            ctrl_dip_data, expt_dip_data = df_dip_rates(
+                dataset_id=dataset_id,
+                drug_id=drug_id,
+                cell_line_id=cell_line_id,
+                control=dataset.control_id
+            )
+        except NoDataException:
+            return HttpResponse('No data found for this request. This '
+                                'drug/cell line/assay combination may not '
+                                'exist.', status=400)
         # Fit Hill curves and compute parameters
         fit_params = dip_fit_params(
             ctrl_dip_data, expt_dip_data,

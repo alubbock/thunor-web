@@ -1,5 +1,5 @@
 from .models import HTSDataset, WellStatistic
-from .pandas import df_doses_assays_controls
+from .pandas import df_doses_assays_controls, NoDataException
 from pydrc.dip import dip_rates
 import itertools
 
@@ -12,31 +12,19 @@ def precalculate_dip_rates(dataset_or_id):
     else:
         raise ValueError('Argument must be an HTSDataset or an integer '
                          'primary key')
-    df_data = df_doses_assays_controls(
-        dataset=dataset,
-        drug_id=None,
-        cell_line_id=None,
-        assay=dataset.dip_assay
-    )
+    try:
+        df_data = df_doses_assays_controls(
+            dataset=dataset,
+            drug_id=None,
+            cell_line_id=None,
+            assay=dataset.dip_assay
+        )
+    except NoDataException:
+        return
 
     ctrl_dip_data, expt_dip_data = dip_rates(df_data)
 
     well_stats_to_create = [
-        (WellStatistic(
-            well_id=well_stat.Index[1],
-            stat_name='dip_rate',
-            value=well_stat.dip_rate
-        ),
-         WellStatistic(
-            well_id=well_stat.Index[1],
-            stat_name='dip_fit_std_err',
-            value=well_stat.dip_fit_std_err
-        ))
-        for well_stat in
-        ctrl_dip_data.itertuples()
-    ]
-
-    well_stats_to_create.extend([
         (WellStatistic(
             well_id=well_stat.well_id,
             stat_name='dip_rate',
@@ -49,7 +37,23 @@ def precalculate_dip_rates(dataset_or_id):
          ))
         for well_stat in
         expt_dip_data.itertuples(index=False)
-    ])
+    ]
+
+    if ctrl_dip_data is not None:
+        well_stats_to_create.extend([
+            (WellStatistic(
+                well_id=well_stat.Index[1],
+                stat_name='dip_rate',
+                value=well_stat.dip_rate
+            ),
+             WellStatistic(
+                well_id=well_stat.Index[1],
+                stat_name='dip_fit_std_err',
+                value=well_stat.dip_fit_std_err
+            ))
+            for well_stat in
+            ctrl_dip_data.itertuples()
+        ])
 
     # Delete any existing WellStatistics
     WellStatistic.objects.filter(
