@@ -104,7 +104,7 @@ var plots = function() {
         for (var i = 0; i < len; i++) {
             $select.append(
                 "<option value=\"" + optionList[i].id + "\"" +
-                (optionList[i].id == selectedOption ? " selected" : "") +
+                (optionList[i].id === selectedOption ? " selected" : "") +
                 ">" + optionList[i].name + "</option>"
             );
         }
@@ -193,13 +193,11 @@ var plots = function() {
         setRadio($dataPanel.find(".hts-dippar-sort"), showDipParSort);
     };
 
-    var selectPlotType = function(e) {
+    // Data panel events
+    $("input[name=plotType]").change(function(e) {
         var $dataPanel = $(e.target).closest(".hts-change-data");
         setPlotType($dataPanel);
-    };
-
-    // Data panel events
-    $("input[name=plotType]").change(selectPlotType);
+    });
     $(".hts-change-data > form").submit(function (e) {
         var $plotPanel = $(this).closest(".plot-panel");
         var $plotPanelBody = $plotPanel.find(".panel-body");
@@ -209,9 +207,6 @@ var plots = function() {
         var $this = $(e.currentTarget),
             $submit = $this.find("button[type=submit]");
         e.preventDefault();
-        $.each($this.serializeArray(), function (i, ele) {
-            $plotPanel.data(ele.name, ele.value);
-        });
         $submit.prop("disabled", true).text("Loading...");
         $.ajax({
             url: ajax.url("get_plot") + "?" + $this.serialize(),
@@ -249,18 +244,41 @@ var plots = function() {
         }
     });
 
-    var prepareDataPanel = function($plotPanel) {
+    function objectifyForm(formArray) {//serialize data function
+      var returnArray = {};
+      for (var i = 0; i < formArray.length; i++) {
+          var name = formArray[i]["name"], value = formArray[i]["value"];
+          if (returnArray.hasOwnProperty(name)) {
+              var curVal = returnArray[name];
+              if(!Array.isArray(curVal)) {
+                  returnArray[name] = [curVal];
+              }
+              returnArray[name].push(value);
+          } else {
+              returnArray[name] = value;
+          }
+      }
+      return returnArray;
+    }
+
+    var prepareDataPanel = function($plotPanel, defaultOptions) {
         var $dataPanel = $plotPanel.find(".hts-change-data");
         $dataPanel.find("select.hts-change-cell-line,select.hts-change-drug")
             .selectpicker(selectPickerOptionsSingle);
         $dataPanel.data("loaded", true);
-        var dat = $plotPanel.find(".panel").data();
-        $dataPanel.find("input[type=hidden]").each(function (i, obj) {
-            $(obj).val(dat[$(obj).attr("name")]);
-        });
+
+        var datasetId;
 
         var $cellLineSelect = $dataPanel.find("select.hts-change-cell-line"),
             $drugSelect = $dataPanel.find("select.hts-change-drug");
+
+        if(defaultOptions !== undefined) {
+            // Set the dataset ID
+            datasetId = defaultOptions["datasetId"];
+            $dataPanel.find("input[name=datasetId]").val(datasetId);
+        } else {
+            datasetId = $dataPanel.find("input[name=datasetId]").val();
+        }
 
         var populatePlotPanelOptions = function(data) {
             var clTitle = "Please select a cell line",
@@ -269,29 +287,44 @@ var plots = function() {
                 .attr("title", clTitle);
             pushOptionsToSelect(
                 $cellLineSelect,
-                data.cellLines,
-                dat["cellLineId"]);
+                data.cellLines);
             $drugSelect.selectpicker({title: drTitle})
                 .attr("title", drTitle);
             pushOptionsToSelect(
                 $drugSelect,
-                data.drugs,
-                dat["drugId"]);
+                data.drugs);
             pushOptionsToSelect(
                 $dataPanel.find("select.hts-change-assay"),
-                data.assays,
-                dat["assayId"]);
+                data.assays);
 
-            if(!plotOptionsCache.hasOwnProperty(dat["datasetId"])) {
-                plotOptionsCache[dat["datasetId"]] = data;
+            if(!plotOptionsCache.hasOwnProperty(datasetId)) {
+                plotOptionsCache[datasetId] = data;
+            }
+
+            if(defaultOptions !== undefined) {
+                $dataPanel.find("input,select").each(function(i, obj) {
+                    if(defaultOptions.hasOwnProperty(obj.name)) {
+                        var $obj = $(obj);
+                        var val = defaultOptions[obj.name];
+                        if ($obj.prop("tagName").toLowerCase() === "select") {
+                            $obj.selectpicker("val", val);
+                        } else {
+                            if (obj.type === "hidden") {
+                                $obj.val(val);
+                            } else if (obj.type === "radio" && $obj.val() === val) {
+                                $obj.click();
+                            }
+                        }
+                    }
+                });
             }
         };
 
-        if(plotOptionsCache.hasOwnProperty(dat["datasetId"])) {
-            populatePlotPanelOptions(plotOptionsCache[dat["datasetId"]]);
+        if(plotOptionsCache.hasOwnProperty(datasetId)) {
+            populatePlotPanelOptions(plotOptionsCache[datasetId]);
         } else {
             $.ajax({
-                url: ajax.url("dataset_groupings", dat["datasetId"]),
+                url: ajax.url("dataset_groupings", datasetId),
                 type: "GET",
                 success: populatePlotPanelOptions,
                 error: ajax.ajaxErrorCallback
@@ -308,36 +341,38 @@ var plots = function() {
 
     $(".panel-copy-btn").on("click", function() {
         var $panel = $(this).closest(".panel-container");
-        var $newPanel = $panel.clone(true, true);
-
-        // The selectpickers need reinitialising after a clone
-        $newPanel.find(".bootstrap-select").replaceWith(function() {
-            return $("select", this).removeData("selectpicker");
-        });
-        setPlotType($newPanel.find(".hts-change-data"));
-        var $newSelects = $newPanel.find("select");
-        $panel.find("select").each(function(i, obj) {
-            $newSelects.eq(i).selectpicker("val", $(obj).val());
-        });
-
-        // The drag/drop sets manual co-ordinates, so these need removing too,
-        // except for the display element
-        $newPanel.removeAttr("style").css("display", "block");
+        var $newPanel = $(".panel-container").last().clone(true, true);
 
         // Plotly sets an HTML ID for the graph div, this will need changing
         // and the plotly javascript will need executing for the new div
-        var $plotly = $newPanel.find(".plotly-graph-div");
-        var oldPlotlyId = $plotly.attr("id");
+        var $plotly = $panel.find(".plotly-graph-div");
+        var $newPlotly = $plotly.clone();
+        var oldPlotlyId = $newPlotly.attr("id");
         var newPlotlyId = uuid();
-        $plotly.attr("id", newPlotlyId);
-        var $plotlyScript = $plotly.parent().find("script");
-        var plotlyJS = $plotlyScript.html();
+        $newPlotly.attr("id", newPlotlyId);
+        var $newPlotlyScript = $plotly.parent().find("script").clone();
+        var plotlyJS = $newPlotlyScript.html();
         if (plotlyJS !== undefined) {
             plotlyJS = plotlyJS.replace(oldPlotlyId, newPlotlyId);
-            $plotlyScript.html(plotlyJS);
+            $newPlotlyScript.html(plotlyJS);
+        }
+        var $newPanelBody = $newPanel.find(".panel-body");
+        $newPlotly.appendTo($newPanelBody);
+        $newPlotlyScript.appendTo($newPanelBody);
+
+        // Insert the panel, scroll to it and activate the plot javascript if
+        // applicable
+        $newPanel.insertAfter($panel).fadeIn(400);
+
+        // The click events on the panel have to be fired after the panel
+        // is added to the DOM or the bootstrap events don't fire properly
+        var formData = objectifyForm($panel.find("form").serializeArray());
+        prepareDataPanel($newPanel, formData);
+
+        if($panel.find(".hts-change-data-btn").parent().hasClass("open")) {
+            $newPanel.find(".hts-change-data-btn").click();
         }
 
-        $newPanel.insertAfter($panel).fadeIn(400);
         $("html, body").animate({
             scrollTop: $newPanel.offset().top
         }, 400);
@@ -349,8 +384,9 @@ var plots = function() {
     // Add new panel
     $(".new-plot-btn").click(function (eNewPlot) {
         var $plotPanel = $(".panel-container").last().clone(true, true);
-        var dat = $(eNewPlot.currentTarget).data();
-        $plotPanel.find(".panel").data(dat);
+        $plotPanel.find("input[name=datasetId]").val(
+            $(eNewPlot.currentTarget).data("datasetId")
+        );
         var $changeDataBtn = $plotPanel.find(".hts-change-data-btn");
 
         $plotPanel.prependTo(".sortable-panels").fadeIn(400, function () {
