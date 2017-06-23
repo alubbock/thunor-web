@@ -936,7 +936,8 @@ def ajax_get_plot(request):
             df_controls,
             title=title,
             log_yaxis=yaxis == 'log2',
-            assay_name=assay
+            assay_name=assay,
+            show_dip_fit=request.GET.get('overlayDipFit', 'false') == 'true'
         )
     elif plot_type in ('dip', 'dippar'):
         plot_type_str = 'Dose/response'

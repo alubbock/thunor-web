@@ -135,22 +135,25 @@ var plots = function() {
     };
 
     var setPlotType = function($dataPanel) {
-        var plotType = $dataPanel.find(".hts-plot-type").find("input:checked").val();
+        var plotType = $dataPanel.find("input[name=plotType]:checked").val();
         var showErrorBars = false,
             showAssay = true,
             showYaxisScale = true,
             showDipType = false,
-            showDipParSort = false;
+            showDipParSort = false,
+            showDipOverlay = $dataPanel.find("input[name=logTransform]:checked").val() === "log2";
         if (plotType === "dip") {
             showAssay = false;
             showYaxisScale = false;
             showDipType = true;
+            showDipOverlay = false;
         }
         if (plotType === "dippar") {
             showAssay = false;
             showYaxisScale = false;
             showDipType = false;
             showDipParSort = true;
+            showDipOverlay = false;
         }
 
         // Only show assay selection if the dataset contains more than one
@@ -191,12 +194,19 @@ var plots = function() {
         setRadio($dataPanel.find(".hts-dip-type"), showDipType);
         setRadio($dataPanel.find(".hts-error-bars"), showErrorBars);
         setRadio($dataPanel.find(".hts-dippar-sort"), showDipParSort);
+        setRadio($dataPanel.find(".hts-show-dip-fit"), showDipOverlay);
     };
 
     // Data panel events
     $("input[name=plotType]").change(function(e) {
         var $dataPanel = $(e.target).closest(".hts-change-data");
         setPlotType($dataPanel);
+    });
+    $("input[name=logTransform]").change(function(e) {
+        var $dataPanel = $(e.target).closest(".hts-change-data");
+        setRadio($dataPanel.find(".hts-show-dip-fit"),
+            $dataPanel.find("input[name=logTransform]:checked").val() === "log2"
+        );
     });
     $(".hts-change-data > form").submit(function (e) {
         var $plotPanel = $(this).closest(".plot-panel");
