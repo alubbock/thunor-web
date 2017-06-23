@@ -22,7 +22,7 @@ var plate_upload = function () {
             uploadUrl: ajax.url("upload_platefile"),
             uploadAsync: false,
             deleteUrl: ajax.url("delete_platefile"),
-            allowedFileExtensions: ["xls", "xlsx", "txt", "csv", "tsv"],
+            allowedFileExtensions: ["xls", "xlsx", "txt", "csv", "tsv", "h5"],
             maxFileSize: 153600,
             maxFileCount: 20,
             minFileCount: 1,

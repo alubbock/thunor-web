@@ -3,13 +3,14 @@ from django.core.files.uploadedfile import UploadedFile
 from django.utils import timezone
 from datetime import timedelta
 from .models import PlateFile, Plate, Well, WellMeasurement, CellLine, Drug,\
-    WellDrug, PlateMap
+    WellDrug
 from django.db import IntegrityError, transaction
 import xlrd
 import magic
 import collections
-from pydrc.io import read_vanderbilt_hts_single_df
+from pydrc.io import read_vanderbilt_hts_single_df, read_hdf, PlateMap
 import math
+import pandas as pd
 
 
 class PlateFileParseException(Exception):
@@ -32,7 +33,8 @@ class PlateFileParser(object):
                            '.spreadsheetml.sheet': 'excel',
                            'application/zip': 'excel',
                            'text/plain': 'text',
-                           'text/x-fortran': 'text'
+                           'text/x-fortran': 'text',
+                           'application/x-hdf': 'hdf'
                            }
 
     def __init__(self, plate_files, dataset):
@@ -102,7 +104,6 @@ class PlateFileParser(object):
         tp = cls.regexes['time_hours'].search(string)
         return timedelta(hours=int(tp.group('time_hours'))) if tp else None
 
-
     @classmethod
     def extract_plate_and_timepoint(cls, string):
         """
@@ -112,6 +113,22 @@ class PlateFileParser(object):
         return {'plate': tp.group('plate_id'),
                 'timepoint': timedelta(hours=int(tp.group('time_hours')))} if tp \
             else None
+
+    @transaction.atomic
+    def parse_thunor_h5(self):
+        df_data = read_hdf(self._plate_data)
+
+        print(df_data['doses'].head())
+
+        # Add drugs
+        # Add cell lines
+        # Create plates
+        # Create wells
+        # Create welldrugs
+        # Create wellmeasurements
+
+        raise
+        self.dataset.save()
 
     @transaction.atomic
     def parse_platefile_vanderbilt_hts(self, sep='\t'):
@@ -650,6 +667,8 @@ class PlateFileParser(object):
             if not parsed:
                 raise PlateFileParseException('File type not recognized. '
                                               'Please check the format.')
+        elif file_type == 'hdf':
+            self.parse_thunor_h5()
         else:
             raise PlateFileParseException('File type not supported: {}'.
                                           format(mimetype))
