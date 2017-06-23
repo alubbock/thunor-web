@@ -19,15 +19,6 @@ var downloadImage = function(gd, fmt) {
                               "width": width, "height": height});
 };
 
-var uuid = function() {
-    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,
-        function(c) {
-            var r = Math.random()*16|0, v = c === "x" ? r : (r&0x3|0x8);
-            return v.toString(16);
-        }
-    );
-};
-
 var selectPickerOptionsMultiple = {
   countSelectedText: function(n, N) {
     return n + " of " + N + " selected";
@@ -75,7 +66,7 @@ var plots = function() {
     };
 
     var resizeGraphs = function () {
-        $(".plotly-graph-div").each(function (i, obj) {
+        $(".plotly-graph-div.loaded").each(function (i, obj) {
             Plotly.Plots.resize(obj);
         });
     };
@@ -211,7 +202,6 @@ var plots = function() {
     $(".hts-change-data > form").submit(function (e) {
         var $plotPanel = $(this).closest(".plot-panel");
         var $plotPanelBody = $plotPanel.find(".panel-body");
-        var $dataPanel = $plotPanelBody.find(".hts-change-data");
         var $changeDataBtn = $plotPanel.find(".hts-change-data-btn");
         $plotPanelBody.loadingOverlay("show");
         var $this = $(e.currentTarget),
@@ -221,12 +211,13 @@ var plots = function() {
         $.ajax({
             url: ajax.url("get_plot") + "?" + $this.serialize(),
             type: "GET",
-            dataType: "html",
+            dataType: "json",
             success: function (data) {
-                $plotPanelBody.find(".plotly-graph-div,script").remove();
-                $plotPanelBody.append(data);
+                createPlot(
+                    $plotPanelBody.find(".plotly-graph-div").addClass("loaded"),
+                    data
+                );
                 $changeDataBtn.click();
-                $dataPanel.data("loaded", "true");
             },
             error: ajax.ajaxErrorCallback,
             complete: function () {
@@ -236,6 +227,31 @@ var plots = function() {
         });
     });
     // End data panel events
+
+    var createPlot = function($element, data) {
+        $element.data("plotly", data);
+        Plotly.newPlot(
+            $element[0],
+            data.data,
+            data.layout,
+            {
+                showLink: false,
+                displaylogo: false,
+                modeBarButtonsToRemove: ["sendDataToCloud", "toImage"],
+                modeBarButtonsToAdd: [{
+                    "name": "Save plot as SVG image",
+                    "icon": Plotly.Icons["camera-retro"],
+                    "click": downloadSvg
+                    },
+                    {
+                    "name": "Save plot as PNG image",
+                    "icon": Plotly.Icons["camera"],
+                    "click": downloadPng
+                    }
+                ]
+            }
+        );
+    };
 
     // Plot panel events
     $(".hts-change-data-btn").click(function(e) {
@@ -254,7 +270,7 @@ var plots = function() {
         }
     });
 
-    function objectifyForm(formArray) {//serialize data function
+    function objectifyForm(formArray) {
       var returnArray = {};
       for (var i = 0; i < formArray.length; i++) {
           var name = formArray[i]["name"], value = formArray[i]["value"];
@@ -352,27 +368,14 @@ var plots = function() {
     $(".panel-copy-btn").on("click", function() {
         var $panel = $(this).closest(".panel-container");
         var $newPanel = $(".panel-container").last().clone(true, true);
+        var $newPlotly = $newPanel.find(".plotly-graph-div");
 
-        // Plotly sets an HTML ID for the graph div, this will need changing
-        // and the plotly javascript will need executing for the new div
-        var $plotly = $panel.find(".plotly-graph-div");
-        var $newPlotly = $plotly.clone();
-        var oldPlotlyId = $newPlotly.attr("id");
-        var newPlotlyId = uuid();
-        $newPlotly.attr("id", newPlotlyId);
-        var $newPlotlyScript = $plotly.parent().find("script").clone();
-        var plotlyJS = $newPlotlyScript.html();
-        if (plotlyJS !== undefined) {
-            plotlyJS = plotlyJS.replace(oldPlotlyId, newPlotlyId);
-            $newPlotlyScript.html(plotlyJS);
-        }
-        var $newPanelBody = $newPanel.find(".panel-body");
-        $newPlotly.appendTo($newPanelBody);
-        $newPlotlyScript.appendTo($newPanelBody);
-
-        // Insert the panel, scroll to it and activate the plot javascript if
-        // applicable
+        // Insert the panel, add the plot
         $newPanel.insertAfter($panel).fadeIn(400);
+        // The plot has to be added after being added to the DOM in order
+        // for size to be calculated correctly
+        createPlot($newPlotly.addClass("loaded"),
+                   $panel.find(".plotly-graph-div").data("plotly"));
 
         // The click events on the panel have to be fired after the panel
         // is added to the DOM or the bootstrap events don't fire properly
@@ -386,9 +389,6 @@ var plots = function() {
         $("html, body").animate({
             scrollTop: $newPanel.offset().top
         }, 400);
-        if(plotlyJS !== undefined) {
-            setTimeout(new Function(plotlyJS), 1);
-        }
     });
 
     // Add new panel
@@ -405,8 +405,5 @@ var plots = function() {
     }).first().click();
 };
 module.exports = {
-    activate: plots,
-    downloadSvg: downloadSvg,
-    downloadPng: downloadPng,
-    downloadImage: downloadImage
+    activate: plots
 };

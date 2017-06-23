@@ -15,7 +15,7 @@ import json
 from pydrc.plots import plot_time_course, plot_dip, plot_dip_params
 from pydrc.dip import dip_fit_params
 from pydrc.io import write_hdf
-from .plots import get_plot_html
+from plotly.utils import PlotlyJSONEncoder
 from .pandas import df_doses_assays_controls, df_dip_rates, NoDataException
 from .tasks import precalculate_dip_rates
 from .plate_parsers import PlateFileParser
@@ -879,11 +879,8 @@ def ajax_get_plot(request):
         cell_line_id = request.GET.getlist('cellLineId')
         drug_id = request.GET.getlist('drugId')
 
-        if cell_line_id is None and drug_id is None:
-            return HttpResponse('A cell line ID or drug ID is required',
-                                status=400)
-
-        if not cell_line_id or not drug_id:
+        if cell_line_id is None or len(cell_line_id) == 0 or \
+                drug_id is None or len(drug_id) == 0:
             return HttpResponse('Please enter at least one cell line and '
                                 'drug', status=400)
 
@@ -906,7 +903,7 @@ def ajax_get_plot(request):
 
     if dataset.owner_id != request.user.id and not request.user.has_perm(
             'view_plots', dataset):
-        raise Http404
+        raise Http404()
 
     if plot_type == 'tc':
         if len(drug_id) > 1 or len(cell_line_id) > 1:
@@ -966,7 +963,7 @@ def ajax_get_plot(request):
             dip_par_sort = request.GET.get('dipParSort', None)
             if dip_par_sort is None:
                 return HttpResponse('Dose response parameter sort field is '
-                                    'required')
+                                    'required', status=400)
             plot_fig = plot_dip_params(
                 fit_params,
                 fit_params_sort=dip_par_sort,
@@ -984,7 +981,7 @@ def ajax_get_plot(request):
         return HttpResponse('Unimplemented plot type: %s' % plot_type,
                             status=400)
 
-    return HttpResponse(get_plot_html(plot_fig))
+    return JsonResponse(plot_fig, encoder=PlotlyJSONEncoder)
 
 
 def _extend_title(title, df, drug_id, cell_line_id):
