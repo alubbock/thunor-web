@@ -20,7 +20,7 @@
     "jquery-file-download": "^1.4.6",
     "jquery-ui": "^1.12.1",
     "jquery-ui-touch-punch": "^0.2.3",
-    "plotly.js": "^1.25.2",
+    "plotly.js": "^1.27.2",
     "raven-js": "^3.9.0",
     "typeahead.js": "^0.11.1"
   },
