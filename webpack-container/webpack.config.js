@@ -5,7 +5,7 @@ var ExtractTextPlugin = require("extract-text-webpack-plugin");
 var glob = require("glob");
 var isDebug = (process.env.DJANGO_DEBUG === undefined ? false : process.env.DJANGO_DEBUG.toLowerCase() === "true");
 
-module.exports = {
+var config = {
     context: __dirname,
 
     entry: {
@@ -51,18 +51,7 @@ module.exports = {
     plugins: [
         new BundleTracker({path: __dirname,
             filename: "../_state/webpack-bundles/webpack-stats.json"}),
-        new ExtractTextPlugin("[name]-[chunkhash].css"),
-        new webpack.optimize.UglifyJsPlugin({
-            compress: isDebug ? false : {
-                screw_ie8: true,
-                warnings: false
-            },
-            mangle: !isDebug
-        }),
-        new webpack.SourceMapDevToolPlugin({
-            filename: "[file].map",
-            include: /^app/
-        })
+        new ExtractTextPlugin("[name]-[chunkhash].css")
     ],
 
     module: {
@@ -106,3 +95,23 @@ module.exports = {
         }
     }
 };
+
+if (!isDebug) {
+    config.plugins.push(
+        new webpack.optimize.UglifyJsPlugin({
+            compress: {
+                screw_ie8: true,
+                warnings: false
+            },
+            mangle: true
+        })
+    );
+    config.plugins.push(
+        new webpack.SourceMapDevToolPlugin({
+            filename: "[file].map",
+            include: /^app/
+        })
+    );
+}
+
+module.exports = config;
