@@ -10,14 +10,14 @@ module.exports = {
 
     entry: {
         favicons: glob.sync("./thunor/favicons/*"),
-        app:    ["expose?pyHTS!./thunor/js/pyhts",
+        app:    ["expose-loader?pyHTS!./thunor/js/pyhts",
                  "./thunor/css/fonts.css",
                  "./thunor/css/pyhts.css"],
 
         //TODO: Compile more modules from source, removing unneeded components
-        plots:  ["expose?Plotly!./plotly"],
-        raven:  ["expose?Raven!raven-js"],
-        vendor: ["expose?jQuery!expose?$!jquery",      // sitewide
+        plots:  ["expose-loader?Plotly!./plotly"],
+        raven:  ["expose-loader?Raven!raven-js"],
+        vendor: ["expose-loader?jQuery!expose-loader?$!jquery",      // sitewide
                  "bootstrap/dist/js/bootstrap",
                  "bootstrap/dist/css/bootstrap.css",
                  "font-awesome/css/font-awesome.css",
@@ -51,7 +51,6 @@ module.exports = {
     plugins: [
         new BundleTracker({path: __dirname,
             filename: "../_state/webpack-bundles/webpack-stats.json"}),
-        new webpack.optimize.OccurenceOrderPlugin(),
         new ExtractTextPlugin("[name]-[chunkhash].css"),
         new webpack.optimize.UglifyJsPlugin({
             compress: isDebug ? false : {
@@ -67,12 +66,12 @@ module.exports = {
     ],
 
     module: {
-        loaders: [
+        rules: [
             {
                 // required by plotly
                 test: /node_modules/,
                 include: [/node_modules\/(plotly|glsl-|gl-|cwise)/],
-                loader: "ify"
+                loader: "ify-loader"
             },
             {
                 test: /\.css$/,
@@ -84,23 +83,23 @@ module.exports = {
                     path.resolve(__dirname, "thunor/favicons"),
                     path.resolve(__dirname, "../pyhts/static/pyhts/favicons")
                 ],
-                loader: "file?name=favicon/[name].[ext]"
+                loader: "file-loader?name=favicon/[name].[ext]"
             },
             {
                 test: /\.(png|jpg|gif|ico)$/,
                 exclude: /\/favicons\//,
-                loader: "file?name=img/[name]-[hash].[ext]"
+                loader: "file-loader?name=img/[name]-[hash].[ext]"
             },
-            {test: /\.(woff|woff2)(\?v=\d+\.\d+\.\d+)?$/, loader: "url?limit=10000&mimetype=application/font-woff&name=font/[name]-[hash].[ext]"},
-            {test: /\.ttf(\?v=\d+\.\d+\.\d+)?$/, loader: "url?limit=10000&mimetype=application/octet-stream&name=font/[name]-[hash].[ext]"},
-            {test: /\.eot(\?v=\d+\.\d+\.\d+)?$/, loader: "file?name=font/[name]-[hash].[ext]"},
-            {test: /\.svg(\?v=\d+\.\d+\.\d+)?$/, loader: "url?limit=10000&mimetype=image/svg+xml&name=font/[name]-[hash].[ext]"}
+            {test: /\.(woff|woff2)(\?v=\d+\.\d+\.\d+)?$/, loader: "url-loader?limit=10000&mimetype=application/font-woff&name=font/[name]-[hash].[ext]"},
+            {test: /\.ttf(\?v=\d+\.\d+\.\d+)?$/, loader: "url-loader?limit=10000&mimetype=application/octet-stream&name=font/[name]-[hash].[ext]"},
+            {test: /\.eot(\?v=\d+\.\d+\.\d+)?$/, loader: "file-loader?name=font/[name]-[hash].[ext]"},
+            {test: /\.svg(\?v=\d+\.\d+\.\d+)?$/, loader: "url-loader?limit=10000&mimetype=image/svg+xml&name=font/[name]-[hash].[ext]"}
         ]
     },
 
     resolve: {
-        modulesDirectories: ["node_modules"],
-        extensions: ["", ".js"],
+        modules: ["node_modules"],
+        extensions: [".js"],
         alias: {
             "jquery-ui-js": "jquery-ui/ui",
             "jquery-ui-css": "jquery-ui/themes/base"

@@ -25,14 +25,14 @@
     "typeahead.js": "^0.11.1"
   },
   "devDependencies": {
-    "css-loader": "^0.26.1",
-    "expose-loader": "^0.7.1",
-    "extract-text-webpack-plugin": "^1.0.1",
+    "css-loader": "^0.26.4",
+    "expose-loader": "^0.7.3",
+    "extract-text-webpack-plugin": "^2.1.2",
     "file-loader": "^0.9.0",
     "ify-loader": "^1.0.4",
-    "style-loader": "^0.13.1",
-    "url-loader": "^0.5.7",
-    "webpack": "^1.13.3",
+    "style-loader": "^0.13.2",
+    "url-loader": "^0.5.9",
+    "webpack": "^3.0.0",
     "webpack-bundle-tracker": "^0.1.0"
   },
   "browserify": {
