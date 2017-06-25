@@ -125,7 +125,7 @@
                             class="hts-drug-num">1</span></label>
                     <input type="text" class="form-control hts-drug-typeahead"
                            placeholder="Drug name" {% if not editable %}disabled{% endif %}/>
-                    {% with default_dose_numeric="1e-9" default_dose_label="nM" %}
+                    {% with default_dose_multiplier="1e-9" default_dose_multiplier_label="nM" %}
                     {% include "dose_input.html" %}
                     {% endwith %}
                 </div>

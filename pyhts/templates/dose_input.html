@@ -1,16 +1,20 @@
 {# Dose input widget with SI prefix dropdown #}
 <div class="input-group hts-dose-input-group">
     <input type="text" class="form-control hts-dose-input"
-           placeholder="Dose" {% if not editable %}disabled{% endif %} />
+           placeholder="Dose"
+           {% if not editable %}disabled{% endif %}
+           name="doseBase" value="{{ default_dose_base }}" />
     <div class="input-group-btn">
+        <input type="hidden" name="doseMultiplier" value="{{ default_dose_multiplier }}" />
         <button type="button" class="btn btn-default dropdown-toggle"
                 data-toggle="dropdown"
                 aria-haspopup="true"
                 {% if not editable %}disabled{% endif %}
                 aria-expanded="false"><span
                 class="hts-active-dose-unit"
-                data-dose="{{ default_dose_numeric }}">{% if editable %}
-            {{ default_dose_label }}{% endif %}</span>
+                data-dose="{{ default_dose_multiplier }}">
+                {% if editable %}{{ default_dose_multiplier_label }}{% endif %}
+                </span>
             <span class="caret"></span></button>
         <ul class="hts-dose-select dropdown-menu
         dropdown-menu-right">

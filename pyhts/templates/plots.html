@@ -177,6 +177,12 @@
           </label>
         </div>
     </div>
+    <div class="form-group" style="display:none">
+        <label for="hts-dose-input-group">Maximum dose</label>
+        {% with editable=True default_dose_base="1" default_dose_multiplier="1e-3" default_dose_multiplier_label="mM" %}
+        {% include "dose_input.html" %}
+        {% endwith %}
+    </div>
     <div class="form-group">
         <label for="hts-log-transform">Vertical axis</label>
         <div class="hts-log-transform btn-group btn-group-2 btn-group-responsive"

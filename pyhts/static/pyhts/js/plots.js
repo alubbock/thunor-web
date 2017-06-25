@@ -116,13 +116,13 @@ var plots = function() {
     };
 
     var setRadio = function($radioDiv, newState) {
-        var radio = $radioDiv.find("input[type=radio]");
-        if(newState) {
-            radio.prop("disabled", false);
-        } else {
-            radio.prop("disabled", true);
-        }
+        $radioDiv.find("input[type=radio]").prop("disabled", !newState);
         $radioDiv.closest(".form-group").toggle(newState);
+    };
+
+    var setInput = function($inputDiv, newState) {
+        $inputDiv.find("input[type=text]").prop("disabled", !newState);
+        $inputDiv.closest(".form-group").toggle(newState);
     };
 
     var setPlotType = function($dataPanel) {
@@ -186,6 +186,9 @@ var plots = function() {
         setRadio($dataPanel.find(".hts-error-bars"), showErrorBars);
         setRadio($dataPanel.find(".hts-dippar-sort"), showDipParSort);
         setRadio($dataPanel.find(".hts-show-dip-fit"), showDipOverlay);
+        setInput($dataPanel.find(".hts-dose-input-group"),
+            plotType === "dippar" &&
+            $dataPanel.find("input[name=dipParSort]:checked").val() === "aa");
     };
 
     // Data panel events
@@ -198,6 +201,19 @@ var plots = function() {
         setRadio($dataPanel.find(".hts-show-dip-fit"),
             $dataPanel.find("input[name=logTransform]:checked").val() === "log2"
         );
+    });
+    $("input[name=dipParSort]").change(function(e) {
+        var $dataPanel = $(e.target).closest(".hts-change-data");
+        setInput($dataPanel.find(".hts-dose-input-group"),
+            $dataPanel.find("input[name=dipParSort]:checked").val() === "aa");
+    });
+    $(".hts-dose-select").find("li").click(function (e) {
+        e.preventDefault();
+        var $this = $(this);
+        var $inputGroupBtn = $this.closest(".input-group-btn");
+        $inputGroupBtn.find(".hts-active-dose-unit")
+                .data("dose", $this.data("dose")).text($this.text());
+        $inputGroupBtn.find("input[name=doseMultiplier]").val($this.data("dose"));
     });
     $(".hts-change-data > form").submit(function (e) {
         var $plotPanel = $(this).closest(".plot-panel");
@@ -335,7 +351,7 @@ var plots = function() {
                         if ($obj.prop("tagName").toLowerCase() === "select") {
                             $obj.selectpicker("val", val);
                         } else {
-                            if (obj.type === "hidden") {
+                            if (obj.type === "hidden" || obj.type === "text") {
                                 $obj.val(val);
                             } else if (obj.type === "radio" && $obj.val() === val) {
                                 $obj.click();
@@ -343,6 +359,12 @@ var plots = function() {
                         }
                     }
                 });
+                if(defaultOptions.hasOwnProperty("doseMultiplier")) {
+                    $dataPanel.find(".hts-active-dose-unit").text(
+                        $dataPanel.find(".hts-dose-select")
+                            .find("li[data-dose="+defaultOptions["doseMultiplier"]+"]").text()
+                    );
+                }
             }
         };
 

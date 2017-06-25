@@ -918,7 +918,7 @@ def ajax_get_plot(request):
                                 'drug/cell line/assay combination may not '
                                 'exist.', status=400)
         title = _extend_title('Time course', df_data['doses'], drug_id,
-                              cell_line_id)
+                              cell_line_id, dataset.name)
         if df_data['controls'] is None:
             df_controls = None
         else:
@@ -948,13 +948,27 @@ def ajax_get_plot(request):
             return HttpResponse('No data found for this request. This '
                                 'drug/cell line/assay combination may not '
                                 'exist.', status=400)
+        dip_fit_kwargs = {}
+        try:
+            dose_base = float(request.GET['doseBase'])
+            dose_multiplier = float(request.GET['doseMultiplier'])
+            dip_fit_kwargs['aa_max_conc'] = dose_base * dose_multiplier
+        except KeyError:
+            pass
+        except ValueError:
+            return HttpResponse('Maximum dose must be a numerical value',
+                                status=400)
         # Fit Hill curves and compute parameters
-        fit_params = dip_fit_params(
-            ctrl_dip_data, expt_dip_data,
-            include_dip_rates=plot_type == 'dip',
-        )
+        try:
+            fit_params = dip_fit_params(
+                ctrl_dip_data, expt_dip_data,
+                include_dip_rates=plot_type == 'dip',
+                **dip_fit_kwargs
+            )
+        except ValueError as e:
+            return HttpResponse(e, status=400)
         title = _extend_title(plot_type_str, expt_dip_data, drug_id,
-                              cell_line_id)
+                              cell_line_id, dataset.name)
         if plot_type == 'dippar':
             dip_par_sort = request.GET.get('dipParSort', None)
             if dip_par_sort is None:
@@ -964,7 +978,8 @@ def ajax_get_plot(request):
                 fit_params,
                 fit_params_sort=dip_par_sort,
                 log_yaxis=yaxis == 'log2',
-                title=title
+                title=title,
+                **dip_fit_kwargs
             )
         else:
             dip_absolute = request.GET.get('dipType', 'rel') == 'abs'
@@ -980,7 +995,7 @@ def ajax_get_plot(request):
     return JsonResponse(plot_fig, encoder=PlotlyJSONEncoder)
 
 
-def _extend_title(title, df, drug_id, cell_line_id):
+def _extend_title(title, df, drug_id, cell_line_id, dataset_name=None):
     if drug_id and len(drug_id) == 1:
         drug_name = df.index.get_level_values(
             'drug')[0]
@@ -989,6 +1004,10 @@ def _extend_title(title, df, drug_id, cell_line_id):
         cell_line_name = df.index.get_level_values(
             'cell_line')[0]
         title += ' on {}'.format(cell_line_name)
+
+    if dataset_name:
+        title += '<br><span style="color:#999;font-size:0.9em">' \
+                 '{}</span>'.format(dataset_name)
 
     return title
 
