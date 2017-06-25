@@ -20,7 +20,7 @@
         <h4>Layout Data</h4>
         {% endif %}
         <div class="btn-group-responsive">
-        {% if request.user.id == dataset.owner.id %}
+        {% if request.user.id == dataset.owner_id %}
         <a href="{% url 'pyhts:plate_upload' dataset.id %}" role="button"
               class="btn btn-primary"><i class="fa fa-upload"></i>
             Attach more plate files</a>
@@ -28,12 +28,12 @@
         {% if request.user.id == dataset.owner_id or 'view_plate_layout' in perms %}
         <a href="{% url 'pyhts:plate_designer' dataset.id %}" role="button"
            class="btn btn-primary"><i class="fa fa-edit"></i>
-            View{% if request.user_id == dataset.owner_id %}/edit{% endif %}
+            View{% if request.user.id == dataset.owner_id %}/edit{% endif %}
             plate design</a>
         {% endif %}
         </div>
 
-        {% if request.user.id == dataset.owner.id or 'download_data' in perms %}
+        {% if request.user.id == dataset.owner_id or 'download_data' in perms %}
         <h4>Data Download</h4>
         <div class="btn-group-responsive">
         <a href="{% url 'pyhts:download_dataset_hdf5' dataset.id %}"
@@ -61,7 +61,7 @@
             <p><strong>Special control handling</strong><br>
                 {{ dataset.get_control_handling_display }}</p>
             {% endif %}
-        {% if request.user.id == dataset.owner.id %}
+        {% if request.user.id == dataset.owner_id %}
         <h4>Permissions</h4>
             <div class="btn-group-responsive">
             <a href="{% url 'pyhts:view_dataset_permissions' dataset.id %}"

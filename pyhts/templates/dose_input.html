@@ -1,0 +1,24 @@
+{# Dose input widget with SI prefix dropdown #}
+<div class="input-group hts-dose-input-group">
+    <input type="text" class="form-control hts-dose-input"
+           placeholder="Dose" {% if not editable %}disabled{% endif %} />
+    <div class="input-group-btn">
+        <button type="button" class="btn btn-default dropdown-toggle"
+                data-toggle="dropdown"
+                aria-haspopup="true"
+                {% if not editable %}disabled{% endif %}
+                aria-expanded="false"><span
+                class="hts-active-dose-unit"
+                data-dose="{{ default_dose_numeric }}">{% if editable %}
+            {{ default_dose_label }}{% endif %}</span>
+            <span class="caret"></span></button>
+        <ul class="hts-dose-select dropdown-menu
+        dropdown-menu-right">
+          <li data-dose="1e-12"><a href="#">pM</a></li>
+          <li data-dose="1e-9"><a href="#">nM</a></li>
+          <li data-dose="1e-6"><a href="#">&mu;M</a></li>
+          <li data-dose="1e-3"><a href="#">mM</a></li>
+          <li data-dose="1"><a href="#">M</a></li>
+        </ul>
+    </div>
+</div>

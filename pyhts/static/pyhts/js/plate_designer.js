@@ -620,7 +620,7 @@ var plate_designer = function () {
                 if(allDosesValid) {
                     ui.okModal('Error', 'Dose must be numeric and ' +
                             'non-negative', function () {
-                        $(obj).focus();
+                        $(caller).focus();
                     });
                 }
                 allDosesValid = false;
