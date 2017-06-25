@@ -41,7 +41,6 @@ logger = logging.getLogger(__name__)
 
 SECONDS_IN_DAY = 86400
 # TODO: Improve this handling of controls!
-KNOWN_CONTROLS = ['DMSO']
 
 
 def handler404(request):
@@ -854,10 +853,7 @@ def ajax_get_dataset_groupings(request, dataset_id):
 
     for dr in drug_objs:
         this_entry = {'id': dr['drug_id'], 'name': dr['drug__name']}
-        if this_entry['name'] in KNOWN_CONTROLS:
-            controls_list.append(this_entry)
-        else:
-            drug_list.append(this_entry)
+        drug_list.append(this_entry)
 
     return JsonResponse({
         'cellLines': [{'id': cl['cell_line_id'],
@@ -999,27 +995,15 @@ def _extend_title(title, df, drug_id, cell_line_id):
 
 @login_required
 def plots(request, dataset_id):
-    control_0 = WellDrug.objects.filter(
-        drug__name__in=KNOWN_CONTROLS,
-        well__plate__dataset__id=dataset_id
-    ).select_related('well__plate__dataset', 'drug').first()
-
-    if control_0:
-        control_id = control_0.drug.id
-        dataset = control_0.well.plate.dataset
-    else:
-        # Check the dataset exists instead
-        try:
-            dataset = HTSDataset.objects.get(id=dataset_id)
-        except HTSDataset.DoesNotExist:
-            raise Http404()
-
-        control_id = None
+    # Check the dataset exists
+    try:
+        dataset = HTSDataset.objects.get(id=dataset_id)
+    except HTSDataset.DoesNotExist:
+        raise Http404()
 
     if dataset.owner_id != request.user.id:
         if not (set(dataset.view_dataset_permission_names()) &
                 set(get_perms(request.user, dataset))):
             raise Http404()
 
-    return render(request, 'plots.html', {'dataset': dataset,
-                                          'control_id': control_id})
+    return render(request, 'plots.html', {'dataset': dataset})
