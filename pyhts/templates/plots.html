@@ -69,23 +69,44 @@
                 <i class="fa fa-times"></i>
             </span>
 
-            <div class="btn-group">
-              <button type="button" class="hts-change-data-btn btn
-              btn-default dropdown-toggle" aria-haspopup="true">
-                <span class="fa fa-exchange"></span>
-                <span>Change Plot</span>
-                <span class="caret"></span>
-              </button>
+            <div class="btn-group" role="group">
+                <div class="btn-group" role="group">
+                    <button type="button" class="hts-change-data-btn btn
+                    btn-default dropdown-toggle" aria-haspopup="true">
+                        <span class="fa fa-exchange"></span>
+                        <span>Change Plot</span>
+                        <span class="caret"></span>
+                    </button>
+                </div>
 
-              <button type="button" class="btn btn-default panel-copy-btn">
-                <span><i class="fa fa-clone"></i> Duplicate</span>
-              </button>
+                <button type="button" class="btn btn-default panel-copy-btn">
+                    <span><i class="fa fa-clone"></i> Duplicate</span>
+                </button>
+
+                <div class="btn-group" role="group">
+                  <button class="hts-download-btn btn btn-default dropdown-toggle"
+                          type="button" data-toggle="dropdown" aria-haspopup="true">
+                      <i class="fa fa-download"></i>
+                    Download
+                  <span class="caret"></span></button>
+                    <ul class="dropdown-menu">
+                        <li><a data-download="png" href="#"><i class="fa
+                        fa-camera"></i> PNG image</a></li>
+                        <li><a data-download="svg" href="#"><i class="fa
+                        fa-image"></i> SVG image (best quality)</a></li>
+                        <li><a data-download="json" href="#"><i class="fa
+                        fa-table"></i> Plotly JSON</a></li>
+                        <li><a data-download="csv" href="#"><i class="fa
+                        fa-table"></i> Comma separated values</a></li>
+                    </ul>
+                </div>
             </div>
 
         </div>
         <div class="panel-body">
 
-                    <div class="hts-change-data container" data-loaded="false">
+                    <div class="hts-change-data container dropdown-menu"
+                         data-loaded="false">
 <form>
 <div class="row">
     <div class="col-sm-12">

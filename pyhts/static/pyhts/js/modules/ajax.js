@@ -130,7 +130,8 @@ var ajax = (function () {
         "set_dataset_group_permission": "/ajax/dataset/set-permission",
         "page_annotate_dataset": "/dataset/{ARG}/annotate",
         "dataset_groupings": "/ajax/dataset/{ARG}/groupings",
-        "get_plot": "/ajax/plot"
+        "get_plot": "/ajax/plot.json",
+        "get_plot_csv": "/ajax/plot.csv"
     };
 
     var url = function(view, arg) {

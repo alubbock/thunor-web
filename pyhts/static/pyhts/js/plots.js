@@ -276,36 +276,60 @@ var plots = function() {
             {
                 showLink: false,
                 displaylogo: false,
-                modeBarButtonsToRemove: ["sendDataToCloud", "toImage"],
-                modeBarButtonsToAdd: [{
-                    "name": "Save plot as SVG image",
-                    "icon": Plotly.Icons["camera-retro"],
-                    "click": downloadSvg
-                    },
-                    {
-                    "name": "Save plot as PNG image",
-                    "icon": Plotly.Icons["camera"],
-                    "click": downloadPng
-                    }
-                ]
+                modeBarButtonsToRemove: ["sendDataToCloud", "toImage"]
             }
         );
     };
 
-    // Plot panel events
-    $(".hts-change-data-btn").click(function(e) {
-        var $currentTgt = $(e.currentTarget);
-        var $parentTgt = $currentTgt.parent();
-        var $dataPanel = $currentTgt.closest(".panel").find(".hts-change-data");
-        if($parentTgt.hasClass("open")) {
+    var toggleDataPanel = function($panel, showIfTrue) {
+        var $parentTgt = $panel.find(".hts-change-data-btn").parent();
+        var $dataPanel = $panel.find(".hts-change-data");
+        if($parentTgt.hasClass("open") && (showIfTrue === undefined || !showIfTrue)) {
             $parentTgt.removeClass("open");
             $dataPanel.hide();
-        } else {
+        } else if (!$parentTgt.hasClass("open") && (showIfTrue === undefined || showIfTrue)) {
             if($dataPanel.data("loaded") === false) {
-                prepareDataPanel($dataPanel.closest(".plot-panel"));
+                prepareDataPanel($panel);
             }
             $parentTgt.addClass("open");
             $dataPanel.show();
+        }
+    };
+
+    // Plot panel events
+    $(".hts-change-data-btn").parent().click(function(e) {
+        toggleDataPanel($(e.currentTarget).closest(".plot-panel"));
+    });
+
+    $(".hts-download-btn").parent().on("show.bs.dropdown", function(e) {
+        toggleDataPanel($(e.currentTarget).closest(".plot-panel"), false);
+    });
+    $("a[data-download]").click(function(e) {
+        e.preventDefault();
+        var $this = $(e.currentTarget),
+            action = $this.data("download"),
+            $panel = $this.closest(".plot-panel");
+        // check plot loaded
+        var $plotDiv = $panel.find(".plotly-graph-div.loaded");
+        if(!$plotDiv.length) {
+            ui.okModal("Plot not loaded", "Please load a plot first, using" +
+                " the Change Plot menu");
+            return;
+        }
+        // process download
+        switch (action) {
+            case "svg":
+                return downloadSvg($plotDiv[0]);
+            case "png":
+                return downloadPng($plotDiv[0]);
+            case "json":
+                window.location = ajax.url("get_plot") + "?" +
+                    $panel.find("form").serialize() + "&download=1";
+                return;
+            case "csv":
+                window.location = ajax.url("get_plot_csv") + "?" +
+                    $panel.find("form").serialize() + "&download=1";
+                return;
         }
     });
 
@@ -419,8 +443,9 @@ var plots = function() {
         $newPanel.insertAfter($panel).fadeIn(400);
         // The plot has to be added after being added to the DOM in order
         // for size to be calculated correctly
-        createPlot($newPlotly.addClass("loaded"),
+        createPlot($newPlotly,
                    $panel.find(".plotly-graph-div").data("plotly"));
+        $newPlotly.addClass("loaded");
 
         // The click events on the panel have to be fired after the panel
         // is added to the DOM or the bootstrap events don't fire properly

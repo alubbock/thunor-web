@@ -9,12 +9,14 @@ from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, \
 from django.contrib import messages
 from django.db import transaction
 from django.db.models import Q, Count, Max
+from django.utils.html import strip_tags
 from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, \
     Well, WellMeasurement, WellDrug
 import json
 from pydrc.plots import plot_time_course, plot_dip, plot_dip_params
 from pydrc.dip import dip_fit_params
 from pydrc.io import write_hdf
+from pydrc.helpers import plotly_to_dataframe
 from plotly.utils import PlotlyJSONEncoder
 from .pandas import df_doses_assays_controls, df_dip_rates, NoDataException
 from .tasks import precalculate_dip_rates
@@ -864,7 +866,7 @@ def ajax_get_dataset_groupings(request, dataset_id):
     })
 
 
-def ajax_get_plot(request):
+def ajax_get_plot(request, file_type='json'):
     if not request.user.is_authenticated():
         return JsonResponse({}, status=401)
 
@@ -992,7 +994,21 @@ def ajax_get_plot(request):
         return HttpResponse('Unimplemented plot type: %s' % plot_type,
                             status=400)
 
-    return JsonResponse(plot_fig, encoder=PlotlyJSONEncoder)
+    as_attachment = request.GET.get('download', '0') == '1'
+
+    if file_type == 'json':
+        response = JsonResponse(plot_fig, encoder=PlotlyJSONEncoder)
+    elif file_type == 'csv':
+        response = HttpResponse(plotly_to_dataframe(plot_fig).to_csv(),
+                                content_type='text/csv')
+    else:
+        return HttpResponse('Unknown file type: %s' % file_type, status=400)
+
+    if as_attachment:
+        response['Content-Disposition'] = \
+            'attachment; filename="{}.{}"'.format(strip_tags(title), file_type)
+
+    return response
 
 
 def _extend_title(title, df, drug_id, cell_line_id, dataset_name=None):
@@ -1006,7 +1022,7 @@ def _extend_title(title, df, drug_id, cell_line_id, dataset_name=None):
         title += ' on {}'.format(cell_line_name)
 
     if dataset_name:
-        title += '<br><span style="color:#999;font-size:0.9em">' \
+        title += '<br> <span style="color:#999;font-size:0.9em">' \
                  '{}</span>'.format(dataset_name)
 
     return title
