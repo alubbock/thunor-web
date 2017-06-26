@@ -1025,4 +1025,5 @@ def plots(request, dataset_id):
                 set(get_perms(request.user, dataset))):
             raise Http404()
 
-    return render(request, 'plots.html', {'dataset': dataset})
+    return render(request, 'plots.html', {'dataset': dataset,
+                                          'navbar_hide_dataset': True})

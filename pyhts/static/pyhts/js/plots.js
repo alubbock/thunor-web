@@ -1,5 +1,6 @@
 var ajax = require("./modules/ajax");
 var ui = require("./modules/ui");
+var datasetTable = require("./modules/dataset_table");
 
 var downloadSvg = function(gd) {
     return downloadImage(gd, "svg");
@@ -32,9 +33,31 @@ var selectPickerOptionsSingle = {
   maxOptions: 1
 };
 
-
 var plots = function() {
     var plotOptionsCache = {};
+
+    $("#change-dataset-modal").on("show.bs.modal", function() {
+        if(!$(this).data("initialised")) {
+            $(this).data("initialised", true);
+            datasetTable.initDatasetTable(function (data, type, full, meta) {
+                return "<a class=\"select-dataset\" data-dataset-id=\""
+                        + full.id + "\" data-dataset-name=\"" + full.name +
+                        "\" href=\"\">" + full.name + "</a>";
+            },
+            function() {
+                $("a[class=select-dataset]").click(function(e) {
+                    e.preventDefault();
+                    var $this = $(this);
+                    $(".new-plot-btn").data("datasetId",
+                        $this.data("datasetId")
+                    );
+                    $("#dataset-name").text($this.data("datasetName"));
+                    $("#change-dataset-modal").modal("hide");
+                });
+            });
+        }
+    });
+
 
     $(".sortable-panels").sortable({
         tolerance: "pointer",

@@ -38,6 +38,11 @@
 
         <label>Plots</label>
         <div class="btn-group">
+            <button type="button" class="btn btn-default" data-keyboard="true"
+                    data-toggle="modal"
+                    data-target="#change-dataset-modal">
+                <i class="fa fa-database"></i> <span id="dataset-name">{{ dataset.name }}</span>
+            </button>
             <button class="btn btn-success new-plot-btn"
                     data-dataset-id="{{ dataset.id }}"><i class="glyphicon
                     glyphicon-plus"></i> Add plot</button>
@@ -240,6 +245,18 @@
 
         </div>
     </div>
+</div>
+
+<div id="change-dataset-modal" class="modal fade" role="dialog" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+        <div class="modal-body">
+            {% with close_modal_btn=True %}
+{% include "dataset_table.html" %}
+            {% endwith %}
+        </div>
+    </div>
+  </div>
 </div>
 
 
