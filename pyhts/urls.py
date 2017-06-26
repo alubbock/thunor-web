@@ -25,6 +25,8 @@ urlpatterns = [
         views.xlsx_get_assay_data, name='download_dataset_assays'),
     url(r'^dataset/(?P<dataset_id>\d+)/download/hdf5$',
         views.download_dataset_hdf5, name='download_dataset_hdf5'),
+    url(r'^dataset/(?P<dataset_id>\d+)/download/fit_params$',
+        views.download_dip_fit_params, name='download_dip_fit_params'),
 
     url(r'^dataset/(?P<dataset_id>\d+)/plots$', views.plots, name='plots'),
 

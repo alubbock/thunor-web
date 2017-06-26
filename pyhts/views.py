@@ -13,7 +13,8 @@ from django.utils.html import strip_tags
 from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, \
     Well, WellMeasurement, WellDrug
 import json
-from pydrc.plots import plot_time_course, plot_dip, plot_dip_params
+from pydrc.plots import plot_time_course, plot_dip, plot_dip_params, \
+    PLOT_AXIS_LABELS
 from pydrc.dip import dip_fit_params
 from pydrc.io import write_hdf
 from pydrc.helpers import plotly_to_dataframe
@@ -445,6 +446,53 @@ def ajax_get_datasets_group(request, group_id):
         return JsonResponse({'data': list()})
 
     return JsonResponse({'data': list(datasets)})
+
+
+@login_required
+@xframe_options_sameorigin
+def download_dip_fit_params(request, dataset_id):
+    try:
+        dataset = HTSDataset.objects.get(pk=dataset_id)
+
+        if dataset.owner_id != request.user.id and not \
+                request.user.has_perm('download_data', dataset):
+            raise Http404()
+    except HTSDataset.DoesNotExist:
+        raise Http404()
+
+    # Fetch the DIP rates from the DB
+    try:
+        ctrl_dip_data, expt_dip_data = df_dip_rates(
+            dataset_id=dataset_id,
+            drug_id=None,
+            cell_line_id=None,
+            control=dataset.control_id
+        )
+    except NoDataException:
+        return HttpResponse('No data found for this request. This '
+                            'drug/cell line/assay combination may not '
+                            'exist.', status=400)
+
+    except ValueError:
+        return HttpResponse('Maximum dose must be a numerical value',
+                            status=400)
+
+    # Fit Hill curves and compute parameters
+    try:
+        fit_params = dip_fit_params(
+            ctrl_dip_data, expt_dip_data,
+            include_dip_rates=False
+        )
+    except ValueError as e:
+        return HttpResponse(e, status=400)
+
+    fit_params = fit_params.filter(items=PLOT_AXIS_LABELS.keys())
+
+    response = HttpResponse(fit_params.to_csv(), content_type='text/csv')
+    response['Content-Disposition'] = \
+        'attachment; filename="{}_params.csv"'.format(dataset.name)
+    response['Set-Cookie'] = 'fileDownload=true; path=/'
+    return response
 
 
 @login_required

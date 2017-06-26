@@ -36,16 +36,20 @@
         {% if request.user.id == dataset.owner_id or 'download_data' in perms %}
         <h4>Data Download</h4>
         <div class="btn-group-responsive">
-        <a href="{% url 'pyhts:download_dataset_hdf5' dataset.id %}"
+            <a href="{% url 'pyhts:download_dataset_hdf5' dataset.id %}"
+               role="button" class="btn btn-primary attachment-download">
+                <i class="fa fa-download"></i> Download entire dataset (HDF5
+                format)</a>
+            <a href="{% url 'pyhts:download_dip_fit_params' dataset.id %}"
            role="button" class="btn btn-primary attachment-download">
-            <i class="fa fa-download"></i> Download entire dataset (HDF5
+            <i class="fa fa-table"></i> Download dose response parameters (CSV
             format)</a>
-        <a href="{% url 'pyhts:download_dataset_annotation' dataset.id %}"
-           role="button" class="btn btn-primary attachment-download">
-            <i class="fa fa-table"></i> Download annotations (Excel)</a>
-        <a href="{% url 'pyhts:download_dataset_assays' dataset.id %}"
-           role="button" class="btn btn-primary attachment-download">
-            <i class="fa fa-table"></i> Download assays (Excel)</a>
+{#        <a href="{% url 'pyhts:download_dataset_annotation' dataset.id %}"#}
+{#           role="button" class="btn btn-primary attachment-download">#}
+{#            <i class="fa fa-table"></i> Download annotations (Excel)</a>#}
+{#        <a href="{% url 'pyhts:download_dataset_assays' dataset.id %}"#}
+{#           role="button" class="btn btn-primary attachment-download">#}
+{#            <i class="fa fa-table"></i> Download assays (Excel)</a>#}
         </div>
         {% endif %}
     </div>
