@@ -467,6 +467,7 @@ var plots = function() {
         $plotPanel.find("input[name=datasetId]").val(
             $(eNewPlot.currentTarget).data("datasetId")
         );
+        $plotPanel.find("span[class=dataset-name]").text($("#dataset-name").text());
         var $changeDataBtn = $plotPanel.find(".hts-change-data-btn");
 
         $plotPanel.prependTo(".sortable-panels").fadeIn(400, function () {
