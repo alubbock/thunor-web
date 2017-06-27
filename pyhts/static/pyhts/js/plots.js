@@ -439,13 +439,19 @@ var plots = function() {
         var $newPanel = $(".panel-container").last().clone(true, true);
         var $newPlotly = $newPanel.find(".plotly-graph-div");
 
+        $newPanel.find("span[class=dataset-name]").text(
+            $panel.find("span[class=dataset-name]").text()
+        );
+
         // Insert the panel, add the plot
         $newPanel.insertAfter($panel).fadeIn(400);
         // The plot has to be added after being added to the DOM in order
         // for size to be calculated correctly
-        createPlot($newPlotly,
-                   $panel.find(".plotly-graph-div").data("plotly"));
-        $newPlotly.addClass("loaded");
+        var plotData = $panel.find(".plotly-graph-div").data("plotly");
+        if (plotData) {
+            createPlot($newPlotly, plotData);
+            $newPlotly.addClass("loaded");
+        }
 
         // The click events on the panel have to be fired after the panel
         // is added to the DOM or the bootstrap events don't fire properly
