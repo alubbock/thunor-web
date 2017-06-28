@@ -172,7 +172,8 @@ var plots = function() {
 
         // Only show assay selection if the dataset contains more than one
         // assay
-        var $changeAssay = $dataPanel.find("select.hts-change-assay");
+        var $changeAssay = $dataPanel.find(
+            "select.hts-change-assay > option").not(".bs-title-option");
         if (showAssay && $changeAssay.length <= 1) {
             showAssay = false;
         }
@@ -359,7 +360,8 @@ var plots = function() {
         var datasetId;
 
         var $cellLineSelect = $dataPanel.find("select.hts-change-cell-line"),
-            $drugSelect = $dataPanel.find("select.hts-change-drug");
+            $drugSelect = $dataPanel.find("select.hts-change-drug"),
+            $assaySelect = $dataPanel.find("select.hts-change-assay");
 
         if(defaultOptions !== undefined) {
             // Set the dataset ID
@@ -383,8 +385,11 @@ var plots = function() {
                 $drugSelect,
                 data.drugs);
             pushOptionsToSelect(
-                $dataPanel.find("select.hts-change-assay"),
+                $assaySelect,
                 data.assays);
+            if (data.assays.length > 1) {
+                setSelectPicker($assaySelect, true);
+            }
 
             if(!plotOptionsCache.hasOwnProperty(datasetId)) {
                 plotOptionsCache[datasetId] = data;
