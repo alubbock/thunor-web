@@ -15,7 +15,7 @@ from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, \
 import json
 from pydrc.plots import plot_time_course, plot_dip, plot_dip_params, \
     PLOT_AXIS_LABELS
-from pydrc.dip import dip_fit_params, ValueWarning
+from pydrc.dip import dip_fit_params, AAFitWarning
 from pydrc.io import write_hdf
 from pydrc.helpers import plotly_to_dataframe
 from plotly.utils import PlotlyJSONEncoder
@@ -1014,7 +1014,7 @@ def ajax_get_plot(request, file_type='json'):
             )
             # Currently only care about warnings if plotting AA
             if dip_par_sort == 'aa':
-                w = [i for i in w if issubclass(i.category, ValueWarning)]
+                w = [i for i in w if issubclass(i.category, AAFitWarning)]
                 if w:
                     return HttpResponse(w[0].message, status=400)
         title = _extend_title(plot_type_str, expt_dip_data, drug_id,
