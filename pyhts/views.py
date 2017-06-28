@@ -8,7 +8,7 @@ from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, \
     HttpResponseServerError, HttpResponseNotFound
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Q, Count, Max
+from django.db.models import Q, F, Count, Max
 from django.utils.html import strip_tags
 from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, \
     Well, WellMeasurement, WellDrug, CellLineTag, DrugTag
@@ -921,10 +921,8 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
 
     cell_lines = Well.objects.filter(
         cell_line__isnull=False,
-        plate__dataset_id__in=dataset_ids).annotate(
-        num_drugs=Count('welldrug')).filter(
-        num_drugs=1).select_related(
-    ).values('cell_line_id', 'cell_line__name').distinct().order_by(
+        plate__dataset_id__in=dataset_ids).values(
+        'cell_line_id', 'cell_line__name').distinct().order_by(
         'cell_line__name')
 
     cell_line_tags = CellLineTag.objects.filter(
@@ -950,12 +948,29 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
         well__plate__dataset_id__in=dataset_ids
     ).values('assay').distinct().order_by('assay')
 
-    drug_list = []
-    controls_list = [{'id': None, 'name': 'None'}]
+    drug_list = [{'id': dr['drug_id'], 'name': dr['drug__name']} for dr in
+                 drug_objs]
 
-    for dr in drug_objs:
-        this_entry = {'id': dr['drug_id'], 'name': dr['drug__name']}
-        drug_list.append(this_entry)
+    # Get drugs with combinations... this is inefficient but works
+    # for arbitrary numbers of drugs per well
+    drug_objs_combos = WellDrug.objects.filter(
+        drug__isnull=False,
+        dose__isnull=False,
+        well__plate__dataset_id__in=dataset_ids
+    ).annotate(drug2_id=F('well__welldrug__drug_id')
+    ).exclude(drug_id=F('drug2_id')).values(
+        'well_id', 'drug_id', 'drug__name') \
+        .distinct()
+
+    drug_well_combos = defaultdict(set)
+    for d in drug_objs_combos:
+        drug_well_combos[d['well_id']].add((d['drug_id'], d['drug__name']))
+
+    drug_combos = set(frozenset(d) for d in drug_well_combos.values())
+
+    for dc in drug_combos:
+        drug_ids, drug_names = zip(*sorted(dc, key=lambda d: d[1]))
+        drug_list.append({'id': drug_ids, 'name': drug_names})
 
     return JsonResponse({
         'cellLines': [{'id': cl['cell_line_id'],
@@ -963,8 +978,7 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
         'cellLineTags': [{'id': tag, 'name': tag} for tag in cell_line_tags],
         'drugs': drug_list,
         'drugTags': [{'id': tag, 'name': tag} for tag in drug_tags],
-        'assays': [{'id': a['assay'], 'name': a['assay']} for a in assays],
-        'controls': controls_list
+        'assays': [{'id': a['assay'], 'name': a['assay']} for a in assays]
     })
 
 
@@ -1026,7 +1040,13 @@ def ajax_get_plot(request, file_type='json'):
                                 'drug', status=400)
 
         cell_line_id = [int(cl) for cl in cell_line_id]
-        drug_id = [int(dr) for dr in drug_id]
+        drug_ids = []
+        for dr in drug_id:
+            try:
+                drug_ids.append(int(dr))
+            except ValueError:
+                drug_ids.append([int(d) for d in dr.split(",")])
+        drug_id = drug_ids
 
         assay = request.GET.get('assayId')
         yaxis = request.GET.get('logTransform', 'None')
