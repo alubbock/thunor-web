@@ -15,7 +15,7 @@ from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, \
 import json
 from pydrc.plots import plot_time_course, plot_dip, plot_dip_params, \
     PLOT_AXIS_LABELS
-from pydrc.dip import dip_fit_params
+from pydrc.dip import dip_fit_params, ValueWarning
 from pydrc.io import write_hdf
 from pydrc.helpers import plotly_to_dataframe
 from plotly.utils import PlotlyJSONEncoder
@@ -29,6 +29,7 @@ from operator import itemgetter
 from django.conf import settings
 import pyhts
 import logging
+import warnings
 import xlsxwriter
 import tempfile
 from .serve_file import serve_file
@@ -473,18 +474,13 @@ def download_dip_fit_params(request, dataset_id):
                             'drug/cell line/assay combination may not '
                             'exist.', status=400)
 
-    except ValueError:
-        return HttpResponse('Maximum dose must be a numerical value',
-                            status=400)
-
     # Fit Hill curves and compute parameters
-    try:
-        fit_params = dip_fit_params(
-            ctrl_dip_data, expt_dip_data,
-            include_dip_rates=False
-        )
-    except ValueError as e:
-        return HttpResponse(e, status=400)
+    fit_params = dip_fit_params(
+        ctrl_dip_data, expt_dip_data,
+        include_dip_rates=False
+    )
+    # Remove -ve AA values
+    fit_params.loc[fit_params['aa'] < 0.0, 'aa'] = np.nan
 
     fit_params = fit_params.filter(items=PLOT_AXIS_LABELS.keys())
 
@@ -983,7 +979,7 @@ def ajax_get_plot(request, file_type='json'):
             show_dip_fit=request.GET.get('overlayDipFit', 'false') == 'true'
         )
     elif plot_type in ('dip', 'dippar'):
-        plot_type_str = 'Dose/response'
+        plot_type_str = 'Dose response'
         if plot_type == 'dippar':
             plot_type_str += ' parameters'
         # Fetch the DIP rates from the DB
@@ -1008,19 +1004,22 @@ def ajax_get_plot(request, file_type='json'):
         except ValueError:
             return HttpResponse('Maximum dose must be a numerical value',
                                 status=400)
+        dip_par_sort = request.GET.get('dipParSort', None)
         # Fit Hill curves and compute parameters
-        try:
+        with warnings.catch_warnings(record=True) as w:
             fit_params = dip_fit_params(
                 ctrl_dip_data, expt_dip_data,
                 include_dip_rates=plot_type == 'dip',
                 **dip_fit_kwargs
             )
-        except ValueError as e:
-            return HttpResponse(e, status=400)
+            # Currently only care about warnings if plotting AA
+            if dip_par_sort == 'aa':
+                w = [i for i in w if issubclass(i.category, ValueWarning)]
+                if w:
+                    return HttpResponse(w[0].message, status=400)
         title = _extend_title(plot_type_str, expt_dip_data, drug_id,
                               cell_line_id, dataset.name)
         if plot_type == 'dippar':
-            dip_par_sort = request.GET.get('dipParSort', None)
             if dip_par_sort is None:
                 return HttpResponse('Dose response parameter sort field is '
                                     'required', status=400)

@@ -187,15 +187,15 @@
              data-toggle="buttons">
           <label class="btn btn-default active">
             <input type="radio" name="dipParSort" value="ic50"
-                   autocomplete="off" checked disabled> IC50
+                   autocomplete="off" checked disabled> IC<sub>50</sub>
           </label>
           <label class="btn btn-default">
             <input type="radio" name="dipParSort" value="ec50"
-                   autocomplete="off" disabled> EC50
+                   autocomplete="off" disabled> EC<sub>50</sub>
           </label>
           <label class="btn btn-default">
             <input type="radio" name="dipParSort" value="emax"
-                   autocomplete="off" disabled> Emax
+                   autocomplete="off" disabled> E<sub>max</sub>
           </label>
           <label class="btn btn-default">
             <input type="radio" name="dipParSort" value="hill"
@@ -208,13 +208,13 @@
         </div>
     </div>
     <div class="form-group" style="display:none">
-        <label for="hts-dose-input-group">Maximum dose</label>
+        <label for="hts-dose-input-group">Maximum Dose</label>
         {% with editable=True default_dose_base="1" default_dose_multiplier="1e-3" default_dose_multiplier_label="mM" %}
         {% include "dose_input.html" %}
         {% endwith %}
     </div>
     <div class="form-group">
-        <label for="hts-log-transform">Vertical axis</label>
+        <label for="hts-log-transform">Vertical Axis</label>
         <div class="hts-log-transform btn-group btn-group-2 btn-group-responsive"
              data-toggle="buttons">
           <label class="btn btn-default active">
@@ -243,7 +243,7 @@
         </div>
     </div>
     <div class="form-group" style="display:none">
-        <label for="hts-dip-type">Vertical axis</label>
+        <label for="hts-dip-type">Vertical Axis</label>
         <div class="hts-dip-type btn-group btn-group-2 btn-group-responsive"
              data-toggle="buttons">
           <label class="btn btn-default active">
