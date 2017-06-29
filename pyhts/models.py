@@ -157,4 +157,4 @@ class WellStatistic(models.Model):
     well = models.ForeignKey(Well)
     stat_name = models.TextField()
     stat_date = models.DateTimeField(auto_now=True)
-    value = models.FloatField()
+    value = models.FloatField(null=True)
