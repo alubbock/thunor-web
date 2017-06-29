@@ -69,9 +69,11 @@ MIGRATION_MODULES = {
 MIDDLEWARE = []
 
 if DEBUG:
-    INSTALLED_APPS += ['debug_toolbar', 'debug_panel', 'django_extensions']
-    # MIDDLEWARE += ['debug_toolbar.middleware.DebugToolbarMiddleware']
-    MIDDLEWARE += ['debug_panel.middleware.DebugPanelMiddleware']
+    INSTALLED_APPS += ['debug_toolbar']
+    MIDDLEWARE += ['debug_toolbar.middleware.DebugToolbarMiddleware']
+    MIDDLEWARE += ['pyhts.debug.NonHtmlDebugToolbarMiddleware']
+    # INSTALLED_APPS += ['debug_panel', 'django_extensions']
+    # MIDDLEWARE += ['debug_panel.middleware.DebugPanelMiddleware']
 
 MIDDLEWARE += [
     'django.middleware.security.SecurityMiddleware',
