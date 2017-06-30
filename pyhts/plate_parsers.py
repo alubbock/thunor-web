@@ -188,7 +188,7 @@ class PlateFileParser(object):
         for cl in pd['cell.line'].unique():
             if not isinstance(cl, str):
                 continue
-            cl_obj, _ = CellLine.objects.get_or_create(name=cl)
+            cl_obj, _ = CellLine.objects.get_or_create(name__iexact=cl)
             cell_lines[cl] = cl_obj.pk
 
         # Get/create drugs
@@ -197,7 +197,7 @@ class PlateFileParser(object):
             for dr in pd['drug%d' % drug_no].unique():
                 if not isinstance(dr, str):
                     continue
-                dr_obj, _ = Drug.objects.get_or_create(name=dr)
+                dr_obj, _ = Drug.objects.get_or_create(name__iexact=dr)
                 drugs[dr] = dr_obj.pk
 
         # Get/create plates
