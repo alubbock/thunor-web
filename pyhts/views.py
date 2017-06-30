@@ -11,7 +11,7 @@ from django.db import transaction
 from django.db.models import Q, Count, Max
 from django.utils.html import strip_tags
 from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, \
-    Well, WellMeasurement, WellDrug
+    Well, WellMeasurement, WellDrug, CellLineTag, DrugTag
 import json
 from pydrc.plots import plot_time_course, plot_dip, plot_dip_params, \
     PLOT_AXIS_LABELS
@@ -1089,3 +1089,96 @@ def plots(request, dataset_id):
 
     return render(request, 'plots.html', {'dataset': dataset,
                                           'navbar_hide_dataset': True})
+
+
+@login_required
+def tag_editor(request, tag_type):
+    tag_dict = defaultdict(list)
+    if tag_type == 'cell_lines':
+        entity_type = 'Cell Line'
+        entity_type_var = 'cl'
+        entity_options = CellLine.objects.all().order_by('name')
+        tag_list = CellLineTag.objects.filter(owner=request.user).order_by(
+                'tag_name', 'cell_line__name')
+        for clt in tag_list:
+            tag_dict[clt.tag_name].append(clt.cell_line_id)
+        # entity_list_ids = [tag.cell_line_id for tag in entity_list]
+    elif tag_type == 'drugs':
+        entity_type = 'Drug'
+        entity_type_var = 'drug'
+        entity_options = Drug.objects.all().order_by('name')
+        tag_list = DrugTag.objects.filter(owner=request.user).order_by(
+                'tag_name', 'drug__name')
+        for dt in tag_list:
+            tag_dict[dt.tag_name].append(dt.drug_id)
+        # entity_list_ids = [tag.drug_id for tag in entity_list]
+    else:
+        raise ValueError('Invalid tag type: ' + tag_type)
+
+    return render(request, "tag_editor.html",
+                  {'entity_type': entity_type,
+                   'entity_type_var': entity_type_var,
+                   'tag_type': tag_type,
+                   'entity_options': entity_options,
+                   'tag_dict': tag_dict,
+                   'tag_list': tag_list
+                   # 'entity_list_ids': entity_list_ids
+                   }
+                      )
+
+
+def ajax_rename_tag(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({}, status=401)
+
+    try:
+        old_tag_name = request.POST.get('oldTagName')
+        tag_name = request.POST.get('tagName')
+        tag_type = request.POST.get('tagType')
+        if tag_type not in ('cl', 'drug'):
+            raise ValueError
+    except (KeyError, ValueError):
+        return JsonResponse({'error': 'Form not properly formatted'},
+                            status=400)
+
+    tag_cls = DrugTag if tag_type == 'drug' else CellLineTag
+
+    tag_cls.objects.filter(tag_name=old_tag_name, owner=request.user).update(
+        tag_name=tag_name)
+
+    return JsonResponse({'status': 'success'})
+
+
+def ajax_assign_tag(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({}, status=401)
+
+    try:
+        tag_name = request.POST.get('tagName')
+        tag_type = request.POST.get('tagType')
+        if tag_type not in ('cl', 'drug'):
+            raise ValueError
+        entity_ids = [int(e_id) for e_id in request.POST.getlist('entityId')]
+    except (KeyError, ValueError) as e:
+        return JsonResponse({'error': 'Form not properly formatted'},
+                            status=400)
+
+    tag_cls = DrugTag if tag_type == 'drug' else CellLineTag
+
+    # Clear any existing instances of the tag
+    tag_cls.objects.filter(tag_name=tag_name, owner=request.user).delete()
+
+    # Create the new tags
+    if tag_type == 'drug':
+        DrugTag.objects.bulk_create([
+            DrugTag(tag_name=tag_name, owner=request.user, drug_id=drug_id)
+            for drug_id in entity_ids
+        ])
+    else:
+        CellLineTag.objects.bulk_create([
+            CellLineTag(tag_name=tag_name, owner=request.user,
+                        cell_line_id=cell_line_id)
+            for cell_line_id in entity_ids
+        ])
+
+    return JsonResponse({'status': 'success'})

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}{{ entity_type }} Tags{% endblock %}
+{% block bodytitle %}{{ entity_type }} Tags{% endblock %}
+
+{% block content %}
+
+<button class="btn btn-success" id="btn-add-tag">Add
+    {{ entity_type }} Tag</button>
+
+<div class="tag-list">
+{% for tag in tag_list %}
+    {% ifchanged tag.tag_name %}
+        {% include "tag_editor_tag_template.html" %}
+    {% endifchanged %}
+{% endfor %}
+</div>
+
+{% include "tag_editor_tag_template.html" %}
+
+{% endblock %}
+
+{% block tailscript %}
+<script>
+$(function() {
+    $.extend(pyHTS.state, {
+        tagNames: [{% for k in tag_dict %}'{{ k|escapejs }}'{% if not forloop.last %}, {% endif %}{% endfor %}]
+    });
+    pyHTS.views.tag_editor.activate();
+});
+</script>
+{% endblock %}

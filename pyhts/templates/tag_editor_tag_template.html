@@ -1,0 +1,49 @@
+{% load pyhts_tags %}
+<div class="tag-container"
+     {% if not tag %}style="display:none"{% endif %}>
+
+<form class="pull-right form-inline delete-tag"
+      {% if not tag %}style="display:none"
+{% endif %}>
+    <input type="hidden" name="tagType" value="{{ entity_type_var }}">
+    <input type="hidden" name="tagName" value="{{ tag.tag_name }}">
+<button type="submit" role="button" class="btn btn-danger"
+       >Delete</button>
+</form>
+
+<h3 class="tag-name">{% if tag %}{{ tag.tag_name }}{% else %}New
+{{ entity_type }}
+Tag{% endif %}</h3>
+
+<form class="set-tag-name" {% if tag %}style="display:none"{% endif %}>
+<div class="form-group form-inline">
+    {% csrf_token %}
+    <input type="hidden" name="tagType" value="{{ entity_type_var }}">
+    <input type="text" class="form-control" name="tagName"
+    placeholder="Enter a tag name">
+    <button type="submit" role="button" class="btn btn-primary">Set
+        Name</button>
+    <button type="button" role="button" class="btn
+    btn-default btn-cancel">Cancel</button>
+</div>
+</form>
+<form class="set-tag-targets" {% if not tag %}style="display:none"{% endif %}>
+<div class="form-group">
+    <label for="entityId">{{ entity_type }}(s)</label>
+    {% csrf_token %}
+    <input type="hidden" name="tagType" value="{{ entity_type_var }}">
+    <input type="hidden" name="tagName" value="{{ tag.tag_name }}">
+    <select multiple data-live-search="true" name="entityId"
+    class="form-control" title="Select {{ entity_type }}s" style="display:none">
+    {% for ent in entity_options %}<option name="entityId" value="{{ ent.id }}"{% if ent.id in tag_dict|get_item:tag.tag_name %} selected{% endif %}>{{ ent.name }}</option>
+    {% endfor %}
+    </select>
+    <button type="submit" role="button" class="btn btn-primary"
+            style="display:none">Tag
+        {{ entity_type }}s</button>
+</div>
+</form>
+
+<hr>
+
+</div>

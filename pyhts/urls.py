@@ -9,6 +9,13 @@ urlpatterns = [
     url('^accounts/$', views.my_account, name='my_account'),
     url('^logout$', views.logout, name='logout'),
 
+    url(r'^tags/(?P<tag_type>cell_lines|drugs)/$', views.tag_editor,
+        name='tag_editor'),
+    # url(r'^ajax/tags/set_name$', views.ajax_set_tag_name,
+    #     name='ajax_set_tag_name'),
+    url(r'^ajax/tags/assign$', views.ajax_assign_tag,
+        name='ajax_assign_tag'),
+
     url(r'^dataset/add$', views.dataset_upload, name='plate_upload'),
     url(r'^dataset/(?P<dataset_id>\d+)/$', views.view_dataset,
         name='view_dataset'),

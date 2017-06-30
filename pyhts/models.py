@@ -83,11 +83,31 @@ class CellLine(models.Model):
         return '%s (%d)' % (self.name, self.id)
 
 
+class CellLineTag(models.Model):
+    class Meta:
+        unique_together = (('tag_name', 'owner', 'cell_line'), )
+        index_together = (('tag_name', 'owner', 'cell_line'), )
+
+    tag_name = models.TextField()
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True)
+    cell_line = models.ForeignKey(CellLine)
+
+
 class Drug(models.Model):
     name = models.TextField(unique=True)
 
     def __str__(self):
         return '%s (%d)' % (self.name, self.id)
+
+
+class DrugTag(models.Model):
+    class Meta:
+        unique_together = (('tag_name', 'owner', 'drug'), )
+        index_together = (('tag_name', 'owner', 'drug'), )
+
+    tag_name = models.TextField()
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True)
+    drug = models.ForeignKey(Drug)
 
 
 class Plate(models.Model, PlateMap):

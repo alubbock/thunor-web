@@ -24,3 +24,8 @@ def sentry_environment():
 @register.simple_tag
 def pyhts_version():
     return pyhts.__version__
+
+
+@register.filter
+def get_item(dictionary, key):
+    return dictionary.get(key)

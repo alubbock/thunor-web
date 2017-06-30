@@ -131,7 +131,8 @@ var ajax = (function () {
         "page_annotate_dataset": "/dataset/{ARG}/annotate",
         "dataset_groupings": "/ajax/dataset/{ARG}/groupings",
         "get_plot": "/ajax/plot.json",
-        "get_plot_csv": "/ajax/plot.csv"
+        "get_plot_csv": "/ajax/plot.csv",
+        "assign_tag": "/ajax/tags/assign"
     };
 
     var url = function(view, arg) {
