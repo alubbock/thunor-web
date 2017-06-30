@@ -8,6 +8,9 @@
 <button class="btn btn-success" id="btn-add-tag">Add
     {{ entity_type }} Tag</button>
 
+<a role="button" class="btn btn-primary" href="{% url 'pyhts:home' %}">Return
+    to Home Page</a>
+
 <div class="tag-list">
 {% for tag in tag_list %}
     {% ifchanged tag.tag_name %}

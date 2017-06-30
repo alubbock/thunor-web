@@ -878,6 +878,11 @@ def ajax_get_dataset_groupings(request, dataset_id):
     ).values('cell_line_id', 'cell_line__name').distinct().order_by(
         'cell_line__name')
 
+    cell_line_tags = CellLineTag.objects.filter(
+        owner=request.user,
+        cell_line_id__in=[cl['cell_line_id'] for cl in cell_lines]
+    ).values_list('tag_name', flat=True).distinct().order_by('tag_name')
+
     # Get drug without combinations
     drug_objs = WellDrug.objects.filter(
         drug__isnull=False,
@@ -885,6 +890,11 @@ def ajax_get_dataset_groupings(request, dataset_id):
         well__plate__dataset_id=dataset_id,
     ).annotate(num_drugs=Count('well__welldrug')).filter(num_drugs=1).\
       values('drug_id', 'drug__name').distinct().order_by('drug__name')
+
+    drug_tags = DrugTag.objects.filter(
+        owner=request.user,
+        drug_id__in=[dr['drug_id'] for dr in drug_objs]
+    ).values_list('tag_name', flat=True).distinct().order_by('tag_name')
 
     if dataset.control_handling == 'A1':
         drug_objs = drug_objs.exclude(well__well_num=0)
@@ -903,7 +913,9 @@ def ajax_get_dataset_groupings(request, dataset_id):
     return JsonResponse({
         'cellLines': [{'id': cl['cell_line_id'],
                        'name': cl['cell_line__name']} for cl in cell_lines],
+        'cellLineTags': [{'id': tag, 'name': tag} for tag in cell_line_tags],
         'drugs': drug_list,
+        'drugTags': [{'id': tag, 'name': tag} for tag in drug_tags],
         'assays': [{'id': a['assay'], 'name': a['assay']} for a in assays],
         'controls': controls_list
     })
@@ -918,7 +930,20 @@ def ajax_get_plot(request, file_type='json'):
 
         dataset_id = int(request.GET['datasetId'])
         cell_line_id = request.GET.getlist('cellLineId')
+        cell_line_tag_names = request.GET.getlist('cellLineTags')
+        if not cell_line_id and cell_line_tag_names:
+            cell_line_id = CellLineTag.objects.filter(
+                owner=request.user,
+                tag_name__in=cell_line_tag_names
+            ).distinct().values_list(
+                'cell_line_id', flat=True)
         drug_id = request.GET.getlist('drugId')
+        drug_tag_names = request.GET.getlist('drugTags')
+        if not drug_id and drug_tag_names:
+            drug_id = DrugTag.objects.filter(
+                owner=request.user,
+                tag_name__in=drug_tag_names).distinct().values_list(
+                'drug_id', flat=True)
 
         if cell_line_id is None or len(cell_line_id) == 0 or \
                 drug_id is None or len(drug_id) == 0:
@@ -962,8 +987,6 @@ def ajax_get_plot(request, file_type='json'):
             return HttpResponse('No data found for this request. This '
                                 'drug/cell line/assay combination may not '
                                 'exist.', status=400)
-        title = _extend_title('Time course', df_data['doses'], drug_id,
-                              cell_line_id, dataset.name)
         if df_data['controls'] is None:
             df_controls = None
         else:
@@ -972,15 +995,12 @@ def ajax_get_plot(request, file_type='json'):
             df_data['doses'],
             df_data['assays'].loc[assay],
             df_controls,
-            title=title,
             log_yaxis=yaxis == 'log2',
             assay_name=assay,
-            show_dip_fit=request.GET.get('overlayDipFit', 'false') == 'true'
+            show_dip_fit=request.GET.get('overlayDipFit', 'false') == 'true',
+            subtitle=dataset.name
         )
     elif plot_type in ('dip', 'dippar'):
-        plot_type_str = 'Dose response'
-        if plot_type == 'dippar':
-            plot_type_str += ' parameters'
         # Fetch the DIP rates from the DB
         try:
             ctrl_dip_data, expt_dip_data = df_dip_rates(
@@ -1016,8 +1036,6 @@ def ajax_get_plot(request, file_type='json'):
                 w = [i for i in w if issubclass(i.category, AAFitWarning)]
                 if w:
                     return HttpResponse(w[0].message, status=400)
-        title = _extend_title(plot_type_str, expt_dip_data, drug_id,
-                              cell_line_id, dataset.name)
         if plot_type == 'dippar':
             if dip_par_sort is None:
                 return HttpResponse('Dose response parameter sort field is '
@@ -1026,7 +1044,7 @@ def ajax_get_plot(request, file_type='json'):
                 fit_params,
                 fit_params_sort=dip_par_sort,
                 log_yaxis=yaxis == 'log2',
-                title=title,
+                subtitle=dataset.name,
                 **dip_fit_kwargs
             )
         else:
@@ -1034,7 +1052,7 @@ def ajax_get_plot(request, file_type='json'):
             plot_fig = plot_dip(
                 fit_params,
                 is_absolute=dip_absolute,
-                title=title
+                subtitle=dataset.name
             )
     else:
         return HttpResponse('Unimplemented plot type: %s' % plot_type,
@@ -1055,23 +1073,6 @@ def ajax_get_plot(request, file_type='json'):
             'attachment; filename="{}.{}"'.format(strip_tags(title), file_type)
 
     return response
-
-
-def _extend_title(title, df, drug_id, cell_line_id, dataset_name=None):
-    if drug_id and len(drug_id) == 1:
-        drug_name = df.index.get_level_values(
-            'drug')[0]
-        title += ' for {}'.format(drug_name)
-    if cell_line_id and len(cell_line_id) == 1:
-        cell_line_name = df.index.get_level_values(
-            'cell_line')[0]
-        title += ' on {}'.format(cell_line_name)
-
-    if dataset_name:
-        title += '<br> <span style="color:#999;font-size:0.9em">' \
-                 '{}</span>'.format(dataset_name)
-
-    return title
 
 
 @login_required

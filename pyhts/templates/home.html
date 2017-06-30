@@ -12,7 +12,20 @@
     </div>
 </div>
 {% endif %}
+<div class="row">
+<div class="col-md-9">
+<h2>Datasets</h2>
 {% with create_dataset_btn=True %}{% include "dataset_table.html" %}{% endwith %}
+</div>
+
+<div class="col-md-3">
+<h2>Tags</h2>
+<a role="button" href="{% url 'pyhts:tag_editor' 'cell_lines' %}" class="btn
+btn-primary btn-sidebar">Cell Line Tags</a>
+<a role="button" href="{% url 'pyhts:tag_editor' 'drugs' %}" class="btn
+btn-primary btn-sidebar">Drug Tags</a>
+</div>
+</div>
 {% endblock %}
 
 {% block tailscript %}

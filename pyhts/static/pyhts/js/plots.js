@@ -116,11 +116,10 @@ var plots = function() {
     var pushOptionsToSelect = function ($select, optionList, selectedOption) {
         var len = optionList.length;
         for (var i = 0; i < len; i++) {
-            $select.append(
-                "<option value=\"" + optionList[i].id + "\"" +
-                (optionList[i].id === selectedOption ? " selected" : "") +
-                ">" + optionList[i].name + "</option>"
-            );
+            var $newOption = $("<option></option>");
+            $newOption.val(optionList[i].id);
+            $newOption.text(optionList[i].name);
+            $select.append($newOption);
         }
         if (len === 0) {
             $select.closest(".bootstrap-select").
@@ -128,6 +127,8 @@ var plots = function() {
         } else {
             if (selectedOption === undefined) {
                 $select.selectpicker("val", optionList[0].id);
+            } else {
+                $select.val(selectedOption);
             }
             $select.selectpicker("refresh");
         }
@@ -170,6 +171,8 @@ var plots = function() {
             showDipOverlay = false;
         }
 
+        var $nameTagSwitches = $dataPanel.find(".name-tag-switch");
+
         // Only show assay selection if the dataset contains more than one
         // assay
         var $changeAssay = $dataPanel.find(
@@ -196,12 +199,22 @@ var plots = function() {
             $changeCLDrug
                 .selectpicker(selectPickerOptionsSingle)
                 .selectpicker("refresh");
+            if($nameTagSwitches.find(":visible").length) {
+                // deactivate switches
+                $nameTagSwitches.find("button.names-link").click();
+            }
+            $nameTagSwitches.hide();
             $actionBtns.hide();
         } else {
             $changeCLDrug
                 .selectpicker(selectPickerOptionsMultiple)
                 .selectpicker("refresh")
                 .selectpicker("render");
+            if(!$nameTagSwitches.find(":visible").length) {
+                // activate switches
+                $nameTagSwitches.find("button.names-link").click();
+            }
+            $nameTagSwitches.show();
             $actionBtns.show();
         }
         setSelectPicker($dataPanel.find(".hts-change-assay"), showAssay);
@@ -230,6 +243,22 @@ var plots = function() {
         var $dataPanel = $(e.target).closest(".hts-change-data");
         setInput($dataPanel.find(".hts-dose-input-group"),
             $dataPanel.find("input[name=dipParSort]:checked").val() === "aa");
+    });
+    $(".tags-link").click(function() {
+        var $this = $(this).removeClass("btn-default").addClass("btn-primary");
+        var $formGroup = $this.closest(".form-group");
+        $formGroup.find(".names-link").removeClass("btn-primary")
+            .addClass("btn-default");
+        $formGroup.find(".tag-select").prop("disabled", false).selectpicker("refresh").selectpicker("show");
+        $formGroup.find(".name-select").prop("disabled", true).selectpicker("hide");
+    });
+    $(".names-link").click(function() {
+        var $this = $(this).removeClass("btn-default").addClass("btn-primary");
+        var $formGroup = $this.closest(".form-group");
+        $formGroup.find(".tags-link").removeClass("btn-primary")
+            .addClass("btn-default");
+        $formGroup.find(".tag-select").prop("disabled", true).selectpicker("hide");
+        $formGroup.find(".name-select").prop("disabled", false).selectpicker("refresh").selectpicker("show");
     });
     $(".hts-dose-select").find("li").click(function (e) {
         e.preventDefault();
@@ -353,15 +382,15 @@ var plots = function() {
 
     var prepareDataPanel = function($plotPanel, defaultOptions) {
         var $dataPanel = $plotPanel.find(".hts-change-data");
-        $dataPanel.find("select.hts-change-cell-line,select.hts-change-drug")
+        $dataPanel.find("select[name=cellLineId],select[name=drugId]")
             .selectpicker(selectPickerOptionsSingle);
         $dataPanel.data("loaded", true);
 
         var datasetId;
 
-        var $cellLineSelect = $dataPanel.find("select.hts-change-cell-line"),
-            $drugSelect = $dataPanel.find("select.hts-change-drug"),
-            $assaySelect = $dataPanel.find("select.hts-change-assay");
+        var $cellLineSelect = $dataPanel.find("select[name=cellLineId]"),
+            $drugSelect = $dataPanel.find("select[name=drugId]"),
+            $assaySelect = $dataPanel.find("select[name=assayId]");
 
         if(defaultOptions !== undefined) {
             // Set the dataset ID
@@ -390,6 +419,18 @@ var plots = function() {
             if (data.assays.length > 1) {
                 setSelectPicker($assaySelect, true);
             }
+            var $selectClTags = $dataPanel.find("select[name=cellLineTags]");
+            $selectClTags.selectpicker("hide");
+            pushOptionsToSelect(
+                $selectClTags,
+                data.cellLineTags
+            );
+            var $selectDrTags = $dataPanel.find("select[name=drugTags]");
+            $selectDrTags.selectpicker("hide");
+            pushOptionsToSelect(
+                $selectDrTags,
+                data.drugTags
+            );
 
             if(!plotOptionsCache.hasOwnProperty(datasetId)) {
                 plotOptionsCache[datasetId] = data;
@@ -462,6 +503,16 @@ var plots = function() {
         // is added to the DOM or the bootstrap events don't fire properly
         var formData = objectifyForm($panel.find("form").serializeArray());
         prepareDataPanel($newPanel, formData);
+        // Set name/tag toggle switches
+        $panel.find(".names-link.btn-primary,.tags-link.btn-primary").each(
+          function(i, obj) {
+              var $this = $(obj);
+              $newPanel
+                  .find($this.hasClass("names-link") ?
+                                       ".names-link" : ".tags-link")
+                  .filter("[data-entity=\""+$this.data("entity")+"\"]")
+                  .click();
+        });
 
         if($panel.find(".hts-change-data-btn").parent().hasClass("open")) {
             $newPanel.find(".hts-change-data-btn").click();
