@@ -2,6 +2,7 @@ var Plotly = require("plotly.js/lib/core");
 
 var modules = [
     require("plotly.js/lib/bar"),
+    require("plotly.js/lib/box"),
     require("plotly.js/lib/scatter")
 ];
 

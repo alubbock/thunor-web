@@ -156,7 +156,9 @@ var plots = function() {
             showYaxisScale = true,
             showDipType = false,
             showDipParSort = false,
-            showDipOverlay = $dataPanel.find("input[name=logTransform]:checked").val() === "log2";
+            showDipOverlay = $dataPanel.find(
+                "input[name=logTransform]:checked").val() === "log2",
+            showAggregate = false;
         if (plotType === "dip") {
             showAssay = false;
             showYaxisScale = false;
@@ -169,6 +171,7 @@ var plots = function() {
             showDipType = false;
             showDipParSort = true;
             showDipOverlay = false;
+            showAggregate = true;
         }
 
         var $nameTagSwitches = $dataPanel.find(".name-tag-switch");
@@ -226,6 +229,7 @@ var plots = function() {
         setInput($dataPanel.find(".hts-dose-input-group"),
             plotType === "dippar" &&
             $dataPanel.find("input[name=dipParSort]:checked").val() === "aa");
+        setRadio($dataPanel.find(".hts-aggregate"), showAggregate);
     };
 
     // Data panel events

@@ -931,19 +931,42 @@ def ajax_get_plot(request, file_type='json'):
         dataset_id = int(request.GET['datasetId'])
         cell_line_id = request.GET.getlist('cellLineId')
         cell_line_tag_names = request.GET.getlist('cellLineTags')
+        aggregate_cell_lines = request.GET.get('aggregateCellLines', False) \
+                               == "true"
         if not cell_line_id and cell_line_tag_names:
-            cell_line_id = CellLineTag.objects.filter(
-                owner=request.user,
-                tag_name__in=cell_line_tag_names
-            ).distinct().values_list(
-                'cell_line_id', flat=True)
+            if not aggregate_cell_lines:
+                cell_line_id = CellLineTag.objects.filter(
+                    owner=request.user,
+                    tag_name__in=cell_line_tag_names
+                ).distinct().values_list(
+                    'cell_line_id', flat=True)
+            else:
+                cell_line_tag_objs = CellLineTag.objects.filter(
+                    owner=request.user,
+                    tag_name__in=cell_line_tag_names).values_list(
+                    'tag_name', 'cell_line_id', 'cell_line__name')
+                cell_line_id = [cl[1] for cl in cell_line_tag_objs]
+                aggregate_cell_lines = defaultdict(list)
+                for tag_name, _, cl_name in cell_line_tag_objs:
+                    aggregate_cell_lines[tag_name].append(cl_name)
         drug_id = request.GET.getlist('drugId')
         drug_tag_names = request.GET.getlist('drugTags')
+        aggregate_drugs = request.GET.get('aggregateDrugs', False) == "true"
         if not drug_id and drug_tag_names:
-            drug_id = DrugTag.objects.filter(
-                owner=request.user,
-                tag_name__in=drug_tag_names).distinct().values_list(
-                'drug_id', flat=True)
+            if not aggregate_drugs:
+                drug_id = DrugTag.objects.filter(
+                    owner=request.user,
+                    tag_name__in=drug_tag_names).distinct().values_list(
+                    'drug_id', flat=True)
+            else:
+                drug_tag_objs = DrugTag.objects.filter(
+                    owner=request.user,
+                    tag_name__in=drug_tag_names).values_list(
+                    'tag_name', 'drug_id', 'drug__name')
+                drug_id = [dt[1] for dt in drug_tag_objs]
+                aggregate_drugs = defaultdict(list)
+                for tag_name, _, dr_name in drug_tag_objs:
+                    aggregate_drugs[tag_name].append(dr_name)
 
         if cell_line_id is None or len(cell_line_id) == 0 or \
                 drug_id is None or len(drug_id) == 0:
@@ -1045,6 +1068,8 @@ def ajax_get_plot(request, file_type='json'):
                 fit_params_sort=dip_par_sort,
                 log_yaxis=yaxis == 'log2',
                 subtitle=dataset.name,
+                aggregate_cell_lines=aggregate_cell_lines,
+                aggregate_drugs=aggregate_drugs,
                 **dip_fit_kwargs
             )
         else:
