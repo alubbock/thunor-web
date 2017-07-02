@@ -1181,11 +1181,13 @@ def ajax_assign_tag(request):
 
     try:
         tag_name = request.POST.get('tagName')
+        if tag_name == '':
+            raise ValueError()
         tag_type = request.POST.get('tagType')
         if tag_type not in ('cl', 'drug'):
             raise ValueError
         entity_ids = [int(e_id) for e_id in request.POST.getlist('entityId')]
-    except (KeyError, ValueError) as e:
+    except (KeyError, ValueError):
         return JsonResponse({'error': 'Form not properly formatted'},
                             status=400)
 

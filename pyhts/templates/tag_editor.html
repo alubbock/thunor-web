@@ -12,11 +12,9 @@
     to Home Page</a>
 
 <div class="tag-list">
-{% for tag in tag_list %}
-    {% ifchanged tag.tag_name %}
-        {% include "tag_editor_tag_template.html" %}
-    {% endifchanged %}
-{% endfor %}
+{% for tag in tag_list %}{% ifchanged tag.tag_name %}
+{% include "tag_editor_tag_template.html" %}
+{% endifchanged %}{% endfor %}
 </div>
 
 {% include "tag_editor_tag_template.html" %}

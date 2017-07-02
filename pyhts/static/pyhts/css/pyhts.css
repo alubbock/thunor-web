@@ -766,3 +766,17 @@ div.hts-change-cell-line .bs-actionsbox,div.hts-change-drug .bs-actionsbox {
 .plotly-graph-div {
     overflow-x: hidden;
 }
+/* Tagging interface */
+h4.tag-header {
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+.tag-list {
+    margin-top: 20px;
+}
+form.set-tag-targets button[type=submit] {
+    margin-top: 10px;
+}
+.tag-container {
+    position: relative;
+}

@@ -10,9 +10,10 @@ var activateSelect = function($select) {
 
 var activate = function() {
     $("#btn-add-tag").click(function () {
-        var $select = $(".tag-container").last().clone(true).prependTo(".tag-list")
-            .show().find("select");
-        activateSelect($select);
+        var $container = $(".tag-container").last().clone(true).prependTo(".tag-list")
+            .fadeIn(400);
+        activateSelect($container.find("select"));
+        $container.find("input").focus();
     });
     $("form.set-tag-name").submit(function (e) {
         e.preventDefault();
@@ -27,16 +28,20 @@ var activate = function() {
                     "exists");
             return;
         }
+        pyHTS.state.tagNames.push(tagName);
         var $tagContainer = $form.closest(".tag-container");
         var $taggingForm = $tagContainer.find("form.set-tag-targets");
         $tagContainer.find(".tag-name").text(tagName);
-        $taggingForm.find("input[name=tagName]").val(tagName);
+        $tagContainer.find("input[name=tagName]").val(tagName);
+        $tagContainer.find(".tag-header").show();
         $form.hide();
-        $taggingForm.show();
+        $taggingForm.slideDown();
         $tagContainer.find("form.delete-tag").show();
     });
     $("form.set-tag-targets").submit(function (e) {
         var $form = $(this);
+        var $container = $form.closest(".tag-container");
+        $container.loadingOverlay("show");
         $.ajax({
             type: "POST",
             headers: {"X-CSRFToken": ajax.getCsrfToken()},
@@ -44,7 +49,11 @@ var activate = function() {
             data: $form.serialize(),
             success: function () {
                 $form.find("button[type=submit]").hide();
-                ui.okModal("Tag updated", "Tag changes saved");
+                $container.find(".label-success").fadeIn(400).delay(2000).fadeOut(400);
+            },
+            error: ajax.ajaxErrorCallback,
+            complete: function() {
+                $container.loadingOverlay("hide");
             }
         });
         e.preventDefault();
@@ -54,16 +63,25 @@ var activate = function() {
     });
     $("form.delete-tag").submit(function (e) {
         var $form = $(this);
+        var $container = $form.closest(".tag-container");
+        $container.loadingOverlay("show");
+        var tagName = $form.find("input[name=tagName]").val();
         $.ajax({
             type: "POST",
             headers: {"X-CSRFToken": ajax.getCsrfToken()},
             url: ajax.url("assign_tag"),
             data: $form.serialize(),
             success: function () {
-                $form.closest(".tag-container").remove();
-                ui.okModal("Tag deleted", "Tag deleted");
+                $container.remove();
+                var index = $.inArray(tagName, pyHTS.state.tagNames);
+                if (index !== -1) {
+                    pyHTS.state.tagNames.splice(index, 1);
+                }
+            },
+            error: ajax.ajaxErrorCallback,
+            complete: function() {
+                $container.loadingOverlay("hide");
             }
-
         });
         e.preventDefault();
     });
