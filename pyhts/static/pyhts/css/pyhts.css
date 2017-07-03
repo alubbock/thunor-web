@@ -702,7 +702,7 @@ user-select: none;}
 /*.sortable-panels .btn-group {*/
     /*margin-left: 10px;*/
 /*}*/
-.hts-change-data .btn-group {
+.hts-change-data .btn-group:not(.btn-group-inline) {
     width: 100%;
     height: 34px;
     margin-left: 0;
@@ -779,4 +779,7 @@ form.set-tag-targets button[type=submit] {
 }
 .tag-container {
     position: relative;
+}
+.plot-type-tc .hidden-tc, .plot-type-dip .hidden-dip, .plot-type-dippar .hidden-dippar  {
+    display: none;
 }

@@ -1038,15 +1038,29 @@ def ajax_get_plot(request, file_type='json'):
                                 'exist.', status=400)
         dip_fit_kwargs = {}
         try:
-            dose_base = float(request.GET['doseBase'])
-            dose_multiplier = float(request.GET['doseMultiplier'])
-            dip_fit_kwargs['aa_max_conc'] = dose_base * dose_multiplier
+            dose_base = request.GET.get('doseBasedipParSort', None)
+            dose_base2 = request.GET.get('doseBasedipParTwo', None)
+
+            if dose_base is not None and dose_base2 is not None:
+                return HttpResponse('Comparing AA to AA is currently not '
+                                    'available, as more than one maximum '
+                                    'dose is not supported', status=400)
+
+            if dose_base is not None:
+                dose_base = float(dose_base)
+                dose_multiplier = float(request.GET['doseMultiplierdipParSort'])
+                dip_fit_kwargs['aa_max_conc'] = dose_base * dose_multiplier
+            elif dose_base2 is not None:
+                dose_base2 = float(dose_base2)
+                dose_multiplier = float(request.GET['doseMultiplierdipParTwo'])
+                dip_fit_kwargs['aa_max_conc'] = dose_base2 * dose_multiplier
         except KeyError:
             pass
         except ValueError:
             return HttpResponse('Maximum dose must be a numerical value',
                                 status=400)
         dip_par_sort = request.GET.get('dipParSort', None)
+        dip_par_two = request.GET.get('dipParTwo', None)
         # Fit Hill curves and compute parameters
         with warnings.catch_warnings(record=True) as w:
             fit_params = dip_fit_params(
@@ -1063,15 +1077,19 @@ def ajax_get_plot(request, file_type='json'):
             if dip_par_sort is None:
                 return HttpResponse('Dose response parameter sort field is '
                                     'required', status=400)
-            plot_fig = plot_dip_params(
-                fit_params,
-                fit_params_sort=dip_par_sort,
-                log_yaxis=yaxis == 'log2',
-                subtitle=dataset.name,
-                aggregate_cell_lines=aggregate_cell_lines,
-                aggregate_drugs=aggregate_drugs,
-                **dip_fit_kwargs
-            )
+            try:
+                plot_fig = plot_dip_params(
+                    fit_params,
+                    fit_params_sort=dip_par_sort,
+                    fit_params_compare=dip_par_two,
+                    log_yaxis=yaxis == 'log2',
+                    subtitle=dataset.name,
+                    aggregate_cell_lines=aggregate_cell_lines,
+                    aggregate_drugs=aggregate_drugs,
+                    **dip_fit_kwargs
+                )
+            except ValueError as e:
+                return HttpResponse(e, status=400)
         else:
             dip_absolute = request.GET.get('dipType', 'rel') == 'abs'
             plot_fig = plot_dip(

@@ -107,7 +107,7 @@
         </div>
         <div class="panel-body">
 
-                    <div class="hts-change-data container dropdown-menu"
+                    <div class="hts-change-data container dropdown-menu plot-type-tc"
                          data-loaded="false">
 <form>
 <div class="row">
@@ -124,7 +124,7 @@
               </label>
               <label class="btn btn-primary">
                   <input type="radio" name="plotType" value="dip"
-                         autocomplete="off"><span>Dose Response</span>
+                         autocomplete="off"><span>Dose Response Curves</span>
               </label>
               <label class="btn btn-primary">
                   <input type="radio" name="plotType" value="dippar"
@@ -139,14 +139,15 @@
     <div class="col-sm-6">
     <input type="hidden" name="datasetId">
     <div class="form-group">
-        <span class="pull-right name-tag-switch" style="display:none">
-            <button href="#" data-entity="cell_line"
-                    class="names-link btn btn-default btn-xs"
+        <div class="pull-right name-tag-switch btn-group btn-group-inline
+        hidden-tc">
+            <button data-entity="cell_line"
+                    class="names-link btn btn-default btn-xs active"
                    data-enabled="true" type="button">Names</button>
-            <button href="#" data-entity="cell_line"
+            <button data-entity="cell_line"
                     class="tags-link btn btn-default btn-xs"
                     data-enabled="false" type="button">Tags</button>
-        </span>
+        </div>
         <label for="hts-change-cell-line">Cell Line</label>
         <select multiple data-live-search="true" name="cellLineId"
                 class="hts-change-cell-line form-control name-select"
@@ -172,11 +173,12 @@
         </div>
     </div>
     <div class="form-group">
-        <span class="pull-right name-tag-switch" style="display:none">
-            <button href="#" data-entity="drug"
-                    class="names-link btn btn-default btn-xs"
+        <span class="pull-right name-tag-switch btn-group btn-group-inline
+        hidden-tc">
+            <button data-entity="drug"
+                    class="names-link btn btn-default btn-xs active"
                    data-enabled="true" type="button">Names</button>
-            <button href="#" data-entity="drug"
+            <button data-entity="drug"
                     class="tags-link btn btn-default btn-xs"
                     data-enabled="false" type="button">Tags</button>
         </span>
@@ -203,7 +205,7 @@
         </div>
         </div>
     </div>
-    <div class="form-group" style="display:none">
+    <div class="form-group hidden-dip hidden-dippar" style="display:none">
         <label for="hts-change-assay">Assay</label>
         <select name="assayId" class="hts-change-assay form-control"
                 title="Loading..." disabled>
@@ -229,39 +231,13 @@
           </label>
         </div>
     </div>
-    <div class="form-group" style="display:none">
-        <label for="hts-dippar-sort">Sort By</label>
-        <div class="hts-dippar-sort btn-group btn-group-5 btn-group-responsive"
-             data-toggle="buttons">
-          <label class="btn btn-default active">
-            <input type="radio" name="dipParSort" value="ic50"
-                   autocomplete="off" checked disabled> IC<sub>50</sub>
-          </label>
-          <label class="btn btn-default">
-            <input type="radio" name="dipParSort" value="ec50"
-                   autocomplete="off" disabled> EC<sub>50</sub>
-          </label>
-          <label class="btn btn-default">
-            <input type="radio" name="dipParSort" value="emax"
-                   autocomplete="off" disabled> E<sub>max</sub>
-          </label>
-          <label class="btn btn-default">
-            <input type="radio" name="dipParSort" value="hill"
-                   autocomplete="off" disabled> Hill
-          </label>
-          <label class="btn btn-default">
-            <input type="radio" name="dipParSort" value="aa"
-                   autocomplete="off" disabled> AA
-          </label>
-        </div>
-    </div>
-    <div class="form-group" style="display:none">
-        <label for="hts-dose-input-group">Maximum Dose</label>
-        {% with editable=True default_dose_base="1" default_dose_multiplier="1e-3" default_dose_multiplier_label="mM" %}
-        {% include "dose_input.html" %}
-        {% endwith %}
-    </div>
-    <div class="form-group">
+    {% with param_form_name="dipParSort" param_label="Parameter" %}
+    {% include "parameter_selection_panel.html" %}
+    {% endwith %}
+    {% with parameter_toggle=True param_form_name="dipParTwo" param_label="Second Parameter" %}
+    {% include "parameter_selection_panel.html" %}
+    {% endwith %}
+    <div class="form-group hidden-dip hidden-dippar">
         <label for="hts-log-transform">Vertical Axis</label>
         <div class="hts-log-transform btn-group btn-group-2 btn-group-responsive"
              data-toggle="buttons">
@@ -275,7 +251,7 @@
           </label>
         </div>
     </div>
-    <div class="form-group">
+    <div class="form-group hidden-dip hidden-dippar">
         <label for="hts-show-dip-fit">Overlay Dip Fit</label>
         <div class="hts-show-dip-fit btn-group btn-group-2
         btn-group-responsive"
@@ -290,7 +266,7 @@
           </label>
         </div>
     </div>
-    <div class="form-group" style="display:none">
+    <div class="form-group hidden-tc hidden-dippar">
         <label for="hts-dip-type">Vertical Axis</label>
         <div class="hts-dip-type btn-group btn-group-2 btn-group-responsive"
              data-toggle="buttons">

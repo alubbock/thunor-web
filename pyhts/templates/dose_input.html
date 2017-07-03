@@ -3,9 +3,9 @@
     <input type="text" class="form-control hts-dose-input"
            placeholder="Dose"
            {% if not editable %}disabled{% endif %}
-           name="doseBase" value="{{ default_dose_base }}" />
+           name="doseBase{{ repeatN }}" value="{{ default_dose_base }}" />
     <div class="input-group-btn">
-        <input type="hidden" name="doseMultiplier" value="{{ default_dose_multiplier }}" />
+        <input type="hidden" name="doseMultiplier{{ repeatN }}" value="{{ default_dose_multiplier }}" />
         <button type="button" class="btn btn-default dropdown-toggle"
                 data-toggle="dropdown"
                 aria-haspopup="true"

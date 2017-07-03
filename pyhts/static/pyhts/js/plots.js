@@ -146,43 +146,18 @@ var plots = function() {
 
     var setInput = function($inputDiv, newState) {
         $inputDiv.find("input[type=text]").prop("disabled", !newState);
-        $inputDiv.closest(".form-group").toggle(newState);
+        if(newState) {
+            $inputDiv.closest(".form-group").slideDown(newState);
+        } else {
+            $inputDiv.closest(".form-group").slideUp(newState);
+        }
     };
 
     var setPlotType = function($dataPanel) {
         var plotType = $dataPanel.find("input[name=plotType]:checked").val();
-        var showErrorBars = false,
-            showAssay = true,
-            showYaxisScale = true,
-            showDipType = false,
-            showDipParSort = false,
-            showDipOverlay = $dataPanel.find(
-                "input[name=logTransform]:checked").val() === "log2",
-            showAggregate = false;
-        if (plotType === "dip") {
-            showAssay = false;
-            showYaxisScale = false;
-            showDipType = true;
-            showDipOverlay = false;
-        }
-        if (plotType === "dippar") {
-            showAssay = false;
-            showYaxisScale = false;
-            showDipType = false;
-            showDipParSort = true;
-            showDipOverlay = false;
-            showAggregate = true;
-        }
-
-        var $nameTagSwitches = $dataPanel.find(".name-tag-switch");
-
-        // Only show assay selection if the dataset contains more than one
-        // assay
-        var $changeAssay = $dataPanel.find(
-            "select.hts-change-assay > option").not(".bs-title-option");
-        if (showAssay && $changeAssay.length <= 1) {
-            showAssay = false;
-        }
+        $dataPanel.removeClass (function (index, className) {
+            return (className.match (/(^|\s)plot-type-\S+/g) || []).join(" ");
+        }).addClass("plot-type-"+plotType);
 
         // Select multiple cell lines/drugs or not
         var $changeCL = $dataPanel.find("select.hts-change-cell-line"),
@@ -202,34 +177,23 @@ var plots = function() {
             $changeCLDrug
                 .selectpicker(selectPickerOptionsSingle)
                 .selectpicker("refresh");
-            if($nameTagSwitches.find(":visible").length) {
-                // deactivate switches
-                $nameTagSwitches.find("button.names-link").click();
-            }
-            $nameTagSwitches.hide();
+
+            $dataPanel.find("button.names-link").click();
             $actionBtns.hide();
         } else {
             $changeCLDrug
                 .selectpicker(selectPickerOptionsMultiple)
                 .selectpicker("refresh")
                 .selectpicker("render");
-            if(!$nameTagSwitches.find(":visible").length) {
-                // activate switches
-                $nameTagSwitches.find("button.names-link").click();
-            }
-            $nameTagSwitches.show();
+
             $actionBtns.show();
         }
-        setSelectPicker($dataPanel.find(".hts-change-assay"), showAssay);
-        setRadio($dataPanel.find(".hts-log-transform"), showYaxisScale);
-        setRadio($dataPanel.find(".hts-dip-type"), showDipType);
-        setRadio($dataPanel.find(".hts-error-bars"), showErrorBars);
-        setRadio($dataPanel.find(".hts-dippar-sort"), showDipParSort);
-        setRadio($dataPanel.find(".hts-show-dip-fit"), showDipOverlay);
-        setInput($dataPanel.find(".hts-dose-input-group"),
-            plotType === "dippar" &&
-            $dataPanel.find("input[name=dipParSort]:checked").val() === "aa");
-        setRadio($dataPanel.find(".hts-aggregate"), showAggregate);
+        var $toggleSwitch = $dataPanel.find("input[name=dipParTwoToggle]");
+        if (plotType === "dippar") {
+            toggleSwitch($toggleSwitch, $toggleSwitch.prop("checked"));
+        } else {
+            setRadio($dataPanel.find(".hts-aggregate"), false);
+        }
     };
 
     // Data panel events
@@ -243,24 +207,24 @@ var plots = function() {
             $dataPanel.find("input[name=logTransform]:checked").val() === "log2"
         );
     });
-    $("input[name=dipParSort]").change(function(e) {
-        var $dataPanel = $(e.target).closest(".hts-change-data");
-        setInput($dataPanel.find(".hts-dose-input-group"),
-            $dataPanel.find("input[name=dipParSort]:checked").val() === "aa");
+    $(".hts-dippar-sort input[type=radio]").change(function(e) {
+        var $target = $(e.target);
+        setInput(
+            $target.closest(".hts-dippar-group").find(".hts-dose-input-group"),
+            $target.val() === "aa"
+        );
     });
     $(".tags-link").click(function() {
-        var $this = $(this).removeClass("btn-default").addClass("btn-primary");
+        var $this = $(this).addClass("active");
         var $formGroup = $this.closest(".form-group");
-        $formGroup.find(".names-link").removeClass("btn-primary")
-            .addClass("btn-default");
+        $formGroup.find(".names-link").removeClass("active");
         $formGroup.find(".tag-select").prop("disabled", false).selectpicker("refresh").selectpicker("show");
         $formGroup.find(".name-select").prop("disabled", true).selectpicker("hide");
     });
     $(".names-link").click(function() {
-        var $this = $(this).removeClass("btn-default").addClass("btn-primary");
+        var $this = $(this).addClass("active");
         var $formGroup = $this.closest(".form-group");
-        $formGroup.find(".tags-link").removeClass("btn-primary")
-            .addClass("btn-default");
+        $formGroup.find(".tags-link").removeClass("active");
         $formGroup.find(".tag-select").prop("disabled", true).selectpicker("hide");
         $formGroup.find(".name-select").prop("disabled", false).selectpicker("refresh").selectpicker("show");
     });
@@ -384,8 +348,30 @@ var plots = function() {
       return returnArray;
     }
 
+    var toggleSwitch = function($toggleSwitch, state) {
+        var $dataPanel = $toggleSwitch.closest(".hts-change-data");
+        setRadio($dataPanel.find(".hts-aggregate"), !state);
+        var $group = $toggleSwitch.closest(".hts-dippar-group");
+        var $buttons = $group.find(".hts-dippar-sort");
+        $buttons.find("input[type=radio]").prop("disabled", !state);
+        setInput($group.find(".hts-dose-input-group"), state &&
+            $buttons.find("input[type=radio]:checked").val() === "aa");
+        if(state) {
+            $buttons.slideDown();
+        } else {
+            $buttons.slideUp();
+        }
+    };
+
     var prepareDataPanel = function($plotPanel, defaultOptions) {
         var $dataPanel = $plotPanel.find(".hts-change-data");
+
+        $dataPanel.find("input.dipParTwoToggle").bootstrapSwitch({
+            "onSwitchChange": function(event, state) {
+                toggleSwitch($(event.currentTarget), state);
+            }
+        });
+
         $dataPanel.find("select[name=cellLineId],select[name=drugId]")
             .selectpicker(selectPickerOptionsSingle);
         $dataPanel.data("loaded", true);
@@ -452,6 +438,8 @@ var plots = function() {
                                 $obj.val(val);
                             } else if (obj.type === "radio" && $obj.val() === val) {
                                 $obj.click();
+                            } else if (obj.type === "checkbox" && val === "on") {
+                                $obj.bootstrapSwitch("state", true);
                             }
                         }
                     }
@@ -508,7 +496,7 @@ var plots = function() {
         var formData = objectifyForm($panel.find("form").serializeArray());
         prepareDataPanel($newPanel, formData);
         // Set name/tag toggle switches
-        $panel.find(".names-link.btn-primary,.tags-link.btn-primary").each(
+        $panel.find(".names-link.active,.tags-link.active").each(
           function(i, obj) {
               var $this = $(obj);
               $newPanel
