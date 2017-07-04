@@ -233,8 +233,8 @@ var plots = function() {
         var $this = $(this);
         var $inputGroupBtn = $this.closest(".input-group-btn");
         $inputGroupBtn.find(".hts-active-dose-unit")
-                .data("dose", $this.data("dose")).text($this.text());
-        $inputGroupBtn.find("input[name=doseMultiplier]").val($this.data("dose"));
+                .text($this.text());
+        $inputGroupBtn.find("input").val($this.data("dose"));
     });
     $(".hts-change-data > form").submit(function (e) {
         var $plotPanel = $(this).closest(".plot-panel");
@@ -444,12 +444,15 @@ var plots = function() {
                         }
                     }
                 });
-                if(defaultOptions.hasOwnProperty("doseMultiplier")) {
-                    $dataPanel.find(".hts-active-dose-unit").text(
-                        $dataPanel.find(".hts-dose-select")
-                            .find("li[data-dose="+defaultOptions["doseMultiplier"]+"]").text()
+                // Update dose multiplier options
+                $dataPanel.find(".hts-active-dose-unit").each(function(i, obj) {
+                    var $obj = $(obj);
+                    var $inputGroup = $obj.closest(".input-group-btn");
+                    var doseNumeric = $inputGroup.find("input").val();
+                    $obj.text(
+                        $inputGroup.find(".hts-dose-select").find("li[data-dose="+doseNumeric+"]").text()
                     );
-                }
+                });
             }
         };
 
