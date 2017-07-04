@@ -1037,28 +1037,32 @@ def ajax_get_plot(request, file_type='json'):
                                 'drug/cell line/assay combination may not '
                                 'exist.', status=400)
         dip_fit_kwargs = {}
-        try:
-            dose_base = request.GET.get('doseBasedipParSort', None)
-            dose_base2 = request.GET.get('doseBasedipParTwo', None)
+        if plot_type == 'dippar':
+            try:
+                dose_base = request.GET.get('doseBasedipParSort', None)
+                dose_base2 = request.GET.get('doseBasedipParTwo', None)
 
-            if dose_base is not None and dose_base2 is not None:
-                return HttpResponse('Comparing AA to AA is currently not '
-                                    'available, as more than one maximum '
-                                    'dose is not supported', status=400)
+                if dose_base is not None and dose_base2 is not None:
+                    return HttpResponse('Comparing AA to AA is currently not '
+                                        'available, as more than one maximum '
+                                        'dose is not supported', status=400)
 
-            if dose_base is not None:
-                dose_base = float(dose_base)
-                dose_multiplier = float(request.GET['doseMultiplierdipParSort'])
-                dip_fit_kwargs['aa_max_conc'] = dose_base * dose_multiplier
-            elif dose_base2 is not None:
-                dose_base2 = float(dose_base2)
-                dose_multiplier = float(request.GET['doseMultiplierdipParTwo'])
-                dip_fit_kwargs['aa_max_conc'] = dose_base2 * dose_multiplier
-        except KeyError:
-            pass
-        except ValueError:
-            return HttpResponse('Maximum dose must be a numerical value',
-                                status=400)
+                if dose_base is not None:
+                    dose_base = float(dose_base)
+                    dose_multiplier = \
+                        float(request.GET['doseMultiplierdipParSort'])
+                    dip_fit_kwargs['aa_max_conc'] = dose_base * dose_multiplier
+                elif dose_base2 is not None:
+                    dose_base2 = float(dose_base2)
+                    dose_multiplier = \
+                        float(request.GET['doseMultiplierdipParTwo'])
+                    dip_fit_kwargs['aa_max_conc'] = dose_base2 * \
+                        dose_multiplier
+            except KeyError:
+                pass
+            except ValueError:
+                return HttpResponse('Maximum dose must be a numerical value',
+                                    status=400)
         dip_par_sort = request.GET.get('dipParSort', None)
         dip_par_two = request.GET.get('dipParTwo', None)
         # Fit Hill curves and compute parameters
@@ -1069,7 +1073,7 @@ def ajax_get_plot(request, file_type='json'):
                 **dip_fit_kwargs
             )
             # Currently only care about warnings if plotting AA
-            if dip_par_sort == 'aa':
+            if plot_type == 'dippar' and dip_par_sort == 'aa':
                 w = [i for i in w if issubclass(i.category, AAFitWarning)]
                 if w:
                     return HttpResponse(w[0].message, status=400)
