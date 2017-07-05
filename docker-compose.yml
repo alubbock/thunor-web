@@ -19,7 +19,7 @@ services:
       - ./_state/logs/nginx/:/var/log/nginx/
       - ./_state/thunor-files/:/srv/thunor-files/:ro
       - ./_state/thunor-static/:/srv/thunor-static/:ro
-      - /etc/letsencrypt/:/etc/letsencrypt/:ro
+      - ./_state/certbot/:/etc/letsencrypt/:ro
     ports:
       - "80:80"
       - "443:443"

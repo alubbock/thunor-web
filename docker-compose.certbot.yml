@@ -1,0 +1,13 @@
+version: '2'
+
+services:
+  certbot:
+    image: certbot/certbot
+    entrypoint: ""
+    volumes:
+      - ./_state/certbot:/etc/letsencrypt
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - TERM=xterm
