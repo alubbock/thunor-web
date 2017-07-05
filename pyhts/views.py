@@ -738,10 +738,12 @@ def xlsx_get_assay_data(request, dataset_id):
 
 @login_required
 def plate_designer(request, dataset_id):
-    try:
-        dataset = HTSDataset.objects.get(id=dataset_id)
-    except HTSDataset.DoesNotExist:
+    plates = list(Plate.objects.filter(dataset_id=dataset_id).order_by(
+        'id').select_related('dataset'))
+    if not plates:
         raise Http404()
+
+    dataset = plates[0].dataset
 
     editable = True
 
@@ -749,8 +751,6 @@ def plate_designer(request, dataset_id):
         editable = False
         if not request.user.has_perm('view_plate_layout', dataset):
             raise Http404()
-
-    plates = list(Plate.objects.filter(dataset_id=dataset_id).order_by('id'))
 
     plate_sizes = []
     for plate in plates:
@@ -781,6 +781,7 @@ def plate_designer(request, dataset_id):
 def view_dataset(request, dataset_id):
     try:
         dataset = HTSDataset.objects.filter(id=dataset_id)\
+        .select_related('owner')\
         .annotate(last_upload=Max('platefile__upload_date'),
                   last_annotated=Max('plate__last_annotated')).get()
     except HTSDataset.DoesNotExist:
