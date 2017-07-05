@@ -209,10 +209,10 @@ var plots = function() {
     });
     $(".hts-dippar-sort input[type=radio]").change(function(e) {
         var $target = $(e.target);
-        setInput(
-            $target.closest(".hts-dippar-group").find(".hts-dose-input-group"),
-            $target.val() === "aa"
-        );
+        // setInput(
+        //     $target.closest(".hts-dippar-group").find(".hts-dose-input-group"),
+        //     $target.val() === "aa"
+        // );
     });
     $(".tags-link").click(function() {
         var $this = $(this).addClass("active");
@@ -354,8 +354,8 @@ var plots = function() {
         var $group = $toggleSwitch.closest(".hts-dippar-group");
         var $buttons = $group.find(".hts-dippar-sort");
         $buttons.find("input[type=radio]").prop("disabled", !state);
-        setInput($group.find(".hts-dose-input-group"), state &&
-            $buttons.find("input[type=radio]:checked").val() === "aa");
+        // setInput($group.find(".hts-dose-input-group"), state &&
+        //     $buttons.find("input[type=radio]:checked").val() === "aa");
         if(state) {
             $buttons.slideDown();
         } else {

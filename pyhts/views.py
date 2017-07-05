@@ -1037,41 +1037,14 @@ def ajax_get_plot(request, file_type='json'):
             return HttpResponse('No data found for this request. This '
                                 'drug/cell line/assay combination may not '
                                 'exist.', status=400)
-        dip_fit_kwargs = {}
+
         dip_par_sort = request.GET.get('dipParSort', None)
         dip_par_two = request.GET.get('dipParTwo', None)
-        if plot_type == 'dippar':
-            try:
-                if dip_par_sort == 'aa' and dip_par_two == 'aa':
-                    return HttpResponse('Comparing AA to AA is currently not '
-                                        'available, as more than one maximum '
-                                        'dose is not supported', status=400)
-                elif dip_par_sort == 'aa':
-                    dose_base = request.GET['doseBasedipParSort']
-                    dose_base = float(dose_base)
-                    dose_multiplier = \
-                        float(request.GET['doseMultiplierdipParSort'])
-                    dip_fit_kwargs['aa_max_conc'] = dose_base * dose_multiplier
-
-                elif dip_par_two == 'aa':
-                    dose_base2 = request.GET.get('doseBasedipParTwo', None)
-
-                    dose_base2 = float(dose_base2)
-                    dose_multiplier = \
-                        float(request.GET['doseMultiplierdipParTwo'])
-                    dip_fit_kwargs['aa_max_conc'] = dose_base2 * \
-                        dose_multiplier
-            except KeyError:
-                pass
-            except ValueError:
-                return HttpResponse('Maximum dose must be a numerical value',
-                                    status=400)
         # Fit Hill curves and compute parameters
         with warnings.catch_warnings(record=True) as w:
             fit_params = dip_fit_params(
                 ctrl_dip_data, expt_dip_data,
                 include_dip_rates=plot_type == 'dip',
-                **dip_fit_kwargs
             )
             # Currently only care about warnings if plotting AA
             if plot_type == 'dippar' and (dip_par_sort == 'aa' or
@@ -1092,7 +1065,6 @@ def ajax_get_plot(request, file_type='json'):
                     subtitle=dataset.name,
                     aggregate_cell_lines=aggregate_cell_lines,
                     aggregate_drugs=aggregate_drugs,
-                    **dip_fit_kwargs
                 )
             except ValueError as e:
                 return HttpResponse(e, status=400)
