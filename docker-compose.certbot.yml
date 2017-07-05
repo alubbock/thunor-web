@@ -6,8 +6,6 @@ services:
     entrypoint: ""
     volumes:
       - ./_state/certbot:/etc/letsencrypt
-    ports:
-      - "80:80"
-      - "443:443"
+      - ./_state/thunor-static/.well-known:/thunor-static/.well-known
     environment:
       - TERM=xterm
