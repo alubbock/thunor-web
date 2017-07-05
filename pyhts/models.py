@@ -23,7 +23,7 @@ class HTSDataset(models.Model):
     control_handling = models.TextField(null=True, choices=CONTROL_CHOICES)
 
     def __str__(self):
-        return '%s' % self.name
+        return '%s (%d)' % (self.name, self.id)
 
     @classmethod
     def view_dataset_permission_names(cls):
@@ -92,6 +92,10 @@ class CellLineTag(models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True)
     cell_line = models.ForeignKey(CellLine)
 
+    def __str__(self):
+        return '%s [%s] (%s)' % (self.tag_name, self.cell_line.name,
+                                 self.owner.email)
+
 
 class Drug(models.Model):
     name = models.TextField(unique=True)
@@ -108,6 +112,10 @@ class DrugTag(models.Model):
     tag_name = models.TextField()
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True)
     drug = models.ForeignKey(Drug)
+
+    def __str__(self):
+        return '%s [%s] (%s)' % (self.tag_name, self.drug.name,
+                                 self.owner.email)
 
 
 class Plate(models.Model, PlateMap):
