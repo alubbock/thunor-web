@@ -8,5 +8,4 @@ RUN chown $THUNOR_USER:$THUNOR_GROUP $THUNOR_HOME
 WORKDIR $THUNOR_HOME
 ADD requirements.txt $THUNOR_HOME
 RUN pip install -r requirements.txt
-ADD . $THUNOR_HOME
 USER $THUNOR_USER
