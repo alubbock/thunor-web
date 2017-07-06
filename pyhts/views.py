@@ -512,6 +512,7 @@ def download_dataset_hdf5(request, dataset_id):
         import io
         with tempfile.NamedTemporaryFile('wb',
                                          dir=settings.DOWNLOADS_ROOT,
+                                         prefix='h5dset',
                                          suffix='.h5',
                                          delete=False) as tf:
             tf.close()

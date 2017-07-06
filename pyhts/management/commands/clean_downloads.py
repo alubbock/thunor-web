@@ -9,7 +9,7 @@ DAYS_TO_SECONDS = 86400
 
 class Command(BaseCommand):
     help = 'Clean up ephemeral download files'
-    _filter = re.compile(r'^xlsx(annot|assay)')
+    _filter = re.compile(r'^(xlsx(annot|assay))|h5dset')
     _max_age = settings.DOWNLOAD_EPHEMERAL_PURGE_DAYS * DAYS_TO_SECONDS
 
     def handle(self, *ars, **options):
