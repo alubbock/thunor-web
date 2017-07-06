@@ -67,6 +67,10 @@ MIGRATION_MODULES = {
     'sites': 'pyhts.fixtures.sites_migrations',
 }
 
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CRSF_COOKIE_SECURE = True
+
 MIDDLEWARE = []
 
 if DEBUG:
