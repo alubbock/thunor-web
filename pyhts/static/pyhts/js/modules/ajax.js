@@ -56,10 +56,11 @@ var ajax = (function () {
             var errStr = "The template could not be applied because some of the" +
                 " selected plates are not empty. The non-empty plates" +
                 " are:<br>" + jqXHR.responseJSON.plateNames.join(", ");
-            if (state.currentView == "overview") {
-                errStr += "<br><br><strong>Switch to a different view tab if" +
-                    " you want to apply only one of cell lines, drugs or" +
-                    " doses</strong>";
+            if (pyHTS.state.currentView == "overview") {
+                errStr += "<br><br><strong>Switch to a different view tab" +
+                    " (other than overview - see tabs above the plate" +
+                    " layout) if you want to apply only one of cell lines, " +
+                    "drugs or doses</strong>";
             }
             ui.okModal("Error applying template", errStr);
             return true;
