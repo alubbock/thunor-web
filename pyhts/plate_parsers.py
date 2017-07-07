@@ -7,9 +7,7 @@ from .models import PlateFile, Plate, Well, WellMeasurement, CellLine, Drug,\
 from django.db import IntegrityError, transaction
 import xlrd
 import magic
-from functools import wraps
 import collections
-import io
 from pydrc.io import read_vanderbilt_hts_single_df
 import math
 
@@ -172,7 +170,10 @@ class PlateFileParser(object):
         for cl in pd['cell.line'].unique():
             if not isinstance(cl, str):
                 continue
-            cl_obj, _ = CellLine.objects.get_or_create(name__iexact=cl)
+            cl_obj, _ = CellLine.objects.get_or_create(
+                name__iexact=cl,
+                defaults={'name': cl}
+            )
             cell_lines[cl] = cl_obj.pk
 
         # Get/create drugs
@@ -181,7 +182,10 @@ class PlateFileParser(object):
             for dr in pd['drug%d' % drug_no].unique():
                 if not isinstance(dr, str):
                     continue
-                dr_obj, _ = Drug.objects.get_or_create(name__iexact=dr)
+                dr_obj, _ = Drug.objects.get_or_create(
+                    name__iexact=dr,
+                    defaults={'name': dr}
+                )
                 drugs[dr] = dr_obj.pk
 
         # Get/create plates
@@ -590,7 +594,12 @@ class PlateFileParser(object):
         if file_type == 'excel':
             self.parse_platefile_imagexpress()
         elif file_type == 'text':
-            file_first_kb = file_first_kb.decode('utf-8')
+            try:
+                file_first_kb = file_first_kb.decode('utf-8')
+            except UnicodeDecodeError:
+                raise PlateFileUnknownFormat('Error opening file with UTF-8 '
+                                             'encoding (does file contain '
+                                             'non-standard characters?)')
             if file_first_kb.find('expt.id') != -1 and file_first_kb.find(
                     'expt.date') != -1:
                 parsers = (self.parse_platefile_vanderbilt_hts,
