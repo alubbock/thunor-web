@@ -602,7 +602,10 @@ class PlateFileParser(object):
         if not self._plate_data:
             self._read_plate_data()
 
-        mimetype = magic.from_buffer(self._plate_data, mime=True)
+        mimetype = magic.from_buffer(
+            self._plate_data[0:min(len(self._plate_data), 1023)],
+            mime=True
+        )
         file_type = self.supported_mimetypes.get(mimetype, None)
 
         if file_type == 'excel':
@@ -611,9 +614,7 @@ class PlateFileParser(object):
             try:
                 self.parse_platefile_synergy_neo()
             except PlateFileUnknownFormat:
-                pass
-
-            self.parse_platefile_vanderbilt_hts()
+                self.parse_platefile_vanderbilt_hts()
         else:
             raise PlateFileParseException('File type not supported: {}'.
                                           format(mimetype))
