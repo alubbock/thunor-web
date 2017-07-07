@@ -304,9 +304,13 @@ def ajax_save_plate(request):
             well_dict[(w.plate_id, w.well_num)] = w.id
 
         for i, well in enumerate(wells):
-            drugs = well.get('drugs', None)
-            doses = well.get('doses', None)
-            if drugs is None and doses is None:
+            drugs = well.get('drugs', [])
+            if drugs is None:
+                drugs = []
+            doses = well.get('doses', [])
+            if doses is None:
+                doses = []
+            if len(drugs) == 0 and len(doses) == 0:
                 continue
             for drug_order in range(max(len(drugs), len(doses))):
                 drug_id = drugs[drug_order] if drug_order < len(drugs) else None
@@ -322,11 +326,10 @@ def ajax_save_plate(request):
                         well_drugs_to_create[(well_dict[(p_id, i)],
                                               drug_order)][1] = dose
 
-        WellDrug.objects.bulk_create([WellDrug(well_id=k[0], order=k[1],
-                                               drug_id=v[0], dose=v[1] if
-            len(v) > 1 else None)
-                                      for
-                                      k, v in well_drugs_to_create.items()])
+        WellDrug.objects.bulk_create([
+            WellDrug(well_id=k[0], order=k[1], drug_id=v[0], dose=v[1] if
+                     len(v) > 1 else None) for k, v in
+                     well_drugs_to_create.items()])
 
     if apply_mode != 'normal':
         # If this was a template-based update...
