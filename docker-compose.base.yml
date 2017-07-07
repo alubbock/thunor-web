@@ -6,10 +6,10 @@ services:
       - ./_conf/thunor.env
     volumes:
       - ./_state/postgres-data:/var/lib/postgresql/data
-  web:
+  app:
     build: .
-    command: /bin/sh docker-entrypoint.sh
     volumes:
-      - .:/thunor
+      - ./_state/thunor-files:/thunor/_state/thunor-files
+      - ./_state/thunor-static/webpack-stats.json:/thunor/_state/thunor-static/webpack-stats.json:ro
     env_file:
       - ./_conf/thunor.env

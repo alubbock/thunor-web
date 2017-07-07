@@ -4,8 +4,12 @@ ENV PYTHONUNBUFFERED 1
 ENV THUNOR_HOME=/thunor
 
 RUN mkdir $THUNOR_HOME
-RUN chown $THUNOR_USER:$THUNOR_GROUP $THUNOR_HOME
 WORKDIR $THUNOR_HOME
 ADD requirements.txt $THUNOR_HOME
 RUN pip install -r requirements.txt
-USER $THUNOR_USER
+ADD web $THUNOR_HOME/web
+ADD pydrc $THUNOR_HOME/pydrc
+RUN cd $THUNOR_HOME/pydrc && python setup.py install
+ADD pyhts $THUNOR_HOME/pyhts
+ADD manage.py $THUNOR_HOME
+ENTRYPOINT ["uwsgi"]

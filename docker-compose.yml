@@ -7,7 +7,7 @@ services:
   app:
     extends:
       file: docker-compose.base.yml
-      service: web
+      service: app
     depends_on:
       - db
 
