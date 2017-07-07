@@ -1091,6 +1091,10 @@ def ajax_get_plot(request, file_type='json'):
         return HttpResponse('Unknown file type: %s' % file_type, status=400)
 
     if as_attachment:
+        try:
+            title = plot_fig['layout']['title']
+        except KeyError:
+            title = 'Plot'
         response['Content-Disposition'] = \
             'attachment; filename="{}.{}"'.format(strip_tags(title), file_type)
 
