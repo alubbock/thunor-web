@@ -22,17 +22,6 @@ class PlateFileUnknownFormat(PlateFileParseException):
     pass
 
 
-def _read_plate_decorator(func):
-    def _decorator(self, *args, **kwargs):
-        if self._plate_data is None:
-            self._read_plate_data()
-
-        with transaction.atomic():
-            return func(self, *args, **kwargs)
-
-    return wraps(func)(_decorator)
-
-
 class PlateFileParser(object):
     _ZERO_TIMEDELTA = timedelta(0)
     _RE_TIME_HOURS = r'(?P<time_hours>[0-9]+)[-_\s]*(h\W|hr|hour)'
@@ -43,6 +32,7 @@ class PlateFileParser(object):
 
     supported_mimetypes = {'application/vnd.openxmlformats-officedocument'
                            '.spreadsheetml.sheet': 'excel',
+                           'application/zip': 'excel',
                            'text/plain': 'text',
                            'text/x-fortran': 'text'
                            }
@@ -61,7 +51,6 @@ class PlateFileParser(object):
         self.dataset = dataset
         self.file_format = None
         self._db_platefile = None
-        self._plate_data = None
         self._plate_objects = {}
         self._results = []
         self._well_sets = {}
@@ -85,18 +74,12 @@ class PlateFileParser(object):
             dataset=self.dataset, file=self.plate_file,
             file_format=self.file_format)
 
-    def _read_plate_data(self):
-        # TODO: Ensure file isn't too big, check filetype etc.
-        self.plate_file.open()
-        self._plate_data = self.plate_file.read()
-
     def _has_more_platefiles(self):
         return self._plate_file_position < (len(self.all_plate_files) - 1)
 
     def _next_platefile(self):
         self._plate_file_position += 1
         self.plate_file = self.all_plate_files[self._plate_file_position]
-        self._plate_data = None
         self._db_platefile = None
 
     @staticmethod
@@ -132,7 +115,7 @@ class PlateFileParser(object):
                 'timepoint': timedelta(hours=int(tp.group('time_hours')))} if tp \
             else None
 
-    @_read_plate_decorator
+    @transaction.atomic
     def parse_platefile_vanderbilt_hts(self):
         """
         Extracts data from a platefile in Vanderbilt HTS format
@@ -150,10 +133,11 @@ class PlateFileParser(object):
         # TODO: Check actual plate size
         pm = PlateMap(width=24, height=16)
 
+        self.plate_file.file.seek(0)
         try:
-            pd = read_vanderbilt_hts_single_df(io.BytesIO(self._plate_data))
+            pd = read_vanderbilt_hts_single_df(self.plate_file.file)
         except Exception as e:
-            raise PlateFileParseException(e)
+            raise PlateFileUnknownFormat(e)
 
         # Sanity checks
         if (pd['cell.count'] < 0).any():
@@ -366,7 +350,7 @@ class PlateFileParser(object):
         self.dataset.control_handling = 'A1'
         self.dataset.save()
 
-    @_read_plate_decorator
+    @transaction.atomic
     def parse_platefile_synergy_neo(self):
         """
         Extracts data from a platefile
@@ -375,7 +359,7 @@ class PlateFileParser(object):
         rows and cols.
         """
         self.file_format = 'Synergy Neo'
-        pd = self._plate_data
+        pd = self.plate_file.read()
         try:
             pd = self._str_universal_newlines(pd.decode('utf-8'))
         except UnicodeDecodeError:
@@ -465,10 +449,11 @@ class PlateFileParser(object):
                                           'assay and time points has been '
                                           'uploaded to this dataset before')
 
-    @_read_plate_decorator
+    @transaction.atomic
     def parse_platefile_imagexpress(self):
         self.file_format = 'ImageXpress'
-        wb = xlrd.open_workbook(file_contents=self._plate_data)
+        self.plate_file.file.seek(0)
+        wb = xlrd.open_workbook(file_contents=self.plate_file.read())
         if wb.nsheets != 1:
             raise PlateFileParseException('Excel workbooks with more than one '
                                           'worksheet are not currently '
@@ -513,10 +498,6 @@ class PlateFileParser(object):
                     plate_name = ws.cell(row, 1).value.split(' ', 1)[0]
                 continue
 
-            # if cell0_val == 'Plate ID':
-            #     plate_name = str(ws.cell(row, 1).value)
-            #     continue
-
             if cell0_val == '' and ws.cell(row, 1).value == 1:
                 scanning_wells = True
                 scan_row = row + 1
@@ -534,9 +515,7 @@ class PlateFileParser(object):
                     val = ws.cell(row, col).value
                     if val == '':
                         val = None
-                    # print(self.dataset.id, self._db_platefile.id, plate.id,
-                    #       well_id,
-                    #       file_timepoint, assay_name)
+
                     well_measurements.append(WellMeasurement(
                         well_id=self._well_sets[plate.id][well_id],
                         timepoint=file_timepoint,
@@ -599,22 +578,37 @@ class PlateFileParser(object):
         """
         Attempt to auto-detect platefile format and parse
         """
-        if not self._plate_data:
-            self._read_plate_data()
+        file_first_kb = self.plate_file.read(1024)
 
         mimetype = magic.from_buffer(
-            self._plate_data[0:min(len(self._plate_data), 1023)],
+            file_first_kb,
             mime=True
         )
+        self.plate_file.file.seek(0)
         file_type = self.supported_mimetypes.get(mimetype, None)
 
         if file_type == 'excel':
             self.parse_platefile_imagexpress()
         elif file_type == 'text':
-            try:
-                self.parse_platefile_synergy_neo()
-            except PlateFileUnknownFormat:
-                self.parse_platefile_vanderbilt_hts()
+            file_first_kb = file_first_kb.decode('utf-8')
+            if file_first_kb.find('expt.id') != -1 and file_first_kb.find(
+                    'expt.date') != -1:
+                parsers = (self.parse_platefile_vanderbilt_hts,
+                           self.parse_platefile_synergy_neo)
+            else:
+                parsers = (self.parse_platefile_synergy_neo,
+                           self.parse_platefile_vanderbilt_hts)
+            parsed = False
+            for parser in parsers:
+                try:
+                    parser()
+                    parsed = True
+                    break
+                except PlateFileUnknownFormat:
+                    pass
+            if not parsed:
+                raise PlateFileParseException('File type not recognized. '
+                                              'Please check the format.')
         else:
             raise PlateFileParseException('File type not supported: {}'.
                                           format(mimetype))
