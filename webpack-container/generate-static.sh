@@ -15,7 +15,7 @@ if [ "$1" = "--no-container" ]; then
 else
   docker build -t thunor_webpack $THIS_DIR
   docker run --rm -v $BASE_DIR/_state/webpack-bundles:/_state/webpack-bundles -v $BASE_DIR/pyhts/static/pyhts:/node-build/thunor thunor_webpack
-  docker-compose -f $BASE_DIR/docker-compose.base.yml run --rm -v $BASE_DIR/_state/webpack-bundles:/thunor/_state/webpack-bundles -v $BASE_DIR/_state/thunor-static:/thunor/_state/thunor-static app python manage.py collectstatic --no-input --ignore pyhts
+  docker-compose -f $BASE_DIR/docker-compose.base.yml run --rm -v $BASE_DIR/_state/webpack-bundles:/thunor/_state/webpack-bundles -v $BASE_DIR/_state/thunor-static:/thunor/_state/thunor-static --entrypoint python app manage.py collectstatic --no-input --ignore pyhts
   echo "Restart the app server with 'docker-compose restart app' to reload changes"
 fi
 cp $THIS_DIR/thunor/502.html $BASE_DIR/_state/thunor-static/
