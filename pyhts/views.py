@@ -744,10 +744,13 @@ def xlsx_get_assay_data(request, dataset_id):
 def plate_designer(request, dataset_id):
     plates = list(Plate.objects.filter(dataset_id=dataset_id).order_by(
         'id').select_related('dataset'))
-    if not plates:
-        raise Http404()
-
-    dataset = plates[0].dataset
+    if plates:
+        dataset = plates[0].dataset
+    else:
+        try:
+            dataset = HTSDataset.objects.get(pk=dataset_id)
+        except HTSDataset.DoesNotExist:
+            raise Http404()
 
     editable = True
 
