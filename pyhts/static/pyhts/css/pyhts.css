@@ -465,7 +465,8 @@ user-select: none;}
 .twitter-typeahead {
     width: 100%
 }
-#cellline-typeahead, .hts-drug-entry {
+.hts-drug-entry {
+    margin-top: 15px;
     margin-bottom: 15px;
 }
 .hts-dose-select {
