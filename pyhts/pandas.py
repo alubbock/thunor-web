@@ -71,13 +71,9 @@ def df_doses_assays_controls(dataset, drug_id, cell_line_id, assay):
 
     df_doses = queryset_to_dataframe(
         well_info,
-        columns=('dose', 'well_id', 'well__cell_line__name', 'drug__name',
-                 'well__plate_id'),
-        rename_columns=('dose', 'well_id', 'cell_line', 'drug', 'plate_id'),
+        columns=('dose', 'well_id', 'well__cell_line__name', 'drug__name'),
+        rename_columns=('dose', 'well_id', 'cell_line', 'drug'),
         index=('drug', 'cell_line', 'dose'))
-
-    plate_ids = df_doses['plate_id'].unique()
-    del df_doses['plate_id']
 
     if df_doses.shape[0] == 3 and df_doses.isnull().values.all():
         raise NoDataException()
@@ -100,7 +96,7 @@ def df_doses_assays_controls(dataset, drug_id, cell_line_id, assay):
     df_controls = None
     if control is not None:
         controls = WellMeasurement.objects.filter(
-            well__plate_id__in=plate_ids).select_related(
+            well__plate__dataset_id=dataset_id).select_related(
             'well').order_by('well__cell_line', 'timepoint')
         if assay is not None:
             controls = controls.filter(assay=assay)
@@ -146,15 +142,11 @@ def df_dip_rates(dataset_id, drug_id, cell_line_id, control=None):
             stat_name__in=dip_stats,
         ),
         columns=('stat_name', 'value', 'well__welldrug__dose', 'well_id',
-                 'well__cell_line__name', 'well__welldrug__drug__name',
-                 'well__plate_id'),
+                 'well__cell_line__name', 'well__welldrug__drug__name'),
         rename_columns=('stat_name', 'value', 'dose', 'well_id', 'cell_line',
-                        'drug', 'plate_id'),
+                        'drug'),
         index=('drug', 'cell_line', 'dose')
     )
-
-    plate_ids = df_doses['plate_id'].unique()
-    del df_doses['plate_id']
 
     if df_doses.isnull().values.all():
         raise NoDataException()
@@ -166,7 +158,7 @@ def df_dip_rates(dataset_id, drug_id, cell_line_id, control=None):
     df_controls = None
     if control is not None:
         controls = WellStatistic.objects.filter(
-            well__plate_id__in=plate_ids,
+            well__plate__dataset_id=dataset_id,
             stat_name__in=dip_stats,
             )
         controls = _apply_control_filter(controls, control, cell_line_id)
