@@ -374,6 +374,8 @@ var plots = function() {
 
         $dataPanel.find("select[name=cellLineId],select[name=drugId]")
             .selectpicker(selectPickerOptionsSingle);
+        $dataPanel.find("select[name=dipParSort],select[name=dipParTwo]")
+            .selectpicker();
         $dataPanel.data("loaded", true);
 
         var datasetId;

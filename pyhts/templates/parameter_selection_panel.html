@@ -8,34 +8,17 @@
         </div>
         {% endif %}
         <label for="hts-dippar-sort">{{ param_label }}</label>
-        <div class="hts-dippar-sort btn-group btn-group-5 btn-group-responsive"
-             data-toggle="buttons"{% if parameter_toggle %} style="display:none"{% endif %}>
-          <label class="btn btn-default active">
-            <input type="radio" name="{{ param_form_name }}" value="ic50"
-                   autocomplete="off" checked> IC<sub>50</sub>
-          </label>
-          <label class="btn btn-default">
-            <input type="radio" name="{{ param_form_name }}" value="ec50"
-                   autocomplete="off"> EC<sub>50</sub>
-          </label>
-          <label class="btn btn-default">
-            <input type="radio" name="{{ param_form_name }}" value="emax"
-                   autocomplete="off"> E<sub>max</sub>
-          </label>
-          <label class="btn btn-default">
-            <input type="radio" name="{{ param_form_name }}" value="hill"
-                   autocomplete="off"> Hill
-          </label>
-          <label class="btn btn-default">
-            <input type="radio" name="{{ param_form_name }}" value="aa"
-                   autocomplete="off"> AA
-          </label>
+        <div class="hts-dippar-sort"{% if parameter_toggle %}
+             style="display:none
+"{% endif %}>
+            <select class="form-control" title="Select a parameter" name=
+                    "{{ param_form_name }}">
+                <option value="ic50" selected>IC50</option>
+                <option value="ec50">EC50</option>
+                <option value="emax">EMax</option>
+                <option value="hill">Hill Coefficient</option>
+                <option value="emax">Activity Area</option>
+            </select>
         </div>
-    </div>
-    <div class="form-group" style="display:none">
-        <label for="hts-dose-input-group"> Activity Area Maximum Dose</label>
-        {% with editable=True default_dose_base="1" default_dose_multiplier="1e-3" default_dose_multiplier_label="mM" repeatN=param_form_name %}
-        {% include "dose_input.html" %}
-        {% endwith %}
     </div>
 </div>

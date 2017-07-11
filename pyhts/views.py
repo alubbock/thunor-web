@@ -1046,7 +1046,9 @@ def ajax_get_plot(request, file_type='json'):
                                 'exist.', status=400)
 
         dip_par_sort = request.GET.get('dipParSort', None)
-        dip_par_two = request.GET.get('dipParTwo', None)
+        dip_par_two = None
+        if request.GET.get('dipParTwoToggle', 'off') == 'on':
+            dip_par_two = request.GET.get('dipParTwo', None)
         # Fit Hill curves and compute parameters
         with warnings.catch_warnings(record=True) as w:
             fit_params = dip_fit_params(
