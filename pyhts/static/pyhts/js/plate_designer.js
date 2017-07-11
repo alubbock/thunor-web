@@ -1223,11 +1223,11 @@ var plate_designer = function () {
             if(data.savedPlateId) {
                 if ($.inArray(data.savedPlateId, pyHTS.state.savedPlates) == -1) {
                     pyHTS.state.savedPlates.push(data.savedPlateId);
-                    var plateInDropdown = $('#hts-plate-list')
+                    $('#hts-plate-list')
                             .find('li[data-id=' + data.savedPlateId + ']')
-                            .find('a');
-                    plateInDropdown.html(ui.glyphiconHtml('ok') +
-                            plateInDropdown.html());
+                            .find('a')
+                            .prepend('<span class="pull-right fa fa-check"' +
+                                     ' aria-hidden="true"></span>');
                 }
             }
             if(data.plateMap) {

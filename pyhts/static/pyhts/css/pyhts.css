@@ -252,7 +252,7 @@ a[aria-expanded=false] .fa-chevron-down {
 #hts-move-selection button {
     width:25%;
 }
-.dropdown-menu .pull-right.glyphicon {
+.dropdown-menu .pull-right.fa {
     margin-right: -15px;
 }
   #page-wrapper {margin:0;padding-bottom:20px;}
@@ -760,9 +760,6 @@ div.hts-change-cell-line .bs-actionsbox,div.hts-change-drug .bs-actionsbox {
 }
 .panel-container {
     padding: 0;
-}
-.panel-heading .glyphicon-th {
-    cursor: move;
 }
 .plotly-graph-div {
     overflow-x: hidden;

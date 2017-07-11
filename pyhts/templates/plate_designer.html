@@ -19,12 +19,12 @@
                     class="view-str"></span></button>
             </div>
             <button id="hts-prev-dataset" type="button" class="btn btn-default">
-                              <span class="glyphicon glyphicon-arrow-left"
+                              <span class="fa fa-arrow-left"
                                     aria-hidden="true"></span> Previous
                         </button>
             <button id="hts-next-dataset" type="button" class="btn
             btn-default">Next
-                              <span class="glyphicon glyphicon-arrow-right"
+                              <span class="fa fa-arrow-right"
                                     aria-hidden="true"></span>
                         </button>
             <button id="hts-finish-platemap" type="button" class="btn
@@ -35,7 +35,7 @@
             <button class="btn btn-default dropdown-toggle" type="button"
                     id="hts-select-plate" data-toggle="dropdown"
                     aria-haspopup="true" aria-expanded="true">
-                <span class="glyphicon glyphicon-th"
+                <span class="fa fa-th"
                       aria-hidden="true"></span>
                 <span id="hts-current-plate" data-id="{{ plates.0.id }}">
                     {{ plates.0.name }}</span>
@@ -54,7 +54,7 @@
                 {% for p in plates %}
                 <li data-id="{{ p.id }}"><a href="#">
                     {% if p.last_annotated %}
-                    <span class="pull-right glyphicon glyphicon-ok"
+                    <span class="pull-right fa fa-check"
                           aria-hidden="true"></span>{% endif %}{{ p.name }}</a></li>
                 {% endfor %}
             </ul>

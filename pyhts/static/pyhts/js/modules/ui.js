@@ -55,11 +55,6 @@ var ui = (function() {
         okCancelModal(title, text, null, null, closed_callback);
     };
 
-    var glyphiconHtml = function (iconName) {
-        return '<span class="pull-right glyphicon glyphicon-' + iconName +
-            '" aria-hidden="true"></span>';
-    };
-
     var loadingAnim = '<div class="loading-overlay">' +
                       '<div class="sk-folding-cube">' +
                       '<div class="sk-cube1 sk-cube"></div>' +
@@ -118,7 +113,6 @@ var ui = (function() {
     return {
         okCancelModal: okCancelModal,
         okModal: okModal,
-        glyphiconHtml: glyphiconHtml,
         loadingModal: loadingModal
     }
 })();
