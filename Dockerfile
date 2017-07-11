@@ -12,4 +12,4 @@ ADD pydrc $THUNOR_HOME/pydrc
 RUN cd $THUNOR_HOME/pydrc && python setup.py install
 ADD pyhts $THUNOR_HOME/pyhts
 ADD manage.py $THUNOR_HOME
-ENTRYPOINT ["uwsgi"]
+CMD ["uwsgi"]
