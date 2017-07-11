@@ -112,6 +112,12 @@ if (!isDebug) {
             include: /^app/
         })
     );
+    var CompressionPlugin = require("compression-webpack-plugin");
+    config.plugins.push(
+        new CompressionPlugin({
+            test: /\.(js|html|css|ico|map|svg|eot|otf|ttf|json)$/
+        })
+    );
 }
 
 module.exports = config;
