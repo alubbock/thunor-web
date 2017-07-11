@@ -1,15 +1,15 @@
 from django.conf.urls import url
-from django.contrib.auth import views as django_auth
+from django.views.generic import RedirectView
 from . import views
 
 app_name = 'pyhts'
 urlpatterns = [
     url(r'^$', views.home, name='home'),
 
-    url('^accounts/$', views.my_account, name='my_account'),
+    url('^accounts$', views.my_account, name='my_account'),
     url('^logout$', views.logout, name='logout'),
 
-    url(r'^tags/(?P<tag_type>cell_lines|drugs)/$', views.tag_editor,
+    url(r'^tags/(?P<tag_type>cell_lines|drugs)$', views.tag_editor,
         name='tag_editor'),
     # url(r'^ajax/tags/set_name$', views.ajax_set_tag_name,
     #     name='ajax_set_tag_name'),
@@ -17,8 +17,13 @@ urlpatterns = [
         name='ajax_assign_tag'),
 
     url(r'^dataset/add$', views.dataset_upload, name='plate_upload'),
-    url(r'^dataset/(?P<dataset_id>\d+)/$', views.view_dataset,
+    url(r'^dataset/(?P<dataset_id>\d+)$', views.view_dataset,
         name='view_dataset'),
+
+    # Redirect dataset page, as it previously had trailing slash
+    url(r'^dataset/(?P<dataset_id>\d+)/$', RedirectView.as_view(
+        pattern_name='pyhts:view_dataset', permanent=True)),
+
     url(r'^dataset/(?P<dataset_id>\d+)/permissions$',
         views.view_dataset_permissions, name='view_dataset_permissions'),
     url(r'^dataset/(?P<dataset_id>\d+)/upload$', views.dataset_upload,
