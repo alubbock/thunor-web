@@ -13,17 +13,25 @@
 "{% endif %}>
             <select class="form-control" title="Select a parameter" name=
                     "{{ param_form_name }}">
-                <option value="ic10">IC10</option>
-                <option value="ic50" selected>IC50</option>
-                <option value="ic100">IC100</option>
-                <option value="ec50">EC50</option>
-                <option value="emax">Emax</option>
-                <option value="emax_rel">Emax (relative)</option>
-                <option value="emax_obs">Emax observed</option>
-                <option value="emax_obs_rel">Emax observed (relative)</option>
-                <option value="e50">E50</option>
-                <option value="hill">Hill Coefficient</option>
-                <option value="emax">Activity Area</option>
+                <optgroup label="Inhibitory concentration">
+                    <option value="ic10">IC10</option>
+                    <option value="ic50" selected>IC50</option>
+                    <option value="ic100">IC100</option>
+                </optgroup>
+                <optgroup label="Effective concentration">
+                    <option value="ec50">EC50</option>
+                </optgroup>
+                <optgroup label="Effect size">
+                    <option value="emax">Emax</option>
+                    <option value="emax_rel">Emax (relative)</option>
+                    <option value="emax_obs">Emax observed</option>
+                    <option value="emax_obs_rel">Emax observed (relative)</option>
+                    <option value="e50">E50</option>
+                </optgroup>
+                <optgroup label="Other">
+                    <option value="hill">Hill Coefficient</option>
+                    <option value="aa">Activity Area</option>
+                </optgroup>
             </select>
         </div>
     </div>
