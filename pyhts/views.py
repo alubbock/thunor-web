@@ -14,7 +14,7 @@ from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, \
     Well, WellMeasurement, WellDrug, CellLineTag, DrugTag
 import json
 from pydrc.plots import plot_time_course, plot_dip, plot_dip_params, \
-    PLOT_AXIS_LABELS
+    PARAM_NAMES
 from pydrc.dip import dip_fit_params, AAFitWarning
 from pydrc.io import write_hdf
 from pydrc.helpers import plotly_to_dataframe
@@ -485,7 +485,7 @@ def download_dip_fit_params(request, dataset_id):
     # Remove -ve AA values
     fit_params.loc[fit_params['aa'] < 0.0, 'aa'] = np.nan
 
-    fit_params = fit_params.filter(items=PLOT_AXIS_LABELS.keys())
+    fit_params = fit_params.filter(items=PARAM_NAMES.keys())
 
     response = HttpResponse(fit_params.to_csv(), content_type='text/csv')
     response['Content-Disposition'] = \
