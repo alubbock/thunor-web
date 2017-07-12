@@ -224,13 +224,16 @@ var plots = function() {
             var numDrugs = $form.find("select[name=drugId]")
                 .find("option:selected").length;
             var plotType = $form.find("input[name=plotType]:checked").val();
+            var numTraces = numCellLines * numDrugs;
 
-            if (plotType === "dip" && numCellLines * numDrugs > 100) {
+            if (plotType === "dip" && numTraces > 100 ||
+                plotType === "dippar" && numTraces > 1000) {
                 ui.okCancelModal({
                     title: "Large plot requested",
-                    text: "The plot you've requested might have over 100 " +
-                    "traces. This may slow down your browser and/or take" +
-                    " some time to load.<br><br>Continue?",
+                    text: "The plot you've requested has up to " +
+                    numTraces + " cell line/drug combinations. This may slow" +
+                    " down your browser and/or take some time to load." +
+                    "<br><br>Continue?",
                     onOKHide: function () {
                         $form.data("force", true).submit();
                     },
