@@ -20,12 +20,17 @@ var activate = function() {
         var $form = $(this);
         var tagName = $form.find("input[name=tagName]").val();
         if (tagName === "") {
-            ui.okModal("Tag name empty", "Please enter a tag name");
+            ui.okModal({
+                title: "Tag name empty",
+                text: "Please enter a tag name"
+            });
             return;
         }
         if ($.inArray(tagName, pyHTS.state.tagNames) !== -1) {
-            ui.okModal("Tag already exists", "A tag with that name already " +
-                    "exists");
+            ui.okModal({
+                title: "Tag already exists",
+                text: "A tag with that name already exists"
+            });
             return;
         }
         pyHTS.state.tagNames.push(tagName);

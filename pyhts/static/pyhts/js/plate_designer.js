@@ -330,14 +330,18 @@ var plate_designer = function () {
             tgtPlateIds.push($(ele).data('id'));
         });
 
-        if(tgtPlateIds.length == 0) {
-            ui.okModal('No plates selected', 'Please select target ' +
-                    'plates from the drop down list');
+        if(tgtPlateIds.length === 0) {
+            ui.okModal({
+                title: "No plates selected",
+                text: "Please select target plates from the drop down list"
+            });
             return;
         }
         if(pyHTS.state.plateMap.wellDataIsEmpty()) {
-            ui.okModal('Empty template', 'The template could not be ' +
-                    'applied because it is empty');
+            ui.okModal({
+                title: "Empty template",
+                text: "The template could not be applied because it is empty"
+            });
             return;
         }
 
@@ -345,7 +349,7 @@ var plate_designer = function () {
 
         pyHTS.state.plateMap.applyTemplateTo = tgtPlateIds;
         pyHTS.state.plateMap.applyTemplateMode = $.inArray(pyHTS.state.currentView,
-            ['overview', 'table']) != -1 ? 'all' : pyHTS.state.currentView;
+            ['overview', 'table']) !== -1 ? 'all' : pyHTS.state.currentView;
         savePlate(null);
         delete pyHTS.state.plateMap.applyTemplateMode;
         delete pyHTS.state.plateMap.applyTemplateTo;
@@ -603,10 +607,13 @@ var plate_designer = function () {
         //non-callback validation
         var $selectedWells = $('#selectable-wells').find('.ui-selected');
         if ($selectedWells.length === 0) {
-            ui.okModal('Error', 'Please select some wells first',
-                function () {
+            ui.okModal({
+                title: "Error",
+                text: "Please select some wells first",
+                onHidden: function () {
                     $(caller).focus();
-                });
+                }
+            });
             return;
         }
 
@@ -618,9 +625,12 @@ var plate_designer = function () {
             var val = parseFloat(valTxt);
             if (valTxt != '' && (isNaN(val) || val < 0)) {
                 if(allDosesValid) {
-                    ui.okModal('Error', 'Dose must be numeric and ' +
-                            'non-negative', function () {
-                        $(caller).focus();
+                    ui.okModal({
+                        title: "Error",
+                        text: "Dose must be numeric and non-negative",
+                        onHidden: function () {
+                            $(caller).focus();
+                        }
                     });
                 }
                 allDosesValid = false;
@@ -648,13 +658,20 @@ var plate_designer = function () {
         var cl = $cellLineTypeahead.typeahead('val');
         var cl_id = util.filterObjectsAttr(cl, pyHTS.state.cell_lines,
                 'name', 'id');
-        if(cl != '' && cl_id == -1) {
-            ui.okCancelModal('Create cell line',
-                    'Cell line "' + cl + '" ' +
-                'was not found. Create it?<br /><br />If you meant to ' +
-                'autocomplete a suggestion use <kbd>Tab</kbd> instead.',
-                function() { createCellLine(cl, createEntityCallback); },
-                function() { $('#cellline-typeahead').focus(); });
+        if(cl !== '' && cl_id === -1) {
+            ui.okCancelModal({
+                title: 'Create cell line',
+                text: 'Cell line "' + cl + '" ' +
+                'was not found. Create it?<br /><br />' +
+                'If you meant to autocomplete a suggestion use ' +
+                '<kbd>Tab</kbd> instead.',
+                onOKHidden: function () {
+                    createCellLine(cl, createEntityCallback);
+                },
+                onCancelHidden: function () {
+                    $('#cellline-typeahead').focus();
+                }
+            });
             return;
         }
 
@@ -666,13 +683,19 @@ var plate_designer = function () {
             var dr_id = util.filterObjectsAttr(drug, pyHTS.state.drugs,
                     'name', 'id');
             drugIds.push(dr_id);
-            if(drug != '' && dr_id == -1) {
-                ui.okCancelModal('Create drug',
-                'Drug "' + drug + '" was not found. Create it?<br /><br />'
-                + 'If you meant to autocomplate a suggestion use ' +
-                '<kbd>Tab</kbd> instead.',
-                function() { createDrug(drug, createEntityCallback); },
-                function() { $($drugTypeaheads[i]).focus(); });
+            if(drug !== '' && dr_id === -1) {
+                ui.okCancelModal({
+                    title: 'Create drug',
+                    text: 'Drug "' + drug + '" was not found. Create it?<br>' +
+                          '<br>If you meant to autocomplate a suggestion' +
+                          ' use <kbd>Tab</kbd> instead.',
+                    onOKHidden: function () {
+                        createDrug(drug, createEntityCallback);
+                    },
+                    onCancelHidden: function () {
+                        $($drugTypeaheads[i]).focus();
+                    }
+                });
                 return;
             }
         }
@@ -750,7 +773,7 @@ var plate_designer = function () {
                 break;
         }
 
-        if(newWellIds == null) {
+        if(newWellIds === undefined) {
             $(caller).blur();
         } else {
             selectWells(newWellIds);
@@ -764,9 +787,11 @@ var plate_designer = function () {
     };
 
     var autoStepperOutOfBounds = function() {
-        ui.okModal('Auto-step error', 'The auto-stepper reached the' +
-                ' edge of the plate. Please adjust your well ' +
-                'selection manually to continue.');
+        ui.okModal({
+            title: 'Auto-step error',
+            text: 'The auto-stepper reached the edge of the plate. Please' +
+            ' adjust your well selection manually to continue.'
+        });
     };
 
     var activateDrugInputs = function() {
@@ -774,7 +799,7 @@ var plate_designer = function () {
                 util.getAttributeFromObjects(pyHTS.state.drugs, 'name'));
 
         $('.hts-dose-input').last().keyup(function (e) {
-            if (e.which == 13) {
+            if (e.which === 13) {
                 submitToWells(this);
             }
         });
@@ -1089,7 +1114,10 @@ var plate_designer = function () {
         var selectedWells = $('#selectable-wells').find('.ui-selected');
 
         if (selectedWells.length === 0) {
-            ui.okModal('Error', 'Please select some wells first');
+            ui.okModal({
+                title: 'Error',
+                text: 'Please select some wells first'
+            });
             return;
         }
 
@@ -1112,7 +1140,10 @@ var plate_designer = function () {
 
     var applyTemplateToCurrent = function() {
         if($('#hts-current-plate').data('id') == 'MASTER') {
-            ui.okModal('Error', 'Cannot apply template to itself');
+            ui.okModal({
+                title: 'Error',
+                text: 'Cannot apply template to itself'
+            });
             return;
         }
         if(pyHTS.state.currentView == 'celllines' && !pyHTS.state.plateMap
@@ -1123,14 +1154,19 @@ var plate_designer = function () {
                     .allDosesEmpty() ||
                 !$.inArray(pyHTS.state.currentView, ['celllines', 'drugs',
                         'doses']) && !pyHTS.state.plateMap.wellDataIsEmpty()) {
-            ui.okModal('Plate map not empty', 'Cannot apply template ' +
-                    'data because this plate map is not empty.');
+            ui.okModal({
+                title: 'Plate map not empty',
+                text: 'Cannot apply template data because this plate map is' +
+                      ' not empty.'
+            });
             return;
         }
         var templateId = pyHTS.state.plateMap.numCols + 'x' + pyHTS.state.plateMap.numRows;
         if(!pyHTS.state.plateMapTemplates[templateId].unsaved_changes) {
-            ui.okModal('Template is empty', 'The template is empty, ' +
-                    'nothing to apply');
+            ui.okModal({
+                title: 'Template is empty',
+                text: 'The template is empty, nothing to apply'
+            });
             return;
         }
         populateWellDataFromTemplate(pyHTS.state.plateMap.wells, templateId);
@@ -1215,8 +1251,10 @@ var plate_designer = function () {
         }
         if(data.success) {
             if(data.templateAppliedTo) {
-                ui.okModal('Template applied', 'Template was ' +
-                        'successfully applied');
+                ui.okModal({
+                    title: 'Template applied',
+                    text: 'Template was successfully applied'
+                });
                 $('#hts-apply-template-multiple').find('select')
                         .selectpicker('deselectAll');
             }
@@ -1279,14 +1317,13 @@ var plate_designer = function () {
     var validatePlate = function(retryCallback) {
         var plateErrors = pyHTS.state.plateMap.validate();
         if (plateErrors) {
-            ui.okCancelModal('Error validating plate map',
-                '<ul><li>' + plateErrors.join("</li><li>") + '</li></ul>',
-                null,
-                retryCallback,
-                null,
-                'Go back',
-                'Ignore errors'
-            );
+            ui.okCancelModal({
+                title: 'Error validating plate map',
+                text: '<ul><li>' + plateErrors.join("</li><li>") + '</li></ul>',
+                onCancelHidden: retryCallback,
+                okLabel: 'Go back',
+                cancelLabel: 'Ignore errors'
+            });
             return false;
         }
         return true;

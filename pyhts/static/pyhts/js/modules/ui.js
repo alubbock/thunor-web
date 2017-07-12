@@ -1,58 +1,85 @@
 "use strict";
 var ui = (function() {
     var modalBase = $(
-        '<div class="modal fade" id="modal-ok-cancel" tabindex="-1"' +
-        ' role="dialog" aria-hidden="true">' +
+        '<div class="modal fade" tabindex="-1" role="dialog"' +
+        ' aria-hidden="true" data-success="false">' +
         '<div class="modal-dialog">' +
             '<div class="modal-content">' +
                 '<div class="modal-header"></div>' +
                 '<div class="modal-body"></div>' +
                 '<div class="modal-footer">' +
-                    '<button type="button" class="btn btn-cancel btn-default"' +
-                        ' data-dismiss="modal">Cancel</button>' +
-                    '<button class="btn btn-success btn-ok">OK</button>' +
+                    '<button type="button" class="btn btn-cancel"' +
+                        ' data-dismiss="modal"></button>' +
+                    '<button class="btn btn-ok"></button>' +
                 '</div>' +
             '</div>' +
         '</div>' +
     '</div>');
 
-    var okCancelModal = function (title, text, success_callback,
-                                  cancel_callback, closed_callback,
-                                  ok_label, cancel_label) {
-        var $mok = $("#modal-ok-cancel");
-        if ($mok.length == 0) {
-            $mok = modalBase;
-            $("body").append($mok);
-        }
-        if (cancel_callback != null || cancel_label != null) {
-            cancel_label = cancel_label == null ? "Cancel" : cancel_label;
-            $mok.find(".btn-cancel").text(cancel_label).show();
-        } else {
-            $mok.find(".btn-cancel").hide();
-        }
-        $mok.find(".modal-header").text(title);
-        $mok.find(".modal-body").html(text);
-        $mok.data("success", false);
-        ok_label = ok_label == null ? "OK" : ok_label;
-        $mok.find(".btn-ok").text(ok_label).off("click").on("click", function () {
-            $mok.data("success", true).modal("hide");
-        });
-        $mok.off("shown.bs.model").on("shown.bs.modal", function () {
-            $mok.find(".btn-ok").focus();
-        }).off("hidden.bs.modal").on("hidden.bs.modal", function (e) {
-            if (closed_callback != null) {
-                closed_callback(e);
-            }
-            if (success_callback != null && $mok.data("success")) {
-                success_callback(e);
-            } else if (cancel_callback != null && !$mok.data("success")) {
-                cancel_callback(e);
-            }
-        }).modal();
+    var modalDefaults = {
+        title: "Information",
+        okLabel: "OK",
+        cancelLabel: "Cancel",
+        onCancelHide: undefined,
+        onCancelHidden: undefined,
+        onOKHide: undefined,
+        onOKHidden: undefined,
+        onHide: undefined,
+        onHidden: undefined,
+        okButtonClass: "btn-success",
+        cancelButtonClass: "btn-default"
     };
 
-    var okModal = function (title, text, closed_callback) {
-        okCancelModal(title, text, null, null, closed_callback);
+    var okCancelModal = function (modalSettings) {
+        var $mok = modalBase.clone();
+        var settings = $.extend({}, modalDefaults, modalSettings);
+        var $cancelBtn = $mok.find(".btn-cancel")
+                         .addClass(settings.cancelButtonClass);
+        if (settings.cancelLabel !== null) {
+            $cancelBtn.text(settings.cancelLabel).show();
+        } else {
+            $cancelBtn.hide();
+        }
+        $mok.find(".modal-header").text(settings.title);
+        $mok.find(".modal-body").html(settings.text);
+        $mok.find(".btn-ok").addClass(settings.okButtonClass).text(
+            settings.okLabel).on("click", function () {
+                $mok.data("success", true).modal("hide");
+        });
+        $mok.on("shown.bs.modal", function () {
+            $mok.find(".btn-ok").focus();
+        }).on("hide.bs.modal", function (e) {
+            if($mok.data("success")) {
+                if(settings.onOKHide !== undefined) {
+                    settings.onOKHide(e);
+                }
+            } else {
+                if(settings.onCancelHide !== undefined) {
+                    settings.onCancelHide(e);
+                }
+            }
+            if(settings.onHide !== undefined) {
+                settings.onHide(e);
+            }
+        }).on("hidden.bs.modal", function(e) {
+            if($mok.data("success")) {
+                if(settings.onOKHidden !== undefined) {
+                    settings.onOKHidden(e);
+                }
+            } else {
+                if(settings.onCancelHidden !== undefined) {
+                    settings.onCancelHidden(e);
+                }
+            }
+            if(settings.onHidden !== undefined) {
+                settings.onHidden(e);
+            }
+            $(e.currentTarget).remove();
+        }).appendTo("body").modal();
+    };
+
+    var okModal = function (modalSettings) {
+        okCancelModal($.extend(modalSettings, {cancelLabel: null}));
     };
 
     var loadingAnim = '<div class="loading-overlay">' +
@@ -82,7 +109,10 @@ var ui = (function() {
                 $(ele).find(".loading-overlay").hide();
             });
         } else {
-            okModal("Unknown loadingOverlay action: " + action);
+            okModal({
+                title: "Error",
+                text: "Unknown loadingOverlay action: " + action
+            });
         }
     };
 

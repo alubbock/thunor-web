@@ -28,24 +28,31 @@ var ajax = (function () {
     };
 
     var ajax400Handler = function (jqXHR) {
-        ui.okModal("Invalid request", "The request was invalid. The server" +
+        ui.okModal({
+            title: "Invalid request",
+            text: "The request was invalid. The server" +
             " returned the following extra information:<br><br>" +
-            jqXHR.responseText);
+            jqXHR.responseText
+        });
         return true;
     };
 
     var ajax401Handler = function () {
-        ui.okModal("Authentication required", "The request to the server" +
-            " was not authenticated. Please check that you are logged in, e.g." +
-            " by refreshing the page.");
+        ui.okModal({
+            title: "Authentication required",
+            text: "The request to the server was not authenticated. Please" +
+            " check that you are logged in, e.g. by refreshing the page."
+        });
         return true;
     };
 
     var ajax404Handler = function () {
-        ui.okModal("Requested resource not found", "The requested" +
-            " resource" +
-            " was not found, or you do not do have access to it. Please check" +
-            " you are logged in as the correct user.");
+        ui.okModal({
+            title: "Requested resource not found",
+            text: "The requested resource was not found, or you do not do" +
+            " have access to it. Please check you are logged in as the" +
+            " correct user."
+        });
         return true;
     };
 
@@ -62,16 +69,21 @@ var ajax = (function () {
                     " layout) if you want to apply only one of cell lines, " +
                     "drugs or doses</strong>";
             }
-            ui.okModal("Error applying template", errStr);
+            ui.okModal({
+                title: "Error applying template",
+                text: errStr
+            });
             return true;
         }
         return false;
     };
 
-    var ajax502Handler = function (jqXHR) {
-        ui.okModal("Server unavailable", "The server is currently" +
-            " unavailable. Please try your request again in a few minutes" +
-            " (code 502).");
+    var ajax502Handler = function () {
+        ui.okModal({
+            title: "Server unavailable",
+            text: "The server is currently unavailable. Please try your" +
+            " request again in a few minutes (code 502)."
+        });
         return true;
     };
 
@@ -83,7 +95,7 @@ var ajax = (function () {
             textStatus == "parsererror") {
             if (jqXHR != null) {
                 if (jqXHR.status === 0) {
-                    ui.okModal(subject, message);
+                    ui.okModal({title: subject, text: message});
                     return;
                 }
                 if (jqXHR.status == 400 && ajax400Handler(jqXHR)) return;
@@ -112,7 +124,7 @@ var ajax = (function () {
         } else if (textStatus == "abort") {
             message = "Communication with the server was aborted.";
         }
-        ui.okModal(subject, message);
+        ui.okModal({title: subject, text: message});
     };
 
     var urls = {

@@ -42,11 +42,13 @@ var plate_upload = function () {
 
     var createDataset = function (name) {
         if (name == "") {
-            ui.okModal("Error creating dataset",
-                "Please enter a name for this dataset",
-                function () {
+            ui.okModal({
+                title: "Error creating dataset",
+                text: "Please enter a name for this dataset",
+                onHidden: function () {
                     $("input[name=dataset-name]").focus();
-                });
+                }
+            });
             return false;
         }
         var $htsDatasetUpload1 = $("#hts-dataset-upload-1");
@@ -57,20 +59,15 @@ var plate_upload = function () {
             headers: {"X-CSRFToken": ajax.getCsrfToken() },
             data: {"name": name},
             success: function (data) {
-                if (data.id) {
-                    var newUrl = ajax.url("page_upload_platefile", data.id);
-                    if (window.history.replaceState) {
-                        window.history.replaceState(null, null, newUrl);
-                    }
-                    $("#hts-next-2").prop("href",
-                        ajax.url("page_annotate_dataset", data.id));
-                    createFileUploadScreen(data.id);
-                    $htsDatasetUpload1.slideUp();
-                    $("#hts-dataset-upload-2").slideDown();
-                } else {
-                    ui.okModal("Error", "Unknown Error");
-                    throw new Error("Unexpected response from server", data);
+                var newUrl = ajax.url("page_upload_platefile", data.id);
+                if (window.history.replaceState) {
+                    window.history.replaceState(null, null, newUrl);
                 }
+                $("#hts-next-2").prop("href",
+                    ajax.url("page_annotate_dataset", data.id));
+                createFileUploadScreen(data.id);
+                $htsDatasetUpload1.slideUp();
+                $("#hts-dataset-upload-2").slideDown();
             },
             error: ajax.ajaxErrorCallback,
             complete: function() {

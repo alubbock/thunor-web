@@ -36,18 +36,18 @@ var selectPickerOptionsSingle = {
 var plots = function() {
     var plotOptionsCache = {};
 
-    $("#change-dataset-modal").on("show.bs.modal", function() {
-        if(!$(this).data("initialised")) {
-            $(this).data("initialised", true);
+    $("#change-dataset-modal").on("show.bs.modal", function(e) {
+        if(!$(e.target).data("initialised")) {
+            $(e.target).data("initialised", true);
             datasetTable.initDatasetTable(function (data, type, full, meta) {
                 return "<a class=\"select-dataset\" data-dataset-id=\""
                         + full.id + "\" data-dataset-name=\"" + full.name +
                         "\" href=\"\">" + full.name + "</a>";
             },
             function() {
-                $("a[class=select-dataset]").click(function(e) {
-                    e.preventDefault();
-                    var $this = $(this);
+                $("a[class=select-dataset]").click(function(e2) {
+                    e2.preventDefault();
+                    var $this = $(e2.target);
                     $(".new-plot-btn").data("datasetId",
                         $this.data("datasetId")
                     );
@@ -73,8 +73,8 @@ var plots = function() {
     });
 
     var setColumns = function (numColsMd, numColsLg) {
-        var numBScolsLg = Math.round(12 / numColsLg),
-            numBScolsMd = Math.round(12 / numColsMd);
+        var numBScolsLg = Math.round(12 / numColsLg);
+        var numBScolsMd = Math.round(12 / numColsMd);
         $(".panel-container").removeClass("col-lg-3 col-lg-4 col-lg-6 " +
             "col-lg-12 col-md-6 col-md-12").addClass
         ("col-lg-" + numBScolsLg + " col-md-" + numBScolsMd);
@@ -95,21 +95,21 @@ var plots = function() {
     };
 
     $(window).resize(function () {
-        clearTimeout($.data(this, "resizeTimer"));
-        $.data(this, "resizeTimer", setTimeout(function () {
+        clearTimeout($.data(window, "resizeTimer"));
+        $.data(window, "resizeTimer", setTimeout(function () {
             resizeGraphs();
         }, 200));
     });
 
     $("#hts-num-cols-lg").find("li").click(function (e) {
         e.preventDefault();
-        var lgCols = $(this).data("cols");
+        var lgCols = $(e.currentTarget).data("cols");
         var mdCols = lgCols >= 2 ? 2 : 1;
         setColumns(mdCols, lgCols);
     });
 
-    $("#hts-num-cols-md").find("li").click(function () {
-        var mdCols = $(this).data("cols");
+    $("#hts-num-cols-md").find("li").click(function (e) {
+        var mdCols = $(e.currentTarget).data("cols");
         setColumns(mdCols, mdCols);
     });
 
@@ -142,15 +142,6 @@ var plots = function() {
     var setRadio = function($radioDiv, newState) {
         $radioDiv.find("input[type=radio]").prop("disabled", !newState);
         $radioDiv.closest(".form-group").toggle(newState);
-    };
-
-    var setInput = function($inputDiv, newState) {
-        $inputDiv.find("input[type=text]").prop("disabled", !newState);
-        if(newState) {
-            $inputDiv.closest(".form-group").slideDown(newState);
-        } else {
-            $inputDiv.closest(".form-group").slideUp(newState);
-        }
     };
 
     var setPlotType = function($dataPanel) {
@@ -207,13 +198,6 @@ var plots = function() {
             $dataPanel.find("input[name=logTransform]:checked").val() === "log2"
         );
     });
-    $(".hts-dippar-sort input[type=radio]").change(function(e) {
-        var $target = $(e.target);
-        // setInput(
-        //     $target.closest(".hts-dippar-group").find(".hts-dose-input-group"),
-        //     $target.val() === "aa"
-        // );
-    });
     $(".tags-link").click(function() {
         var $this = $(this).addClass("active");
         var $formGroup = $this.closest(".form-group");
@@ -228,25 +212,43 @@ var plots = function() {
         $formGroup.find(".tag-select").prop("disabled", true).selectpicker("hide");
         $formGroup.find(".name-select").prop("disabled", false).selectpicker("refresh").selectpicker("show");
     });
-    $(".hts-dose-select").find("li").click(function (e) {
-        e.preventDefault();
-        var $this = $(this);
-        var $inputGroupBtn = $this.closest(".input-group-btn");
-        $inputGroupBtn.find(".hts-active-dose-unit")
-                .text($this.text());
-        $inputGroupBtn.find("input").val($this.data("dose"));
-    });
     $(".hts-change-data > form").submit(function (e) {
+        e.preventDefault();
+        var $form = $(e.currentTarget);
+
+        if($form.data("force")) {
+            $form.data("force", false);
+        } else {
+            var numCellLines = $form.find("select[name=cellLineId]")
+                .find("option:selected").length;
+            var numDrugs = $form.find("select[name=drugId]")
+                .find("option:selected").length;
+            var plotType = $form.find("input[name=plotType]:checked").val();
+
+            if (plotType === "dip" && numCellLines * numDrugs > 100) {
+                ui.okCancelModal({
+                    title: "Large plot requested",
+                    text: "The plot you've requested might have over 100 " +
+                    "traces. This may slow down your browser and/or take" +
+                    " some time to load.<br><br>Continue?",
+                    onOKHide: function () {
+                        $form.data("force", true).submit();
+                    },
+                    okLabel: "Show Plot"
+                });
+                return;
+            }
+        }
+
         var $plotPanel = $(this).closest(".plot-panel");
         var $plotPanelBody = $plotPanel.find(".panel-body");
         var $changeDataBtn = $plotPanel.find(".hts-change-data-btn");
         $plotPanelBody.loadingOverlay("show");
-        var $this = $(e.currentTarget),
-            $submit = $this.find("button[type=submit]");
-        e.preventDefault();
+        var $submit = $form.find("button[type=submit]");
+
         $submit.prop("disabled", true).text("Loading...");
         $.ajax({
-            url: ajax.url("get_plot") + "?" + $this.serialize(),
+            url: ajax.url("get_plot") + "?" + $form.serialize(),
             type: "GET",
             dataType: "json",
             success: function (data) {
@@ -310,8 +312,9 @@ var plots = function() {
         // check plot loaded
         var $plotDiv = $panel.find(".plotly-graph-div.loaded");
         if(!$plotDiv.length) {
-            ui.okModal("Plot not loaded", "Please load a plot first, using" +
-                " the Change Plot menu");
+            ui.okModal({title: "Plot not loaded",
+                        text: "Please load a plot first, using the Change" +
+                        " Plot menu"});
             return;
         }
         // process download
@@ -331,7 +334,7 @@ var plots = function() {
         }
     });
 
-    function objectifyForm(formArray) {
+    var objectifyForm = function(formArray) {
       var returnArray = {};
       for (var i = 0; i < formArray.length; i++) {
           var name = formArray[i]["name"], value = formArray[i]["value"];
@@ -346,16 +349,13 @@ var plots = function() {
           }
       }
       return returnArray;
-    }
+    };
 
     var toggleSwitch = function($toggleSwitch, state) {
         var $dataPanel = $toggleSwitch.closest(".hts-change-data");
         setRadio($dataPanel.find(".hts-aggregate"), !state);
         var $group = $toggleSwitch.closest(".hts-dippar-group");
         var $buttons = $group.find(".hts-dippar-sort");
-        $buttons.find("input[type=radio]").prop("disabled", !state);
-        // setInput($group.find(".hts-dose-input-group"), state &&
-        //     $buttons.find("input[type=radio]:checked").val() === "aa");
         if(state) {
             $buttons.slideDown();
         } else {
@@ -446,15 +446,6 @@ var plots = function() {
                         }
                     }
                 });
-                // Update dose multiplier options
-                $dataPanel.find(".hts-active-dose-unit").each(function(i, obj) {
-                    var $obj = $(obj);
-                    var $inputGroup = $obj.closest(".input-group-btn");
-                    var doseNumeric = $inputGroup.find("input").val();
-                    $obj.text(
-                        $inputGroup.find(".hts-dose-select").find("li[data-dose="+doseNumeric+"]").text()
-                    );
-                });
             }
         };
 
@@ -471,9 +462,12 @@ var plots = function() {
     };
 
     $(".panel-close-btn").on("click", function () {
-        $(this).closest(".panel-container")[$(this).data("effect")](400,
+        var $this = $(this);
+        var $container = $this.closest(".panel-container");
+        $container[$this.data("effect")](400,
             function () {
-                $(this).remove();
+                Plotly.purge($container.find(".plotly-graph-div")[0]);
+                $container.remove();
             });
     });
 
