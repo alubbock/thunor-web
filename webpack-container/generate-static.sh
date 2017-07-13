@@ -10,12 +10,14 @@ SITE_NAME=${SITE_NAME:-Thunor}
 
 if [ "$1" = "--no-container" ]; then
   echo "Processing staticfiles outside of container; do not use in production"
-  cd $THIS_DIR && npm run build && cd -
+  cd $THIS_DIR
+  npm run build || exit 1
+  cd -
   python $BASE_DIR/manage.py collectstatic --no-input --ignore pyhts
 else
   docker build -t thunor_webpack $THIS_DIR
-  docker run --rm -v $BASE_DIR/_state/webpack-bundles:/_state/webpack-bundles -v $BASE_DIR/pyhts/static/pyhts:/node-build/thunor thunor_webpack
-  docker-compose -f $BASE_DIR/docker-compose.base.yml run --rm -v $BASE_DIR/_state/webpack-bundles:/thunor/_state/webpack-bundles -v $BASE_DIR/_state/thunor-static:/thunor/_state/thunor-static app python manage.py collectstatic --no-input --ignore pyhts
+  docker run --rm -v $BASE_DIR/_state/webpack-bundles:/_state/webpack-bundles -v $BASE_DIR/pyhts/static/pyhts:/node-build/thunor thunor_webpack || exit $?
+  docker-compose -f $BASE_DIR/docker-compose.base.yml run --rm -v $BASE_DIR/_state/webpack-bundles:/thunor/_state/webpack-bundles -v $BASE_DIR/_state/thunor-static:/thunor/_state/thunor-static app python manage.py collectstatic --no-input --ignore pyhts || exit $?
   echo "Put changes live with 'docker-compose up -d --build app'"
 fi
 cp $THIS_DIR/thunor/502.html $BASE_DIR/_state/thunor-static/
