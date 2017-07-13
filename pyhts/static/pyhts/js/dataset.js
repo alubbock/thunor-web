@@ -38,9 +38,16 @@ var dataset = function() {
     });
 
     $("#btn-delete-dataset").click(function() {
-        ui.okCancelModal('Confirm Delete', 'Deleting this dataset is' +
-            ' <strong>permanent</strong> and <strong>Irreversible</strong>.' +
-            ' Are you sure?', delete_dataset, null, null, 'Delete', 'Cancel');
+        ui.okCancelModal({
+            title: "Confirm Delete",
+            text: "Deleting this dataset is" +
+            " <strong>permanent</strong> and" +
+            " <strong>Irreversible</strong>." +
+            " Are you sure?",
+            onOKHide: delete_dataset,
+            okLabel: "Delete",
+            okButtonClass: "btn-danger"
+        });
     });
 };
 
