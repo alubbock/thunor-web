@@ -648,6 +648,7 @@ user-select: none;}
        45deg, #ccc, #ccc 10px,
        #bbb 10px, #bbb 20px
     );
+    float: left;
 }
 #hts-next-1, #hts-next-2 {
     display: none;
