@@ -219,9 +219,9 @@ var plots = function() {
         if($form.data("force")) {
             $form.data("force", false);
         } else {
-            var numCellLines = $form.find("select[name=cellLineId]")
+            var numCellLines = $form.find("select[name=cellLineId]:enabled")
                 .find("option:selected").length;
-            var numDrugs = $form.find("select[name=drugId]")
+            var numDrugs = $form.find("select[name=drugId]:enabled")
                 .find("option:selected").length;
             var plotType = $form.find("input[name=plotType]:checked").val();
             var numTraces = numCellLines * numDrugs;
