@@ -1045,10 +1045,13 @@ def ajax_get_plot(request, file_type='json'):
                                 'drug/cell line/assay combination may not '
                                 'exist.', status=400)
 
-        dip_par_sort = request.GET.get('dipParSort', None)
+        dip_par = request.GET.get('dipPar', None)
         dip_par_two = None
         if request.GET.get('dipParTwoToggle', 'off') == 'on':
             dip_par_two = request.GET.get('dipParTwo', None)
+        dip_par_order = None
+        if request.GET.get('dipParOrderToggle', 'off') == 'on':
+            dip_par_order = request.GET.get('dipParOrder', None)
         # Fit Hill curves and compute parameters
         with warnings.catch_warnings(record=True) as w:
             fit_params = dip_fit_params(
@@ -1056,20 +1059,21 @@ def ajax_get_plot(request, file_type='json'):
                 include_dip_rates=plot_type == 'dip',
             )
             # Currently only care about warnings if plotting AA
-            if plot_type == 'dippar' and (dip_par_sort == 'aa' or
+            if plot_type == 'dippar' and (dip_par == 'aa' or
                                           dip_par_two == 'aa'):
                 w = [i for i in w if issubclass(i.category, AAFitWarning)]
                 if w:
                     return HttpResponse(w[0].message, status=400)
         if plot_type == 'dippar':
-            if dip_par_sort is None:
+            if dip_par is None:
                 return HttpResponse('Dose response parameter sort field is '
                                     'required', status=400)
             try:
                 plot_fig = plot_dip_params(
                     fit_params,
-                    fit_params_sort=dip_par_sort,
-                    fit_params_compare=dip_par_two,
+                    fit_param=dip_par,
+                    fit_param_compare=dip_par_two,
+                    fit_param_sort=dip_par_order,
                     log_yaxis=yaxis == 'log2',
                     subtitle=dataset.name,
                     aggregate_cell_lines=aggregate_cell_lines,

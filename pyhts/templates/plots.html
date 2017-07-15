@@ -157,7 +157,8 @@
                 title="Select a tag">
         </select>
         <div class="form-group" style="display:none">
-        <div class="btn-group btn-group-2 hts-aggregate"
+        <div class="btn-group btn-group-2 hts-aggregate
+        hts-aggregate-cell-lines"
              data-toggle="buttons">
           <label class="btn btn-default active">
             <input type="radio" name="aggregateCellLines" value="false"
@@ -190,7 +191,7 @@
                 title="Select a tag">
         </select>
         <div class="form-group" style="display:none">
-        <div class="btn-group btn-group-2 hts-aggregate"
+        <div class="btn-group btn-group-2 hts-aggregate hts-aggregate-drugs"
              data-toggle="buttons">
           <label class="btn btn-default active">
             <input type="radio" name="aggregateDrugs" value="false"
@@ -229,10 +230,13 @@
           </label>
         </div>
     </div>
-    {% with param_form_name="dipParSort" param_label="Parameter" %}
+    {% with param_form_name="dipPar" param_label="Parameter" %}
     {% include "parameter_selection_panel.html" %}
     {% endwith %}
     {% with parameter_toggle=True param_form_name="dipParTwo" param_label="Second Parameter" %}
+    {% include "parameter_selection_panel.html" %}
+    {% endwith %}
+    {% with parameter_toggle=True param_form_name="dipParOrder" param_label="Ordering Parameter" %}
     {% include "parameter_selection_panel.html" %}
     {% endwith %}
     <div class="form-group hidden-dip hidden-dippar">
