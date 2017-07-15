@@ -7,45 +7,45 @@
                data-size="mini">
       </div>
     {% endif %}
-    <label for="hts-dippar-select">{{ param_label }}</label>
-    <div class="hts-dippar-select"{% if parameter_toggle %}
-         style="display:none
-"{% endif %}>
-      <select class="form-control" title="Select a parameter" name=
-"{{ param_form_name }}">
-        <optgroup label="Inhibitory concentration">
-          <option data-content="IC<sub>10</sub>" value="ic10">IC10</option>
-          <option data-content="IC<sub>50</sub>" value="ic50" selected>IC50</option>
-          <option data-content="IC<sub>100</sub>" value="ic100">IC100</option>
-          <option data-content="IC (custom value)"
-                  value="ic_custom">IC (custom value)</option>
-        </optgroup>
-        <optgroup label="Effective concentration">
-          <option data-content="EC<sub>50</sub>" value="ec50">EC50</option>
-        </optgroup>
-        <optgroup label="Effect size">
-          <option data-content="E<sub>max</sub>" value="emax">Emax</option>
-          <option data-content="E<sub>max</sub> (relative)"
-                  value="emax_rel">Emax (relative)</option>
-          <option data-content="E<sub>max</sub> observed"
-                  value="emax_obs">Emax observed</option>
-          <option data-content="E<sub>max</sub> observed (relative)"
-                  value="emax_obs_rel">Emax observed (relative)</option>
-          <option data-content="E<sub>50</sub>" value="e50">E50</option>
-        </optgroup>
-        <optgroup label="Other">
-          <option value="hill">Hill Coefficient</option>
-          <option value="aa">Activity Area</option>
-        </optgroup>
-      </select>
+      <label for="hts-dippar-select">{{ param_label }}</label>
+      <div class="hts-dippar-entry"{% if parameter_toggle %} style="display:none"{% endif %}>
+      <div class="hts-dippar-select">
+        <select class="form-control" title="Select a parameter" name=
+            "{{ param_form_name }}">
+          <optgroup label="Inhibitory concentration">
+            <option data-content="IC<sub>10</sub>" value="ic10">IC10</option>
+            <option data-content="IC<sub>50</sub>" value="ic50" selected>IC50</option>
+            <option data-content="IC<sub>100</sub>" value="ic100">IC100</option>
+            <option data-content="IC (custom value)"
+                    value="ic_custom">IC (custom value)</option>
+          </optgroup>
+          <optgroup label="Effective concentration">
+            <option data-content="EC<sub>50</sub>" value="ec50">EC50</option>
+          </optgroup>
+          <optgroup label="Effect size">
+            <option data-content="E<sub>max</sub>" value="emax">Emax</option>
+            <option data-content="E<sub>max</sub> (relative)"
+                    value="emax_rel">Emax (relative)</option>
+            <option data-content="E<sub>max</sub> observed"
+                    value="emax_obs">Emax observed</option>
+            <option data-content="E<sub>max</sub> observed (relative)"
+                    value="emax_obs_rel">Emax observed (relative)</option>
+            <option data-content="E<sub>50</sub>" value="e50">E50</option>
+          </optgroup>
+          <optgroup label="Other">
+            <option value="hill">Hill Coefficient</option>
+            <option value="aa">Activity Area</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="hts-dippar-custom pull-right" style="display:none">
+        <label for="{{ param_form_name }}Custom">Custom Value</label>
+        <input type="text" name="{{ param_form_name }}Custom"
+               value="50"
+               class="form-control" style="display:inline;width:50px;"
+               maxlength="3">
+      </div>
+      <div class="clearfix"></div>
     </div>
-    <div class="hts-dippar-custom pull-right" style="display:none">
-      <label for="{{ param_form_name }}_custom">Custom Value</label>
-      <input type="text" name="{{ param_form_name }}_custom"
-             value="50"
-             class="form-control" style="display:inline;width:50px;"
-             maxlength="3">
-    </div>
-    <div class="clearfix"></div>
   </div>
 </div>

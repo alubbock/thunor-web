@@ -361,11 +361,11 @@ var plots = function() {
         if(state) {
             var $dipParOrder = $dataPanel.find("input[name=dipParOrderToggle]");
             $dipParOrder.bootstrapSwitch("state", false, true);
-            $dipParOrder.closest(".hts-dippar-group").find(".hts-dippar-select").slideUp();
+            $dipParOrder.closest(".hts-dippar-group").find(".hts-dippar-entry").slideUp();
         }
         setRadio($dataPanel.find(".hts-aggregate"), !state);
         var $group = $toggleSwitch.closest(".hts-dippar-group");
-        var $buttons = $group.find(".hts-dippar-select");
+        var $buttons = $group.find(".hts-dippar-entry");
         if(state) {
             $buttons.slideDown();
         } else {
@@ -378,12 +378,12 @@ var plots = function() {
         if(state) {
             var $parTwoToggle = $dataPanel.find("input[name=dipParTwoToggle]");
             $parTwoToggle.bootstrapSwitch("state", false, true);
-            $parTwoToggle.closest(".hts-dippar-group").find(".hts-dippar-select").slideUp();
+            $parTwoToggle.closest(".hts-dippar-group").find(".hts-dippar-entry").slideUp();
         }
         setRadio($dataPanel.find(".hts-aggregate-cell-lines"), !state);
         setRadio($dataPanel.find(".hts-aggregate-drugs"), true);
         var $group = $toggleSwitch.closest(".hts-dippar-group");
-        var $buttons = $group.find(".hts-dippar-select");
+        var $buttons = $group.find(".hts-dippar-entry");
         if(state) {
             $buttons.slideDown();
         } else {

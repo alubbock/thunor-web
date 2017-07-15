@@ -1046,17 +1046,43 @@ def ajax_get_plot(request, file_type='json'):
                                 'exist.', status=400)
 
         dip_par = request.GET.get('dipPar', None)
+        if dip_par is not None and dip_par.endswith('_custom'):
+            dip_par = dip_par[:-7] + request.GET.get('dipParCustom', None)
         dip_par_two = None
         if request.GET.get('dipParTwoToggle', 'off') == 'on':
             dip_par_two = request.GET.get('dipParTwo', None)
+            if dip_par_two is not None and dip_par_two.endswith('_custom'):
+                dip_par_two = dip_par_two[:-7] + request.GET.get(
+                    'dipParTwoCustom', None)
         dip_par_order = None
         if request.GET.get('dipParOrderToggle', 'off') == 'on':
             dip_par_order = request.GET.get('dipParOrder', None)
+            if dip_par_order is not None and dip_par_order.endswith('_custom'):
+                dip_par_order = dip_par_order[:-7] + request.GET.get(
+                    'dipParOrderCustom', None)
+        # Work out any non-standard parameters we need to calculate
+        # e.g. non-standard IC concentrations
+        ic_concentrations = {50}
+        for param in (dip_par, dip_par_two, dip_par_order):
+            if param is None:
+                continue
+            if param.startswith('ic'):
+                try:
+                    value = int(param[2:])
+                    if value < 1 or value > 100:
+                        raise ValueError()
+                    ic_concentrations.add(value)
+                except ValueError:
+                    return HttpResponse('Invalid IC concentration - must be '
+                                        'an integer between 1 and 100',
+                                        status=400)
+
         # Fit Hill curves and compute parameters
         with warnings.catch_warnings(record=True) as w:
             fit_params = dip_fit_params(
                 ctrl_dip_data, expt_dip_data,
                 include_dip_rates=plot_type == 'dip',
+                custom_ic_concentrations=ic_concentrations,
             )
             # Currently only care about warnings if plotting AA
             if plot_type == 'dippar' and (dip_par == 'aa' or
