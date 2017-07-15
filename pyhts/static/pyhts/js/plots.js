@@ -408,7 +408,19 @@ var plots = function() {
         $dataPanel.find("select[name=cellLineId],select[name=drugId]")
             .selectpicker(selectPickerOptionsSingle);
         $dataPanel.find(".hts-dippar-select").find("select")
-            .selectpicker();
+            .selectpicker().on("changed.bs.select", function(e) {
+                var $target = $(e.target);
+                var $customBox = $target.closest(".hts-dippar-group").find(".hts-dippar-custom");
+                if($target.val().endsWith("_custom")) {
+                    $customBox.slideDown().find("input[type=text]").focus();
+                } else {
+                    $customBox.slideUp();
+                }
+        });
+        $dataPanel.find(".hts-dippar-custom").find("input[type=text]").focus(
+            function() { $(this).select(); }
+        );
+
         $dataPanel.data("loaded", true);
 
         var datasetId;
@@ -467,7 +479,7 @@ var plots = function() {
                         var $obj = $(obj);
                         var val = defaultOptions[obj.name];
                         if ($obj.prop("tagName").toLowerCase() === "select") {
-                            $obj.selectpicker("val", val);
+                            $obj.selectpicker("val", val).trigger("changed.bs.select");
                         } else {
                             if (obj.type === "hidden" || obj.type === "text") {
                                 $obj.val(val);
