@@ -380,8 +380,7 @@ var plots = function() {
             $parTwoToggle.bootstrapSwitch("state", false, true);
             $parTwoToggle.closest(".hts-dippar-group").find(".hts-dippar-entry").slideUp();
         }
-        setRadio($dataPanel.find(".hts-aggregate-cell-lines"), !state);
-        setRadio($dataPanel.find(".hts-aggregate-drugs"), true);
+        setRadio($dataPanel.find(".hts-aggregate"), true);
         var $group = $toggleSwitch.closest(".hts-dippar-group");
         var $buttons = $group.find(".hts-dippar-entry");
         if(state) {
