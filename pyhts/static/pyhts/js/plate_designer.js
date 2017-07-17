@@ -314,7 +314,7 @@ PlateMap.prototype = {
         if(errors.length > 0) {
             return errors;
         }
-        return false;
+        return true;
     }
 };
 
@@ -1359,14 +1359,15 @@ var plate_designer = function () {
     };
 
     var validatePlate = function(retryCallback) {
-        var plateErrors = pyHTS.state.plateMap.validate();
-        if (plateErrors) {
+        var plateValid = pyHTS.state.plateMap.validate();
+        if (plateValid !== true) {
             ui.okCancelModal({
                 title: 'Error validating plate map',
-                text: '<ul><li>' + plateErrors.join("</li><li>") + '</li></ul>',
-                onCancelHidden: retryCallback,
-                okLabel: 'Go back',
-                cancelLabel: 'Ignore errors'
+                text: '<ul><li>' + plateValid.join("</li><li>") + '</li></ul>',
+                onOKHide: retryCallback,
+                okLabel: 'Ignore Errors',
+                cancelLabel: 'Go back',
+                cancelByDefault: true
             });
             return false;
         }
@@ -1485,17 +1486,26 @@ var plate_designer = function () {
         }
     });
 
+    var downloadPlate = function(ignoreErrors) {
+        if(!ignoreErrors) {
+            if(!validatePlate(function() { downloadPlate(true); } )) {
+                return false;
+            }
+        }
+        var wells = [];
+        var numWells = pyHTS.state.plateMap.wells.length;
+        for (var w = 0; w < numWells; w++) {
+            wells.push(pyHTS.state.plateMap.wells[w].toStringFormat());
+        }
+        var blob = new Blob([JSON.stringify({wells: wells})], {type: "application/json"});
+        FileSaver.saveAs(blob, "platemap.json");
+        if(pyHTS.state.plates[0] === "MASTER") {
+            pyHTS.state.plateMap.unsaved_changes = false;
+        }
+    };
+
     $('#hts-download-plate').click(function() {
-       var wells = [];
-       var numWells = pyHTS.state.plateMap.wells.length;
-       for (var w = 0; w < numWells; w++) {
-           wells.push(pyHTS.state.plateMap.wells[w].toStringFormat());
-       }
-       var blob = new Blob([JSON.stringify({wells: wells})], {type: "application/json"});
-       FileSaver.saveAs(blob, "platemap.json");
-       if(pyHTS.state.plates[0] === "MASTER") {
-           pyHTS.state.plateMap.unsaved_changes = false;
-       }
+        downloadPlate(!pyHTS.state.plateMap.unsaved_changes);
     });
 
     if(pyHTS.state.plates.length > 0) {

@@ -27,7 +27,8 @@ var ui = (function() {
         onHide: undefined,
         onHidden: undefined,
         okButtonClass: "btn-success",
-        cancelButtonClass: "btn-default"
+        cancelButtonClass: "btn-default",
+        cancelByDefault: false
     };
 
     var okCancelModal = function (modalSettings) {
@@ -47,7 +48,7 @@ var ui = (function() {
                 $mok.data("success", true).modal("hide");
         });
         $mok.on("shown.bs.modal", function () {
-            $mok.find(".btn-ok").focus();
+            $mok.find(settings.cancelByDefault ? ".btn-cancel" : ".btn-ok").focus();
         }).on("hide.bs.modal", function (e) {
             if($mok.data("success")) {
                 if(settings.onOKHide !== undefined) {
