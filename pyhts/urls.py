@@ -16,6 +16,9 @@ urlpatterns = [
     url(r'^ajax/tags/assign$', views.ajax_assign_tag,
         name='ajax_assign_tag'),
 
+    url(r'^platemap/(?P<num_wells>\d+)$', views.plate_designer,
+        kwargs={'dataset_id': None}, name='plate_mapper'),
+
     url(r'^dataset/add$', views.dataset_upload, name='plate_upload'),
     url(r'^dataset/(?P<dataset_id>\d+)$', views.view_dataset,
         name='view_dataset'),

@@ -741,37 +741,52 @@ def xlsx_get_assay_data(request, dataset_id):
 
 
 @login_required
-def plate_designer(request, dataset_id):
-    plates = list(Plate.objects.filter(dataset_id=dataset_id).order_by(
-        'id').select_related('dataset'))
-    if plates:
-        dataset = plates[0].dataset
-    else:
-        try:
-            dataset = HTSDataset.objects.get(pk=dataset_id)
-        except HTSDataset.DoesNotExist:
-            raise Http404()
-
+def plate_designer(request, dataset_id, num_wells=None):
     editable = True
-
-    if dataset.owner_id != request.user.id:
-        editable = False
-        if not request.user.has_perm('view_plate_layout', dataset):
-            raise Http404()
-
     plate_sizes = []
-    for plate in plates:
-        plate_size_exists = False
-        for pl in plate_sizes:
-            if pl['numCols'] == plate.width and pl['numRows'] == \
-                    plate.height and pl['numWells'] == plate.num_wells:
-                plate_size_exists = True
-        if not plate_size_exists:
-            plate_sizes.append({'numCols': plate.width,
-                                'numRows': plate.height,
-                                'numWells': plate.num_wells})
+    if dataset_id is None:
+        if num_wells is None:
+            raise ValueError("Need to supply number of wells when not "
+                             "loading an existing dataset")
+        num_wells = int(num_wells)
+        if num_wells == 384:
+            plates = [Plate(id='MASTER', width=24, height=16)]
+        elif num_wells == 96:
+            plates = [Plate(id='MASTER', width=12, height=8)]
+        else:
+            raise Http404()
+        dataset = None
+        plate_sizes.append({'numCols': plates[0].width,
+                            'numRows': plates[0].height,
+                            'numWells': num_wells})
+    else:
+        plates = list(Plate.objects.filter(dataset_id=dataset_id).order_by(
+            'id').select_related('dataset'))
+        if plates:
+            dataset = plates[0].dataset
+        else:
+            try:
+                dataset = HTSDataset.objects.get(pk=dataset_id)
+            except HTSDataset.DoesNotExist:
+                raise Http404()
 
-    plate_sizes = sorted(plate_sizes, key=itemgetter('numWells'))
+        if dataset.owner_id != request.user.id:
+            editable = False
+            if not request.user.has_perm('view_plate_layout', dataset):
+                raise Http404()
+
+        for plate in plates:
+            plate_size_exists = False
+            for pl in plate_sizes:
+                if pl['numCols'] == plate.width and pl['numRows'] == \
+                        plate.height and pl['numWells'] == plate.num_wells:
+                    plate_size_exists = True
+            if not plate_size_exists:
+                plate_sizes.append({'numCols': plate.width,
+                                    'numRows': plate.height,
+                                    'numWells': plate.num_wells})
+
+        plate_sizes = sorted(plate_sizes, key=itemgetter('numWells'))
 
     response = TemplateResponse(request, 'plate_designer.html', {
         'dataset': dataset,

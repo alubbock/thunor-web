@@ -25,6 +25,9 @@ var config = {
                  "bootstrap-switch", //toggle switch widget
                  "bootstrap-switch/dist/css/bootstrap3/bootstrap-switch.css",
 
+		 // file downloads
+		 "expose-loader?FileSaver!file-saver",
+
                  "bootstrap-fileinput",//uploader
                  "bootstrap-fileinput/css/fileinput.css",//uploader
                  "bootstrap-select",//plate mapper

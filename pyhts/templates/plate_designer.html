@@ -1,14 +1,15 @@
 {% extends "base.html" %}
 
-{% block title %}Annotate Plates{% endblock %}
+{% block title %}Plate Map Designer{% endblock %}
 
 {% block content %}
 {# Plate Designer #}
-{% if plates %}
+{% if plates or dataset is None %}
 <div class="row">
     <div class="col-lg-9 col-md-9 col-sm-12 col-xs-12">
     <div class="panel panel-default" id="hts-plate-panel">
     <div class="panel-heading">
+      {% if dataset %}
         <div class="pull-right" role="group">
             <div id="hts-apply-template-multiple">
             <select multiple title="Apply to plates">{% for p in plates %}
@@ -59,6 +60,15 @@
                 {% endfor %}
             </ul>
         </div>
+      {% else %}
+        <div class="pull-right" role="group">
+        <a role="button" class="btn btn-default" href="
+{% url 'pyhts:home' %}">Back to Home Page</a>
+        </div>
+      {% endif %}
+        <button role="button" class="btn {% if dataset %}btn-default{% else %}btn-success{% endif %}"
+                id="hts-download-plate"><i class="fa fa-download"></i>
+          Download Plate Map</button>
     </div><!-- panel-heading -->
 
     <ul id="hts-well-nav" class="nav nav-tabs" role="tablist">
@@ -250,7 +260,7 @@
 
     </div>
 </div>
-{% else %}
+{% elif dataset %}
 <div class="row">
     <div class="col-lg-12">
         <p class="lead">This dataset does not contain any plate files.</p>
@@ -273,7 +283,9 @@ $(function () {
     'use strict';
     var PlateMap = pyHTS.views.plate_designer.PlateMap;
     $.extend(pyHTS.state, {
-        {% if plates.0 %}plateMap: new PlateMap({{ plates.0.id }}, {{ plates.0.height }}, {{ plates.0.width }}),{% endif %}
+        {% if plates.0 %}plateMap: new PlateMap('{{ plates.0.id }}', {{ plates.0.height }}, {{ plates.0.width }}),{% endif %}
+
+        {% if not dataset %}plateMapperLocalOnly: true,{% endif %}
 
         plateMapTemplates: {
             {% for plate_size in plate_sizes %}
@@ -290,12 +302,12 @@ $(function () {
 
         completeFlag: false,
         editableFlag: {% if editable %}true{% else %}false{% endif %},
-        redirectURL: '{% url 'pyhts:view_dataset' dataset.id %}',
+        redirectURL: {% if dataset %}'{% url 'pyhts:view_dataset' dataset.id %}'{% else %}null{% endif %},
         {% load jsonify from pyhts_tags %}
         cell_lines: {{ cell_lines|jsonify }},
         drugs: {{ drugs|jsonify }},
 
-        plates: [{% for p in plates %}{{ p.id }}{% if not forloop.last %},{% endif %}{% endfor %}],
+        plates: [{% for p in plates %}'{{ p.id }}'{% if not forloop.last %},{% endif %}{% endfor %}],
         savedPlates: [{% for p in plates %}{% if p.last_annotated %}{{ p.id }},{% endif %}{% endfor %}]
     });
 

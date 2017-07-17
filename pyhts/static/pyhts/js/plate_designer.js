@@ -44,7 +44,21 @@ Well.prototype = {
         this.drugs = null;
         this.doses = null;
         this.setUnsavedChanges();
+    },
+    toStringFormat: function() {
+        var well = $.extend(true, {}, this);
+        if(well.cellLine !== null) {
+            well.cellLine = util.filterObjectsAttr(well.cellLine, pyHTS.state.cell_lines, "id", "name");
+        }
+        if(well.drugs !== null) {
+            var numDrugs = well.drugs.length;
+            for(var drIdx = 0; drIdx < numDrugs; drIdx++) {
+                well.drugs[drIdx] = util.filterObjectsAttr(well.drugs[drIdx], pyHTS.state.drugs, "id", "name");
+            }
+        }
+        return well;
     }
+
 };
 
 var PlateMap = function(plateId, numRows, numCols, wells) {
@@ -365,41 +379,71 @@ var plate_designer = function () {
     };
 
     var createCellLine = function(name, successCallback) {
-        $.ajax({type: 'POST',
+        if(pyHTS.state.plateMapperLocalOnly === true) {
+            var ids = util.getAttributeFromObjects(pyHTS.state.cell_lines, "id");
+            var newId = Math.max.apply(null, ids) + 1;
+            pyHTS.state.cell_lines.push({'id': newId, 'name': name});
+            $('#cellline-typeahead').data('ttTypeahead').menu
+                        .datasets[0].source =
+                        util.substringMatcher(
+                            util.getAttributeFromObjects(
+                                pyHTS.state.cell_lines, 'name'
+                            ));
+            successCallback();
+        } else {
+            $.ajax({
+                type: 'POST',
                 url: ajax.url("create_cellline"),
-                headers: { 'X-CSRFToken': ajax.getCsrfToken() },
-                data: {'name' : name},
-                success: function(data) {
+                headers: {'X-CSRFToken': ajax.getCsrfToken()},
+                data: {'name': name},
+                success: function (data) {
                     pyHTS.state.cell_lines = data.cellLines;
                     $('#cellline-typeahead').data('ttTypeahead').menu
-                            .datasets[0].source =
-                            util.substringMatcher(
-                                    util.getAttributeFromObjects(
-                                            pyHTS.state.cell_lines, 'name'
-                                    ));
+                        .datasets[0].source =
+                        util.substringMatcher(
+                            util.getAttributeFromObjects(
+                                pyHTS.state.cell_lines, 'name'
+                            ));
                     successCallback();
                 },
                 error: ajax.ajaxErrorCallback,
-                dataType: 'json'});
+                dataType: 'json'
+            });
+        }
     };
 
     var createDrug = function(name, successCallback) {
-        $.ajax({type: 'POST',
+        if(pyHTS.state.plateMapperLocalOnly === true) {
+            var ids = util.getAttributeFromObjects(pyHTS.state.drugs, "id");
+            var newId = Math.max.apply(null, ids) + 1;
+            pyHTS.state.drugs.push({'id': newId, 'name': name});
+            $('.hts-drug-typeahead.tt-input').data('ttTypeahead')
+                        .menu.datasets[0].source =
+                        util.substringMatcher(
+                            util.getAttributeFromObjects(
+                                pyHTS.state.drugs, 'name'
+                            ));
+            successCallback();
+        } else {
+            $.ajax({
+                type: 'POST',
                 url: ajax.url("create_drug"),
-                headers: { 'X-CSRFToken': ajax.getCsrfToken() },
-                data: {'name' : name},
-                success: function(data) {
+                headers: {'X-CSRFToken': ajax.getCsrfToken()},
+                data: {'name': name},
+                success: function (data) {
                     pyHTS.state.drugs = data.drugs;
                     $('.hts-drug-typeahead.tt-input').data('ttTypeahead')
-                            .menu.datasets[0].source =
-                                util.substringMatcher(
-                                        util.getAttributeFromObjects(
-                                                pyHTS.state.drugs, 'name'
-                                        ));
+                        .menu.datasets[0].source =
+                        util.substringMatcher(
+                            util.getAttributeFromObjects(
+                                pyHTS.state.drugs, 'name'
+                            ));
                     successCallback();
                 },
                 error: ajax.ajaxErrorCallback,
-                dataType: 'json'});
+                dataType: 'json'
+            });
+        }
     };
 
     // Plate selector
@@ -1334,7 +1378,7 @@ var plate_designer = function () {
             $plateList = $("#hts-plate-list"),
             currentId = $currentPlate.data('id');
 
-        if(currentId != 'MASTER') {
+        if(currentId != null && currentId != 'MASTER') {
             if(noValidation !== true) {
                 var validated = validatePlate(function () {
                     setPlate(plateId, templateId, true)
@@ -1348,7 +1392,7 @@ var plate_designer = function () {
             }
         } else {
             // currently on a master template
-            if(pyHTS.state.plateMap.wellDataIsEmpty()) {
+            if(pyHTS.state.plateMap != null && pyHTS.state.plateMap.wellDataIsEmpty()) {
                 pyHTS.state.plateMap.unsaved_changes = false;
             }
             if(plateId != 'MASTER') {
@@ -1361,7 +1405,7 @@ var plate_designer = function () {
         }
 
         // save current data if necessary
-        if (currentId != 'MASTER' && pyHTS.state.plateMap.unsaved_changes) {
+        if (currentId != null && currentId != 'MASTER' && pyHTS.state.plateMap.unsaved_changes) {
             savePlate(plateId == 'MASTER' ? null : plateId);
         } else if (plateId != 'MASTER') {
             loadPlate(plateId);
@@ -1441,8 +1485,25 @@ var plate_designer = function () {
         }
     });
 
+    $('#hts-download-plate').click(function() {
+       var wells = [];
+       var numWells = pyHTS.state.plateMap.wells.length;
+       for (var w = 0; w < numWells; w++) {
+           wells.push(pyHTS.state.plateMap.wells[w].toStringFormat());
+       }
+       var blob = new Blob([JSON.stringify({wells: wells})], {type: "application/json"});
+       FileSaver.saveAs(blob, "platemap.json");
+       if(pyHTS.state.plates[0] === "MASTER") {
+           pyHTS.state.plateMap.unsaved_changes = false;
+       }
+    });
+
     if(pyHTS.state.plates.length > 0) {
-        setPlate(pyHTS.state.plates[0]);
+        if(pyHTS.state.plates[0] === "MASTER") {
+            setPlate("MASTER", pyHTS.state.plateMap.numCols + 'x' + pyHTS.state.plateMap.numRows);
+        } else {
+            setPlate(pyHTS.state.plates[0]);
+        }
     }
 };
 module.exports = {
