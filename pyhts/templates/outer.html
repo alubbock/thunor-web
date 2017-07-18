@@ -11,26 +11,26 @@
     <title>{% block title %}{% endblock %} | {{ SITE_NAME }}</title>
 
 {% load webpack_loader %}
-<link rel="apple-touch-icon-precomposed" sizes="57x57" href="{% webpack_static 'favicon/apple-touch-icon-57x57.png' %}" />
-<link rel="apple-touch-icon-precomposed" sizes="114x114" href="{% webpack_static 'favicon/apple-touch-icon-114x114.png' %}" />
-<link rel="apple-touch-icon-precomposed" sizes="72x72" href="{% webpack_static 'favicon/apple-touch-icon-72x72.png' %}" />
-<link rel="apple-touch-icon-precomposed" sizes="144x144" href="{% webpack_static 'favicon/apple-touch-icon-144x144.png' %}" />
-<link rel="apple-touch-icon-precomposed" sizes="60x60" href="{% webpack_static 'favicon/apple-touch-icon-60x60.png' %}" />
-<link rel="apple-touch-icon-precomposed" sizes="120x120" href="{% webpack_static 'favicon/apple-touch-icon-120x120.png' %}" />
-<link rel="apple-touch-icon-precomposed" sizes="76x76" href="{% webpack_static 'favicon/apple-touch-icon-76x76.png' %}" />
-<link rel="apple-touch-icon-precomposed" sizes="152x152" href="{% webpack_static 'favicon/apple-touch-icon-152x152.png' %}" />
-<link rel="icon" type="image/png" href="{% webpack_static 'favicon/favicon-196x196.png' %}" sizes="196x196" />
-<link rel="icon" type="image/png" href="{% webpack_static 'favicon/favicon-96x96.png' %}" sizes="96x96" />
-<link rel="icon" type="image/png" href="{% webpack_static 'favicon/favicon-32x32.png' %}" sizes="32x32" />
-<link rel="icon" type="image/png" href="{% webpack_static 'favicon/favicon-16x16.png' %}" sizes="16x16" />
+<link rel="apple-touch-icon-precomposed" sizes="57x57" href="{% webpack_static 'favicon/touchicon-57.png' %}" />
+<link rel="apple-touch-icon-precomposed" sizes="114x114" href="{% webpack_static 'favicon/touchicon-114.png' %}" />
+<link rel="apple-touch-icon-precomposed" sizes="72x72" href="{% webpack_static 'favicon/touchicon-72.png' %}" />
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="{% webpack_static 'favicon/touchicon-144.png' %}" />
+<link rel="apple-touch-icon-precomposed" sizes="60x60" href="{% webpack_static 'favicon/touchicon-60.png' %}" />
+<link rel="apple-touch-icon-precomposed" sizes="120x120" href="{% webpack_static 'favicon/touchicon-120.png' %}" />
+<link rel="apple-touch-icon-precomposed" sizes="76x76" href="{% webpack_static 'favicon/touchicon-76.png' %}" />
+<link rel="apple-touch-icon-precomposed" sizes="152x152" href="{% webpack_static 'favicon/touchicon-152.png' %}" />
+<link rel="icon" type="image/png" href="{% webpack_static 'favicon/favicon-196.png' %}" sizes="196x196" />
+<link rel="icon" type="image/png" href="{% webpack_static 'favicon/favicon-96.png' %}" sizes="96x96" />
+<link rel="icon" type="image/png" href="{% webpack_static 'favicon/favicon-32.png' %}" sizes="32x32" />
+<link rel="icon" type="image/png" href="{% webpack_static 'favicon/favicon-16.png' %}" sizes="16x16" />
 <link rel="icon" type="image/png" href="{% webpack_static 'favicon/favicon-128.png' %}" sizes="128x128" />
 <meta name="application-name" content="{{ SITE_NAME }}"/>
 <meta name="msapplication-TileColor" content="#002559" />
-<meta name="msapplication-TileImage" content="{% webpack_static 'favicon/mstile-144x144.png' %}" />
-<meta name="msapplication-square70x70logo" content="{% webpack_static 'favicon/mstile-70x70.png' %}" />
-<meta name="msapplication-square150x150logo" content="{% webpack_static 'favicon/mstile-150x150.png' %}" />
+<meta name="msapplication-TileImage" content="{% webpack_static 'favicon/mstile-144x.png' %}" />
+<meta name="msapplication-square70x70logo" content="{% webpack_static 'favicon/mstile-70.png' %}" />
+<meta name="msapplication-square150x150logo" content="{% webpack_static 'favicon/mstile-150.png' %}" />
 <meta name="msapplication-wide310x150logo" content="{% webpack_static 'favicon/mstile-310x150.png' %}" />
-<meta name="msapplication-square310x310logo" content="{% webpack_static 'favicon/mstile-310x310.png' %}" />
+<meta name="msapplication-square310x310logo" content="{% webpack_static 'favicon/mstile-310.png' %}" />
 {% render_bundle 'vendor' 'css' %}
 {% render_bundle 'app' 'css' %}
 </head>
