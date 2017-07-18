@@ -67,7 +67,10 @@ var config = {
             },
             {
                 test: /\.css$/,
-                loader: ExtractTextPlugin.extract("css-loader")
+                loader: ExtractTextPlugin.extract({
+                    loader: "css-loader",
+                    options: {minimize: !isDebug}
+                })
             },
             {
                 test: /\.(png|ico)$/,
