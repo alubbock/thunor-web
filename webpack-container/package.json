@@ -9,8 +9,8 @@
   },
   "author": "",
   "dependencies": {
-    "bootstrap": "^3.3.7",
     "bootstrap-fileinput": "^4.3.4",
+    "bootstrap-sass": "^3.3.7",
     "bootstrap-select": "^1.12.1",
     "bootstrap-switch": "^3.3.4",
     "datatables.net": "^1.10.13",
@@ -26,12 +26,16 @@
     "typeahead.js": "^0.11.1"
   },
   "devDependencies": {
+    "bootstrap-loader": "^2.1.0",
     "compression-webpack-plugin": "^0.4.0",
     "css-loader": "^0.26.4",
     "expose-loader": "^0.7.3",
     "extract-text-webpack-plugin": "^2.1.2",
     "file-loader": "^0.9.0",
     "ify-loader": "^1.0.4",
+    "node-sass": "^4.5.3",
+    "resolve-url-loader": "^2.1.0",
+    "sass-loader": "^6.0.6",
     "style-loader": "^0.13.2",
     "url-loader": "^0.5.9",
     "webpack": "^3.1.0",

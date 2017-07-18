@@ -2,7 +2,7 @@ var ui = require("./modules/ui"),
     ajax = require("./modules/ajax");
 
 var activateSelect = function($select) {
-  $select.selectpicker({actionsBox: true});
+  $select.selectpicker({actionsBox: true, iconBase: "fa", tickIcon: "fa-check"});
   $select.on("changed.bs.select", function() {
     $(this).closest("form").find("button[type=submit]").show();
   });

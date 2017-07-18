@@ -18,15 +18,16 @@ var config = {
         plots:  ["expose-loader?Plotly!./plotly"],
         raven:  ["expose-loader?Raven!raven-js"],
         vendor: ["expose-loader?jQuery!expose-loader?$!jquery",      // sitewide
-                 "bootstrap/dist/js/bootstrap",
-                 "bootstrap/dist/css/bootstrap.css",
+                 // "bootstrap/dist/js/bootstrap",
+                 // "bootstrap/dist/css/bootstrap.css",
+                 "bootstrap-loader",
                  "font-awesome/css/font-awesome.css",
 
                  "bootstrap-switch", //toggle switch widget
                  "bootstrap-switch/dist/css/bootstrap3/bootstrap-switch.css",
 
-		 // file downloads
-		 "expose-loader?FileSaver!file-saver",
+                 // file downloads
+                 "expose-loader?FileSaver!file-saver",
 
                  "bootstrap-fileinput",//uploader
                  "bootstrap-fileinput/css/fileinput.css",//uploader

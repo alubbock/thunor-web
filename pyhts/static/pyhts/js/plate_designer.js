@@ -323,6 +323,8 @@ var plate_designer = function () {
 
     $('#hts-apply-template-multiple').find('select').selectpicker({
         actionsBox: true,
+        iconBase: "fa",
+        tickIcon: "fa-check",
         countSelectedText: function(n, N) {
             return n + ' of ' + N + ' plates selected';
         },

@@ -36,6 +36,9 @@ var selectPickerOptionsSingle = {
 var plots = function() {
     var plotOptionsCache = {};
 
+    $.fn.selectpicker.Constructor.DEFAULTS.iconBase = "fa";
+    $.fn.selectpicker.Constructor.DEFAULTS.tickIcon = "fa-check";
+
     $("#change-dataset-modal").on("show.bs.modal", function(e) {
         if(!$(e.target).data("initialised")) {
             $(e.target).data("initialised", true);
