@@ -13,4 +13,5 @@ RUN npm install
 COPY webpack.config.js $BUILD_DIR
 COPY plotly.js $BUILD_DIR
 COPY .bootstraprc $BUILD_DIR
+COPY bootstrap-customisations.scss
 ENTRYPOINT ["npm", "run", "build"]

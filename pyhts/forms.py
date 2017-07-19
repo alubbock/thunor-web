@@ -9,7 +9,8 @@ class CentredAuthForm(allauth_forms.LoginForm):
 
         self.helper = FormHelper()
         self.helper.form_class = 'form-vertical'
-        self.helper.add_input(Submit('submit', 'Log in'))
+        self.helper.add_input(Submit('submit', 'Log in',
+                                     css_class='form-control'))
 
 
 class AddEmailForm(allauth_forms.AddEmailForm):
