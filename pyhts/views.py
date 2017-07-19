@@ -748,8 +748,7 @@ def plate_designer(request, dataset_id, num_wells=None):
     plate_sizes = []
     if dataset_id is None:
         if num_wells is None:
-            raise ValueError("Need to supply number of wells when not "
-                             "loading an existing dataset")
+            return render(request, 'plate_designer_choose_size.html')
         num_wells = int(num_wells)
         if num_wells == 384:
             plates = [Plate(id='MASTER', width=24, height=16)]
@@ -791,6 +790,7 @@ def plate_designer(request, dataset_id, num_wells=None):
         plate_sizes = sorted(plate_sizes, key=itemgetter('numWells'))
 
     response = TemplateResponse(request, 'plate_designer.html', {
+        'num_wells': num_wells,
         'dataset': dataset,
         'editable': editable,
         'plate_sizes': plate_sizes,
@@ -1158,24 +1158,28 @@ def ajax_get_plot(request, file_type='json'):
 
 
 @login_required
-def plots(request, dataset_id):
+def plots(request):
     # Check the dataset exists
-    try:
-        dataset = HTSDataset.objects.get(id=dataset_id)
-    except HTSDataset.DoesNotExist:
-        raise Http404()
-
-    if dataset.owner_id != request.user.id:
-        if not (set(dataset.view_dataset_permission_names()) &
-                set(get_perms(request.user, dataset))):
+    dataset_id = request.GET.get('dataset', None)
+    if dataset_id is not None:
+        try:
+            dataset = HTSDataset.objects.get(id=dataset_id)
+        except HTSDataset.DoesNotExist:
             raise Http404()
 
-    return render(request, 'plots.html', {'dataset': dataset,
+        if dataset.owner_id != request.user.id:
+            if not (set(dataset.view_dataset_permission_names()) &
+                    set(get_perms(request.user, dataset))):
+                raise Http404()
+    else:
+        dataset = None
+
+    return render(request, 'plots.html', {'default_dataset': dataset,
                                           'navbar_hide_dataset': True})
 
 
 @login_required
-def tag_editor(request, tag_type):
+def tag_editor(request, tag_type=None):
     tag_dict = defaultdict(list)
     if tag_type == 'cell_lines':
         entity_type = 'Cell Line'
@@ -1196,7 +1200,7 @@ def tag_editor(request, tag_type):
             tag_dict[dt.tag_name].append(dt.drug_id)
         # entity_list_ids = [tag.drug_id for tag in entity_list]
     else:
-        raise ValueError('Invalid tag type: ' + tag_type)
+        return render(request, "tags.html")
 
     return render(request, "tag_editor.html",
                   {'entity_type': entity_type,

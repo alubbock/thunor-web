@@ -19,7 +19,7 @@ from django.conf import settings
 from pyhts.views import handler500, handler404
 
 urlpatterns = [
-    url(r'^accounts/', include('allauth.urls')),
+    url(r'^accounts/', include('allauth.urls', namespace='accounts')),
     url(r'^admin/', admin.site.urls),
     url(r'', include('pyhts.urls')),
     url(r'^invitations/', include('invitations.urls', namespace='invitations')),

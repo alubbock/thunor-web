@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ dataset.name }}{% endblock %}
+{% block title %}Dataset: {{ dataset.name }}{% endblock %}
 
 {% block content %}
     <div class="row">
@@ -8,7 +8,7 @@
         {% if request.user.id == dataset.owner_id or 'view_plots' in perms %}
         <h4>Visualisation</h4>
         <div class="btn-group-responsive">
-        <a href="{% url 'pyhts:plots' dataset.id %}" role="button"
+        <a href="{% url 'pyhts:plots' %}?dataset={{ dataset.id }}" role="button"
            class="btn btn-primary"><i class="fa
            fa-line-chart"></i> Interactive plots</a>
         </div>

@@ -8,7 +8,8 @@
 <div class="container">
     <div class="jumbotron">
         <p>Please create a dataset to get started.</p>
-        <p><a role="button" class="btn btn-primary" href="{% url 'pyhts:plate_upload' %}">Create Dataset</a></p>
+        <p><a role="button" class="btn btn-primary" href="{% url 'pyhts:plate_upload' %}">
+          <i class="fa fa-upload"></i> Create Dataset</a></p>
     </div>
 </div>
 {% endif %}
@@ -19,17 +20,15 @@
 </div>
 
 <div class="col-md-3">
+<h2>Plots</h2>
+<a role="button" class="btn btn-primary btn-sidebar" href="
+{% url 'pyhts:plots' %}">Interactive Plots</a>
+
 <h2>Tags</h2>
-<a role="button" href="{% url 'pyhts:tag_editor' 'cell_lines' %}" class="btn
-btn-primary btn-sidebar">Cell Line Tags</a>
-<a role="button" href="{% url 'pyhts:tag_editor' 'drugs' %}" class="btn
-btn-primary btn-sidebar">Drug Tags</a>
+{% include "tag_type_list.html" %}
 
 <h2>Plate Mapper</h2>
-<a role="button" href="{% url 'pyhts:plate_mapper' 384 %}" class="btn
-btn-primary btn-sidebar">384 well plate</a>
-  <a role="button" href="{% url 'pyhts:plate_mapper' 96 %}" class="btn
-btn-primary btn-sidebar">96 well plate</a>
+{% include "plate_size_list.html" %}
 </div>
 </div>
 {% endblock %}

@@ -1,0 +1,121 @@
+{% extends "base-outer.html" %}
+{% block body %}
+<div id="wrapper">
+    <nav class="navbar navbar-default navbar-static-top" role="navigation">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="{% url 'pyhts:home' %}"><i
+                    class="fa fa-bolt"></i> {{ SITE_NAME }}</a>
+        </div>
+        {% if user.is_authenticated %}
+        <div class="collapse navbar-collapse" id="myNavbar">
+            <ul class="nav navbar-top-links navbar-nav navbar-right">
+              <li><a href="{% url 'pyhts:plate_upload' %}"
+                     data-toggle="tooltip"
+                     data-placement="bottom" title="Create Dataset">
+                <i class="fa fa-upload fa-fw"></i>
+                <span class="visible-xs-inline">Create Dataset</span></a></li>
+              <li><a href="{% url 'pyhts:plots' %}"
+                     data-toggle="tooltip"
+                     data-placement="bottom" title="Interactive Plots">
+                <i class="fa fa-line-chart fa-fw"></i>
+                <span class="visible-xs-inline">Interactive
+                  Plots</span></a></li>
+              <li class="dropdown"><a class="dropdown-toggle"
+                                      href="#"
+                     data-toggle="dropdown">
+                <i class="fa fa-tags fa-fw"></i>
+                <span class="visible-xs-inline">Tags</span>
+                <i class="fa fa-caret-down"></i>
+                </a>
+                <ul class="dropdown-menu">
+                  <li><a href="{% url 'pyhts:tag_editor' 'cell_lines' %}">Cell Line Tags</a></li>
+                  <li><a href="{% url 'pyhts:tag_editor' 'drugs' %}">Drug Tags</a></li>
+                </ul>
+              </li>
+              <li class="dropdown"><a class="dropdown-toggle"
+                       href="#"
+                     data-toggle="dropdown">
+                <i class="fa fa-edit fa-fw"></i>
+                <span class="visible-xs-inline">Plate Mapper</span>
+                <i class="fa fa-caret-down"></i>
+                </a>
+                <ul class="dropdown-menu">
+                  <li><a href="{% url 'pyhts:plate_mapper' 96 %}">96 Well
+                    Plate Map
+                  </a></li>
+                  <li><a href="{% url 'pyhts:plate_mapper' 384 %}">384 Well
+                    Plate Map
+                  </a></li>
+                </ul>
+              </li>
+              <li class="dropdown">
+                  <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                      <i class="fa fa-user fa-fw"></i> {{ user.email }}
+                      <i class="fa fa-caret-down"></i>
+                  </a>
+                  <ul class="dropdown-menu">
+                      <li><a href="{% url 'pyhts:my_account' %}"><i class="fa fa-user fa-fw"></i>User Profile</a></li>
+                      <li class="divider"></li>
+                      <li><a href="{% url 'pyhts:logout' %}"><i class="fa fa-sign-out fa-fw"></i>Logout</a>
+                      </li>
+                  </ul>
+              </li>
+            </ul>
+        </div>
+        {% endif %}
+    </nav>
+
+    <div id="page-wrapper">
+        <div class="row"><div class="col-xs-12">
+          <ol class="breadcrumb">
+            <li><a href="{% url 'pyhts:home' %}"><i class="fa fa-home"></i></a></li>
+            {% with view_name=request.resolver_match.url_name %}
+            {% if dataset and view_name != "view_dataset"%}<li><a href="{% url 'pyhts:view_dataset' dataset.id %}">Dataset: {{ dataset.name }}</a></li>
+            {% elif view_name == "tag_editor" and entity_type %}<li><a href="{% url 'pyhts:tag_editor' %}">Tags</a></li>
+            {% elif view_name == "plate_mapper" and num_wells %}<li><a href="{% url 'pyhts:plate_mapper' %}">Plate Mapper</a></li>
+            {% elif 'accounts' in request.resolver_match.namespace %}<li><a href="{% url 'pyhts:my_account' %}">My Account</a></li>
+            {% endif %}
+            {% endwith %}
+            <li class="active">{% block bodytitle %}{% block title %}{% endblock %}{% endblock %}</li>
+          </ol>
+        </div></div>
+
+        <div class="row"><div class="col-xs-12 messages">
+        <!--[if lt IE 9]><div class="alert alert-danger">Sorry, your web
+        browser is unsupported. Please upgrade to a Internet Explorer 9 or
+        above, or use a recent version of Google Chrome or Mozilla Firefox.
+        </div><![endif]-->
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissable" role="alert"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>{{ message }}</div>
+        {% endfor %}
+        <noscript><div class="alert alert-danger">This site
+        requires javascript to be enabled in your web
+        browser for full functionality.</div></noscript>
+        </div></div>
+        {% block page %}{% endblock %}
+    </div>
+</div>
+<div class="powered-by">Powered by <i class="fa fa-bolt"></i> Thunor</div>
+
+{% load webpack_loader %}{% get_files 'raven' 'js' as raven_js %}
+<script src="{{ raven_js.0.url }}" crossorigin="anonymous"></script>
+
+<script>{% load raven %}{% load pyhts_tags %}Raven.config('{% sentry_public_dsn %}', {
+    environment: '{% sentry_environment %}', release: '{% pyhts_version %}'
+}).install();
+{% if user.is_authenticated %}Raven.setUserContext({email: '{{ user.email }}',
+    id: '{{ user.id }}'});{% endif %}</script>
+
+{% render_bundle 'vendor' 'js' %}
+<script>$('.navbar-top-links').find('a').tooltip();
+</script>
+{% render_bundle 'app' 'js' %}
+{% block tailscript %}{% endblock %}
+
+{% endblock %}

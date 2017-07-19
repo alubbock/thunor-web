@@ -55,6 +55,12 @@
         width: 100%;
     }
 }
+/** Breadcrumbs **/
+.breadcrumb {
+    font-size: 0.8em;
+    margin: 0;
+    padding: 8px 0;
+}
 /** Datatables should use fontawesome sort icons **/
 table.dataTable thead .sorting,
 table.dataTable thead .sorting_asc,
@@ -84,12 +90,12 @@ table.dataTable thead .sorting:after {
         border-radius: 6px;
     }
 }
-.jumbotron .fa-bolt {
+.fa-jumbo {
   font-size: 126px;
   margin-top: 20px;
 }
 @media (max-width: 500px) {
-    .jumbotron .fa-bolt {font-size:90px;}
+    .fa-jumbo {font-size:90px;}
 }
 .tab-content {
     border: 1px solid #ddd; border-top:0;
@@ -102,7 +108,7 @@ table.dataTable thead .sorting:after {
     margin-bottom:0;
 }
 .page-header {
-    margin: 30px 0 20px 0;
+    margin: 20px 0;
 }
 a[aria-expanded=true] .fa-chevron-up {
    display: none;
@@ -123,6 +129,11 @@ a[aria-expanded=false] .fa-chevron-down {
 }
 .dropdown-menu .pull-right.fa {
     margin-right: -15px;
+}
+@media (min-width:767px) {
+    .navbar-top-links .dropdown:hover .dropdown-menu {
+        display: block;
+    }
 }
 
   #selectable-wells .ui-selecting { background: #FECA40; }

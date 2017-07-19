@@ -84,7 +84,7 @@ styles:
   input-groups: true
   navs: true
   navbar: true
-  breadcrumbs: false
+  breadcrumbs: true
   pagination: true
   pager: false
   labels: true
@@ -102,7 +102,7 @@ styles:
 
   # Components w/ JavaScript
   modals: true
-  tooltip: false
+  tooltip: true
   popovers: false
   carousel: false
 
@@ -119,7 +119,7 @@ scripts:
   collapse: true
   dropdown: true
   modal: true
-  tooltip: false
+  tooltip: true
   popover: false
   scrollspy: false
   tab: true

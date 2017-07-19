@@ -40,8 +40,10 @@ var plots = function() {
     $.fn.selectpicker.Constructor.DEFAULTS.tickIcon = "fa-check";
 
     $("#change-dataset-modal").on("show.bs.modal", function(e) {
-        if(!$(e.target).data("initialised")) {
-            $(e.target).data("initialised", true);
+        var $target = $(e.target);
+        $target.data("datasetChanged", false);
+        if(!$target.data("initialised")) {
+            $target.data("initialised", true);
             datasetTable.initDatasetTable(function (data, type, full, meta) {
                 return "<a class=\"select-dataset\" data-dataset-id=\""
                         + full.id + "\" data-dataset-name=\"" + full.name +
@@ -55,10 +57,17 @@ var plots = function() {
                         $this.data("datasetId")
                     );
                     $("#dataset-name").text($this.data("datasetName"));
+                    $target.data("datasetChanged", true);
                     $("#change-dataset-modal").modal("hide");
                 });
             });
         }
+    }).on("hide.bs.modal", function(e) {
+       var $target = $(e.target);
+       if($target.data("datasetChanged") === true && $target.data("addPlot") === true) {
+           $target.data("addPlot", false);
+           $(".new-plot-btn").click();
+       }
     });
 
 
@@ -515,6 +524,9 @@ var plots = function() {
             function () {
                 Plotly.purge($container.find(".plotly-graph-div")[0]);
                 $container.remove();
+                if($(".panel-container").length === 1) {
+                    $("#quickstart").fadeIn();
+                }
             });
     });
 
@@ -562,7 +574,12 @@ var plots = function() {
     });
 
     // Add new panel
-    $(".new-plot-btn").click(function (eNewPlot) {
+    $newPlotBtn = $(".new-plot-btn");
+    $newPlotBtn.click(function (eNewPlot) {
+        if($newPlotBtn.data("datasetId") === "") {
+            $("#change-dataset-modal").data("addPlot", true).modal("show");
+            return;
+        }
         var $plotPanel = $(".panel-container").last().clone(true, true);
         $plotPanel.find("input[name=datasetId]").val(
             $(eNewPlot.currentTarget).data("datasetId")
@@ -570,10 +587,11 @@ var plots = function() {
         $plotPanel.find("span[class=dataset-name]").text($("#dataset-name").text());
         var $changeDataBtn = $plotPanel.find(".hts-change-data-btn");
 
+        $("#quickstart").hide();
         $plotPanel.prependTo(".sortable-panels").fadeIn(400, function () {
             $changeDataBtn.click();
         });
-    }).first().click();
+    });
 };
 module.exports = {
     activate: plots

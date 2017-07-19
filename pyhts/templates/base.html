@@ -1,87 +1,11 @@
-{% extends "outer.html" %}
-{% block body %}
-<div id="wrapper">
-    <nav class="navbar navbar-default navbar-static-top" role="navigation">
-        <div class="navbar-header">
-            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-                <span class="sr-only">Toggle navigation</span>
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-            </button>
-            <a class="navbar-brand" href="{% url 'pyhts:home' %}"><i
-                    class="fa fa-bolt"></i> {{ SITE_NAME }}</a>
-            {% if dataset and not navbar_hide_dataset%}
-                <a class="navbar-brand" href="{% url 'pyhts:view_dataset' dataset.id %}"><i class="fa fa-database"></i> {{ dataset.name|truncatechars:20 }}</a>
-            {% endif %}
-        </div>
-        {% if user.is_authenticated %}
-        <div class="collapse navbar-collapse" id="myNavbar">
-            <ul class="nav navbar-top-links navbar-nav navbar-right">
-                <li class="dropdown">
-                    <a class="dropdown-toggle" data-toggle="dropdown" href="#">
-                        <i class="fa fa-user fa-fw"></i> {{ user.email }}
-                        <i class="fa fa-caret-down"></i>
-                    </a>
-                    <ul class="dropdown-menu">
-                        <li><a href="{% url 'pyhts:my_account' %}"><i class="fa fa-user fa-fw"></i>User Profile</a></li>
-                        <li class="divider"></li>
-                        <li><a href="{% url 'pyhts:logout' %}"><i class="fa fa-sign-out fa-fw"></i>Logout</a>
-                        </li>
-                    </ul>
-                </li>
-            </ul>
-        </div>
-        {% endif %}
-    </nav>
+{% extends "base-inner.html" %}
 
-    <div id="page-wrapper">
-        <div class="row"><div class="col-xs-12 messages">
-        <!--[if lt IE 9]><div class="alert alert-danger">Sorry, your web
-        browser is unsupported. Please upgrade to a Internet Explorer 9 or
-        above, or use a recent version of Google Chrome or Mozilla Firefox.
-        </div><![endif]-->
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissable" role="alert"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>{{ message }}</div>
-        {% endfor %}
-        <noscript><div class="alert alert-danger">This site
-        requires javascript to be enabled in your web
-        browser for full functionality.</div></noscript>
-        </div></div>
-    {% block titlerow %}<div class="row">
-            <div class="col-lg-12">
-                {% if back_link is not False %}
-                  {% if dataset %}
-                    {% url 'pyhts:view_dataset' dataset.id as home_link %}
-                  {% else %}
-                    {% url 'pyhts:home' as home_link %}
-                  {% endif %}
-                  <a href="{{ back_link.1|default:home_link }}" role="button"
-                     class="pull-right btn btn-default">Back to
-                    {% if dataset %}
-                      {{ back_link.0|default:"dataset page" }}{% else %}{{ back_link.0|default:"home page" }}
-                    {% endif %}</a>
-                {% endif %}
-                <h1 class="page-header">{% block bodytitle %}{% block title %}{% endblock %}{% endblock %}</h1>
-            </div>
-        </div>{% endblock %}
-
-        {% block content %}{% endblock %}
+{% block page %}
+  {% block titlerow %}<div class="row">
+    <div class="col-lg-12">
+      <h1 class="page-header">{% block bodytitle %}{% block title %}{% endblock %}{% endblock %}</h1>
     </div>
-</div>
-<div class="powered-by">Powered by <i class="fa fa-bolt"></i> Thunor</div>
+  </div>{% endblock %}
 
-{% load webpack_loader %}{% get_files 'raven' 'js' as raven_js %}
-<script src="{{ raven_js.0.url }}" crossorigin="anonymous"></script>
-
-<script>{% load raven %}{% load pyhts_tags %}Raven.config('{% sentry_public_dsn %}', {
-    environment: '{% sentry_environment %}', release: '{% pyhts_version %}'
-}).install();
-{% if user.is_authenticated %}Raven.setUserContext({email: '{{ user.email }}',
-    id: '{{ user.id }}'});{% endif %}</script>
-
-{% render_bundle 'vendor' 'js' %}
-{% render_bundle 'app' 'js' %}
-{% block tailscript %}{% endblock %}
-
+  {% block content %}{% endblock %}
 {% endblock %}

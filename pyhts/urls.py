@@ -9,6 +9,7 @@ urlpatterns = [
     url('^accounts$', views.my_account, name='my_account'),
     url('^logout$', views.logout, name='logout'),
 
+    url(r'^tags$', views.tag_editor, name='tag_editor'),
     url(r'^tags/(?P<tag_type>cell_lines|drugs)$', views.tag_editor,
         name='tag_editor'),
     # url(r'^ajax/tags/set_name$', views.ajax_set_tag_name,
@@ -16,6 +17,8 @@ urlpatterns = [
     url(r'^ajax/tags/assign$', views.ajax_assign_tag,
         name='ajax_assign_tag'),
 
+    url(r'platemap$', views.plate_designer,
+        kwargs={'dataset_id': None}, name='plate_mapper'),
     url(r'^platemap/(?P<num_wells>\d+)$', views.plate_designer,
         kwargs={'dataset_id': None}, name='plate_mapper'),
 
@@ -43,7 +46,7 @@ urlpatterns = [
     url(r'^dataset/(?P<dataset_id>\d+)/download/fit_params$',
         views.download_dip_fit_params, name='download_dip_fit_params'),
 
-    url(r'^dataset/(?P<dataset_id>\d+)/plots$', views.plots, name='plots'),
+    url(r'^plots$', views.plots, name='plots'),
 
     url(r'^ajax/plot\.(?P<file_type>\w+)$', views.ajax_get_plot,
         name='ajax_plot'),

@@ -9,14 +9,14 @@
     <a href="mailto:{{ email }}">{{ email }}</a> with the site.</p>
     {% endwith %}
 
-<form method="post" action="{% url 'account_confirm_email' confirmation.key %}">
+<form method="post" action="{% url 'accounts:account_confirm_email' confirmation.key %}">
     {% csrf_token %}
     <button type="submit" class="btn btn-primary">Confirm</button>
 </form>
 
 {% else %}
 
-{% url 'account_email' as email_url %}
+{% url 'accounts:account_email' as email_url %}
 
 <p>This e-mail confirmation link expired or is invalid. Please
     <a href="{{ email_url }}">issue a new e-mail confirmation request</a>.</p>

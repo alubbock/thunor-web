@@ -7,9 +7,6 @@
     <div id="plot-toolbar" class="col-lg-12" role="toolbar" aria-label="Plot
     toolbar">
 
-        <a href="{% url 'pyhts:view_dataset' dataset.id %}" role="button"
-           class="pull-right btn btn-default">Back to dataset page</a>
-
         <div id="hts-num-cols-lg">
             <label>Layout</label>
             <div class="btn-group dropdown">
@@ -45,22 +42,51 @@
             <button type="button" class="btn btn-default" data-keyboard="true"
                     data-toggle="modal"
                     data-target="#change-dataset-modal">
-                <i class="fa fa-database"></i> <span id="dataset-name">{{ dataset.name }}</span>
+                <i class="fa fa-database"></i> <span id="dataset-name">
+              {% if default_dataset %}{{ default_dataset.name }}
+              {% else %}<em>Select Dataset</em>{% endif %}</span>
             </button>
             <button class="btn btn-success new-plot-btn"
-                    data-dataset-id="{{ dataset.id }}"><i class="fa
-                    fa-plus"></i> Add plot</button>
+                    data-dataset-id="{{ default_dataset.id }}"><i class="fa
+                    fa-plus"></i> Add Plot</button>
         </div>
     </div>
 </div>
 {% endblock %}
 
 {% block content %}
-<div class="row sortable-panels">
-{#    {% for graph in graphs %}#}
-
-{#    {% endfor %}#}
+<div class="jumbotron row" id="quickstart">
+    <div class="col-md-2" style="text-align:center;padding-right:0">
+        <i class="fa fa-line-chart fa-jumbo"></i>
+    </div>
+    <div class="col-md-10">
+  <h2>Interactive Plots</h2>
+    <p>Quick start guide</p>
+    <strong>Select a dataset</strong>
+      <ul>
+        <li>Select a dataset at any time using the <span class="label
+        label-default"><i class="fa
+        fa-database"></i></span> button on the toolbar above</li>
+        <li>Changing the dataset only affects the <span class="label
+        label-success"><i class="fa fa-plus"></i> Add Plot</span>
+          button&mdash;already loaded plots are not affected</li>
+      </ul>
+    <strong>Add a plot</strong>
+      <ul>
+        <li>Click the <span class="label label-success"><i class="fa
+        fa-plus"></i> Add Plot</span> button on the toolbar</li>
+        <li>Select the plot type, cell line(s), drug(s), and any other
+          information on the panel</li>
+        <li>Click the <span class="label label-success">Show Plot</span>
+          button to load and display the plot</li>
+        <li>Plot data can be changed at any time using the <span
+            class="label label-default">Change Plot</span> button</li>
+      </ul>
+    </div>
 </div>
+
+<div class="row sortable-panels">
+
 
 <div class="plot-panel panel-container col-lg-12 col-md-12">
     <div class="panel panel-default">

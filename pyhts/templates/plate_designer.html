@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}Plate Map Designer{% endblock %}
+{% block title %}{% if num_wells %}Plate Mapper ({{ num_wells }}
+  wells){% else %}Plate Mapper{% endif %}{% endblock %}
 
 {% block content %}
 {# Plate Designer #}
