@@ -122,7 +122,8 @@ var ajax = (function () {
                 " with us while we look into it.<br><br>"
                 + "Reference number: " + Raven.lastEventId();
         } else if (textStatus == "abort") {
-            message = "Communication with the server was aborted.";
+            // Ignore communication aborted (usually at user's request)
+            return;
         }
         ui.okModal({title: subject, text: message});
     };
