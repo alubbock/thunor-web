@@ -12,6 +12,7 @@ from django.db.models import Q, Count, Max
 from django.utils.html import strip_tags
 from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, \
     Well, WellMeasurement, WellDrug, CellLineTag, DrugTag
+from django.urls import reverse
 import json
 from pydrc.plots import plot_time_course, plot_dip, plot_dip_params, \
     PARAM_NAMES
@@ -66,7 +67,8 @@ def home(request):
     user_has_datasets = HTSDataset.objects.filter(
         owner=request.user.id).exists()
     return render(request, 'home.html', {'user_has_datasets':
-                                         user_has_datasets})
+                                         user_has_datasets,
+                                         'back_link': False})
 
 
 @login_required
@@ -818,8 +820,9 @@ def view_dataset(request, dataset_id):
         if not (set(perms_base) & set(perms)):
             raise Http404()
 
-    response = render(request, 'dataset.html', {'dataset': dataset,
-                                                'perms': perms})
+    response = render(request, 'dataset.html',
+                      {'dataset': dataset, 'perms': perms,
+                       'back_link': ["home page", reverse('pyhts:home')]})
     return response
 
 

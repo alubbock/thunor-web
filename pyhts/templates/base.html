@@ -1,7 +1,7 @@
 {% extends "outer.html" %}
 {% block body %}
 <div id="wrapper">
-    <nav class="navbar navbar-default navbar-static-top" role="navigation" style="margin-bottom: 0">
+    <nav class="navbar navbar-default navbar-static-top" role="navigation">
         <div class="navbar-header">
             <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
                 <span class="sr-only">Toggle navigation</span>
@@ -50,6 +50,18 @@
         </div></div>
     {% block titlerow %}<div class="row">
             <div class="col-lg-12">
+                {% if back_link is not False %}
+                  {% if dataset %}
+                    {% url 'pyhts:view_dataset' dataset.id as home_link %}
+                  {% else %}
+                    {% url 'pyhts:home' as home_link %}
+                  {% endif %}
+                  <a href="{{ back_link.1|default:home_link }}" role="button"
+                     class="pull-right btn btn-default">Back to
+                    {% if dataset %}
+                      {{ back_link.0|default:"dataset page" }}{% else %}{{ back_link.0|default:"home page" }}
+                    {% endif %}</a>
+                {% endif %}
                 <h1 class="page-header">{% block bodytitle %}{% block title %}{% endblock %}{% endblock %}</h1>
             </div>
         </div>{% endblock %}

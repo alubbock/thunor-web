@@ -6,7 +6,7 @@
 {% block content %}
 {% if not user_has_datasets %}
 <div class="container">
-    <div class="jumbotron navy">
+    <div class="jumbotron">
         <p>Please create a dataset to get started.</p>
         <p><a role="button" class="btn btn-primary" href="{% url 'pyhts:plate_upload' %}">Create Dataset</a></p>
     </div>
