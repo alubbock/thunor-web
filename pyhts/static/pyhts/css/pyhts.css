@@ -607,6 +607,7 @@ div.hts-change-cell-line .bs-actionsbox,div.hts-change-drug .bs-actionsbox {
   .btn-group-responsive .btn {
       display: block;
       width: 100%;
+      max-width: 100%;
       padding-right: 0;
       padding-left: 0;
   }

@@ -21,8 +21,9 @@
 
 <div class="col-md-3">
 <h2>Plots</h2>
-<a role="button" class="btn btn-primary btn-sidebar" href="
-{% url 'pyhts:plots' %}">Interactive Plots</a>
+  <div class="btn-group-responsive">
+  <a role="button" class="btn btn-primary btn-sidebar" href="{% url 'pyhts:plots' %}">Interactive Plots</a>
+  </div>
 
 <h2>Tags</h2>
 {% include "tag_type_list.html" %}

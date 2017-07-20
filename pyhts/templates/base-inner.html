@@ -2,13 +2,13 @@
 {% block body %}
 <div id="wrapper">
     <nav class="navbar navbar-default navbar-static-top" role="navigation">
-        <div class="navbar-header">
+        <div class="navbar-header">{% if user.is_authenticated %}
             <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
                 <span class="sr-only">Toggle navigation</span>
                 <span class="icon-bar"></span>
                 <span class="icon-bar"></span>
                 <span class="icon-bar"></span>
-            </button>
+            </button>{% endif %}
             <a class="navbar-brand" href="{% url 'pyhts:home' %}"><i
                     class="fa fa-bolt"></i> {{ SITE_NAME }}</a>
         </div>
@@ -75,11 +75,12 @@
         <div class="row"><div class="col-xs-12">
           <ol class="breadcrumb">
             <li><a href="{% url 'pyhts:home' %}"><i class="fa fa-home"></i></a></li>
+            {% load pyhts_tags %}
             {% with view_name=request.resolver_match.url_name %}
             {% if dataset and view_name != "view_dataset"%}<li><a href="{% url 'pyhts:view_dataset' dataset.id %}">Dataset: {{ dataset.name }}</a></li>
             {% elif view_name == "tag_editor" and entity_type %}<li><a href="{% url 'pyhts:tag_editor' %}">Tags</a></li>
             {% elif view_name == "plate_mapper" and num_wells %}<li><a href="{% url 'pyhts:plate_mapper' %}">Plate Mapper</a></li>
-            {% elif 'pyhts' not in request.resolver_match.namespace %}<li><a href="{% url 'pyhts:my_account' %}">My Account</a></li>
+            {% elif request.resolver_match.url_name|startswith:"account_" %}<li><a href="{% url 'pyhts:my_account' %}">My Account</a></li>
             {% endif %}
             {% endwith %}
             <li class="active">{% block bodytitle %}{% block title %}{% endblock %}{% endblock %}</li>

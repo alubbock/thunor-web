@@ -29,3 +29,8 @@ def pyhts_version():
 @register.filter
 def get_item(dictionary, key):
     return dictionary.get(key)
+
+
+@register.filter
+def startswith(text, starts):
+    return text.startswith(starts)

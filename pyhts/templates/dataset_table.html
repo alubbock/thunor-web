@@ -6,7 +6,7 @@
     {% endif %}
     {% if close_modal_btn %}<button role="button" class="btn close
     pull-right" data-dismiss="modal">&times;</button>{% endif %}
-    <ul id="dataset-tabs" class="nav nav-tabs" role="tablist">
+    <ul id="dataset-tabs" class="nav nav-tabs" role="tablist" style="padding-right:15px">
         <li role="presentation" data-url="{% url 'pyhts:ajax_get_datasets' %}" class="active"><a href="#">My Datasets</a></li>
         {% for group in request.user.groups.all %}
             <li role="presentation" data-url="{% url 'pyhts:ajax_get_datasets_by_group' group.id %}">
