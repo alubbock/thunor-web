@@ -33,4 +33,6 @@ def get_item(dictionary, key):
 
 @register.filter
 def startswith(text, starts):
-    return text.startswith(starts)
+    if isinstance(text, str):
+        return text.startswith(starts)
+    return False
