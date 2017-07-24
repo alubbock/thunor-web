@@ -422,7 +422,7 @@ var plots = function() {
             .selectpicker().on("changed.bs.select", function(e) {
                 var $target = $(e.target);
                 var $customBox = $target.closest(".hts-dippar-group").find(".hts-dippar-custom");
-                if($target.val().endsWith("_custom")) {
+                if($target.val().indexOf("_custom") !== -1) {
                     $customBox.slideDown().find("input[type=text]").focus();
                 } else {
                     $customBox.slideUp();

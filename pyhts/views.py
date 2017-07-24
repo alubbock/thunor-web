@@ -15,7 +15,7 @@ from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, \
 from django.urls import reverse
 import json
 from pydrc.plots import plot_time_course, plot_dip, plot_dip_params, \
-    PARAM_NAMES
+    PARAM_NAMES, IC_REGEX, EC_REGEX, E_REGEX, E_REL_REGEX
 from pydrc.dip import dip_fit_params, AAFitWarning
 from pydrc.io import write_hdf
 from pydrc.helpers import plotly_to_dataframe
@@ -1063,35 +1063,61 @@ def ajax_get_plot(request, file_type='json'):
                                 'drug/cell line/assay combination may not '
                                 'exist.', status=400)
 
-        dip_par = request.GET.get('dipPar', None)
-        if dip_par is not None and dip_par.endswith('_custom'):
-            dip_par = dip_par[:-7] + request.GET.get('dipParCustom', None)
-        dip_par_two = None
-        if request.GET.get('dipParTwoToggle', 'off') == 'on':
-            dip_par_two = request.GET.get('dipParTwo', None)
-            if dip_par_two is not None and dip_par_two.endswith('_custom'):
-                dip_par_two = dip_par_two[:-7] + request.GET.get(
-                    'dipParTwoCustom', None)
-        dip_par_order = None
-        if request.GET.get('dipParOrderToggle', 'off') == 'on':
-            dip_par_order = request.GET.get('dipParOrder', None)
-            if dip_par_order is not None and dip_par_order.endswith('_custom'):
-                dip_par_order = dip_par_order[:-7] + request.GET.get(
-                    'dipParOrderCustom', None)
+        def _setup_dip_par(name, needs_toggle=False):
+            if needs_toggle and \
+                            request.GET.get(name + 'Toggle', 'off') != 'on':
+                return None
+            par_name = request.GET.get(name, None)
+            if par_name is not None and '_custom' in par_name:
+                rep_value = request.GET.get(name + 'Custom', None)
+                if int(rep_value) < 0:
+                    raise ValueError()
+                par_name = par_name.replace('_custom', rep_value)
+            return par_name
+
+        try:
+            dip_par = _setup_dip_par('dipPar')
+        except ValueError:
+            return HttpResponse('Parameter custom value '
+                                'needs to be a positive integer', status=400)
+
+        try:
+            dip_par_two = _setup_dip_par('dipParTwo', needs_toggle=True)
+        except ValueError:
+            return HttpResponse('Parameter two custom value '
+                                'needs to be a positive integer', status=400)
+
+        try:
+            dip_par_order = _setup_dip_par('dipParOrder', needs_toggle=True)
+        except ValueError:
+            return HttpResponse('Parameter order custom value '
+                                'needs to be a positive integer', status=400)
+
         # Work out any non-standard parameters we need to calculate
         # e.g. non-standard IC concentrations
         ic_concentrations = {50}
+        ec_concentrations = set()
+        e_values = set()
+        e_rel_values = set()
+        regexes = {IC_REGEX: ic_concentrations,
+                   EC_REGEX: ec_concentrations,
+                   E_REGEX: e_values,
+                   E_REL_REGEX: e_rel_values
+                   }
         for param in (dip_par, dip_par_two, dip_par_order):
             if param is None:
                 continue
-            if param.startswith('ic'):
+            for regex, value_list in regexes.items():
+                match = regex.match(param)
+                if not match:
+                    continue
                 try:
-                    value = int(param[2:])
-                    if value < 1 or value > 100:
+                    value = int(match.groups(0)[0])
+                    if value < 0 or value > 100:
                         raise ValueError()
-                    ic_concentrations.add(value)
+                    value_list.add(value)
                 except ValueError:
-                    return HttpResponse('Invalid IC concentration - must be '
+                    return HttpResponse('Invalid custom value - must be '
                                         'an integer between 1 and 100',
                                         status=400)
 
@@ -1101,6 +1127,9 @@ def ajax_get_plot(request, file_type='json'):
                 ctrl_dip_data, expt_dip_data,
                 include_dip_rates=plot_type == 'dip',
                 custom_ic_concentrations=ic_concentrations,
+                custom_ec_concentrations=ec_concentrations,
+                custom_e_values=e_values,
+                custom_e_rel_values=e_rel_values
             )
             # Currently only care about warnings if plotting AA
             if plot_type == 'dippar' and (dip_par == 'aa' or
