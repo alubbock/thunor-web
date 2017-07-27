@@ -2,14 +2,6 @@ var ajax = require("./modules/ajax");
 var ui = require("./modules/ui");
 var datasetTable = require("./modules/dataset_table");
 
-var downloadSvg = function(gd) {
-    return downloadImage(gd, "svg");
-};
-
-var downloadPng = function(gd) {
-    return downloadImage(gd, "png");
-};
-
 var downloadImage = function(gd, fmt) {
     var $gd = $(gd);
     var filename = $gd.find(".gtitle").text();
@@ -337,9 +329,8 @@ var plots = function() {
         // process download
         switch (action) {
             case "svg":
-                return downloadSvg($plotDiv[0]);
             case "png":
-                return downloadPng($plotDiv[0]);
+                return downloadImage($plotDiv[0], action);
             case "json":
                 window.location = ajax.url("get_plot") + "?" +
                     $panel.find("form").serialize() + "&download=1";
