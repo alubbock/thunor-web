@@ -18,6 +18,7 @@ var plate_upload = function () {
 
     var createFileUploadScreen = function (dataset_id) {
         $("#js-upload-files").fileinput({
+            theme: "fa",
             uploadUrl: ajax.url("upload_platefile"),
             uploadAsync: false,
             deleteUrl: ajax.url("delete_platefile"),

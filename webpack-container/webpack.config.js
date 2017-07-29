@@ -30,6 +30,7 @@ var config = {
                  "expose-loader?FileSaver!file-saver",
 
                  "bootstrap-fileinput",//uploader
+                 "bootstrap-fileinput/themes/fa/theme",
                  "bootstrap-fileinput/css/fileinput.css",//uploader
                  "bootstrap-select",//plate mapper
                  "bootstrap-select/dist/css/bootstrap-select.css",//plate map
