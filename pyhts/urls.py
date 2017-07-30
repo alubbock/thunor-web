@@ -51,7 +51,7 @@ urlpatterns = [
     url(r'^ajax/plot\.(?P<file_type>\w+)$', views.ajax_get_plot,
         name='ajax_plot'),
 
-    url(r'^ajax/dataset/(?P<dataset_id>\d+)/groupings$',
+    url(r'^ajax/dataset/(?P<dataset_id>\d+)(,(?P<dataset2_id>\d+))?/groupings$',
         views.ajax_get_dataset_groupings, name='ajax_dataset_groupings'),
     url(r'^ajax/dataset/set-permission$',
         views.ajax_set_dataset_group_permission,

@@ -886,19 +886,32 @@ def ajax_set_dataset_group_permission(request):
     return JsonResponse({'success': True})
 
 
-def ajax_get_dataset_groupings(request, dataset_id):
+def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
+    dataset_ids = [dataset_id]
+    if dataset2_id is not None:
+        dataset_ids.append(dataset2_id)
     try:
-        dataset = HTSDataset.objects.get(pk=dataset_id)
+        datasets = HTSDataset.objects.filter(pk__in=dataset_ids)
     except HTSDataset.DoesNotExist:
         raise Http404()
 
-    if dataset.owner_id != request.user.id:
-        if not request.user.has_perm('view_plots', dataset):
+    if len(datasets) != len(dataset_ids):
+        raise Http404()
+
+    control_handling = datasets[0].control_handling
+    for dataset in datasets:
+        if dataset.owner_id != request.user.id and not \
+                request.user.has_perm('view_plots', dataset):
             raise Http404()
+
+        if dataset.control_handling != control_handling:
+            return HttpResponse('These datasets have different control '
+                                'handling; this comparison is not yet '
+                                'implemented', status=400)
 
     cell_lines = Well.objects.filter(
         cell_line__isnull=False,
-        plate__dataset_id=dataset_id).annotate(
+        plate__dataset_id__in=dataset_ids).annotate(
         num_drugs=Count('welldrug')).filter(
         num_drugs=1).select_related(
     ).values('cell_line_id', 'cell_line__name').distinct().order_by(
@@ -913,7 +926,7 @@ def ajax_get_dataset_groupings(request, dataset_id):
     drug_objs = WellDrug.objects.filter(
         drug__isnull=False,
         dose__isnull=False,
-        well__plate__dataset_id=dataset_id,
+        well__plate__dataset_id__in=dataset_ids,
     ).annotate(num_drugs=Count('well__welldrug')).filter(num_drugs=1).\
       values('drug_id', 'drug__name').distinct().order_by('drug__name')
 
@@ -922,11 +935,11 @@ def ajax_get_dataset_groupings(request, dataset_id):
         drug_id__in=[dr['drug_id'] for dr in drug_objs]
     ).values_list('tag_name', flat=True).distinct().order_by('tag_name')
 
-    if dataset.control_handling == 'A1':
+    if control_handling == 'A1':
         drug_objs = drug_objs.exclude(well__well_num=0)
 
     assays = WellMeasurement.objects.filter(
-        well__plate__dataset_id=dataset_id
+        well__plate__dataset_id__in=dataset_ids
     ).values('assay').distinct().order_by('assay')
 
     drug_list = []
@@ -955,6 +968,11 @@ def ajax_get_plot(request, file_type='json'):
         plot_type = request.GET['plotType']
 
         dataset_id = int(request.GET['datasetId'])
+        dataset2_id = request.GET.get('dataset2Id', None)
+        if dataset2_id == "":
+            dataset2_id = None
+        if dataset2_id is not None:
+            dataset2_id = int(dataset2_id)
         cell_line_id = request.GET.getlist('cellLineId')
         cell_line_tag_names = request.GET.getlist('cellLineTags')
         aggregate_cell_lines = request.GET.get('aggregateCellLines', False) \
@@ -1050,13 +1068,38 @@ def ajax_get_plot(request, file_type='json'):
             subtitle=dataset.name
         )
     elif plot_type in ('dip', 'dippar'):
+        if dataset2_id is not None:
+            try:
+                dataset2 = HTSDataset.objects.get(pk=dataset2_id)
+            except HTSDataset.DoesNotExist:
+                raise Http404()
+
+            if dataset2.owner_id != request.user.id and not \
+                    request.user.has_perm(
+                    'view_plots', dataset2):
+                raise Http404()
+
+            if dataset.name == dataset2.name:
+                return HttpResponse(
+                    'Cannot compare two datasets with the same '
+                    'name. Please rename one of the datasets.',
+                    status=400)
+
+            if dataset.control_id != dataset2.control_id:
+                return HttpResponse('These two datasets have different '
+                                    'control handling, which is not currently '
+                                    'supported', status=400)
+
         # Fetch the DIP rates from the DB
+        dataset_ids = dataset_id if dataset2_id is None else [dataset_id,
+                                                              dataset2_id]
         try:
             ctrl_dip_data, expt_dip_data = df_dip_rates(
-                dataset_id=dataset_id,
+                dataset_id=dataset_ids,
                 drug_id=drug_id,
                 cell_line_id=cell_line_id,
-                control=dataset.control_id
+                control=dataset.control_id,
+                use_dataset_names=True
             )
         except NoDataException:
             return HttpResponse('No data found for this request. This '
@@ -1148,9 +1191,9 @@ def ajax_get_plot(request, file_type='json'):
                     fit_param_compare=dip_par_two,
                     fit_param_sort=dip_par_order,
                     log_yaxis=yaxis == 'log2',
-                    subtitle=dataset.name,
                     aggregate_cell_lines=aggregate_cell_lines,
                     aggregate_drugs=aggregate_drugs,
+                    multi_dataset=dataset2_id is not None
                 )
             except ValueError as e:
                 return HttpResponse(e, status=400)
@@ -1158,8 +1201,7 @@ def ajax_get_plot(request, file_type='json'):
             dip_absolute = request.GET.get('dipType', 'rel') == 'abs'
             plot_fig = plot_dip(
                 fit_params,
-                is_absolute=dip_absolute,
-                subtitle=dataset.name
+                is_absolute=dip_absolute
             )
     else:
         return HttpResponse('Unimplemented plot type: %s' % plot_type,

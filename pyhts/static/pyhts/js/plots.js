@@ -33,6 +33,7 @@ var plots = function() {
 
     $("#change-dataset-modal").on("show.bs.modal", function(e) {
         var $target = $(e.target);
+        $target.data("datasetTarget", $(e.relatedTarget).data("dataset"));
         $target.data("datasetChanged", false);
         if(!$target.data("initialised")) {
             $target.data("initialised", true);
@@ -45,10 +46,11 @@ var plots = function() {
                 $("a[class=select-dataset]").click(function(e2) {
                     e2.preventDefault();
                     var $this = $(e2.target);
-                    $(".new-plot-btn").data("datasetId",
+                    var dataset = $target.data("datasetTarget");
+                    $(".new-plot-btn").data(dataset + "Id",
                         $this.data("datasetId")
                     );
-                    $("#dataset-name").text($this.data("datasetName"));
+                    $("#" + dataset + "-name").text($this.data("datasetName"));
                     $target.data("datasetChanged", true);
                     $("#change-dataset-modal").modal("hide");
                 });
@@ -62,6 +64,19 @@ var plots = function() {
        }
     });
 
+    $("input[name=secondDataset]").bootstrapSwitch({
+        "onSwitchChange": function (event, state) {
+            var $dataset2Btn = $("#dataset2-btn");
+            if (state) {
+                $dataset2Btn.show();
+                if($(".new-plot-btn").data("dataset2Id") === undefined) {
+                    $dataset2Btn.click();
+                }
+            } else {
+                $dataset2Btn.hide();
+            }
+        }
+    });
 
     $(".sortable-panels").sortable({
         tolerance: "pointer",
@@ -425,7 +440,7 @@ var plots = function() {
 
         $dataPanel.data("loaded", true);
 
-        var datasetId;
+        var datasetId, dataset2Id;
 
         var $cellLineSelect = $dataPanel.find("select[name=cellLineId]"),
             $drugSelect = $dataPanel.find("select[name=drugId]"),
@@ -435,8 +450,22 @@ var plots = function() {
             // Set the dataset ID
             datasetId = defaultOptions["datasetId"];
             $dataPanel.find("input[name=datasetId]").val(datasetId);
+            dataset2Id = defaultOptions["dataset2Id"];
+            $dataPanel.find("input[name=dataset2Id]").val(dataset2Id);
         } else {
             datasetId = $dataPanel.find("input[name=datasetId]").val();
+            dataset2Id = $dataPanel.find("input[name=dataset2Id]").val();
+        }
+
+        var datasetGroupingsIds = datasetId;
+        if (dataset2Id !== undefined && dataset2Id !== null &&
+            dataset2Id !== "") {
+            datasetGroupingsIds += "," + dataset2Id;
+            $dataPanel.find("input[name=plotType][value=tc]").parent().remove();
+            $dataPanel.find(".hts-plot-type").removeClass("btn-group-3")
+                .addClass("btn-group-2").find("input[name=plotType]").first()
+                .click();
+            $dataPanel.find("span[class=dataset2-name-container]").show();
         }
 
         var populatePlotPanelOptions = function(data) {
@@ -471,8 +500,8 @@ var plots = function() {
                 data.drugTags
             );
 
-            if(!plotOptionsCache.hasOwnProperty(datasetId)) {
-                plotOptionsCache[datasetId] = data;
+            if(!plotOptionsCache.hasOwnProperty(datasetGroupingsIds)) {
+                plotOptionsCache[datasetGroupingsIds] = data;
             }
 
             if(defaultOptions !== undefined) {
@@ -496,11 +525,11 @@ var plots = function() {
             }
         };
 
-        if(plotOptionsCache.hasOwnProperty(datasetId)) {
-            populatePlotPanelOptions(plotOptionsCache[datasetId]);
+        if(plotOptionsCache.hasOwnProperty(datasetGroupingsIds)) {
+            populatePlotPanelOptions(plotOptionsCache[datasetGroupingsIds]);
         } else {
             $.ajax({
-                url: ajax.url("dataset_groupings", datasetId),
+                url: ajax.url("dataset_groupings", datasetGroupingsIds),
                 type: "GET",
                 success: populatePlotPanelOptions,
                 error: ajax.ajaxErrorCallback
@@ -528,6 +557,9 @@ var plots = function() {
 
         $newPanel.find("span[class=dataset-name]").text(
             $panel.find("span[class=dataset-name]").text()
+        );
+        $newPanel.find("span[class=dataset2-name]").text(
+            $panel.find("span[class=dataset2-name]").text()
         );
 
         // Insert the panel, add the plot
@@ -565,17 +597,41 @@ var plots = function() {
     });
 
     // Add new panel
-    $newPlotBtn = $(".new-plot-btn");
-    $newPlotBtn.click(function (eNewPlot) {
-        if($newPlotBtn.data("datasetId") === "") {
+    var $newPlotBtn = $(".new-plot-btn");
+    $newPlotBtn.click(function () {
+        var datasetId = $newPlotBtn.data("datasetId");
+        var datasetName = $("#dataset-name").text();
+        if(datasetId === "") {
             $("#change-dataset-modal").data("addPlot", true).modal("show");
             return;
         }
+        var dataset2active = $("#dataset2-btn").css("display") !== "none";
+        var dataset2Id, dataset2Name;
+        if (dataset2active) {
+            dataset2Id = $newPlotBtn.data("dataset2Id");
+            dataset2Name = $("#dataset2-name").text();
+            if (datasetId === dataset2Id) {
+                return ui.okModal({
+                    title: "Datasets are the same",
+                    text: "Please select two different datasets for" +
+                    " comparison, or turn off the second dataset."
+                });
+            }
+        }
+        if($newPlotBtn.data("dataset2Id") === undefined && dataset2active) {
+            return ui.okModal({title: "Second dataset not selected",
+                text: "Please select a second dataset using the button" +
+                " left of the Add Plot button, or remove the second dataset."
+            })
+        }
         var $plotPanel = $(".panel-container").last().clone(true, true);
-        $plotPanel.find("input[name=datasetId]").val(
-            $(eNewPlot.currentTarget).data("datasetId")
-        );
-        $plotPanel.find("span[class=dataset-name]").text($("#dataset-name").text());
+        $plotPanel.find("input[name=datasetId]").val(datasetId);
+        $plotPanel.find("span[class=dataset-name]").text(datasetName);
+        if (dataset2active) {
+            $plotPanel.find("input[name=dataset2Id]").val(dataset2Id);
+            $plotPanel.find("span[class=dataset2-name]").text(dataset2Name);
+            $plotPanel.find("span[class=dataset2-name-container]").show();
+        }
         var $changeDataBtn = $plotPanel.find(".hts-change-data-btn");
 
         $("#quickstart").hide();

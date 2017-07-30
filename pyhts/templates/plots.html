@@ -26,7 +26,7 @@
         <div id="hts-num-cols-md">
           <label>Layout</label>
           <div class="btn-group dropdown">
-            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
               <span id="hts-current-num-cols-md">1 column</span>
               <span class="caret"></span>
             </button>
@@ -40,16 +40,30 @@
         <label>Plots</label>
         <div class="btn-group">
             <button type="button" class="btn btn-default" data-keyboard="true"
-                    data-toggle="modal"
-                    data-target="#change-dataset-modal">
+                    data-toggle="modal" data-dataset="dataset"
+                    data-target="#change-dataset-modal" id="dataset-btn">
                 <i class="fa fa-database"></i> <span id="dataset-name">
               {% if default_dataset %}{{ default_dataset.name }}
               {% else %}<em>Select Dataset</em>{% endif %}</span>
+            </button>
+            <button type="button" style="display:none" class="btn btn-default"
+                    data-keyboard="true"
+                    data-toggle="modal" data-dataset="dataset2"
+                    data-target="#change-dataset-modal"
+                    id="dataset2-btn"
+            >
+                <i class="fa fa-database"></i> <span id="dataset2-name">
+              <em>Select Dataset</em></span>
             </button>
             <button class="btn btn-success new-plot-btn"
                     data-dataset-id="{{ default_dataset.id }}"><i class="fa
                     fa-plus"></i> Add Plot</button>
         </div>
+
+      <label>Second Dataset</label>
+      <form style="display: inline">
+        <input type="checkbox" name="secondDataset" class="form-control">
+      </form>
     </div>
 </div>
 {% endblock %}
@@ -86,6 +100,7 @@
 </div>
 
 <div class="row sortable-panels">
+</div>
 
 
 <div class="plot-panel panel-container col-lg-12 col-md-12">
@@ -100,7 +115,7 @@
             <div class="btn-group" role="group">
                 <div class="btn-group" role="group">
                     <button type="button" class="hts-change-data-btn btn
-                    btn-default dropdown-toggle" aria-haspopup="true">
+                    btn-default dropdown-toggle">
                         <i class="fa fa-exchange"></i>
                         <span>Change</span>
                         <span class="hidden-xs">Plot</span>
@@ -115,7 +130,7 @@
 
                 <div class="btn-group" role="group">
                   <button class="hts-download-btn btn btn-default dropdown-toggle"
-                          type="button" data-toggle="dropdown" aria-haspopup="true">
+                          type="button" data-toggle="dropdown">
                       <i class="fa fa-download"></i>
                       <span class="hidden-xs">Download</span>
                   <span class="caret"></span></button>
@@ -140,8 +155,11 @@
 <form>
 <div class="row">
     <div class="col-sm-12">
-        <div class="pull-right"><i class="fa fa-database"></i> <span
-                class="dataset-name"></span></div>
+        <div class="pull-right">
+          <i class="fa fa-database"></i> <span class="dataset-name"></span>
+          <span class="dataset2-name-container" style="display:none">
+            <i class="fa fa-database"></i> <span class="dataset2-name"></span>
+          </span></div>
         <div class="form-group">
             <label for="hts-plot-type">Plot Type</label>
             <div class="hts-plot-type btn-group btn-group-3
@@ -166,6 +184,7 @@
 <div class="row">
     <div class="col-sm-6">
     <input type="hidden" name="datasetId">
+    <input type="hidden" name="dataset2Id">
     <div class="form-group">
         <div class="pull-right name-tag-switch btn-group btn-group-inline
         hidden-tc">
@@ -316,7 +335,7 @@
 </div>
 <div class="row">
     <div class="col-sm-12">
-    <button type="submit" class="btn btn-success
+    <button class="btn btn-success
         form-control">Show Plot</button>
     </div>
 </div>
