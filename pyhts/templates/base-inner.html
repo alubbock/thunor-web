@@ -114,8 +114,7 @@
     id: '{{ user.id }}'});{% endif %}</script>
 
 {% render_bundle 'vendor' 'js' %}
-<script>$('.navbar-top-links').find('a').tooltip();
-</script>
+<script>$('.navbar-top-links').find('a').tooltip();</script>
 {% render_bundle 'app' 'js' %}
 {% block tailscript %}{% endblock %}
 

@@ -14,8 +14,18 @@
     {% endif %}
 
     <p><a href="{% url 'pyhts:home' %}" class="btn btn-primary"
-       role="button">Return to home page</a></p>
+    >Return to home page</a></p>
 
 </div>
 </div>
+{% endblock %}
+
+{% block tailscript %}
+{% if request.sentry.id %}
+  <script>
+    Raven.showReportDialog({
+      eventId: '{{ request.sentry.id }}'
+    });
+  </script>
+{% endif %}
 {% endblock %}
