@@ -31,7 +31,8 @@ var dataset = function() {
             },
             failCallback: function () {
                 ui.loadingModal.hide();
-                throw new Error("Error downloading file");
+                Raven.captureMessage("Error downloading file");
+                Raven.showReportDialog();
             }
         });
         return false;

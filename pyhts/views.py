@@ -457,41 +457,48 @@ def ajax_get_datasets_group(request, group_id):
 @login_required
 @xframe_options_sameorigin
 def download_dip_fit_params(request, dataset_id):
+    dataset_name = 'dataset'
     try:
+        dataset_id = int(dataset_id)
         dataset = HTSDataset.objects.get(pk=dataset_id)
+        dataset_name = dataset.name
 
         if dataset.owner_id != request.user.id and not \
                 request.user.has_perm('download_data', dataset):
-            raise Http404()
-    except HTSDataset.DoesNotExist:
-        raise Http404()
+            raise HTSDataset.DoesNotExist()
 
-    # Fetch the DIP rates from the DB
-    try:
+        # Fetch the DIP rates from the DB
         ctrl_dip_data, expt_dip_data = df_dip_rates(
             dataset_id=dataset_id,
             drug_id=None,
             cell_line_id=None,
             control=dataset.control_id
         )
+
+        # Fit Hill curves and compute parameters
+        fit_params = dip_fit_params(
+            ctrl_dip_data, expt_dip_data,
+            include_dip_rates=False
+        )
+        # Remove -ve AA values
+        fit_params.loc[fit_params['aa'] < 0.0, 'aa'] = np.nan
+
+        # Filter for the default list of parameters only
+        fit_params = fit_params.filter(items=PARAM_NAMES.keys())
+
+        response = HttpResponse(fit_params.to_csv(), content_type='text/csv')
     except NoDataException:
-        return HttpResponse('No data found for this request. This '
-                            'drug/cell line/assay combination may not '
-                            'exist.', status=400)
+        response = HttpResponse('No data found for this request. This '
+                                'drug/cell line/assay combination may not '
+                                'exist.',
+                                content_type='text/plain')
+    except (HTSDataset.DoesNotExist, ValueError):
+        response = HttpResponse('This dataset does not exist, or you do not '
+                                'have permission to access it.',
+                                content_type='text/plain')
 
-    # Fit Hill curves and compute parameters
-    fit_params = dip_fit_params(
-        ctrl_dip_data, expt_dip_data,
-        include_dip_rates=False
-    )
-    # Remove -ve AA values
-    fit_params.loc[fit_params['aa'] < 0.0, 'aa'] = np.nan
-
-    fit_params = fit_params.filter(items=PARAM_NAMES.keys())
-
-    response = HttpResponse(fit_params.to_csv(), content_type='text/csv')
     response['Content-Disposition'] = \
-        'attachment; filename="{}_params.csv"'.format(dataset.name)
+        'attachment; filename="{}_params.csv"'.format(dataset_name)
     response['Set-Cookie'] = 'fileDownload=true; path=/'
     return response
 
