@@ -116,6 +116,7 @@ EMAIL_PORT = os.environ['DJANGO_EMAIL_PORT']
 EMAIL_HOST_USER = os.environ['DJANGO_EMAIL_USER']
 EMAIL_HOST_PASSWORD = os.environ['DJANGO_EMAIL_PASSWORD']
 EMAIL_USE_TLS = True
+DEFAULT_FROM_EMAIL = os.environ.get('DJANGO_EMAIL_FROM', EMAIL_HOST_USER)
 
 # Database
 # https://docs.djangoproject.com/en/1.10/ref/settings/#databases
@@ -188,6 +189,7 @@ ACCOUNT_FORMS = {'login': 'pyhts.forms.CentredAuthForm',
                  'add_email': 'pyhts.forms.AddEmailForm'}
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_EMAIL_SUBJECT_PREFIX = ''
 
 LOGIN_REDIRECT_URL = 'pyhts:home'
 

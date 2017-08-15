@@ -14,7 +14,8 @@
         max-width: 100%; }
       body {
         background-color: #f6f6f6;
-        font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+        font-family: "Helvetica Neue", -apple-system, BlinkMacSystemFont,
+        "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, sans-serif;
         -webkit-font-smoothing: antialiased;
         font-size: 14px;
           color: #fff;
@@ -25,12 +26,10 @@
         -webkit-text-size-adjust: 100%; }
       table {
         border-collapse: separate;
-        mso-table-lspace: 0pt;
-        mso-table-rspace: 0pt;
+        mso-table-lspace: 0;
+        mso-table-rspace: 0;
         width: 100%; }
         table td {
-          font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
-          font-size: 14px;
           vertical-align: top; }
       /* -------------------------------------
           BODY & CONTAINER
@@ -41,7 +40,7 @@
       /* Set a max-width, and make it display as block so it will automatically stretch to that width, but will also shrink down on a phone or something */
       .container {
         display: block;
-        Margin: 0 auto !important;
+        margin: 0 auto !important;
         /* makes it centered */
         max-width: 580px;
         padding: 10px;
@@ -83,11 +82,10 @@
       h2,
       h3,
       h4 {
-        font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
-        font-weight: 200;
+        font-weight: 400;
         line-height: 1.4;
-        margin: 0;
-        Margin-bottom: 30px; }
+        margin: 0 0 20px 0;
+      }
       h1 {
         font-size: 35px;
         font-weight: 500;
@@ -99,11 +97,10 @@
       p,
       ul,
       ol {
-        font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
         font-size: 14px;
         font-weight: normal;
-        margin: 0;
-        Margin-bottom: 15px; }
+        margin: 0 0 15px 0;
+        }
         p li,
         ul li,
         ol li {
@@ -119,7 +116,7 @@
         box-sizing: border-box;
         width: 100%; }
         .btn > tbody > tr > td {
-          padding-bottom: 15px; }
+          padding-bottom: 20px; }
         .btn table {
           width: auto; }
         .btn table td {
@@ -179,7 +176,7 @@
       hr {
         border: 0;
         border-bottom: 1px solid #f6f6f6;
-        Margin: 20px 0; }
+        margin: 20px 0; }
       /* -------------------------------------
           RESPONSIVE AND MOBILE FRIENDLY STYLES
       ------------------------------------- */
@@ -219,21 +216,25 @@
       ------------------------------------- */
       @media all {
         .ExternalClass {
-          width: 100%; }
+          width: 100%;
+        }
         .ExternalClass,
         .ExternalClass p,
         .ExternalClass span,
         .ExternalClass font,
         .ExternalClass td,
         .ExternalClass div {
-          line-height: 100%; }
+          line-height: 100%;
+        }
         .apple-link a {
           color: inherit !important;
           font-family: inherit !important;
           font-size: inherit !important;
           font-weight: inherit !important;
           line-height: inherit !important;
-          text-decoration: none !important; }
+          text-decoration: none !important;
+        }
+      }
     </style>
   </head>
   <body>
