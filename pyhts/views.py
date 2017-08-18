@@ -41,6 +41,7 @@ from guardian.shortcuts import get_objects_for_group, get_perms, \
     get_groups_with_perms, assign_perm, remove_perm
 from django.contrib.contenttypes.models import ContentType
 from django.views.decorators.clickjacking import xframe_options_sameorigin
+from allauth.account.views import LoginView
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +70,13 @@ def home(request):
     return render(request, 'home.html', {'user_has_datasets':
                                          user_has_datasets,
                                          'back_link': False})
+
+
+class BrandedLoginView(LoginView):
+    def get_context_data(self, **kwargs):
+        ret = super(BrandedLoginView, self).get_context_data(**kwargs)
+        ret['branding'] = self.kwargs.get('branding', None)
+        return ret
 
 
 @login_required

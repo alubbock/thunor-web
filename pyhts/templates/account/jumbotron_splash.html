@@ -1,10 +1,14 @@
-<div class="" style="margin-top:40px">
+<div style="margin-top:40px">
   <div class="jumbotron row">
       <div class="col-xs-2" style="text-align:center;padding-right:0">
           <i class="fa fa-bolt fa-jumbo"></i>
       </div>
       <div class="col-xs-10">
+    {% if branding == "incyte" %}
+    <h2>High Throughput Screens for {{ branding|title }} Compounds<br>
+    {% else %}
     <h2>High Throughput Screens?<br><em>Now</em> they are.</h2>
+    {% endif %}
     <p><strong>{{ SITE_NAME }}</strong> is a web app for managing and
         analyzing high throughput screens. It is currently invitation only.</p>
       </div>
