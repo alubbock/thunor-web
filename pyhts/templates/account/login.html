@@ -8,13 +8,15 @@
 {% block content %}
 <div class="row">
   {% if branding %}
-    <div class="col-lg-offset-1 col-lg-3 col-md-3 col-sm-12">
-      <img src="//thunor-static.lolab.xyz/img/{{ branding }}.png"
-           width="200" height="200" alt="{{ branding|title }}"><br>
-    </div>
-  <div class="col-lg-3 col-md-3 col-sm-12">
-          <h2>Welcome {{ branding|title }} Users</h2>
-      <p>Please contact alex.lubbock for an account.</p>
+    <div class="col-lg-offset-1 col-lg-6 col-md-6 col-sm-12"
+         style="min-height:500px">
+      <div style="float:left;width:250px">
+      <img src="//thunor-static.lolab.xyz/img/vanderbilt-incyte.png"
+           width="200" height="500" alt="Vanderbilt-Incyte Alliance">
+      </div>
+      <h2>Vanderbilt&ndash;Incyte<br>Research Alliance Program Grant</h2>
+      <p>Please contact <a href="mailto:thunor@lolab.xyz">thunor@lolab.xyz</a>
+        to request an account.</p>
   </div>
   {% endif %}
     <div class="{% if not branding %}col-lg-offset-6

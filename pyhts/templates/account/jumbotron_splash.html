@@ -5,12 +5,18 @@
       </div>
       <div class="col-xs-10">
     {% if branding == "incyte" %}
-    <h2>High Throughput Screens for {{ branding|title }} Compounds<br>
+      <h2>Welcome to Thunor</h2>
+    <p><strong>{{ SITE_NAME }}</strong> is a web app for managing and
+      analyzing high throughput screens.<br>
+      It utilizes the drug-induced proliferation (DIP) rate; a novel, dynamic
+      measure of drug response introduced by
+      <a href="http://www.nature.com/nmeth/journal/v13/n6/full/nmeth.3852.html"
+      target="_blank" style="color:#539ad7">Harris et al.</a> </p>
     {% else %}
     <h2>High Throughput Screens?<br><em>Now</em> they are.</h2>
-    {% endif %}
     <p><strong>{{ SITE_NAME }}</strong> is a web app for managing and
         analyzing high throughput screens. It is currently invitation only.</p>
+    {% endif %}
       </div>
   </div>
 </div>
