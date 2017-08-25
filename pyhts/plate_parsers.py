@@ -189,12 +189,10 @@ class PlateFileParser(object):
                 drugs[dr] = dr_obj.pk
 
         # Get/create plates
-        plate_names = pd.index.get_level_values('upid').unique()
+        plate_names = [pn for pn in pd.index.get_level_values(
+                       'upid').unique() if isinstance(pn, str)]
         plates_to_create = {}
         for pl_name in plate_names:
-            if not isinstance(pl_name, str):
-                continue
-
             if pl_name not in self._plate_objects.keys():
                 if 'expt.id' in pd.columns.values:
                     expt_id = pd.loc[pl_name]['expt.id'].unique()
@@ -242,9 +240,6 @@ class PlateFileParser(object):
             # Create the well set objects
             well_sets_to_create = {}
             for pl_name in plate_names:
-                if not isinstance(pl_name, str):
-                    continue
-
                 plate = self._plate_objects[pl_name]
                 wells = self._well_sets.get(plate.id, None)
 
@@ -298,9 +293,6 @@ class PlateFileParser(object):
         well_drugs_to_create = []
         well_measurements_to_create = []
         for pl_name in plate_names:
-            if not isinstance(pl_name, str):
-                continue
-
             plate = self._plate_objects[pl_name]
             well_set = self._well_sets[plate.id]
             for well, dat in pd.loc[pl_name].groupby(level='well'):
