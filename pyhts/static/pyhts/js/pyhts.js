@@ -1,7 +1,7 @@
 "use strict";
 /*!
  * Thunor
- * Copyright 2016 Alex Lubbock
+ * Copyright 2016-2017 Alex Lubbock
  */
 var pyHTS = {
     views: {

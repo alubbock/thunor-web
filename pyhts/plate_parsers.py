@@ -114,7 +114,7 @@ class PlateFileParser(object):
             else None
 
     @transaction.atomic
-    def parse_platefile_vanderbilt_hts(self):
+    def parse_platefile_vanderbilt_hts(self, sep='\t'):
         """
         Extracts data from a platefile in Vanderbilt HTS format
 
@@ -133,7 +133,7 @@ class PlateFileParser(object):
 
         self.plate_file.file.seek(0)
         try:
-            pd = read_vanderbilt_hts_single_df(self.plate_file.file)
+            pd = read_vanderbilt_hts_single_df(self.plate_file.file, sep=sep)
         except Exception as e:
             raise PlateFileUnknownFormat(e)
 
@@ -347,13 +347,17 @@ class PlateFileParser(object):
         self.dataset.save()
 
     @transaction.atomic
-    def parse_platefile_synergy_neo(self):
+    def parse_platefile_synergy_neo(self, sep='\t'):
         """
         Extracts data from a platefile
 
         Data includes number of plates, assay types, plate names, number of well
         rows and cols.
         """
+        if sep != '\t':
+            raise PlateFileUnknownFormat('Synergy Neo can only be parsed as '
+                                         'tab-separated')
+
         self.file_format = 'Synergy Neo'
         pd = self.plate_file.read()
         try:
@@ -599,10 +603,16 @@ class PlateFileParser(object):
             else:
                 parsers = (self.parse_platefile_synergy_neo,
                            self.parse_platefile_vanderbilt_hts)
+
+            sep = '\t'
+            first_line = file_first_kb.split('\n')[0]
+            if ',' in first_line:
+                sep = ','
+
             parsed = False
             for parser in parsers:
                 try:
-                    parser()
+                    parser(sep=sep)
                     parsed = True
                     break
                 except PlateFileUnknownFormat:
