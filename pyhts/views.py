@@ -479,8 +479,7 @@ def download_dip_fit_params(request, dataset_id):
         ctrl_dip_data, expt_dip_data = df_dip_rates(
             dataset_id=dataset_id,
             drug_id=None,
-            cell_line_id=None,
-            control=dataset.control_id
+            cell_line_id=None
         )
 
         # Fit Hill curves and compute parameters
@@ -525,8 +524,7 @@ def download_dataset_hdf5(request, dataset_id):
             dataset=dataset,
             drug_id=None,
             cell_line_id=None,
-            assay=None,
-
+            assay=None
         )
 
         with tempfile.NamedTemporaryFile('wb',
@@ -916,16 +914,10 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
     if len(datasets) != len(dataset_ids):
         raise Http404()
 
-    control_handling = datasets[0].control_handling
     for dataset in datasets:
         if dataset.owner_id != request.user.id and not \
                 request.user.has_perm('view_plots', dataset):
             raise Http404()
-
-        if dataset.control_handling != control_handling:
-            return HttpResponse('These datasets have different control '
-                                'handling; this comparison is not yet '
-                                'implemented', status=400)
 
     cell_lines = Well.objects.filter(
         cell_line__isnull=False,
@@ -946,15 +938,13 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
         dose__isnull=False,
         well__plate__dataset_id__in=dataset_ids,
     ).annotate(num_drugs=Count('well__welldrug')).filter(num_drugs=1).\
+      annotate(max_dose=Max('well__welldrug__dose')).filter(max_dose__gt=0).\
       values('drug_id', 'drug__name').distinct().order_by('drug__name')
 
     drug_tags = DrugTag.objects.filter(
         owner=request.user,
         drug_id__in=[dr['drug_id'] for dr in drug_objs]
     ).values_list('tag_name', flat=True).distinct().order_by('tag_name')
-
-    if control_handling == 'A1':
-        drug_objs = drug_objs.exclude(well__well_num=0)
 
     assays = WellMeasurement.objects.filter(
         well__plate__dataset_id__in=dataset_ids
@@ -1046,9 +1036,6 @@ def ajax_get_plot(request, file_type='json'):
 
     try:
         dataset = HTSDataset.objects.get(pk=dataset_id)
-        new_assay = dataset.dip_assay
-        if assay is None:
-            assay = new_assay
     except HTSDataset.DoesNotExist:
         raise Http404()
 
@@ -1072,13 +1059,16 @@ def ajax_get_plot(request, file_type='json'):
             return HttpResponse('No data found for this request. This '
                                 'drug/cell line/assay combination may not '
                                 'exist.', status=400)
-        if df_data['controls'] is None:
+        if assay is None:
+            assay = df_data.assays.index.get_level_values('assay')[0]
+
+        if df_data.controls is None:
             df_controls = None
         else:
-            df_controls = df_data['controls'].loc[assay]
+            df_controls = df_data.controls.loc[assay]
         plot_fig = plot_time_course(
-            df_data['doses'],
-            df_data['assays'].loc[assay],
+            df_data.doses,
+            df_data.assays.loc[assay],
             df_controls,
             log_yaxis=yaxis == 'log2',
             assay_name=assay,
@@ -1103,11 +1093,6 @@ def ajax_get_plot(request, file_type='json'):
                     'name. Please rename one of the datasets.',
                     status=400)
 
-            if dataset.control_id != dataset2.control_id:
-                return HttpResponse('These two datasets have different '
-                                    'control handling, which is not currently '
-                                    'supported', status=400)
-
         # Fetch the DIP rates from the DB
         dataset_ids = dataset_id if dataset2_id is None else [dataset_id,
                                                               dataset2_id]
@@ -1116,7 +1101,6 @@ def ajax_get_plot(request, file_type='json'):
                 dataset_id=dataset_ids,
                 drug_id=drug_id,
                 cell_line_id=cell_line_id,
-                control=dataset.control_id,
                 use_dataset_names=True
             )
         except NoDataException:

@@ -1,6 +1,7 @@
-from .models import HTSDataset, WellStatistic, CellLine, Drug, WellDrug, Well
+from .models import HTSDataset, WellMeasurement, WellStatistic, CellLine, \
+    Drug, WellDrug, Well
 from .pandas import df_doses_assays_controls, NoDataException
-from pydrc.dip import dip_rates
+from pydrc.dip import dip_rates, choose_dip_assay
 import itertools
 import numpy as np
 from django.db import transaction
@@ -14,12 +15,23 @@ def precalculate_dip_rates(dataset_or_id):
     else:
         raise ValueError('Argument must be an HTSDataset or an integer '
                          'primary key')
+
+    # Auto-select DIP rate assay
+    assays = WellMeasurement.objects.filter(
+        well__plate__dataset_id=dataset.id
+    ).values('assay').distinct()
+
+    dip_assay = choose_dip_assay(assays)
+
+    if dip_assay is None:
+        return
+
     try:
         df_data = df_doses_assays_controls(
             dataset=dataset,
             drug_id=None,
             cell_line_id=None,
-            assay=dataset.dip_assay
+            assay=dip_assay
         )
     except NoDataException:
         return

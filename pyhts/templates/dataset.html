@@ -61,10 +61,6 @@
                 {{ dataset.last_upload }}</p>
             <p><strong>Most recent annotation</strong><br>
                 {{ dataset.last_annotated }}</p>
-            {% if dataset.control_handling %}
-            <p><strong>Special control handling</strong><br>
-                {{ dataset.get_control_handling_display }}</p>
-            {% endif %}
         {% if request.user.id == dataset.owner_id %}
         <h4>Permissions</h4>
             <div class="btn-group-responsive">

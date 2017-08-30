@@ -12,15 +12,10 @@ class HTSDataset(models.Model):
             ('view_plate_layout', 'View plate layout'),
             ('download_data', 'Download data')
         )
-    CONTROL_CHOICES = (
-        (None, 'Unspecified'),
-        ('A1', 'Well A1')
-    )
 
     owner = models.ForeignKey(settings.AUTH_USER_MODEL)
     name = models.TextField()
     creation_date = models.DateTimeField(auto_now_add=True)
-    control_handling = models.TextField(null=True, choices=CONTROL_CHOICES)
 
     def __str__(self):
         return '%s (%d)' % (self.name, self.id)
@@ -31,31 +26,6 @@ class HTSDataset(models.Model):
         Currently all permission types allow viewing a dataset
         """
         return [p[0] for p in cls._meta.permissions]
-
-    @property
-    def dip_assay(self):
-        if self.control_handling == 'A1':
-            assay = 'Cell count'
-        elif self.control_handling is None:
-            # TODO: Better detection of cell count proxy assay
-            assay = 'lum:Lum'
-        else:
-            raise ValueError('Unknown control handling: ' +
-                             self.control_handling)
-
-        return assay
-
-    @property
-    def control_id(self):
-        if self.control_handling == 'A1':
-            control_id = 'A1'
-        elif self.control_handling is None:
-            control_id = 0
-        else:
-            raise ValueError('Unknown control handling: ' +
-                             self.control_handling)
-
-        return control_id
 
 
 class HTSDatasetUserObjectPermission(UserObjectPermissionBase):

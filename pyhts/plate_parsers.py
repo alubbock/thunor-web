@@ -341,9 +341,6 @@ class PlateFileParser(object):
         WellDrug.objects.bulk_create(well_drugs_to_create)
         WellMeasurement.objects.bulk_create(well_measurements_to_create)
 
-        # Finally, set special control handling for plates in this format
-        # at the dataset level
-        self.dataset.control_handling = 'A1'
         self.dataset.save()
 
     @transaction.atomic
