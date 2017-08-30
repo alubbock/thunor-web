@@ -529,7 +529,6 @@ def download_dataset_hdf5(request, dataset_id):
 
         )
 
-        import io
         with tempfile.NamedTemporaryFile('wb',
                                          dir=settings.DOWNLOADS_ROOT,
                                          prefix='h5dset',
@@ -546,7 +545,11 @@ def download_dataset_hdf5(request, dataset_id):
     except HTSDataset.DoesNotExist:
         raise Http404()
     except NoDataException:
-        return HttpResponse('No data found for this request', status=400)
+        response = HttpResponse('No data found for this request',
+                                content_type='text/plain')
+        response['Content-Disposition'] = 'attachment; filename=failed.txt'
+        response['Set-Cookie'] = 'fileDownload=true; path=/'
+        return response
 
 
 class DatasetXlsxWriter(object):
