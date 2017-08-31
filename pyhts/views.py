@@ -1062,14 +1062,8 @@ def ajax_get_plot(request, file_type='json'):
         if assay is None:
             assay = df_data.assays.index.get_level_values('assay')[0]
 
-        if df_data.controls is None:
-            df_controls = None
-        else:
-            df_controls = df_data.controls.loc[assay]
         plot_fig = plot_time_course(
-            df_data.doses,
-            df_data.assays.loc[assay],
-            df_controls,
+            df_data,
             log_yaxis=yaxis == 'log2',
             assay_name=assay,
             show_dip_fit=request.GET.get('overlayDipFit', 'false') == 'true',
