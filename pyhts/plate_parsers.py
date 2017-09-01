@@ -162,6 +162,21 @@ class PlateFileParser(object):
             drug_nums.append(drug_no)
             drug_no += 1
 
+        # Check for duplicate drugs in any row
+        if len(drug_nums) == 2:
+            dup_drugs = pd.loc[pd['drug1'] == pd['drug2'], :]
+            if not dup_drugs.empty:
+                ind_val = dup_drugs.index.tolist()[0]
+                well_name = pm.well_id_to_name(ind_val[1])
+                raise PlateFileParseException(
+                    '{} entries have the same drug listed in the same well, '
+                    'e.g. plate "{}", well {}'.format(
+                        len(dup_drugs),
+                        ind_val[0],
+                        well_name
+                    )
+                )
+
         # OK, we'll assume all is good and start hitting the DB
         self._create_db_platefile()
 
