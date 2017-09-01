@@ -177,6 +177,24 @@ class PlateFileParser(object):
                     )
                 )
 
+        # Check for duplicate time point definitions
+        dup_timepoints = pd.set_index('time', append=True)
+        if dup_timepoints.index.duplicated().any():
+            dups =  dup_timepoints.loc[dup_timepoints.index.duplicated(),
+                                       :].index.tolist()
+            n_dups = len(dups)
+            first_dup = dups[0]
+
+            raise PlateFileParseException(
+                'There are {} duplicate time points defined, e.g. plate "{}"'
+                ', well {}, time {}'.format(
+                    n_dups,
+                    first_dup[0],
+                    pm.well_id_to_name(first_dup[1]),
+                    first_dup[2]
+                )
+            )
+
         # OK, we'll assume all is good and start hitting the DB
         self._create_db_platefile()
 
