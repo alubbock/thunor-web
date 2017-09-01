@@ -134,11 +134,26 @@ var plots = function() {
 
     var pushOptionsToSelect = function ($select, optionList, selectedOption) {
         var len = optionList.length;
+        var combinations = [];
         for (var i = 0; i < len; i++) {
             var $newOption = $("<option></option>");
             $newOption.val(optionList[i].id);
-            $newOption.text(optionList[i].name);
-            $select.append($newOption);
+            if(Array.isArray(optionList[i].name)) {
+                $newOption.text(optionList[i].name.join(" & "));
+                combinations.push($newOption);
+            } else {
+                $newOption.text(optionList[i].name);
+                $select.append($newOption);
+            }
+        }
+        var numCombos = combinations.length;
+        if (numCombos > 0) {
+            var $comboGrp = $("<optgroup label=\"Combinations\"" +
+                " disabled></optgroup>");
+            for (var i = 0; i < numCombos; i++) {
+                $comboGrp.append(combinations[i]);
+            }
+            $select.append($comboGrp);
         }
         if (len === 0) {
             $select.closest(".bootstrap-select").
