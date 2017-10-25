@@ -19,7 +19,7 @@ def precalculate_dip_rates(dataset_or_id):
     # Auto-select DIP rate assay
     assays = WellMeasurement.objects.filter(
         well__plate__dataset_id=dataset.id
-    ).values('assay').distinct()
+    ).values_list('assay', flat=True).distinct()
 
     dip_assay = choose_dip_assay(assays)
 

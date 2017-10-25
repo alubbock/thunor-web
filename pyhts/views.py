@@ -16,7 +16,8 @@ from django.urls import reverse
 import json
 from pydrc.plots import plot_time_course, plot_dip, plot_dip_params, \
     PARAM_NAMES, IC_REGEX, EC_REGEX, E_REGEX, E_REL_REGEX
-from pydrc.dip import dip_fit_params, AAFitWarning
+from pydrc.dip import dip_fit_params, AAFitWarning, \
+    DrugCombosNotImplementedError
 from pydrc.io import write_hdf
 from pydrc.helpers import plotly_to_dataframe
 from plotly.utils import PlotlyJSONEncoder
@@ -502,6 +503,10 @@ def download_dip_fit_params(request, dataset_id):
     except (HTSDataset.DoesNotExist, ValueError):
         response = HttpResponse('This dataset does not exist, or you do not '
                                 'have permission to access it.',
+                                content_type='text/plain')
+    except DrugCombosNotImplementedError:
+        response = HttpResponse('Parameter calculations for datasets with '
+                                'drug combinations is not yet implemented.',
                                 content_type='text/plain')
 
     response['Content-Disposition'] = \
