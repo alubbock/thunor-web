@@ -1,6 +1,7 @@
 import pandas as pd
 from .models import Well, WellDrug, WellMeasurement, WellStatistic
 from django.db.models import Count, Max, Sum
+from django.db.models.functions import Coalesce
 from collections import Iterable
 from pydrc.io import HtsPandas
 
@@ -116,8 +117,8 @@ def _queryset_well_info(dataset_id, drug_id, cell_line_id,
 
 
 def _apply_control_filter(queryset, cell_line_id):
-    queryset = queryset.annotate(max_dose=Max(
-        'well__welldrug__dose')).filter(max_dose=0)
+    queryset = queryset.annotate(max_dose=Coalesce(Max(
+        'well__welldrug__dose'), 0)).filter(max_dose=0)
 
     return _add_int_or_list_filter(queryset, 'well__cell_line_id',
                                    cell_line_id)
@@ -205,7 +206,6 @@ def df_doses_assays_controls(dataset, drug_id, cell_line_id, assay):
                                                'plate',
                                                'well_id',
                                                'timepoint'))
-
     if df_controls.isnull().values.all():
         df_controls = None
 

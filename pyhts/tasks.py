@@ -38,6 +38,8 @@ def precalculate_dip_rates(dataset_or_id):
 
     ctrl_dip_data, expt_dip_data = dip_rates(df_data)
 
+    expt_dip_data.reset_index('well_id', inplace=True)
+
     well_stats_to_create = [
         (WellStatistic(
             well_id=well_stat.well_id,
