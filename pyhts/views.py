@@ -26,6 +26,7 @@ from .tasks import precalculate_dip_rates
 from .plate_parsers import PlateFileParser
 import numpy as np
 import datetime
+import math
 from django.utils import timezone
 from operator import itemgetter
 from django.conf import settings
@@ -394,7 +395,9 @@ def ajax_load_plate(request, plate_id, extra_return_args=None):
     for ws in WellStatistic.objects.filter(
             well__plate_id=plate_id, stat_name='dip_rate'
     ).values('well__well_num', 'value'):
-        wells[ws['well__well_num']]['dipRate'] = ws['value']
+        # Need to remove NaNs for proper JSON support
+        wells[ws['well__well_num']]['dipRate'] = ws['value'] if not math.isnan(
+            ws['value']) else None
 
     plate = {'plateId': p.id,
              'numCols': p.width,
