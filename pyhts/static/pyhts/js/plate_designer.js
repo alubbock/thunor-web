@@ -965,23 +965,23 @@ var plate_designer = function () {
         var dipRates = [];
         var dipMin = Number.POSITIVE_INFINITY;
         var dipMax = Number.NEGATIVE_INFINITY;
-        var wellLen = $wells.length;
+        var wellLen = pyHTS.state.plateMap.wells.length;
         for (var i = 0; i < wellLen; i++) {
             var dipVal = pyHTS.state.plateMap.wells[i].dipRate;
             if (dipVal < dipMin) dipMin = dipVal;
             if (dipVal > dipMax) dipMax = dipVal;
             dipRates.push(dipVal);
         }
-        for (var i = 0; i < wellLen; i++) {
-            var dipRate = dipRates[i];
-            if (dipRate === null) continue;
-            var bgColour = null;
-            if (dipRate > 0) {
+        for (var j = 0; j < wellLen; j++) {
+            var dipRate = dipRates[j];
+            var bgColour = '';
+            if (dipRate === null) {
+            } else if (dipRate > 0) {
                 bgColour = shadeColor2(posColour, 1.0 - (dipRate / dipMax));
             } else {
-                bgColour = shadeColor2(negColour, dipRate / dipMax);
+                bgColour = shadeColor2(negColour, dipRate / dipMin);
             }
-            $($wells[i]).css('background-color', bgColour);
+            $($wells[j]).css('background-color', bgColour);
         }
     };
 
