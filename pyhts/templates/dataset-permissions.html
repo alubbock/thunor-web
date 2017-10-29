@@ -23,6 +23,13 @@
 {% endfor %}
 </tbody>
 </table>
+
+<div class="square-btns">
+  <a href="{% url 'pyhts:view_dataset' dataset.id %}"><button
+         class="btn btn-default btn-lg">
+        <i class="fa fa-3x fa-arrow-left"></i><br>
+        Back to<br>Dataset Page</button></a>
+</div>
 {% endblock %}
 
 {% block tailscript %}

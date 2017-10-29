@@ -9,7 +9,7 @@ var Well = function(well) {
         this.cellLine = null;
         this.drugs = [];
         this.doses = [];
-        this.dipRate = [];
+        this.dipRate = null;
     } else {
         this.cellLine = well.cellLine;
         this.drugs = well.drugs;

@@ -4,8 +4,17 @@
 
 {% block content %}
 
-<button class="btn btn-success" id="btn-add-tag">Add
-    {{ entity_type }} Tag</button>
+  <div class="two-btn">
+  <div class="square-btns">
+<button class="btn btn-success btn-lg" style="width:170px" id="btn-add-tag">
+  <i class="fa fa-3x fa-plus"></i><br>
+  Add {{ entity_type }} Tag</button>
+  <a role="button" href="{% url 'pyhts:home' %}" class="btn
+  btn-default btn-lg" style="width:170px"><i class="fa fa-3x
+  fa-home"></i><br>Back to<br>Home
+  Page</a>
+    </div>
+  </div>
 
 <div class="tag-list">
 {% for tag in tag_list %}{% ifchanged tag.tag_name %}

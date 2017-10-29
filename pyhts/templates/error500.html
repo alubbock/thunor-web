@@ -13,8 +13,7 @@
         <strong>{{ request.sentry.id }}</strong></p>
     {% endif %}
 
-    <p><a href="{% url 'pyhts:home' %}" class="btn btn-primary"
-    >Return to home page</a></p>
+    {% include "btn_back_homepage.html" %}
 
 </div>
 </div>

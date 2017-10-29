@@ -1,3 +1,6 @@
+h1,h2 {
+    letter-spacing: 1px;
+}
 #wrapper {
   width: 100%;
 }
@@ -111,7 +114,7 @@ table.dataTable thead .sorting:after {
     margin-bottom:0;
 }
 .page-header {
-    margin: 20px 0;
+    margin: 10px 0;
 }
 a[aria-expanded=true] .fa-chevron-up {
    display: none;
@@ -173,10 +176,6 @@ user-select: none;}
     max-height: 400px;
     overflow-x: hidden;
  }
-#hts-next-1, #hts-next-2 {
-    display: none;
-    padding: 3px 12px;
-}
 .upload-drop-zone {
   height: 200px;
   border-width: 2px;
@@ -520,6 +519,9 @@ user-select: none;}
     border: 1px solid transparent;
     display: none;
 }
+.panel-title {
+    font-weight: 500;
+}
 .plot-panel .panel-body {
     position:relative;
     height:450px;
@@ -665,4 +667,15 @@ form.set-tag-targets button[type=submit] {
 }
 .plot-type-tc .hidden-tc, .plot-type-dip .hidden-dip, .plot-type-dippar .hidden-dippar  {
     display: none;
+}
+.square-btns .btn-lg {
+    width: 19%;
+    margin-bottom: 4px;
+    height: 125px;
+    white-space: normal;
+    min-width: 170px;
+}
+.btn-two .square-btns .btn-lg {
+    width: 49%;
+    min-width: 110px;
 }

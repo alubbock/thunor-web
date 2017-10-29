@@ -7,6 +7,18 @@
     <div id="plot-toolbar" class="col-lg-12" role="toolbar" aria-label="Plot
     toolbar">
 
+      <div class="pull-right">
+        {% if default_dataset %}
+        <a role="button" href="
+{% url 'pyhts:view_dataset' default_dataset.id %}"
+           class="btn
+        btn-default"><i class="fa fa-arrow-left"></i> Back to Dataset</a>
+        {% else %}
+        <a role="button" href="{% url 'pyhts:home' %}" class="btn
+        btn-default"><i class="fa fa-home"></i> Back to Home Page</a>
+        {% endif %}
+      </div>
+
         <div id="hts-num-cols-lg">
             <label>Layout</label>
             <div class="btn-group dropdown">
@@ -38,7 +50,7 @@
         </div>
 
         <label>Plots</label>
-        <div class="btn-group">
+        <div class="btn-group" style="margin-right:10px">
             <button type="button" class="btn btn-default" data-keyboard="true"
                     data-toggle="modal" data-dataset="dataset"
                     data-target="#change-dataset-modal" id="dataset-btn">
@@ -58,9 +70,7 @@
             <button class="btn btn-success new-plot-btn"
                     data-dataset-id="{{ default_dataset.id }}"><i class="fa
                     fa-plus"></i> Add Plot</button>
-        </div>
-
-      <label>Second Dataset</label>
+        </div><label>Second Dataset</label>
       <form style="display: inline">
         <input type="checkbox" name="secondDataset"
                class="form-control-inline">

@@ -9,11 +9,11 @@ var plate_upload = function () {
     };
 
     var pyHTSLockNext2 = function () {
-        $("#hts-next-2").hide();
+        $("#hts-next-2").prop("disabled", true);
     };
 
     var pyHTSUnlockNext2 = function () {
-        $("#hts-next-2").show();
+        $("#hts-next-2").prop("disabled", false);
     };
 
     var createFileUploadScreen = function (dataset_id) {
@@ -66,6 +66,8 @@ var plate_upload = function () {
                 }
                 $("#hts-next-2").prop("href",
                     ajax.url("page_annotate_dataset", data.id));
+                $("#hts-back-to-dataset").prop("href",
+                    ajax.url("page_view_dataset", data.id));
                 createFileUploadScreen(data.id);
                 $htsDatasetUpload1.slideUp();
                 $("#hts-dataset-upload-2").slideDown();
@@ -84,12 +86,8 @@ var plate_upload = function () {
 
     $("input[name=dataset-name]").keyup(function (e) {
         var btn_selected = $("#hts-next-1");
-        if ($(this).val() == "") {
-            btn_selected.hide();
-        } else {
-            btn_selected.show();
-        }
-        if (e.which == 13) {
+        btn_selected.prop("disabled", $(this).val() === "");
+        if (e.which === 13) {
             btn_selected.click();
         }
     }).focus();

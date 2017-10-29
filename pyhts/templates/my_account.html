@@ -11,8 +11,14 @@
     {% endfor %}
     </p>
 {% endif %}
-<p>
-<a role="button" class="btn btn-primary" href="{% url 'account_email' %}">Add/change email address</a>
-<a role="button" class="btn btn-primary" href="{% url 'account_change_password' %}">Change password</a>
-</p>
+<div class="square-btns">
+  <a role="button" class="btn btn-primary btn-lg" href="{% url 'account_email' %}">
+    <i class="fa fa-3x fa-envelope-o"></i><br>
+    Add/change email address</a>
+  <a role="button" class="btn btn-primary btn-lg" href="{% url 'account_change_password' %}">
+    <i class="fa fa-3x fa-key"></i><br>
+    Change password</a>
+</div>
+
+  {% include "btn_back_homepage.html" %}
 {% endblock %}
