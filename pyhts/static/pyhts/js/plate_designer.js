@@ -1006,7 +1006,9 @@ var plate_designer = function () {
 
         if(view === 'dip') {
             showDipColours();
-            disablePlateSelection();
+            if(pyHTS.state.editableFlag) {
+                disablePlateSelection();
+            }
             $('#plate-map-edit-controls').hide();
             $('#cellline-typeahead,.hts-drug-typeahead').prop('disabled', true)
                 .css('background-color', '');
@@ -1014,9 +1016,9 @@ var plate_designer = function () {
             $('#hts-dip-display').show();
         } else {
             hideDipColours();
-            enablePlateSelection();
             $('#hts-dip-display').hide();
             if(pyHTS.state.editableFlag) {
+                enablePlateSelection();
                 if (view !== 'table') {
                     $('#plate-map-edit-controls').show();
                 }
