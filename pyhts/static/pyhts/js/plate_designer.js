@@ -979,7 +979,7 @@ var plate_designer = function () {
             } else if (dipRate > 0) {
                 bgColour = shadeColor2(posColour, 1.0 - (dipRate / dipMax));
             } else {
-                bgColour = shadeColor2(negColour, dipRate / dipMin);
+                bgColour = shadeColor2(negColour, 1.0 - (dipRate / dipMin));
             }
             $($wells[j]).css('background-color', bgColour);
         }
