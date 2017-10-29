@@ -1006,6 +1006,7 @@ var plate_designer = function () {
 
         if(view === 'dip') {
             showDipColours();
+            disablePlateSelection();
             $('#plate-map-edit-controls').hide();
             $('#cellline-typeahead,.hts-drug-typeahead').prop('disabled', true)
                 .css('background-color', '');
@@ -1013,6 +1014,7 @@ var plate_designer = function () {
             $('#hts-dip-display').show();
         } else {
             hideDipColours();
+            enablePlateSelection();
             $('#hts-dip-display').hide();
             if(pyHTS.state.editableFlag) {
                 if (view !== 'table') {
@@ -1089,7 +1091,7 @@ var plate_designer = function () {
 
     var updateInputsWithWellData = function() {
         var i,
-            cellLines = [], drugs = [], doses = [], dipRates = [],
+            cellLines = [], drugs = [], doses = [],
             numDrugs = $drugTypeaheads.length,
             numDoses = $doseInputs.length;
 
@@ -1116,7 +1118,6 @@ var plate_designer = function () {
                     doses[i].push(well.doses[i]);
                 }
             }
-            dipRates.push(well.dipRate);
         });
 
         $cellLineTypeahead.typeahead('val', '');
@@ -1149,18 +1150,23 @@ var plate_designer = function () {
                 $doseInputs.eq(i).attr('placeholder', '[Multiple]');
             }
         }
+    };
 
-        $dipBox.val('');
-        if(dipRates.length === 1) {
-            $dipBox.val(dipRates[0]);
-        } else {
-            $dipBox.attr('placeholder', '[Multiple]');
-        }
+    var disablePlateSelection = function() {
+      $('#well-all,.hts-well').removeClass('ui-selected');
+      updateInputsWithWellData();
+      pyHTS.state.last_edited = 'all';
+      $('#selectable-well-rows,#selectable-well-cols,#selectable-wells').selectable('disable');
+    };
+
+    var enablePlateSelection = function() {
+      $('#selectable-well-rows,#selectable-well-cols,#selectable-wells').selectable('enable');
     };
 
     if(pyHTS.state.editableFlag) {
         $('#plate-map-edit-controls').show();
         $("#well-all").click(function () {
+            if($('#hts-well-dip').hasClass('active')) return;
             if ($('.hts-well.ui-selected').length) {
                 $('#well-all,.hts-well').removeClass('ui-selected');
             } else {
