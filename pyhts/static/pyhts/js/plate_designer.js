@@ -9,10 +9,12 @@ var Well = function(well) {
         this.cellLine = null;
         this.drugs = [];
         this.doses = [];
+        this.dipRate = [];
     } else {
         this.cellLine = well.cellLine;
         this.drugs = well.drugs;
         this.doses = well.doses;
+        this.dipRate = well.dipRate;
     }
 };
 Well.prototype = {
@@ -191,7 +193,8 @@ PlateMap.prototype = {
                $.map(this.wells[w].drugs, function(drug) {
                    return util.filterObjectsAttr(drug, pyHTS.state.drugs, "id", "name").toString().replace(/^-1$/, "None");
                }).join("<br>"),
-               $.map(this.wells[w].doses, util.doseFormatter).join("<br>")
+               $.map(this.wells[w].doses, util.doseFormatter).join("<br>"),
+               this.wells[w].dipRate === null ? null : this.wells[w].dipRate.toFixed(10)
             ]);
         }
         return wells;
@@ -320,6 +323,11 @@ PlateMap.prototype = {
 
 var plate_designer = function () {
     var NUM_CSS_UNIQUE_COLOURS = 25;
+    var $cellLineTypeahead = $('#cellline-typeahead'),
+        $drugTypeaheads = $('.hts-drug-typeahead').not('.tt-hint'),
+        $doseInputs = $('.hts-dose-input'),
+        $doseUnits = $('.hts-dose-select'),
+        $dipBox = $('#hts-dip-box');
 
     $('#hts-apply-template-multiple').find('select').selectpicker({
         actionsBox: true,
@@ -511,6 +519,8 @@ var plate_designer = function () {
 
         if($('#hts-well-table').hasClass('active')) {
             refreshDataTable();
+        } else if($('#hts-well-dip').hasClass('active')) {
+            showDipColours();
         }
 
         // resize the wells
@@ -665,7 +675,6 @@ var plate_designer = function () {
 
         var allDosesValid = true;
         var doses = [];
-        var $doseInputs = $('.hts-dose-input');
         $doseInputs.each(function() {
             var valTxt = $(this).val();
             var val = parseFloat(valTxt);
@@ -700,7 +709,6 @@ var plate_designer = function () {
             $(caller).focus();
             submitToWells(caller);
         };
-        var $cellLineTypeahead = $('#cellline-typeahead');
         var cl = $cellLineTypeahead.typeahead('val');
         var cl_id = util.filterObjectsAttr(cl, pyHTS.state.cell_lines,
                 'name', 'id');
@@ -722,7 +730,6 @@ var plate_designer = function () {
         }
 
         // Check all drugs exist
-        var $drugTypeaheads = $('.hts-drug-typeahead').not('.tt-hint');
         var drugIds = [];
         for(var i=0, len=$drugTypeaheads.length; i<len; i++) {
             var drug = $($drugTypeaheads[i]).typeahead('val');
@@ -868,6 +875,9 @@ var plate_designer = function () {
         new_el.insertAfter(orig_el);
         $('.hts-drug-num').show();
         activateDrugInputs();
+        $drugTypeaheads = $('.hts-drug-typeahead').not('.tt-hint');
+        $doseInputs = $('.hts-dose-input');
+        $doseUnits = $('.hts-dose-select');
     };
 
     var removeDrugInput = function() {
@@ -879,6 +889,9 @@ var plate_designer = function () {
         if(numEntries == 2) {
             $('.hts-drug-num').hide();
         }
+        $drugTypeaheads = $('.hts-drug-typeahead').not('.tt-hint');
+        $doseInputs = $('.hts-dose-input');
+        $doseUnits = $('.hts-dose-select');
     };
 
     var setNumberDrugInputs = function(numInputs) {
@@ -903,7 +916,8 @@ var plate_designer = function () {
                 {title: 'Well'},
                 {title: 'Cell Line'},
                 {title: 'Drugs'},
-                {title: 'Doses'}
+                {title: 'Doses'},
+                {title: 'DIP Rate'}
             ],
             destroy: true,
             paging: false,
@@ -932,14 +946,55 @@ var plate_designer = function () {
         $loadingIndicator.hide();
     });
 
+    var shadeColor2 = function(color, percent) {
+        var f=parseInt(color.slice(1),16),t=percent<0?0:255,p=percent<0?percent*-1:percent,R=f>>16,G=f>>8&0x00FF,B=f&0x0000FF;
+        return "#"+(0x1000000+(Math.round((t-R)*p)+R)*0x10000+(Math.round((t-G)*p)+G)*0x100+(Math.round((t-B)*p)+B)).toString(16).slice(1);
+    };
+
+    var posColour = '#f48000';
+    var negColour = '#3f83a3';
+    $('#hts-well-dip').click(function(e) {
+        setWellView(e, 'dip');
+    });
+
     var viewStrings = {celllines: 'cell lines', drugs: 'drugs', doses:
-        'doses', overview: '', table: ''};
+        'doses', overview: '', table: '', dip: ''};
+
+    var showDipColours = function() {
+        var $wells = $('#selectable-wells').find('.hts-well');
+        var dipRates = [];
+        var dipMin = Number.POSITIVE_INFINITY;
+        var dipMax = Number.NEGATIVE_INFINITY;
+        var wellLen = $wells.length;
+        for (var i = 0; i < wellLen; i++) {
+            var dipVal = pyHTS.state.plateMap.wells[i].dipRate;
+            if (dipVal < dipMin) dipMin = dipVal;
+            if (dipVal > dipMax) dipMax = dipVal;
+            dipRates.push(dipVal);
+        }
+        for (var i = 0; i < wellLen; i++) {
+            var dipRate = dipRates[i];
+            if (dipRate === null) continue;
+            var bgColour = null;
+            if (dipRate > 0) {
+                bgColour = shadeColor2(posColour, 1.0 - (dipRate / dipMax));
+            } else {
+                bgColour = shadeColor2(negColour, dipRate / dipMax);
+            }
+            $($wells[i]).css('background-color', bgColour);
+        }
+    };
+
+    var hideDipColours = function() {
+        $('#selectable-wells').find('.hts-well').css('background-color', '');
+    };
 
     var setWellView = function(e, view) {
         e.preventDefault();
-        if(view == 'table') {
+        if(view === 'table') {
             $('#hts-well-table-view').show();
             $('#hts-well-plate').hide();
+            $('#plate-map-edit-controls').hide();
         } else {
             $('#hts-well-table-view').hide();
             $('#hts-well-plate').show();
@@ -949,27 +1004,41 @@ var plate_designer = function () {
 
         clearAllInputs();
 
-        if(pyHTS.state.editable) {
-            if (view == 'overview' || view == 'celllines') {
-                $('#cellline-typeahead').prop('disabled', false).css
-                ('background-color', 'transparent');
-            } else {
-                $('#cellline-typeahead').prop('disabled', true).css
-                ('background-color', '');
-            }
+        if(view === 'dip') {
+            showDipColours();
+            $('#plate-map-edit-controls').hide();
+            $('#cellline-typeahead,.hts-drug-typeahead').prop('disabled', true)
+                .css('background-color', '');
+            $('.hts-dose-input').prop('disabled', true);
+            $('#hts-dip-display').show();
+        } else {
+            hideDipColours();
+            $('#hts-dip-display').hide();
+            if(pyHTS.state.editableFlag) {
+                if (view !== 'table') {
+                    $('#plate-map-edit-controls').show();
+                }
+                if (view == 'overview' || view == 'celllines') {
+                    $('#cellline-typeahead').prop('disabled', false).css
+                    ('background-color', 'transparent');
+                } else {
+                    $('#cellline-typeahead').prop('disabled', true).css
+                    ('background-color', '');
+                }
 
-            if (view == 'overview' || view == 'drugs') {
-                $('.hts-drug-typeahead').prop('disabled', false).css
-                ('background-color', 'transparent');
-            } else {
-                $('.hts-drug-typeahead').prop('disabled', true).css
-                ('background-color', '');
-            }
+                if (view == 'overview' || view == 'drugs') {
+                    $('.hts-drug-typeahead').prop('disabled', false).css
+                    ('background-color', 'transparent');
+                } else {
+                    $('.hts-drug-typeahead').prop('disabled', true).css
+                    ('background-color', '');
+                }
 
-            if (view == 'overview' || view == 'doses') {
-                $('.hts-dose-input').prop('disabled', false);
-            } else {
-                $('.hts-dose-input').prop('disabled', true);
+                if (view == 'overview' || view == 'doses') {
+                    $('.hts-dose-input').prop('disabled', false);
+                } else {
+                    $('.hts-dose-input').prop('disabled', true);
+                }
             }
         }
 
@@ -977,7 +1046,7 @@ var plate_designer = function () {
         $('#hts-well-'+view).addClass('active');
         $('#selectable-wells,#hts-legend-container')
                 .removeClass('hts-overview hts-celllines hts-drugs hts-doses' +
-                        ' hts-table')
+                        ' hts-table hts-dip')
                 .addClass('hts-'+view);
     };
 
@@ -1020,13 +1089,9 @@ var plate_designer = function () {
 
     var updateInputsWithWellData = function() {
         var i,
-            cellLines = [], drugs = [], doses = [],
-            $cellLineTypeahead = $('#cellline-typeahead'),
-            $drugTypeahead = $('.hts-drug-typeahead').not('.tt-hint'),
-            numDrugs = $drugTypeahead.length,
-            $doseInput = $('.hts-dose-input'),
-            $doseUnits = $('.hts-active-dose-unit'),
-            numDoses = $doseInput.length;
+            cellLines = [], drugs = [], doses = [], dipRates = [],
+            numDrugs = $drugTypeaheads.length,
+            numDoses = $doseInputs.length;
 
         for(i=0; i<numDrugs; i++) {
             drugs.push([]);
@@ -1051,6 +1116,7 @@ var plate_designer = function () {
                     doses[i].push(well.doses[i]);
                 }
             }
+            dipRates.push(well.dipRate);
         });
 
         $cellLineTypeahead.typeahead('val', '');
@@ -1062,30 +1128,38 @@ var plate_designer = function () {
             $cellLineTypeahead.attr('placeholder', '[Multiple]');
         }
 
-        $drugTypeahead.typeahead('val', '');
+        $drugTypeaheads.typeahead('val', '');
         for(i=0; i<numDrugs; i++) {
             if(drugs[i].length == 1 && drugs[i][0] != null) {
-                $drugTypeahead.eq(i).typeahead('val',
+                $drugTypeaheads.eq(i).typeahead('val',
                         util.filterObjectsAttr(drugs[i][0], pyHTS.state.drugs,
                             'id', 'name'));
             } else if(drugs[i].length > 1) {
-                $drugTypeahead.eq(i).attr('placeholder', '[Multiple]');
+                $drugTypeaheads.eq(i).attr('placeholder', '[Multiple]');
             }
         }
 
-        $doseInput.val('');
+        $doseInputs.val('');
         for(i=0; i<numDoses; i++) {
             if(doses[i].length == 1 && doses[i][0] != null) {
                 var doseSplit = util.doseSplitter(doses[i][0]);
-                $doseInput.eq(i).val(doseSplit[0]);
+                $doseInputs.eq(i).val(doseSplit[0]);
                 $doseUnits.eq(i).data('dose', doseSplit[1]).text(doseSplit[2]);
             } else if(doses[i].length > 1) {
-                $doseInput.eq(i).attr('placeholder', '[Multiple]');
+                $doseInputs.eq(i).attr('placeholder', '[Multiple]');
             }
+        }
+
+        $dipBox.val('');
+        if(dipRates.length === 1) {
+            $dipBox.val(dipRates[0]);
+        } else {
+            $dipBox.attr('placeholder', '[Multiple]');
         }
     };
 
     if(pyHTS.state.editableFlag) {
+        $('#plate-map-edit-controls').show();
         $("#well-all").click(function () {
             if ($('.hts-well.ui-selected').length) {
                 $('#well-all,.hts-well').removeClass('ui-selected');
@@ -1239,12 +1313,11 @@ var plate_designer = function () {
             i,
             len;
         if(wellData == null) return;
-        $('#cellline-typeahead').attr('placeholder',
+        $cellLineTypeahead.attr('placeholder',
                 wellData.cellLine == null ? '' :
                 util.filterObjectsAttr(wellData.cellLine,
                                             pyHTS.state.cell_lines,
                                             'id', 'name'));
-        var $drugTypeaheads = $('.hts-drug-typeahead').not('.tt-hint');
         $drugTypeaheads.attr('placeholder', '');
         if(wellData.drugs != null) {
             for(i=0, len=wellData.drugs.length; i<len; i++) {
@@ -1254,7 +1327,6 @@ var plate_designer = function () {
                         'id', 'name'));
             }
         }
-        var $doseInputs = $('.hts-dose-input');
         $doseInputs.attr('placeholder', '');
         if(wellData.doses != null) {
             for(i=0, len=wellData.doses.length; i<len; i++) {
@@ -1263,10 +1335,12 @@ var plate_designer = function () {
                         util.doseFormatter(wellData.doses[i]));
             }
         }
+        $dipBox.attr('placeholder', wellData.dipRate);
     }).mouseleave(function() {
-        $('#cellline-typeahead').attr('placeholder', 'Cell line');
-        $('.hts-drug-typeahead').not('.tt-hint').attr('placeholder', 'Drug name');
-        $('.hts-dose-input').attr('placeholder', 'Dose');
+        $cellLineTypeahead.attr('placeholder', 'Cell line');
+        $drugTypeaheads.attr('placeholder', 'Drug name');
+        $doseInputs.attr('placeholder', 'Dose');
+        $dipBox.attr('placeholder', 'DIP rate');
     });
 
     var populateWellDataFromTemplate = function(wellData, templateId) {

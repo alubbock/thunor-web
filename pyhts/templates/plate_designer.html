@@ -74,6 +74,8 @@
         Lines</a></li>
         <li id="hts-well-drugs" role="presentation"><a href="#">Drugs</a></li>
         <li id="hts-well-doses" role="presentation"><a href="#">Doses</a></li>
+        <li id="hts-well-dip" role="presentation"><a href="#">DIP
+          Rates</a></li>
         <li id="hts-well-table" role="presentation"><a href="#">Table
             View</a></li>
     </ul>
@@ -135,7 +137,13 @@
                     {% include "dose_input.html" %}
                     {% endwith %}
                 </div>
+                <div id="hts-dip-display">
+                  <label>DIP Rate</label>
+                  <input type="text" class="form-control" id="hts-dip-box"
+                       placeholder="DIP rate" disabled />
+                </div>
                 {% if editable %}
+                <div id="plate-map-edit-controls">
                 <button type="button" class="btn btn-default
                 btn-sidebar btn-sidebar-nomgn"
                         id="hts-add-drug">Add another
@@ -196,6 +204,7 @@
                             class="btn btn-default"><i class="fa
                     fa-arrow-down"></i></button>
                 </div>
+                </div>
                 {% endif %}
             </div>
         </div>
@@ -213,6 +222,23 @@
                 <div id="legend-cell-lines"></div>
                 <div id="legend-drugs"></div>
                 <div id="legend-doses"></div>
+                <div id="legend-dip">
+                  <ol class="welllist well-legend">
+                    <li class="hts-well ui-state-default"
+                    style="background-color:#f48000;"></li>
+                        Positive DIP rate (relative scale)
+                  </ol>
+                  <ol class="welllist well-legend">
+                    <li class="hts-well ui-state-default"
+                    style="background-color:white;"></li>
+                        Zero DIP rate
+                  </ol>
+                  <ol class="welllist well-legend">
+                    <li class="hts-well ui-state-default"
+                    style="background-color:#3f83a3;"></li>
+                        Negative DIP rate (relative scale)
+                  </ol>
+                </div>
                 <div id="legend-overview">
                 <ol class="welllist well-legend">
                     <li class="hts-well ui-state-default hts-cell-line"></li>

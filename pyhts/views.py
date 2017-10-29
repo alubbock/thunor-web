@@ -11,7 +11,7 @@ from django.db import transaction
 from django.db.models import Q, F, Count, Max
 from django.utils.html import strip_tags
 from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, \
-    Well, WellMeasurement, WellDrug, CellLineTag, DrugTag
+    Well, WellMeasurement, WellDrug, CellLineTag, DrugTag, WellStatistic
 from django.urls import reverse
 import json
 from pydrc.plots import plot_time_course, plot_dip, plot_dip_params, \
@@ -369,23 +369,32 @@ def ajax_load_plate(request, plate_id, extra_return_args=None):
             'view_plate_layout', p.dataset):
         raise Http404()
 
-    cell_lines = Well.objects.filter(plate_id=plate_id).order_by(
-        'well_num').values('cell_line_id')
-    drugs = WellDrug.objects.filter(well__plate_id=plate_id).order_by(
-        'well__well_num', 'order').values(
-        'well__well_num', 'drug_id', 'order', 'dose')
-
+    # Blank well data
     wells = []
     for cl in range(p.num_wells):
-        wells += [{'cellLine': cell_lines[cl]['cell_line_id'] if cell_lines
-                else None,
-                   'drugs': AutoExtendList(), 'doses': AutoExtendList()}]
+        wells.append({'cellLine': None,
+                      'drugs': AutoExtendList(),
+                      'doses': AutoExtendList(),
+                      'dipRate': None})
 
-    assert len(wells) == p.num_wells
+    # Populate cell lines
+    cl_query = Well.objects.filter(plate_id=plate_id).values('well_num',
+                                                             'cell_line_id')
+    for w in cl_query:
+        wells[w['well_num']]['cellLine'] = w['cell_line_id']
 
-    for dr in drugs:
+    # Populate drugs
+    drugs = WellDrug.objects.filter(well__plate_id=plate_id).values(
+        'well__well_num', 'drug_id', 'order', 'dose')
+    for dr in drugs:  # prefetched above
         wells[dr['well__well_num']]['drugs'][dr['order']] = dr['drug_id']
         wells[dr['well__well_num']]['doses'][dr['order']] = dr['dose']
+
+    # Populate DIP rates
+    for ws in WellStatistic.objects.filter(
+            well__plate_id=plate_id, stat_name='dip_rate'
+    ).values('well__well_num', 'value'):
+        wells[ws['well__well_num']]['dipRate'] = ws['value']
 
     plate = {'plateId': p.id,
              'numCols': p.width,

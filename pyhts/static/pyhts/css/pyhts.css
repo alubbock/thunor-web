@@ -278,7 +278,7 @@ user-select: none;}
     margin-right: 0.5em;
     margin-bottom: 0.5em;
 }
-#legend-overview,#legend-cell-lines,#legend-drugs,#legend-doses {
+#legend-overview,#legend-cell-lines,#legend-drugs,#legend-doses,#legend-dip {
     display:none;
 }
 .hts-overview #legend-overview {
@@ -291,6 +291,9 @@ user-select: none;}
     display:block;
 }
 .hts-doses #legend-doses {
+    display:block;
+}
+.hts-dip #legend-dip {
     display:block;
 }
 .hts-celllines .hts-cell-line-0,.hts-drugs .hts-drug-0,.hts-doses .hts-dose-0 {
@@ -361,7 +364,9 @@ user-select: none;}
 .hts-drug-num, #hts-prev-dataset, #hts-finish-platemap {
     display: none;
 }
-#hts-well-table-view { display: none; }
+#hts-well-table-view, #plate-map-edit-controls, #hts-dip-display {
+    display: none;
+}
 #hts-well-table-view table { width:100%; }
 #hts-apply-template-multiple { display: inline-block; }
 .modal-header {
