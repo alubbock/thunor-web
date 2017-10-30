@@ -396,8 +396,8 @@ def ajax_load_plate(request, plate_id, extra_return_args=None):
             well__plate_id=plate_id, stat_name='dip_rate'
     ).values('well__well_num', 'value'):
         # Need to remove NaNs for proper JSON support
-        wells[ws['well__well_num']]['dipRate'] = ws['value'] if not math.isnan(
-            ws['value']) else None
+        wells[ws['well__well_num']]['dipRate'] = ws['value'] if \
+            ws['value'] is not None and not math.isnan(ws['value']) else None
 
     plate = {'plateId': p.id,
              'numCols': p.width,
