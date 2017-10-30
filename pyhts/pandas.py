@@ -125,7 +125,7 @@ def _apply_control_filter(queryset, cell_line_id):
 
 
 def _dataframe_wellinfo(dataset_id, drug_id, cell_line_id,
-                        use_dataset_names=False):
+                        use_dataset_names=False, use_plate_names=False):
     well_info, drug_id, cell_line_id = _queryset_well_info(
         dataset_id, drug_id, cell_line_id)
 
@@ -141,7 +141,8 @@ def _dataframe_wellinfo(dataset_id, drug_id, cell_line_id,
                              'cell_line': well.cell_line.name,
                              'drug': tuple(d.drug.name for d in
                                       well.welldrug_set.all()),
-                             'plate_id': well.plate_id,
+                             'plate_id': well.plate_id if not
+                                      use_plate_names else well.plate.name,
                              'dataset': dataset_id if (not isinstance(
                                  dataset_id, Iterable) and not
                                 use_dataset_names)
@@ -155,13 +156,15 @@ def _dataframe_wellinfo(dataset_id, drug_id, cell_line_id,
     return df_doses
 
 
-def df_doses_assays_controls(dataset, drug_id, cell_line_id, assay):
+def df_doses_assays_controls(dataset, drug_id, cell_line_id, assay,
+                             use_plate_names=False):
     dataset_id = dataset.id
 
     well_info, drug_id, cell_line_id = _queryset_well_info(
         dataset_id, drug_id, cell_line_id)
 
-    df_doses = _dataframe_wellinfo(dataset_id, drug_id, cell_line_id)
+    df_doses = _dataframe_wellinfo(dataset_id, drug_id, cell_line_id,
+                                   use_plate_names=use_plate_names)
 
     if df_doses.isnull().values.all():
         raise NoDataException()
@@ -191,7 +194,9 @@ def df_doses_assays_controls(dataset, drug_id, cell_line_id, assay):
     df_controls = queryset_to_dataframe(controls,
                                         columns=('assay',
                                                  'well__cell_line__name',
-                                                 'well__plate__id',
+                                                 'well__plate__name' if
+                                                    use_plate_names else
+                                                    'well__plate_id',
                                                  'well_id',
                                                  'timepoint',
                                                  'value'),
