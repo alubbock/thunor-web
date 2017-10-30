@@ -9,30 +9,8 @@
 <div class="row">
     <div class="col-lg-9 col-md-9 col-sm-12 col-xs-12">
     <div class="panel panel-default" id="hts-plate-panel">
-    <div class="panel-heading">
+    <div class="panel-heading clearfix">
       {% if dataset %}
-        <div class="pull-right" role="group">
-            <div id="hts-apply-template-multiple">
-            <select multiple title="Apply to plates">{% for p in plates %}
-                <option data-id="{{ p.id }}">{{ p.name }}</option>
-            {% endfor %}</select>
-            <button id="apply-template-multiple-btn" type="button" class="btn
-                btn-default">Apply template <span
-                    class="view-str"></span></button>
-            </div>
-            <button id="hts-prev-dataset" type="button" class="btn btn-default">
-                              <span class="fa fa-arrow-left"
-                                    aria-hidden="true"></span> Previous
-                        </button>
-            <button id="hts-next-dataset" type="button" class="btn
-            btn-default">Next
-                              <span class="fa fa-arrow-right"
-                                    aria-hidden="true"></span>
-                        </button>
-            <button id="hts-finish-platemap" type="button" class="btn
-            btn-success">Finish</button>
-        </div>
-
         <div class="dropdown" id="hts-plate-dropdown">
             <button class="btn btn-default dropdown-toggle" type="button"
                     id="hts-select-plate" data-toggle="dropdown"
@@ -61,15 +39,34 @@
                 {% endfor %}
             </ul>
         </div>
+        <div class="btn-group pull-right" id="hts-dataset-nav" role="group">
+              <button id="hts-prev-dataset" type="button" class="btn
+              btn-default" disabled>
+                                <i class="fa fa-arrow-left"
+                                      aria-hidden="true"></i> Previous
+                          </button>
+              <button id="hts-next-dataset" type="button" class="btn
+              btn-default" disabled>Next
+                                <i class="fa fa-arrow-right"
+                                      aria-hidden="true"></i>
+                          </button>
+              <button id="hts-finish-platemap" type="button" class="btn
+              btn-success">Finish</button>
+        </div>
+          <div id="hts-apply-template-multiple" class="btn-group
+            pull-right" role="group">
+            <select multiple title="Apply to plates">{% for p in plates %}
+                <option data-id="{{ p.id }}">{{ p.name }}</option>
+            {% endfor %}</select><button id="apply-template-multiple-btn" type="button" class="btn
+                btn-default">Apply template <span
+                    class="view-str"></span></button>
+          </div>
       {% else %}
         <div class="pull-right">
           <a role="button" href="{% url 'pyhts:home' %}" class="btn
           btn-default"><i class="fa fa-home"></i> Back to Home Page</a>
         </div>
       {% endif %}
-        <button role="button" class="btn {% if dataset %}btn-default{% else %}btn-success{% endif %}"
-                id="hts-download-plate"><i class="fa fa-download"></i>
-          Download Plate Map</button>
     </div><!-- panel-heading -->
 
     <ul id="hts-well-nav" class="nav nav-tabs" role="tablist">
@@ -209,8 +206,14 @@
                             class="btn btn-default"><i class="fa
                     fa-arrow-down"></i></button>
                 </div>
-                </div>
                 {% endif %}
+                </div>
+
+                <label>Export</label><br>
+                    <button role="button" class="btn {% if dataset %}btn-default{% else %}btn-success{% endif %}"
+                id="hts-download-plate"><i class="fa fa-download"></i>
+                  Download Plate Map</button>
+
             </div>
         </div>
 

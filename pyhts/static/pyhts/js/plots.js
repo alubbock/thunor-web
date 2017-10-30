@@ -46,10 +46,11 @@ var plots = function() {
                 $("a[class=select-dataset]").click(function(e2) {
                     e2.preventDefault();
                     var $this = $(e2.target);
-                    $(".new-plot-btn").data("datasetId",
+                    var dataset = $target.data("datasetTarget");
+                    $(".new-plot-btn").data(dataset + "Id",
                         $this.data("datasetId")
                     );
-                    $("#dataset-name").text($this.data("datasetName"));
+                    $("#" + dataset + "-name").text($this.data("datasetName"));
                     $target.data("datasetChanged", true);
                     $("#change-dataset-modal").modal("hide");
                 });

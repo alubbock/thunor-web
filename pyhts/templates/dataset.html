@@ -8,13 +8,13 @@
         {% if request.user.id == dataset.owner_id or 'view_plots' in perms %}
         <a href="{% url 'pyhts:plots' %}?dataset={{ dataset.id }}" role="button"
            class="btn btn-primary btn-lg"><i class="fa
-           fa-line-chart fa-3x"></i><br>Interactive<br>Plots</a>
+           fa-line-chart fa-3x"></i><br>Plot<br>System</a>
         {% endif %}
 
         {% if request.user.id == dataset.owner_id or 'view_plate_layout' in perms %}
         <a href="{% url 'pyhts:plate_designer' dataset.id %}" role="button"
            class="btn btn-primary btn-lg"><i class="fa fa-edit fa-3x"></i><br>
-            Plate<br>Design</a>
+            Plate<br>Mapper</a>
         {% endif %}
 
         {% if request.user.id == dataset.owner_id or 'download_data' in perms %}

@@ -8,11 +8,7 @@
     <div>
         <div class="container">
             {% if not dataset %}
-            <div id="hts-dataset-upload-1" class="panel panel-default">
-                <div class="panel-heading">
-                    <span class="h3">Enter Title</span>
-                </div>
-                <div class="panel-body">
+            <div id="hts-dataset-upload-1">
                     <label for="dataset-name">Dataset Name</label>
                     <input type="text" name="dataset-name"
                            class="form-control" />
@@ -28,18 +24,11 @@
                         <i class="fa fa-3x fa-arrow-right"></i><br>Next
                       </button>
                     </div>
-                </div>
             </div>
             {% endif %}
 
             <div id="hts-dataset-upload-2"
-                 style="{% if not dataset %}display:none{% endif %}"
-                 class="panel
-                 panel-default">
-                <div class="panel-heading inline-headers">
-                    <span class="h3">Upload Plates</span>
-                </div>
-                <div class="panel-body">
+                 style="{% if not dataset %}display:none{% endif %}">
                     <h4>Select files from your computer <small>
                         Drag and drop or click
                         <strong>Browse</strong></small></h4>
@@ -66,8 +55,6 @@
                     </a>
                     </div>
                     </div>
-
-                </div>
             </div>
 
         </div> <!-- /container -->

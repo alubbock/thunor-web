@@ -780,7 +780,7 @@ var plate_designer = function () {
         // Show finish button if appropriate
         if(pyHTS.state.savedPlates.length == (pyHTS.state.plates.length - 1)
            && ($.inArray(pyHTS.state.plateMap.plateId, pyHTS.state.savedPlates) == -1)) {
-            $('#hts-finish-platemap').show();
+            $('#hts-finish-platemap').prop("disabled", false);
         }
 
         // Clear inputs and lose focus
@@ -1401,7 +1401,7 @@ var plate_designer = function () {
                       || (pyHTS.state.savedPlates.length == (pyHTS.state.plates.length - 1)
                       && $.inArray(data.plateMap.plateId, pyHTS.state.savedPlates)
                         == -1)) {
-                    $('#hts-finish-platemap').show();
+                    $('#hts-finish-platemap').prop("disabled", false);
                 }
                 pyHTS.state.plateMap = new PlateMap(
                         data.plateMap.plateId,
@@ -1502,34 +1502,26 @@ var plate_designer = function () {
             $plateEl = $plateEl.filter('[data-template='+templateId+']');
         }
         var plateName = $plateEl.find('a').text();
-        $currentPlate.data('id', plateId).text(plateName);
+        $currentPlate.data('id', plateId.toString()).text(plateName);
         $plateList.find('li').removeClass('active');
         $plateEl.addClass('active');
         // update the UI
         if (plateId == 'MASTER') {
             pyHTS.state.plateMap = pyHTS.state.plateMapTemplates[templateId];
             refreshViewAll();
-            $('#hts-prev-dataset,#hts-next-dataset').hide();
+            $('#hts-prev-dataset,#hts-next-dataset').prop("disabled", true);
             $('#hts-apply-template').hide();
-            $('#hts-apply-template-multiple').show();
+            $('#hts-apply-template-multiple,#apply-template-multiple-btn').show();
         } else {
             $('#hts-apply-template').show();
-            $('#hts-apply-template-multiple').hide();
-            if (prevPlatePos() != null) {
-                $('#hts-prev-dataset').show();
-            } else {
-                $('#hts-prev-dataset').hide();
-            }
-            if (nextPlatePos() != null) {
-                $('#hts-next-dataset').show();
-            } else {
-                $('#hts-next-dataset').hide();
-            }
+            $('#hts-apply-template-multiple,#apply-template-multiple-btn').hide();
+            $('#hts-prev-dataset').prop("disabled", prevPlatePos() == null);
+            $('#hts-next-dataset').prop("disabled", nextPlatePos() == null)
         }
 
         if (pyHTS.state.savedPlates.length == (pyHTS.state.plates.length - 1)
-                   && $.inArray(plateId, pyHTS.state.savedPlates) != -1) {
-            $('#hts-finish-platemap').hide();
+                   && $.inArray(plateId.toString(), pyHTS.state.savedPlates) != -1) {
+            $('#hts-finish-platemap').prop("disabled", true);
         }
     };
 

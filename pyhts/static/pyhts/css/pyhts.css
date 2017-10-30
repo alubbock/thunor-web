@@ -124,7 +124,6 @@ a[aria-expanded=false] .fa-chevron-down {
 }
 .btn-sidebar {
   width:100%;
-  max-width: 250px;
   margin-bottom: 10px;
 }
 .btn-sidebar-nomgn {
@@ -132,11 +131,13 @@ a[aria-expanded=false] .fa-chevron-down {
 }
 #hts-move-selection button {
     width:25%;
+    max-width: none;
+    margin-bottom: 10px;
 }
 .dropdown-menu .pull-right.fa {
     margin-right: -15px;
 }
-@media (min-width:767px) {
+@media (min-width:768px) {
     .navbar-top-links .dropdown:hover .dropdown-menu {
         display: block;
     }
@@ -154,17 +155,46 @@ a[aria-expanded=false] .fa-chevron-down {
 -ms-user-select: none;
 user-select: none;}
 
-  #hts-plate-panel {min-width:500px;}
-  #hts-plate-dropdown {display: inline-block;}
+  /*#hts-plate-panel {min-width:500px;}*/
+    #hts-plate-dropdown {
+        margin-bottom: 10px;
+    }
+  #hts-plate-dropdown, #hts-dataset-nav {
+      display: inline-block;width:100%;}
+  #hts-dataset-nav {
+      margin-left: 5px;
+  }
+  #hts-dataset-nav button {
+      width: 33.33%;
+  }
+  #hts-download-plate {width:100%;}
+  #hts-apply-template-multiple {
+      width: 100%;
+      margin-top: 10px;
+  }
+  #hts-apply-template-multiple .bootstrap-select {
+      float: left;
+  }
+  #hts-select-plate {width:100%;}
   #selectable-well-rows {width:4%; float: left; clear:left; }
   .welllist li { margin: 0; padding: 0 0 4% 0; float: left; width: 4%;
       height: 0; cursor: default; text-align: center; font-size:1em;
       border-radius: 50%; }
+  @media (min-width:768px) {
+      #hts-plate-dropdown, #hts-dataset-nav, #hts-dataset-nav button {
+          width: auto;
+          margin-bottom:0;
+      }
+  }
   @media (min-width: 992px) {
       .welllist li {font-size:125%}
   }
   @media (min-width: 1200px) {
       .welllist li {font-size:150%}
+      #hts-apply-template-multiple {
+          width: auto;
+          margin-top: 0;
+      }
   }
   #selectable-well-rows li {width: 100%; height:0; padding-bottom:100%;
       border:1px solid transparent; }
@@ -359,8 +389,7 @@ user-select: none;}
 #hts-add-drug {
     margin-top:5px;
 }
-#hts-apply-template-multiple select,
-.hts-drug-num, #hts-prev-dataset, #hts-finish-platemap {
+#hts-apply-template-multiple select, #apply-template-multiple-btn, .hts-drug-num {
     display: none;
 }
 #hts-well-table-view, #plate-map-edit-controls, #hts-dip-display {
@@ -639,6 +668,60 @@ div.hts-change-cell-line .bs-actionsbox,div.hts-change-drug .bs-actionsbox {
     margin-bottom: 15px;
   }
 }
+@media (max-width: 767px) {
+  .btn-group-responsive.btn-group>.btn:first-child:not(:last-child):not(.dropdown-toggle) {
+    border-bottom-right-radius: inherit;
+    border-bottom-left-radius: 0;
+    border-top-right-radius: 4px;
+  }
+  .btn-group-responsive.btn-group>.btn:last-child:not(:first-child) {
+    border-bottom-left-radius: 4px;
+    border-top-right-radius: 0;
+  }
+  .btn-group-responsive.btn-group>.btn:not(:first-child):not(:last-child):not(.dropdown-toggle) {
+    border-radius: 0;
+      border-top:0;
+      border-bottom:0;
+  }
+}
+  .plot-header-ctrl {
+    display: inline-flex;
+    vertical-align: middle;
+    line-height: 32px;
+    margin-top:10px;
+    width:100%;
+  }
+  .plot-header-ctrl label {
+    margin-right: 10px;
+  }
+  .plot-header-ctrl button {
+    width: 100%;
+    border-radius: 5px;
+    height: 42px;
+  }
+  #hts-back-btn {
+    margin-top:10px;
+    width: 100%;
+  }
+  #plot-dataset-sel {
+    width: 100%;
+  }
+@media (min-width:768px) {
+  .plot-header-ctrl {
+    width: auto;
+    padding-right:10px;
+  }
+  .plot-header-ctrl button {
+    width: auto;
+    height: inherit;
+  }
+  #plot-dataset-sel {
+    width: auto;
+  }
+  #hts-back-btn {
+    width: auto;
+  }
+}
 .sortable-panels .panel-body {
     padding: 0;
 }
@@ -669,13 +752,30 @@ form.set-tag-targets button[type=submit] {
     display: none;
 }
 .square-btns .btn-lg {
-    width: 19%;
+    width: 100%;
     margin-bottom: 4px;
     height: 125px;
     white-space: normal;
     min-width: 170px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 250px;
+}
+@media (min-width: 361px) {
+    .square-btns .btn-lg {
+        width: 49%;
+        display: inline-block;
+        max-width: 400px;
+    }
+}
+@media (min-width: 768px) {
+    .square-btns .btn-lg {
+        width: 19%;
+    }
 }
 .btn-two .square-btns .btn-lg {
     width: 49%;
-    min-width: 110px;
+    min-width: 107px;
+    display: inline-block;
 }
