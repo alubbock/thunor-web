@@ -617,7 +617,9 @@ var plots = function() {
         var datasetId = $newPlotBtn.data("datasetId");
         var datasetName = $("#dataset-name").text();
         if(datasetId === "") {
-            $("#change-dataset-modal").data("addPlot", true).modal("show");
+            $("#change-dataset-modal")
+                .data("addPlot", true);
+            $("#dataset-btn").click();
             return;
         }
         var dataset2active = $("#dataset2-btn").css("display") !== "none";
