@@ -157,14 +157,9 @@ class PlateFileParser(object):
         # Create plates
         df_wells = df_data.doses.copy().reset_index()
         df_wells.set_index('well_id', inplace=True)
-        WELL_RE = re.compile(r'^(?P<plate>.*)__(?P<well>\d+)$')
         plates_to_create = {}
         for row in df_wells.itertuples():
-            match = WELL_RE.match(row.Index)
-            if match is None:
-                raise ValueError('Malformatted well name: {}'.format(
-                    row.Index))
-            pl_name = match.group('plate')
+            pl_name = row.plate_id
 
             if pl_name not in self._plate_objects.keys():
                 plates_to_create[pl_name] = Plate(
@@ -190,11 +185,9 @@ class PlateFileParser(object):
         # Create wells
         well_sets_to_create = collections.defaultdict(list)
         for row in df_wells.itertuples():
-            match = WELL_RE.match(row.Index)
-
-            pl_name = match.group('plate')
+            pl_name = row.plate_id
             plate = self._plate_objects[pl_name]
-            well_no = int(match.group('well'))
+            well_no = row.well_num
             wells = self._well_sets.get(plate.id, None)
             if not wells:
                 if not well_sets_to_create[plate.id]:
@@ -209,16 +202,14 @@ class PlateFileParser(object):
 
         # Add any control wells
         ctrl_idx_names = df_data.controls.index.names
-        ctrl_well_id_idx = ctrl_idx_names.index('well_id')
+        ctrl_plate_idx = ctrl_idx_names.index('plate')
         ctrl_assay_idx = ctrl_idx_names.index('assay')
         ctrl_timepoint_idx = ctrl_idx_names.index('timepoint')
         ctrl_cell_line_idx = ctrl_idx_names.index('cell_line')
         for row in df_data.controls.itertuples():
-            match = WELL_RE.match(row.Index[ctrl_well_id_idx])
-
-            pl_name = match.group('plate')
+            pl_name = row.Index[ctrl_plate_idx]
             plate = self._plate_objects[pl_name]
-            well_no = int(match.group('well'))
+            well_no = row.well_num
 
             well_sets_to_create[plate.id][well_no].cell_line_id = \
                 cell_lines[row.Index[ctrl_cell_line_idx]]
@@ -245,10 +236,9 @@ class PlateFileParser(object):
         # Create welldrugs
         well_drugs_to_create = []
         for row in df_wells.itertuples():
-            match = WELL_RE.match(row.Index)
-            pl_name = match.group('plate')
+            pl_name = row.plate_id
             plate = self._plate_objects[pl_name]
-            well_num = int(match.group('well'))
+            well_num = row.well_num
             well_id = self._well_sets[plate.id][well_num]
             for order, drug in enumerate(row.drug):
                 well_drugs_to_create.append(
@@ -265,10 +255,9 @@ class PlateFileParser(object):
         # Create wellmeasurements from controls
         well_measurements_to_create = []
         for row in df_data.controls.itertuples():
-            match = WELL_RE.match(row.Index[ctrl_well_id_idx])
-            pl_name = match.group('plate')
+            pl_name = row.Index[ctrl_plate_idx]
             plate = self._plate_objects[pl_name]
-            well_num = int(match.group('well'))
+            well_num = row.well_num
             well_id = self._well_sets[plate.id][well_num]
             well_measurements_to_create.append(WellMeasurement(
               well_id=well_id,
@@ -278,19 +267,19 @@ class PlateFileParser(object):
             ))
 
         # Create wellmeasurements from non-controls
-        well_id_idx = df_data.assays.index.names.index('well_id')
-        assay_idx = df_data.assays.index.names.index('assay')
-        timepoint_idx = df_data.assays.index.names.index('timepoint')
-        for row in df_data.assays.itertuples():
-            match = WELL_RE.match(row.Index[well_id_idx])
-            pl_name = match.group('plate')
+        assays = df_data.assays.reset_index()
+        assays.set_index('well_id', inplace=True)
+        assays = pd.merge(assays, df_wells[['plate_id', 'well_num']],
+                          how='left', left_index=True, right_index=True)
+        for row in assays.itertuples():
+            pl_name = row.plate_id
             plate = self._plate_objects[pl_name]
-            well_num = int(match.group('well'))
+            well_num = row.well_num
             well_id = self._well_sets[plate.id][well_num]
             well_measurements_to_create.append(WellMeasurement(
               well_id=well_id,
-              assay=row.Index[assay_idx],
-              timepoint=row.Index[timepoint_idx],
+              assay=row.assay,
+              timepoint=row.timepoint,
               value=row.value
             ))
 

@@ -542,7 +542,7 @@ def download_dataset_hdf5(request, dataset_id):
             drug_id=None,
             cell_line_id=None,
             assay=None,
-            use_plate_names=True
+            for_export=True
         )
 
         with tempfile.NamedTemporaryFile('wb',

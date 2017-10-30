@@ -125,7 +125,7 @@ def _apply_control_filter(queryset, cell_line_id):
 
 
 def _dataframe_wellinfo(dataset_id, drug_id, cell_line_id,
-                        use_dataset_names=False, use_plate_names=False):
+                        use_dataset_names=False, for_export=False):
     well_info, drug_id, cell_line_id = _queryset_well_info(
         dataset_id, drug_id, cell_line_id)
 
@@ -138,11 +138,12 @@ def _dataframe_wellinfo(dataset_id, drug_id, cell_line_id,
     df_doses = pd.DataFrame({'dose': tuple(d.dose for d in
                                        well.welldrug_set.all()),
                              'well_id':  well.id,
+                             'well_num': well.well_num,
                              'cell_line': well.cell_line.name,
                              'drug': tuple(d.drug.name for d in
                                       well.welldrug_set.all()),
                              'plate_id': well.plate_id if not
-                                      use_plate_names else well.plate.name,
+                                      for_export else well.plate.name,
                              'dataset': dataset_id if (not isinstance(
                                  dataset_id, Iterable) and not
                                 use_dataset_names)
@@ -157,14 +158,14 @@ def _dataframe_wellinfo(dataset_id, drug_id, cell_line_id,
 
 
 def df_doses_assays_controls(dataset, drug_id, cell_line_id, assay,
-                             use_plate_names=False):
+                             for_export=False):
     dataset_id = dataset.id
 
     well_info, drug_id, cell_line_id = _queryset_well_info(
         dataset_id, drug_id, cell_line_id)
 
     df_doses = _dataframe_wellinfo(dataset_id, drug_id, cell_line_id,
-                                   use_plate_names=use_plate_names)
+                                   for_export=for_export)
 
     if df_doses.isnull().values.all():
         raise NoDataException()
@@ -191,26 +192,33 @@ def df_doses_assays_controls(dataset, drug_id, cell_line_id, assay,
         controls = controls.filter(assay=assay)
     controls = _apply_control_filter(controls, cell_line_id)
 
+    ctrl_cols = ['assay',
+                 'well__cell_line__name',
+                 'well__plate__name' if
+                    for_export else
+                    'well__plate_id',
+                 'well_id',
+                 'timepoint',
+                 'value']
+    ctrl_rename_cols = ['assay',
+                        'cell_line',
+                        'plate',
+                        'well_id',
+                        'timepoint',
+                        'value']
+    ctrl_indexes = ['assay',
+                    'cell_line',
+                    'plate',
+                    'well_id',
+                    'timepoint']
+    if for_export:
+        ctrl_cols.append('well__well_num')
+        ctrl_rename_cols.append('well_num')
+
     df_controls = queryset_to_dataframe(controls,
-                                        columns=('assay',
-                                                 'well__cell_line__name',
-                                                 'well__plate__name' if
-                                                    use_plate_names else
-                                                    'well__plate_id',
-                                                 'well_id',
-                                                 'timepoint',
-                                                 'value'),
-                                        rename_columns=('assay',
-                                                        'cell_line',
-                                                        'plate',
-                                                        'well_id',
-                                                        'timepoint',
-                                                        'value'),
-                                        index=('assay',
-                                               'cell_line',
-                                               'plate',
-                                               'well_id',
-                                               'timepoint'))
+                                        columns=ctrl_cols,
+                                        rename_columns=ctrl_rename_cols,
+                                        index=ctrl_indexes)
     if df_controls.isnull().values.all():
         df_controls = None
 
