@@ -9,11 +9,11 @@ var plate_upload = function () {
     };
 
     var pyHTSLockNext2 = function () {
-        $("#hts-next-2").prop("disabled", true);
+        $("#hts-next-2").find("button").prop("disabled", true);
     };
 
     var pyHTSUnlockNext2 = function () {
-        $("#hts-next-2").prop("disabled", false);
+        $("#hts-next-2").find("button").prop("disabled", false);
     };
 
     var createFileUploadScreen = function (dataset_id) {
