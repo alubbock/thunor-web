@@ -349,7 +349,10 @@ class PlateFileParser(object):
 
         # Check for duplicate drugs in any row
         if len(drug_nums) == 2:
-            dup_drugs = pd.loc[pd['drug1'] == pd['drug2'], :]
+            # Ignore rows where both concentrations are zero
+            dup_drugs = pd.loc[pd['drug1.conc'] != 0 | pd['drug2.conc'] !=
+                               0, :]
+            dup_drugs = dup_drugs.loc[pd['drug1'] == pd['drug2'], :]
             if not dup_drugs.empty:
                 ind_val = dup_drugs.index.tolist()[0]
                 well_name = pm.well_id_to_name(ind_val[1])
@@ -535,14 +538,15 @@ class PlateFileParser(object):
                             )
                         )
                     drug_conc = drug_conc[0]
-                    well_drugs_to_create.append(
-                        WellDrug(
-                            well_id=well_id,
-                            drug_id=drugs[drug_name],
-                            order=(drug_no - 1),
-                            dose=drug_conc
+                    if drug_conc != 0.0:
+                        well_drugs_to_create.append(
+                            WellDrug(
+                                well_id=well_id,
+                                drug_id=drugs[drug_name],
+                                order=(drug_no - 1),
+                                dose=drug_conc
+                            )
                         )
-                    )
 
                 well_measurements_to_create.extend([
                     WellMeasurement(
