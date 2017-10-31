@@ -184,8 +184,11 @@ user-select: none;}
   #hts-select-plate {width:100%;}
   #selectable-well-rows {width:4%; float: left; clear:left; }
   .welllist li { margin: 0; padding: 0 0 4% 0; float: left; width: 4%;
-      height: 0; cursor: default; text-align: center; font-size:1em;
+      height: 0; cursor: default; text-align: center; font-size:0.6em;
       border-radius: 50%; }
+  @media (min-width: 600px) {
+      .welllist li {font-size:1em;}
+  }
   @media (min-width:768px) {
       #hts-plate-dropdown, #hts-dataset-nav, #hts-dataset-nav button {
           width: auto;
