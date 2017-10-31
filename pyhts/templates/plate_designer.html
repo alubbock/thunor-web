@@ -139,7 +139,7 @@
                     {% include "dose_input.html" %}
                     {% endwith %}
                 </div>
-                <div id="hts-dip-display">
+                <div id="hts-dip-display" style="margin-bottom:10px">
                   <label>DIP Rate</label>
                   <input type="text" class="form-control" id="hts-dip-box"
                        placeholder="DIP rate" disabled />
@@ -206,8 +206,8 @@
                             class="btn btn-default"><i class="fa
                     fa-arrow-down"></i></button>
                 </div>
-                {% endif %}
                 </div>
+                {% endif %}
 
                 <label>Export</label><br>
                     <button role="button" class="btn {% if dataset %}btn-default{% else %}btn-success{% endif %}"
