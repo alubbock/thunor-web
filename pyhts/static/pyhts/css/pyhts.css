@@ -67,6 +67,9 @@ h1,h2 {
     margin: 0;
     padding: 8px 0;
 }
+.breadcrumb li {
+    max-width: 100%;
+}
 /** Datatables should use fontawesome sort icons **/
 table.dataTable thead .sorting,
 table.dataTable thead .sorting_asc,
@@ -142,7 +145,10 @@ a[aria-expanded=false] .fa-chevron-down {
         display: block;
     }
 }
-
+.ellipsis {
+    overflow:hidden;
+    text-overflow: ellipsis;
+}
   #selectable-wells .ui-selecting { background: #FECA40; }
   #selectable-wells .ui-selected { background: #F39814; color: white; }
   .welllist { list-style-type: none;
@@ -778,4 +784,8 @@ form.set-tag-targets button[type=submit] {
     width: 49%;
     min-width: 107px;
     display: inline-block;
+}
+#dataset-table td {
+    overflow: hidden;
+    text-overflow: ellipsis;
 }

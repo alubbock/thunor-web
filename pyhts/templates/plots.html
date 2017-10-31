@@ -56,7 +56,8 @@
                     data-toggle="modal" data-dataset="dataset"
                     data-target="#change-dataset-modal" id="dataset-btn">
                 <i class="fa fa-database"></i> <span id="dataset-name">
-              {% if default_dataset %}{{ default_dataset.name }}
+              {% if default_dataset %}
+                {{ default_dataset.name|truncatechars:20 }}
               {% else %}<em>Select Dataset</em>{% endif %}</span>
             </button>
             <button type="button" style="display:none" class="btn btn-default"

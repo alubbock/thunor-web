@@ -28,6 +28,11 @@ var selectPickerOptionsSingle = {
 var plots = function() {
     var plotOptionsCache = {};
 
+    var truncateDatasetName = function(datasetName) {
+        return datasetName.length > 20 ?
+            datasetName.substr(0, 17) + "..." : datasetName;
+    };
+
     $.fn.selectpicker.Constructor.DEFAULTS.iconBase = "fa";
     $.fn.selectpicker.Constructor.DEFAULTS.tickIcon = "fa-check";
 
@@ -50,7 +55,7 @@ var plots = function() {
                     $(".new-plot-btn").data(dataset + "Id",
                         $this.data("datasetId")
                     );
-                    $("#" + dataset + "-name").text($this.data("datasetName"));
+                    $("#" + dataset + "-name").text(truncateDatasetName($this.data("datasetName")));
                     $target.data("datasetChanged", true);
                     $("#change-dataset-modal").modal("hide");
                 });
