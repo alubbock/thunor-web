@@ -1252,6 +1252,9 @@ def ajax_get_plot(request, file_type='json'):
                                 status=400)
 
         ctrl_dip_data = df_ctrl_dip_rates(dataset_id)
+        if ctrl_dip_data is None:
+            return HttpResponse('No control wells were detected in this '
+                                'dataset.', status=400)
         plot_fig = plot_ctrl_dip_by_plate(ctrl_dip_data)
     else:
         return HttpResponse('Unimplemented plot type: %s' % plot_type,
