@@ -181,10 +181,11 @@
           </span></div>
         <div class="form-group">
             <label for="hts-plot-type">Plot Type</label>
-            <div class="hts-plot-type btn-group btn-group-3
+            <div class="hts-plot-type btn-group btn-group-4
             btn-group-responsive" data-toggle="buttons">
               <label class="btn btn-primary active">
                   <input type="radio" name="plotType" value="tc"
+                         class="no-multi-dataset"
                          autocomplete="off" checked><span>Time Course</span>
               </label>
               <label class="btn btn-primary">
@@ -196,6 +197,11 @@
                          autocomplete="off"><span>Dose Response
                       Parameters</span>
               </label>
+              <label class="btn btn-primary">
+                  <input type="radio" name="plotType" value="qc"
+                         class="no-multi-dataset"
+                         autocomplete="off"><span>Quality Control</span>
+              </label>
             </div>
         </div>
     </div>
@@ -204,7 +210,7 @@
     <div class="col-sm-6">
     <input type="hidden" name="datasetId">
     <input type="hidden" name="dataset2Id">
-    <div class="form-group">
+    <div class="form-group hidden-qc">
         <div class="pull-right name-tag-switch btn-group btn-group-inline
         hidden-tc">
             <button data-entity="cell_line"
@@ -239,7 +245,7 @@
         </div>
         </div>
     </div>
-    <div class="form-group">
+    <div class="form-group hidden-qc">
         <span class="pull-right name-tag-switch btn-group btn-group-inline
         hidden-tc">
             <button data-entity="drug"
@@ -272,11 +278,21 @@
         </div>
         </div>
     </div>
-    <div class="form-group hidden-dip hidden-dippar" style="display:none">
+    <div class="form-group hidden-dip hidden-dippar hidden-qc" style="display:none">
         <label for="hts-change-assay">Assay</label>
         <select name="assayId" class="hts-change-assay form-control"
                 title="Loading..." disabled>
         </select>
+    </div>
+    <div class="form-group hidden-tc hidden-dip hidden-dippar">
+        <label for="hts-dip-type">Quality Control View</label>
+        <div class="hts-dip-type btn-group btn-group-1 btn-group-responsive"
+             data-toggle="buttons">
+          <label class="btn btn-primary active">
+            <input type="radio" name="qcView" value="ctrldipbox"
+                   autocomplete="off" checked> Control DIP Box Plot
+          </label>
+        </div>
     </div>
     </div>
     <div class="col-sm-6">
@@ -307,7 +323,7 @@
     {% with parameter_toggle=True param_form_name="dipParOrder" param_label="Ordering Parameter" %}
     {% include "parameter_selection_panel.html" %}
     {% endwith %}
-    <div class="form-group hidden-dip hidden-dippar">
+    <div class="form-group hidden-dip hidden-dippar hidden-qc">
         <label for="hts-log-transform">Vertical Axis</label>
         <div class="hts-log-transform btn-group btn-group-2 btn-group-responsive"
              data-toggle="buttons">
@@ -321,7 +337,7 @@
           </label>
         </div>
     </div>
-    <div class="form-group hidden-dip hidden-dippar">
+    <div class="form-group hidden-dip hidden-dippar hidden-qc">
         <label for="hts-show-dip-fit">Overlay Dip Fit</label>
         <div class="hts-show-dip-fit btn-group btn-group-2
         btn-group-responsive"
@@ -336,7 +352,7 @@
           </label>
         </div>
     </div>
-    <div class="form-group hidden-tc hidden-dippar">
+    <div class="form-group hidden-tc hidden-dippar hidden-qc">
         <label for="hts-dip-type">Vertical Axis</label>
         <div class="hts-dip-type btn-group btn-group-2 btn-group-responsive"
              data-toggle="buttons">

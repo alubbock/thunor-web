@@ -10,6 +10,9 @@ class NoDataException(Exception):
     pass
 
 
+DIP_STATS = ('dip_rate', 'dip_fit_std_err')
+
+
 def _add_int_or_list_filter(queryset, field_name, field_value):
     if field_value is None:
         return queryset
@@ -235,8 +238,6 @@ def is_multi_drug_query(drug_id):
 
 def df_dip_rates(dataset_id, drug_id, cell_line_id,
                  use_dataset_names=False):
-    dip_stats = ('dip_rate', 'dip_fit_std_err')
-
     dataset_id_field = 'well__plate__dataset' + ('__name' if
                                                  use_dataset_names else '_id')
 
@@ -251,7 +252,7 @@ def df_dip_rates(dataset_id, drug_id, cell_line_id,
         df_cl_dset = queryset_to_dataframe(
             WellStatistic.objects.filter(
                 well_id__in=well_ids,
-                stat_name__in=dip_stats,
+                stat_name__in=DIP_STATS,
             ),
             columns=('stat_name', 'value', 'well_id'),
             rename_columns=('stat_name', 'value', 'well_id')
@@ -286,7 +287,7 @@ def df_dip_rates(dataset_id, drug_id, cell_line_id,
         df_doses = queryset_to_dataframe(
             WellStatistic.objects.filter(
                 well_id__in=well_info.values_list('well_id').distinct(),
-                stat_name__in=dip_stats,
+                stat_name__in=DIP_STATS,
             ),
             columns=('stat_name', 'value', 'well__welldrug__dose', 'well_id',
                      'well__cell_line__name', 'well__welldrug__drug__name',
@@ -307,7 +308,7 @@ def df_dip_rates(dataset_id, drug_id, cell_line_id,
             index=('dataset', 'drug', 'cell_line', 'dose', 'well_id'),
             columns='stat_name', values=['value'])['value']
 
-    controls = WellStatistic.objects.filter(stat_name__in=dip_stats)
+    controls = WellStatistic.objects.filter(stat_name__in=DIP_STATS)
     if isinstance(dataset_id, Iterable):
         controls = controls.filter(well__plate__dataset_id__in=dataset_id)
     else:
@@ -330,6 +331,34 @@ def df_dip_rates(dataset_id, drug_id, cell_line_id,
             columns='stat_name', values=['value'])['value']
 
     return df_controls, df_doses
+
+
+def df_ctrl_dip_rates(dataset_id):
+    controls = WellStatistic.objects.filter(
+        well__plate__dataset__id=dataset_id,
+        stat_name__in=DIP_STATS)
+
+    controls = _apply_control_filter(controls, None)
+
+    df_controls = queryset_to_dataframe(
+        controls,
+        columns=('well__plate__dataset__name',
+                 'well__cell_line__name',
+                 'well__plate__name',
+                 'well_id',
+                 'stat_name', 'value'),
+        rename_columns=('dataset', 'cell_line', 'plate', 'well_id',
+                        'stat_name', 'value')
+    )
+
+    if df_controls.isnull().values.all():
+        df_controls = None
+    else:
+        df_controls = df_controls.pivot_table(
+            index=('dataset', 'cell_line', 'plate', 'well_id'),
+            columns='stat_name', values=['value'])['value']
+
+    return df_controls
 
 
 def queryset_to_dataframe(queryset, columns, index=None, rename_columns=None):

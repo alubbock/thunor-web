@@ -15,13 +15,15 @@ from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, \
 from django.urls import reverse
 import json
 from pydrc.plots import plot_time_course, plot_dip, plot_dip_params, \
+    plot_ctrl_dip_by_plate, \
     PARAM_NAMES, IC_REGEX, EC_REGEX, E_REGEX, E_REL_REGEX
 from pydrc.dip import dip_fit_params, AAFitWarning, \
     DrugCombosNotImplementedError
 from pydrc.io import write_hdf
 from pydrc.helpers import plotly_to_dataframe
 from plotly.utils import PlotlyJSONEncoder
-from .pandas import df_doses_assays_controls, df_dip_rates, NoDataException
+from .pandas import df_doses_assays_controls, df_dip_rates, \
+    df_ctrl_dip_rates, NoDataException
 from .tasks import precalculate_dip_rates
 from .plate_parsers import PlateFileParser
 import numpy as np
@@ -1052,8 +1054,8 @@ def ajax_get_plot(request, file_type='json'):
                 for tag_name, _, dr_name in drug_tag_objs:
                     aggregate_drugs[tag_name].append(dr_name)
 
-        if cell_line_id is None or len(cell_line_id) == 0 or \
-                drug_id is None or len(drug_id) == 0:
+        if plot_type != 'qc' and (cell_line_id is None or len(cell_line_id)
+                == 0 or drug_id is None or len(drug_id) == 0):
             return HttpResponse('Please enter at least one cell line and '
                                 'drug', status=400)
 
@@ -1243,6 +1245,14 @@ def ajax_get_plot(request, file_type='json'):
                 fit_params,
                 is_absolute=dip_absolute
             )
+    elif plot_type == 'qc':
+        qc_view = request.GET.get('qcView', None)
+        if not qc_view == 'ctrldipbox':
+            return HttpResponse('Unimplemented QC view: {}'.format(qc_view),
+                                status=400)
+
+        ctrl_dip_data = df_ctrl_dip_rates(dataset_id)
+        plot_fig = plot_ctrl_dip_by_plate(ctrl_dip_data)
     else:
         return HttpResponse('Unimplemented plot type: %s' % plot_type,
                             status=400)

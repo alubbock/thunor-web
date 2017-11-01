@@ -491,7 +491,7 @@ var plots = function() {
         if (dataset2Id !== undefined && dataset2Id !== null &&
             dataset2Id !== "") {
             datasetGroupingsIds += "," + dataset2Id;
-            $dataPanel.find("input[name=plotType][value=tc]").parent().remove();
+            $dataPanel.find("input[name=plotType]").filter("[class=no-multi-dataset]").parent().remove();
             $dataPanel.find(".hts-plot-type").removeClass("btn-group-3")
                 .addClass("btn-group-2").find("input[name=plotType]").first()
                 .click();
