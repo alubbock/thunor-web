@@ -1100,11 +1100,17 @@ def ajax_get_plot(request, file_type='json'):
         if assay is None:
             assay = df_data.assays.index.get_level_values('assay')[0]
 
+        overlay_dip_fit = request.GET.get('overlayDipFit', 'false') == 'true'
+
+        if overlay_dip_fit and assay != df_data.dip_assay_name:
+            return HttpResponse('Can only overlay DIP rate on cell '
+                                'proliferation assays', status=400)
+
         plot_fig = plot_time_course(
             df_data,
             log_yaxis=yaxis == 'log2',
             assay_name=assay,
-            show_dip_fit=request.GET.get('overlayDipFit', 'false') == 'true',
+            show_dip_fit=overlay_dip_fit,
             subtitle=dataset.name
         )
     elif plot_type in ('dip', 'dippar'):

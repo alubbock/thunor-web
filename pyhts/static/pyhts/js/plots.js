@@ -154,7 +154,7 @@ var plots = function() {
         var numCombos = combinations.length;
         if (numCombos > 0) {
             var $comboGrp = $("<optgroup label=\"Combinations\"" +
-                " disabled></optgroup>");
+                "></optgroup>");
             for (var i = 0; i < numCombos; i++) {
                 $comboGrp.append(combinations[i]);
             }
@@ -195,7 +195,9 @@ var plots = function() {
             $changeCLDrug = $changeCL.add($changeDrug),
             $actionBtns = $dataPanel.find(
                 "div.hts-change-cell-line,div.hts-change-drug"
-            ).find(".bs-actionsbox");
+            ).find(".bs-actionsbox"),
+            $optgroupDrugCombos =
+                $changeDrug.find("optgroup[label=Combinations]");
         if (plotType === "tc") {
             // Need to manually set value to avoid buggy behaviour
             var clVal = $changeCL.val()[0],
@@ -204,6 +206,9 @@ var plots = function() {
             $changeCL.selectpicker("val", clVal);
             $changeDrug.selectpicker("val", drVal);
 
+            // Enable drug combinations
+            $optgroupDrugCombos.prop("disabled", false);
+
             $changeCLDrug
                 .selectpicker(selectPickerOptionsSingle)
                 .selectpicker("refresh");
@@ -211,6 +216,10 @@ var plots = function() {
             $dataPanel.find("button.names-link").click();
             $actionBtns.hide();
         } else {
+            // Disable drug combinations
+            $optgroupDrugCombos.find("option:selected")
+                .prop("selected", false);
+            $optgroupDrugCombos.prop("disabled", true);
             $changeCLDrug
                 .selectpicker(selectPickerOptionsMultiple)
                 .selectpicker("refresh")
@@ -218,6 +227,7 @@ var plots = function() {
 
             $actionBtns.show();
         }
+        // Only enable drug combos on timecourse plot for now
         var $toggleDipparTwoSwitch = $dataPanel.find("input[name=dipParTwoToggle]");
         var $toggleDipparOrderSwitch = $dataPanel.find("input[name=dipParOrderToggle]");
         if (plotType === "dippar") {

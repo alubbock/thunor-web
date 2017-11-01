@@ -51,8 +51,8 @@ def _queryset_well_ids(dataset_id, drug_id, cell_line_id):
 
 def _queryset_well_info(dataset_id, drug_id, cell_line_id,
                         only_need_ids=False):
-    drug_id = drug_id[0] if isinstance(drug_id, Iterable) and \
-        len(drug_id) == 1 else drug_id
+    # drug_id = drug_id[0] if isinstance(drug_id, Iterable) and \
+    #     len(drug_id) == 1 else drug_id
     cell_line_id = cell_line_id[0] if isinstance(cell_line_id, Iterable) and \
         len(cell_line_id) == 1 else cell_line_id
 
