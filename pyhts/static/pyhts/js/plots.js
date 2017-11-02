@@ -249,6 +249,12 @@ var plots = function() {
             $dataPanel.find("input[name=logTransform]:checked").val() === "log2"
         );
     });
+    $("input[name=qcView]").change(function(e) {
+        var $target = $(e.target);
+        var $dataPanel = $target.closest(".hts-change-data");
+        $dataPanel.find("select[name=plateId]").closest(".form-group").toggle(
+            $target.val() === "dipplatemap");
+    });
     $(".tags-link").click(function() {
         var $this = $(this).addClass("active");
         var $formGroup = $this.closest(".form-group");
@@ -474,7 +480,8 @@ var plots = function() {
 
         var $cellLineSelect = $dataPanel.find("select[name=cellLineId]"),
             $drugSelect = $dataPanel.find("select[name=drugId]"),
-            $assaySelect = $dataPanel.find("select[name=assayId]");
+            $assaySelect = $dataPanel.find("select[name=assayId]"),
+            $plateSelect = $dataPanel.find("select[name=plateId]");
 
         if(defaultOptions !== undefined) {
             // Set the dataset ID
@@ -514,6 +521,9 @@ var plots = function() {
             pushOptionsToSelect(
                 $assaySelect,
                 data.assays);
+            pushOptionsToSelect(
+                $plateSelect,
+                data.plates);
             if (data.assays.length > 1) {
                 setSelectPicker($assaySelect, true);
             }

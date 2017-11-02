@@ -286,11 +286,15 @@
     </div>
     <div class="form-group hidden-tc hidden-dip hidden-dippar">
         <label for="hts-dip-type">Quality Control View</label>
-        <div class="hts-dip-type btn-group btn-group-1 btn-group-responsive"
+        <div class="hts-dip-type btn-group btn-group-2 btn-group-responsive"
              data-toggle="buttons">
           <label class="btn btn-primary active">
             <input type="radio" name="qcView" value="ctrldipbox"
                    autocomplete="off" checked> Control DIP Box Plot
+          </label>
+          <label class="btn btn-primary">
+            <input type="radio" name="qcView" value="dipplatemap"
+                   autocomplete="off"> DIP Rate Plate Map
           </label>
         </div>
     </div>
@@ -365,6 +369,13 @@
                    autocomplete="off"> Absolute
           </label>
         </div>
+    </div>
+    <div class="form-group hidden-tc hidden-dip hidden-dippar"
+         style="display:none">
+        <label for="hts-change-plate">Plate</label>
+        <select name="plateId" class="hts-change-plate form-control"
+                title="Loading...">
+        </select>
     </div>
     </div>
 </div>

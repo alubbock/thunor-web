@@ -15,7 +15,7 @@ from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, \
 from django.urls import reverse
 import json
 from pydrc.plots import plot_time_course, plot_dip, plot_dip_params, \
-    plot_ctrl_dip_by_plate, \
+    plot_ctrl_dip_by_plate, plot_plate_map, \
     PARAM_NAMES, IC_REGEX, EC_REGEX, E_REGEX, E_REL_REGEX
 from pydrc.dip import dip_fit_params, AAFitWarning, \
     DrugCombosNotImplementedError
@@ -359,7 +359,8 @@ def ajax_save_plate(request):
     # TODO: Validate received PlateMap further?
 
 
-def ajax_load_plate(request, plate_id, extra_return_args=None):
+def ajax_load_plate(request, plate_id, extra_return_args=None,
+                    return_as_dict=False, use_names=False):
     if not request.user.is_authenticated():
         return JsonResponse({}, status=401)
 
@@ -372,6 +373,8 @@ def ajax_load_plate(request, plate_id, extra_return_args=None):
             'view_plate_layout', p.dataset):
         raise Http404()
 
+    field_ext = '__name' if use_names else '_id'
+
     # Blank well data
     wells = []
     for cl in range(p.num_wells):
@@ -381,16 +384,17 @@ def ajax_load_plate(request, plate_id, extra_return_args=None):
                       'dipRate': None})
 
     # Populate cell lines
-    cl_query = Well.objects.filter(plate_id=plate_id).values('well_num',
-                                                             'cell_line_id')
+    cl_query = Well.objects.filter(plate_id=plate_id).values(
+        'well_num', 'cell_line' + field_ext)
     for w in cl_query:
-        wells[w['well_num']]['cellLine'] = w['cell_line_id']
+        wells[w['well_num']]['cellLine'] = w['cell_line' + field_ext]
 
     # Populate drugs
     drugs = WellDrug.objects.filter(well__plate_id=plate_id).values(
-        'well__well_num', 'drug_id', 'order', 'dose')
+        'well__well_num', 'drug' + field_ext, 'order', 'dose')
     for dr in drugs:  # prefetched above
-        wells[dr['well__well_num']]['drugs'][dr['order']] = dr['drug_id']
+        wells[dr['well__well_num']]['drugs'][dr['order']] = dr['drug' +
+                                                               field_ext]
         wells[dr['well__well_num']]['doses'][dr['order']] = dr['dose']
 
     # Populate DIP rates
@@ -401,7 +405,9 @@ def ajax_load_plate(request, plate_id, extra_return_args=None):
         wells[ws['well__well_num']]['dipRate'] = ws['value'] if \
             ws['value'] is not None and not math.isnan(ws['value']) else None
 
-    plate = {'plateId': p.id,
+    plate = {'datasetName': p.dataset.name,
+             'plateId': p.id,
+             'plateName': p.name,
              'numCols': p.width,
              'numRows': p.height,
              'wells': wells}
@@ -410,7 +416,7 @@ def ajax_load_plate(request, plate_id, extra_return_args=None):
     if extra_return_args is not None:
         return_dict.update(extra_return_args)
 
-    return JsonResponse(return_dict)
+    return return_dict if return_as_dict else JsonResponse(return_dict)
 
 
 def ajax_create_dataset(request):
@@ -927,9 +933,12 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
     if dataset2_id is not None:
         dataset_ids.append(dataset2_id)
     try:
-        datasets = HTSDataset.objects.filter(pk__in=dataset_ids)
-    except HTSDataset.DoesNotExist:
+        plates = Plate.objects.filter(
+            dataset__in=dataset_ids).select_related('dataset')
+    except Plate.DoesNotExist:
         raise Http404()
+
+    datasets = set([p.dataset for p in plates])
 
     if len(datasets) != len(dataset_ids):
         raise Http404()
@@ -998,7 +1007,8 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
         'cellLineTags': [{'id': tag, 'name': tag} for tag in cell_line_tags],
         'drugs': drug_list,
         'drugTags': [{'id': tag, 'name': tag} for tag in drug_tags],
-        'assays': [{'id': a['assay'], 'name': a['assay']} for a in assays]
+        'assays': [{'id': a['assay'], 'name': a['assay']} for a in assays],
+        'plates': [{'id': p.id, 'name': p.name} for p in plates]
     })
 
 
@@ -1247,15 +1257,24 @@ def ajax_get_plot(request, file_type='json'):
             )
     elif plot_type == 'qc':
         qc_view = request.GET.get('qcView', None)
-        if not qc_view == 'ctrldipbox':
+        if qc_view == 'ctrldipbox':
+            ctrl_dip_data = df_ctrl_dip_rates(dataset_id)
+            if ctrl_dip_data is None:
+                return HttpResponse('No control wells were detected in this '
+                                    'dataset.', status=400)
+            plot_fig = plot_ctrl_dip_by_plate(ctrl_dip_data)
+        elif qc_view == 'dipplatemap':
+            plate_id = request.GET.get('plateId', None)
+            try:
+                plate_id = int(plate_id)
+            except ValueError:
+                return HttpResponse('Integer plateId required', status=400)
+            pl_data = ajax_load_plate(request,  plate_id, return_as_dict=True,
+                                      use_names=True)
+            plot_fig = plot_plate_map(pl_data['plateMap'], color_by='dipRate')
+        else:
             return HttpResponse('Unimplemented QC view: {}'.format(qc_view),
                                 status=400)
-
-        ctrl_dip_data = df_ctrl_dip_rates(dataset_id)
-        if ctrl_dip_data is None:
-            return HttpResponse('No control wells were detected in this '
-                                'dataset.', status=400)
-        plot_fig = plot_ctrl_dip_by_plate(ctrl_dip_data)
     else:
         return HttpResponse('Unimplemented plot type: %s' % plot_type,
                             status=400)
