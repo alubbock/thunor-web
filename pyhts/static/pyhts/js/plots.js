@@ -339,6 +339,12 @@ var plots = function() {
                 modeBarButtonsToRemove: ["sendDataToCloud", "toImage"]
             }
         );
+
+        $element[0].addEventListener('touchenter', plotlyTouchHandler);
+        $element[0].addEventListener('touchleave', plotlyTouchHandler);
+        $element[0].addEventListener('touchstart', plotlyTouchHandler);
+        $element[0].addEventListener('touchmove', plotlyTouchHandler);
+        $element[0].addEventListener('touchend', plotlyTouchHandler);
     };
 
     var toggleDataPanel = function($panel, showIfTrue) {
@@ -681,6 +687,36 @@ var plots = function() {
             $changeDataBtn.click();
         });
     });
+
+    function plotlyTouchHandler(event)
+    {
+        // console.log(`touchHandler triggered for event ${event.type}`);
+        var touches = event.changedTouches,
+            first = touches[0],
+            type = "";
+        switch(event.type)
+        {
+          case "touchenter": type = "mouseover"; break;
+          case "touchleave": type = "mouseout";  break;
+          case "touchstart": type = "mousedown"; break;
+          case "touchmove":  type = "mousemove"; break;
+          case "touchend":   type = "mouseup";   break;
+          default:           return;
+        }
+
+        var opts = {
+          bubbles: true,
+          screenX: first.screenX,
+          screenY: first.screenY,
+          clientX: first.clientX,
+          clientY: first.clientY,
+        };
+
+        var simulatedEvent = new MouseEvent(type, opts);
+
+        first.target.dispatchEvent(simulatedEvent);
+        event.preventDefault();
+    }
 };
 module.exports = {
     activate: plots
