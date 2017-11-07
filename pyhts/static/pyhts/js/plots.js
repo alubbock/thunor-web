@@ -7,9 +7,12 @@ var downloadImage = function(gd, fmt) {
     var filename = $gd.find(".gtitle").text();
     var width = $gd.width();
     var height = $gd.height();
+    var scale = (fmt === "png") ? 4 : 1;
 
     Plotly.downloadImage(gd, {"format": fmt, "filename": filename,
-                              "width": width, "height": height});
+                              "width": width, "height": height,
+                              "scale": scale
+                             });
 };
 
 var selectPickerOptionsMultiple = {
