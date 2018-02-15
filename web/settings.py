@@ -37,9 +37,9 @@ ALLOWED_HOSTS = [HOSTNAME, ]
 
 INTERNAL_IPS = '127.0.0.1'
 
-# Add the pydrc submodule to the path
+# Add the thunor submodule to the path
 if DEBUG:
-    sys.path.insert(0, os.path.join(BASE_DIR, 'pydrc'))
+    sys.path.insert(0, os.path.join(BASE_DIR, 'thunor'))
 
 # Application definition
 

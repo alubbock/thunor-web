@@ -14,13 +14,13 @@ from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, \
     Well, WellMeasurement, WellDrug, CellLineTag, DrugTag, WellStatistic
 from django.urls import reverse
 import json
-from pydrc.plots import plot_time_course, plot_dip, plot_dip_params, \
+from thunor.plots import plot_time_course, plot_dip, plot_dip_params, \
     plot_ctrl_dip_by_plate, plot_plate_map, \
     PARAM_NAMES, IC_REGEX, EC_REGEX, E_REGEX, E_REL_REGEX
-from pydrc.dip import dip_fit_params, AAFitWarning, \
+from thunor.dip import dip_fit_params, AAFitWarning, \
     DrugCombosNotImplementedError
-from pydrc.io import write_hdf
-from pydrc.helpers import plotly_to_dataframe
+from thunor.io import write_hdf
+from thunor.helpers import plotly_to_dataframe
 from plotly.utils import PlotlyJSONEncoder
 from .pandas import df_doses_assays_controls, df_dip_rates, \
     df_ctrl_dip_rates, NoDataException

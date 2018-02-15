@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 from django.db import models
 from django.conf import settings
-from pydrc.io import PlateMap
+from thunor.io import PlateMap
 from guardian.models import UserObjectPermissionBase, GroupObjectPermissionBase
 
 

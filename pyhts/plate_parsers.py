@@ -8,7 +8,7 @@ from django.db import IntegrityError, transaction
 import xlrd
 import magic
 import collections
-from pydrc.io import read_vanderbilt_hts_single_df, read_hdf, PlateMap
+from thunor.io import read_vanderbilt_hts_single_df, read_hdf, PlateMap
 import math
 import pandas as pd
 

@@ -1,7 +1,7 @@
 from .models import HTSDataset, WellMeasurement, WellStatistic, CellLine, \
     Drug, WellDrug, Well
 from .pandas import df_doses_assays_controls, NoDataException
-from pydrc.dip import dip_rates, choose_dip_assay
+from thunor.dip import dip_rates, choose_dip_assay
 import itertools
 import numpy as np
 from django.db import transaction

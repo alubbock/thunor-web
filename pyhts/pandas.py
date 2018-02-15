@@ -3,7 +3,7 @@ from .models import Well, WellDrug, WellMeasurement, WellStatistic
 from django.db.models import Count, Max, Sum
 from django.db.models.functions import Coalesce
 from collections import Iterable
-from pydrc.io import HtsPandas
+from thunor.io import HtsPandas
 
 
 class NoDataException(Exception):
