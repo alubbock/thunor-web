@@ -15,3 +15,5 @@ COPY plotly.js $BUILD_DIR
 COPY .bootstraprc $BUILD_DIR
 COPY bootstrap-customisations.scss $BUILD_DIR
 ENTRYPOINT ["npm", "run", "build"]
+
+COPY thunorweb/ $BUILD_DIR/thunor

@@ -1,22 +1,22 @@
 version: '2'
 
 services:
-  nginx_certbot_only:
-    image: nginx:mainline
-    volumes:
-      - ./_conf/nginx.base.conf:/etc/nginx/nginx.conf:ro
-      - ./_conf/nginx.certbot.conf:/etc/nginx/nginx.site.conf:ro
-      - ./_state/thunor-static/:/srv/thunor-static/:ro
-    ports:
-      - "80:80"
+#  nginx_certbot_only:
+#    image: nginx:mainline
+#    volumes:
+#      - ./_conf/nginx.base.conf:/etc/nginx/nginx.conf:ro
+#      - ./_conf/nginx.certbot.conf:/etc/nginx/nginx.site.conf:ro
+#      - ./_state/thunor-static/:/srv/thunor-static/:ro
+#    ports:
+#      - "80:80"
 
   certbot:
     image: certbot/certbot
     entrypoint: ""
     volumes:
-      - ./_state/certbot:/etc/letsencrypt
-      - ./_state/thunor-static/.well-known:/thunor-static/.well-known
+      - $THUNORHOME/_state/certbot:/etc/letsencrypt
+      - $THUNORHOME/_state/thunor-static/.well-known:/thunor-static/.well-known
     environment:
       - TERM=xterm
-    depends_on:
-      - nginx_certbot_only
+#    depends_on:
+#      - nginx_certbot_only

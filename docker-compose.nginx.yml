@@ -1,0 +1,14 @@
+version: '2.1'
+services:
+  nginx:
+    build:
+      context: ./_conf
+      dockerfile: nginx.Dockerfile
+    volumes:
+      - $THUNORHOME/_state/logs/nginx/:/var/log/nginx/
+      - $THUNORHOME/_state/thunor-files/:/srv/thunor-files/:ro
+      - $THUNORHOME/_state/thunor-static/:/srv/thunor-static/:ro
+      - $THUNORHOME/_state/certbot/:/etc/letsencrypt/:ro
+    ports:
+      - "80:80"
+      - "443:443"

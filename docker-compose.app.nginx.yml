@@ -1,0 +1,12 @@
+version: '2.1'
+services:
+  app:
+    extends:
+      file: docker-compose.app.yml
+      service: app
+  nginx:
+    extends:
+      file: docker-compose.nginx.yml
+      service: nginx
+    depends_on:
+      - app

@@ -121,7 +121,9 @@ DEFAULT_FROM_EMAIL = os.environ.get('DJANGO_EMAIL_FROM', EMAIL_HOST_USER)
 # Database
 # https://docs.djangoproject.com/en/1.10/ref/settings/#databases
 
-if os.environ.get('DJANGO_DATABASE', None) == 'postgres':
+DATABASE_SETTING = os.environ.get('DJANGO_DATABASE', None)
+
+if DATABASE_SETTING == 'postgres':
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql_psycopg2',

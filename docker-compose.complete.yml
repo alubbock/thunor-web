@@ -1,0 +1,19 @@
+version: '2.1'
+services:
+  db:
+    extends:
+      file: docker-compose.postgres.yml
+      service: db
+  app:
+    extends:
+      file: docker-compose.app.yml
+      service: app
+    depends_on:
+      db:
+        condition: service_healthy
+  nginx:
+    extends:
+      file: docker-compose.nginx.yml
+      service: nginx
+    depends_on:
+      - app
