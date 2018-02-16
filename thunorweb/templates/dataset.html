@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Dataset: {{ dataset.name }}{% endblock %}
+
+{% block content %}
+    <div class="row">
+    <div class="col-md-9 square-btns">
+        {% if request.user.id == dataset.owner_id or 'view_plots' in perms %}
+        <a href="{% url 'thunorweb:plots' %}?dataset={{ dataset.id }}" role="button"
+           class="btn btn-primary btn-lg"><i class="fa
+           fa-line-chart fa-3x"></i><br>Plot<br>System</a>
+        {% endif %}
+
+        {% if request.user.id == dataset.owner_id or 'view_plate_layout' in perms %}
+        <a href="{% url 'thunorweb:plate_designer' dataset.id %}" role="button"
+           class="btn btn-primary btn-lg"><i class="fa fa-edit fa-3x"></i><br>
+            Plate<br>Mapper</a>
+        {% endif %}
+
+        {% if request.user.id == dataset.owner_id or 'download_data' in perms %}
+        <a href="{% url 'thunorweb:download_dataset_hdf5' dataset.id %}"
+           role="button" class="btn btn-primary btn-lg attachment-download">
+            <i class="fa fa-download fa-3x"></i><br> Download as<br>HDF5</a>
+        <a href="{% url 'thunorweb:download_dip_fit_params' dataset.id %}"
+       role="button" class="btn btn-primary btn-lg attachment-download">
+        <i class="fa fa-table fa-3x"></i><br>Dose Response<br>Data (CSV)
+        </a>
+{#        <a href="{% url 'thunorweb:download_dataset_annotation' dataset.id %}"#}
+{#           role="button" class="btn btn-primary attachment-download">#}
+{#            <i class="fa fa-table"></i> Download annotations (Excel)</a>#}
+{#        <a href="{% url 'thunorweb:download_dataset_assays' dataset.id %}"#}
+{#           role="button" class="btn btn-primary attachment-download">#}
+{#            <i class="fa fa-table"></i> Download assays (Excel)</a>#}
+        {% endif %}
+      {% if request.user.id == dataset.owner_id %}
+      <h2>Admin operations</h2>
+        <a href="{% url 'thunorweb:plate_upload' dataset.id %}" role="button"
+          class="btn btn-primary btn-lg"><i class="fa fa-upload
+          fa-3x"></i><br>
+        Add Plate Data</a>
+        <a href="{% url 'thunorweb:view_dataset_permissions' dataset.id %}"
+    role="button" class="btn btn-primary btn-lg">
+        <i class="fa fa-lock fa-3x"></i><br>Manage<br>Permissions</a>
+        <input type="hidden" id="dataset-id" name="dataset-id" value=
+            "{{ dataset.id }}">
+        <a role="button" id="btn-delete-dataset" class="btn btn-danger btn-lg">
+            <i class="fa fa-trash fa-3x"></i><br>Delete<br>Dataset</a>
+      {% endif %}
+
+      {% include "btn_back_homepage.html" %}
+    </div>
+    <div class="col-md-3">
+        <h2 style="margin-top:5px">Metadata</h2>
+            <p><strong>Owner</strong><br><a href="mailto:{{ dataset.owner.email }}">{{ dataset.owner.email }}</a></p>
+            <p><strong>Creation date</strong><br>{{ dataset.creation_date }}</p>
+            <p><strong>Most recent plate file upload</strong><br>
+                {{ dataset.last_upload }}</p>
+            <p><strong>Most recent annotation</strong><br>
+                {{ dataset.last_annotated }}</p>
+    </div>
+    </div>
+{% endblock %}
+
+{% block tailscript %}
+<script>
+$(function () {
+    'use strict';
+    pyHTS.views.dataset.activate();
+});
+</script>
+{% endblock %}

@@ -1,5 +1,5 @@
 {
-  "name": "pyhts",
+  "name": "thunorweb",
   "version": "1.0.0",
   "description": "Python/Django High Throughput Screening (HTS) web app",
   "main": "index.js",

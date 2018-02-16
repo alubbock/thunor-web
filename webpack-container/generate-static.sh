@@ -13,11 +13,11 @@ if [ "$1" = "--no-container" ]; then
   cd $THIS_DIR
   npm run build || exit 1
   cd -
-  python $BASE_DIR/manage.py collectstatic --no-input --ignore pyhts
+  python $BASE_DIR/manage.py collectstatic --no-input --ignore thunorweb
 else
   docker build -t thunor_webpack $THIS_DIR
-  docker run --rm -v $BASE_DIR/_state/webpack-bundles:/_state/webpack-bundles -v $BASE_DIR/pyhts/static/pyhts:/node-build/thunor thunor_webpack || exit $?
-  docker-compose -f $BASE_DIR/docker-compose.base.yml run --rm -v $BASE_DIR/_state/webpack-bundles:/thunor/_state/webpack-bundles -v $BASE_DIR/_state/thunor-static:/thunor/_state/thunor-static app python manage.py collectstatic --no-input --ignore pyhts || exit $?
+  docker run --rm -v $BASE_DIR/_state/webpack-bundles:/_state/webpack-bundles -v $BASE_DIR/thunorweb/static/thunorweb:/node-build/thunor thunor_webpack || exit $?
+  docker-compose -f $BASE_DIR/docker-compose.base.yml run --rm -v $BASE_DIR/_state/webpack-bundles:/thunor/_state/webpack-bundles -v $BASE_DIR/_state/thunor-static:/thunor/_state/thunor-static app python manage.py collectstatic --no-input --ignore thunorweb || exit $?
   echo "Put changes live with 'docker-compose up -d --build app'"
 fi
 cp $THIS_DIR/thunor/502.html $BASE_DIR/_state/thunor-static/

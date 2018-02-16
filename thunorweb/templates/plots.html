@@ -1,0 +1,419 @@
+{% extends "base.html" %}
+
+{% block title %}Plots{% endblock %}
+
+{% block titlerow %}
+<div class="row">
+    <div id="plot-toolbar" class="col-lg-12" role="toolbar" aria-label="Plot
+    toolbar">
+
+        {% if default_dataset %}
+        <a role="button" href="
+{% url 'thunorweb:view_dataset' default_dataset.id %}"
+           class="btn pull-right
+        btn-default" id="hts-back-btn"><i class="fa fa-arrow-left"></i> Back
+          to Dataset</a>
+        {% else %}
+        <a role="button" href="{% url 'thunorweb:home' %}" class="btn pull-right
+        btn-default" id="hts-back-btn"><i class="fa fa-home"></i> Back to Home
+          Page</a>
+        {% endif %}
+
+        <div id="hts-num-cols-lg" class="plot-header-ctrl">
+            <label>Layout</label>
+            <div class="btn-group dropdown">
+              <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <span id="hts-current-num-cols-lg">1 column</span>
+                <span class="caret"></span>
+              </button>
+              <ul class="dropdown-menu">
+                <li data-cols="1"><a href="#">1 column</a></li>
+                <li data-cols="2"><a href="#">2 columns</a></li>
+                <li data-cols="3"><a href="#">3 columns</a></li>
+                <li data-cols="4"><a href="#">4 columns</a></li>
+              </ul>
+            </div>
+        </div>
+
+        <div id="hts-num-cols-md" class="plot-header-ctrl">
+          <label>Layout</label>
+          <div class="btn-group dropdown">
+            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+              <span id="hts-current-num-cols-md">1 column</span>
+              <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu">
+              <li data-cols="1"><a href="#">1 column</a></li>
+              <li data-cols="2"><a href="#">2 columns</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="plot-header-ctrl">
+        <label>Plots</label>
+        <div class="btn-group btn-group-responsive" id="plot-dataset-sel">
+            <button type="button" class="btn btn-default" data-keyboard="true"
+                    data-toggle="modal" data-dataset="dataset"
+                    data-target="#change-dataset-modal" id="dataset-btn">
+                <i class="fa fa-database"></i> <span id="dataset-name">
+              {% if default_dataset %}
+                {{ default_dataset.name|truncatechars:20 }}
+              {% else %}<em>Select Dataset</em>{% endif %}</span>
+            </button>
+            <button type="button" style="display:none" class="btn btn-default"
+                    data-keyboard="true"
+                    data-toggle="modal" data-dataset="dataset2"
+                    data-target="#change-dataset-modal"
+                    id="dataset2-btn">
+                <i class="fa fa-database"></i> <span id="dataset2-name">
+              <em>Select Dataset</em></span>
+            </button>
+            <button class="btn btn-success new-plot-btn"
+                    style="margin-bottom:0"
+                    data-dataset-id="{{ default_dataset.id }}"><i class="fa
+                    fa-plus"></i> Add Plot</button>
+        </div>
+        </div>
+
+
+        <div class="plot-header-ctrl">
+          <label>Second Dataset</label>
+          <form>
+            <input type="checkbox" name="secondDataset"
+               class="form-control-inline">
+         </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="jumbotron row" id="quickstart">
+    <div class="col-md-2" style="text-align:center;padding-right:0">
+        <i class="fa fa-line-chart fa-jumbo"></i>
+    </div>
+    <div class="col-md-10">
+  <h2>Plot System</h2>
+    <p>Quick start guide</p>
+    <strong>Select a dataset</strong>
+      <ul>
+        <li>Select a dataset at any time using the <span class="label
+        label-default"><i class="fa
+        fa-database"></i></span> button on the toolbar above</li>
+        <li>Changing the dataset only affects the <span class="label
+        label-success"><i class="fa fa-plus"></i> Add Plot</span>
+          button&mdash;already loaded plots are not affected</li>
+      </ul>
+    <strong>Add a plot</strong>
+      <ul>
+        <li>Click the <span class="label label-success"><i class="fa
+        fa-plus"></i> Add Plot</span> button on the toolbar</li>
+        <li>Select the plot type, cell line(s), drug(s), and any other
+          information on the panel</li>
+        <li>Click the <span class="label label-success">Show Plot</span>
+          button to load and display the plot</li>
+        <li>Plot data can be changed at any time using the <span
+            class="label label-default">Change Plot</span> button</li>
+      </ul>
+    </div>
+</div>
+
+<div class="row sortable-panels">
+</div>
+
+
+<div class="plot-panel panel-container col-lg-12 col-md-12">
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <span class="pull-right panel-close-btn"
+                  title="Close plot"
+                  data-effect="fadeOut">
+                <i class="fa fa-times"></i>
+            </span>
+
+            <div class="btn-group" role="group">
+                <div class="btn-group" role="group">
+                    <button type="button" class="hts-change-data-btn btn
+                    btn-default dropdown-toggle">
+                        <i class="fa fa-exchange"></i>
+                        <span>Change</span>
+                        <span class="hidden-xs">Plot</span>
+                        <span class="caret"></span>
+                    </button>
+                </div>
+
+                <button type="button" class="btn btn-default panel-copy-btn">
+                    <i class="fa fa-clone"></i>
+                    <span class="hidden-xs">Duplicate</span>
+                </button>
+
+                <div class="btn-group" role="group">
+                  <button class="hts-download-btn btn btn-default dropdown-toggle"
+                          type="button" data-toggle="dropdown">
+                      <i class="fa fa-download"></i>
+                      <span class="hidden-xs">Download</span>
+                  <span class="caret"></span></button>
+                    <ul class="dropdown-menu">
+                        <li><a data-download="png" href="#"><i class="fa fa-fw
+                        fa-camera"></i> PNG image</a></li>
+                        <li><a data-download="svg" href="#"><i class="fa fa-fw
+                        fa-image"></i> SVG image</a></li>
+                        <li><a data-download="json" href="#"><i class="fa fa-fw
+                        fa-table"></i> Plotly JSON</a></li>
+                        <li><a data-download="csv" href="#"><i class="fa fa-fw
+                        fa-table"></i> CSV</a></li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+        <div class="panel-body">
+
+                    <div class="hts-change-data container dropdown-menu plot-type-tc"
+                         data-loaded="false">
+<form>
+<div class="row">
+    <div class="col-sm-12">
+        <div class="pull-right">
+          <i class="fa fa-database"></i> <span class="dataset-name"></span>
+          <span class="dataset2-name-container" style="display:none">
+            <i class="fa fa-database"></i> <span class="dataset2-name"></span>
+          </span></div>
+        <div class="form-group">
+            <label for="hts-plot-type">Plot Type</label>
+            <div class="hts-plot-type btn-group btn-group-4
+            btn-group-responsive" data-toggle="buttons">
+              <label class="btn btn-primary active">
+                  <input type="radio" name="plotType" value="tc"
+                         class="no-multi-dataset"
+                         autocomplete="off" checked><span>Time Course</span>
+              </label>
+              <label class="btn btn-primary">
+                  <input type="radio" name="plotType" value="dip"
+                         autocomplete="off"><span>Dose Response Curves</span>
+              </label>
+              <label class="btn btn-primary">
+                  <input type="radio" name="plotType" value="dippar"
+                         autocomplete="off"><span>Dose Response
+                      Parameters</span>
+              </label>
+              <label class="btn btn-primary">
+                  <input type="radio" name="plotType" value="qc"
+                         class="no-multi-dataset"
+                         autocomplete="off"><span>Quality Control</span>
+              </label>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-6">
+    <input type="hidden" name="datasetId">
+    <input type="hidden" name="dataset2Id">
+    <div class="form-group hidden-qc">
+        <div class="pull-right name-tag-switch btn-group btn-group-inline
+        hidden-tc">
+            <button data-entity="cell_line"
+                    class="names-link btn btn-default btn-xs active"
+                   data-enabled="true" type="button">Names</button>
+            <button data-entity="cell_line"
+                    class="tags-link btn btn-default btn-xs"
+                    data-enabled="false" type="button">Tags</button>
+        </div>
+        <label for="hts-change-cell-line">Cell Line</label>
+        <select multiple data-live-search="true" name="cellLineId"
+                class="hts-change-cell-line form-control name-select"
+                title="Loading...">
+        </select>
+        <select disabled style="display:none" multiple data-live-search="true"
+                name="cellLineTags"
+                class="form-control tag-select"
+                title="Select a tag">
+        </select>
+        <div class="form-group" style="display:none">
+        <div class="btn-group btn-group-2 hts-aggregate
+        hts-aggregate-cell-lines"
+             data-toggle="buttons">
+          <label class="btn btn-default active">
+            <input type="radio" name="aggregateCellLines" value="false"
+                   autocomplete="off" checked disabled> Separate
+          </label>
+          <label class="btn btn-default">
+            <input type="radio" name="aggregateCellLines" value="true"
+                   autocomplete="off" disabled> Aggregated
+          </label>
+        </div>
+        </div>
+    </div>
+    <div class="form-group hidden-qc">
+        <span class="pull-right name-tag-switch btn-group btn-group-inline
+        hidden-tc">
+            <button data-entity="drug"
+                    class="names-link btn btn-default btn-xs active"
+                   data-enabled="true" type="button">Names</button>
+            <button data-entity="drug"
+                    class="tags-link btn btn-default btn-xs"
+                    data-enabled="false" type="button">Tags</button>
+        </span>
+        <label for="hts-change-drug">Drug</label>
+        <select multiple data-live-search="true" name="drugId"
+        class="hts-change-drug form-control name-select" title="Loading...">
+        </select>
+        <select disabled style="display:none" multiple data-live-search="true"
+                name="drugTags" class="form-control
+                tag-select"
+                title="Select a tag">
+        </select>
+        <div class="form-group" style="display:none">
+        <div class="btn-group btn-group-2 hts-aggregate hts-aggregate-drugs"
+             data-toggle="buttons">
+          <label class="btn btn-default active">
+            <input type="radio" name="aggregateDrugs" value="false"
+                   autocomplete="off" checked disabled> Separate
+          </label>
+          <label class="btn btn-default">
+            <input type="radio" name="aggregateDrugs" value="true"
+                   autocomplete="off" disabled> Aggregated
+          </label>
+        </div>
+        </div>
+    </div>
+    <div class="form-group hidden-dip hidden-dippar hidden-qc" style="display:none">
+        <label for="hts-change-assay">Assay</label>
+        <select name="assayId" class="hts-change-assay form-control"
+                title="Loading..." disabled>
+        </select>
+    </div>
+    <div class="form-group hidden-tc hidden-dip hidden-dippar">
+        <label for="hts-dip-type">Quality Control View</label>
+        <div class="hts-dip-type btn-group btn-group-2 btn-group-responsive"
+             data-toggle="buttons">
+          <label class="btn btn-primary active">
+            <input type="radio" name="qcView" value="ctrldipbox"
+                   autocomplete="off" checked> Control DIP Box Plot
+          </label>
+          <label class="btn btn-primary">
+            <input type="radio" name="qcView" value="dipplatemap"
+                   autocomplete="off"> DIP Rate Plate Map
+          </label>
+        </div>
+    </div>
+    </div>
+    <div class="col-sm-6">
+    <div class="form-group" style="display:none">
+        <label for="hts-error-bars">Error Bars</label>
+        <div class="hts-error-bars btn-group btn-group-3 btn-group-responsive"
+             data-toggle="buttons">
+          <label class="btn btn-default active">
+            <input type="radio" name="errorBars" value="None"
+                   autocomplete="off" checked disabled> None
+          </label>
+          <label class="btn btn-default">
+            <input type="radio" name="errorBars" value="sd"
+                   autocomplete="off" disabled> Std. Dev.
+          </label>
+          <label class="btn btn-default">
+            <input type="radio" name="errorBars" value="range"
+                   autocomplete="off" disabled> Range
+          </label>
+        </div>
+    </div>
+    {% with param_form_name="dipPar" param_label="Parameter" %}
+    {% include "parameter_selection_panel.html" %}
+    {% endwith %}
+    {% with parameter_toggle=True param_form_name="dipParTwo" param_label="Second Parameter" %}
+    {% include "parameter_selection_panel.html" %}
+    {% endwith %}
+    {% with parameter_toggle=True param_form_name="dipParOrder" param_label="Ordering Parameter" %}
+    {% include "parameter_selection_panel.html" %}
+    {% endwith %}
+    <div class="form-group hidden-dip hidden-dippar hidden-qc">
+        <label for="hts-log-transform">Vertical Axis</label>
+        <div class="hts-log-transform btn-group btn-group-2 btn-group-responsive"
+             data-toggle="buttons">
+          <label class="btn btn-default active">
+            <input type="radio" name="logTransform" value="log2"
+                   autocomplete="off" checked> Doublings (log<sub>2</sub>)
+          </label>
+          <label class="btn btn-default">
+            <input type="radio" name="logTransform" value="None"
+                   autocomplete="off"> Linear
+          </label>
+        </div>
+    </div>
+    <div class="form-group hidden-dip hidden-dippar hidden-qc">
+        <label for="hts-show-dip-fit">Overlay Dip Fit</label>
+        <div class="hts-show-dip-fit btn-group btn-group-2
+        btn-group-responsive"
+             data-toggle="buttons">
+          <label class="btn btn-default active">
+            <input type="radio" name="overlayDipFit" value="false"
+                   autocomplete="off" checked> Off
+          </label>
+          <label class="btn btn-default">
+            <input type="radio" name="overlayDipFit" value="true"
+                   autocomplete="off"> On
+          </label>
+        </div>
+    </div>
+    <div class="form-group hidden-tc hidden-dippar hidden-qc">
+        <label for="hts-dip-type">Vertical Axis</label>
+        <div class="hts-dip-type btn-group btn-group-2 btn-group-responsive"
+             data-toggle="buttons">
+          <label class="btn btn-default active">
+            <input type="radio" name="dipType" value="rel"
+                   autocomplete="off" checked> Relative
+          </label>
+          <label class="btn btn-default">
+            <input type="radio" name="dipType" value="abs"
+                   autocomplete="off"> Absolute
+          </label>
+        </div>
+    </div>
+    <div class="form-group hidden-tc hidden-dip hidden-dippar"
+         style="display:none">
+        <label for="hts-change-plate">Plate</label>
+        <select name="plateId" class="hts-change-plate form-control"
+                title="Loading...">
+        </select>
+    </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12">
+    <button class="btn btn-success
+        form-control">Show Plot</button>
+    </div>
+</div>
+</form>
+</div>
+<div class="plotly-graph-div" style="width:100%; height:100%"></div>
+
+        </div>
+    </div>
+</div>
+
+<div id="change-dataset-modal" class="modal fade" role="dialog" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+        <div class="modal-body">
+            {% with close_modal_btn=True %}
+{% include "dataset_table.html" %}
+            {% endwith %}
+        </div>
+    </div>
+  </div>
+</div>
+
+
+{% endblock %}
+
+{% block tailscript %}
+{% load webpack_loader %}
+{% render_bundle 'plots' 'js' %}
+<script>
+$(function () {
+    pyHTS.views.plots.activate();
+});
+</script>
+{% endblock %}

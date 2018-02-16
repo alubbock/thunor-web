@@ -10,9 +10,9 @@ var config = {
 
     entry: {
         favicons: glob.sync("./thunor/favicons/*"),
-        app:    ["expose-loader?pyHTS!./thunor/js/pyhts",
+        app:    ["expose-loader?thunorweb!./thunor/js/thunorweb",
                  "./thunor/css/fonts.css",
-                 "./thunor/css/pyhts.css"],
+                 "./thunor/css/thunorweb.css"],
 
         //TODO: Compile more modules from source, removing unneeded components
         plots:  ["expose-loader?Plotly!./plotly"],
@@ -78,7 +78,7 @@ var config = {
                 test: /\.(png|ico)$/,
                 include: [
                     path.resolve(__dirname, "thunor/favicons"),
-                    path.resolve(__dirname, "../pyhts/static/pyhts/favicons")
+                    path.resolve(__dirname, "../thunorweb/static/thunorweb/favicons")
                 ],
                 loader: "file-loader?name=favicon/[name].[ext]"
             },

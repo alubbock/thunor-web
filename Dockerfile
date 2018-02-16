@@ -9,7 +9,7 @@ ADD requirements.txt $THUNOR_HOME
 RUN pip install -r requirements.txt
 CMD ["uwsgi"]
 ADD manage.py $THUNOR_HOME
-ADD web $THUNOR_HOME/web
+ADD thunordjango $THUNOR_HOME/web
 ADD thunor $THUNOR_HOME/thunor
 RUN cd $THUNOR_HOME/thunor && python setup.py install
-ADD pyhts $THUNOR_HOME/pyhts
+ADD thunorweb $THUNOR_HOME/thunorweb

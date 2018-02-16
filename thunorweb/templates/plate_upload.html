@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}{% if dataset %}Add to Dataset{% else %}Create Dataset{% endif %}{% endblock %}
+
+{% block content %}
+{# Plate File Upload #}
+<div class="row">
+    <div>
+        <div class="container">
+            {% if not dataset %}
+            <div id="hts-dataset-upload-1">
+                    <label for="dataset-name">Dataset Name</label>
+                    <input type="text" name="dataset-name"
+                           class="form-control" />
+
+                    <div class="square-btns pull-right"
+                         style="margin-top:10px">
+                      <a href="{% url 'thunorweb:home' %}"><button
+                         class="btn btn-default btn-lg">
+                        <i class="fa fa-3x fa-remove"></i><br>
+                        Cancel</button></a>
+                      <button id="hts-next-1" type="button"
+                              class="btn btn-success btn-lg" disabled>
+                        <i class="fa fa-3x fa-arrow-right"></i><br>Next
+                      </button>
+                    </div>
+            </div>
+            {% endif %}
+
+            <div id="hts-dataset-upload-2"
+                 style="{% if not dataset %}display:none{% endif %}">
+                    <h4>Select files from your computer <small>
+                        Drag and drop or click
+                        <strong>Browse</strong></small></h4>
+                    <input type="hidden" name="dataset-id" value="">
+                    <input type="file" name="file_field[]"
+                           id="js-upload-files" multiple
+                           class="file-loading">
+                    <div id="errorBlock" class="help-block"></div>
+
+                    <div class="btn-two">
+                    <div class="square-btns pull-right">
+                      <a id="hts-back-to-dataset" href="{% if dataset %}{% url 'thunorweb:view_dataset' dataset.id %}{% else %}#{% endif %}"><button
+                         class="btn btn-default btn-lg">
+                        <i class="fa fa-3x fa-arrow-left"></i><br>
+                        {% if dataset %}Back{% else %}Exit
+                        {% endif %} to<br>Dataset Page</button></a>
+                    <a id="hts-next-2" href="{% if dataset %}{% url 'thunorweb:plate_designer' dataset.id %}{% else %}#{% endif %}">
+                      <button type="button"
+                              class="btn btn-success btn-lg"
+                              {% if not dataset %}disabled{% endif %}>
+                        <i class="fa fa-3x fa-arrow-right"></i><br>Proceed
+                        to Plate Mapper
+                      </button>
+                    </a>
+                    </div>
+                    </div>
+            </div>
+
+        </div> <!-- /container -->
+    </div>
+</div>
+{% endblock %}
+
+{% block tailscript %}
+<script>
+$(function () {
+    'use strict';
+    var initialPreview = [], initialPreviewConfig = [];
+    {% for pf in plate_files %}
+        initialPreview.push('{% spaceless %}
+        {% include "ajax_upload_template.html" with plate_file_format=pf.file_format %}
+        {% endspaceless %}');
+        initialPreviewConfig.push({caption: '{{ pf.file.name|escapejs }}',
+            key:{{ pf.id }}});
+    {% endfor %}
+
+    $.extend(pyHTS.state, {
+        initialPreview: initialPreview,
+        initialPreviewConfig: initialPreviewConfig,
+        datasetId: {% if dataset %}{{ dataset.id }}{% else %}null{% endif %}
+    });
+
+    pyHTS.views.plate_upload.activate();
+
+});
+</script>
+{% endblock %}
