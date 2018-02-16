@@ -10,9 +10,9 @@ var config = {
 
     entry: {
         favicons: glob.sync("./thunor/favicons/*"),
-        app:    ["expose-loader?thunorweb!./thunor/js/thunorweb",
+        app:    ["expose-loader?pyHTS!./thunor/js/pyhts",
                  "./thunor/css/fonts.css",
-                 "./thunor/css/thunorweb.css"],
+                 "./thunor/css/pyhts.css"],
 
         //TODO: Compile more modules from source, removing unneeded components
         plots:  ["expose-loader?Plotly!./plotly"],
