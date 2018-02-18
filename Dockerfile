@@ -8,7 +8,7 @@ WORKDIR $THUNOR_HOME
 
 ADD requirements.txt $THUNOR_HOME
 RUN pip install -r requirements.txt
-CMD ["uwsgi"]
+CMD ["uwsgi", "--master", "--socket", ":8000", "--module", "thunordjango.wsgi", "--uid", "www-data", "--gid", "www-data", "--enable-threads"]
 ADD manage.py $THUNOR_HOME
 ADD thunordjango $THUNOR_HOME/thunordjango
 ADD thunor $THUNOR_HOME/thunor

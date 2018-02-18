@@ -49,20 +49,15 @@ from allauth.account.views import LoginView
 
 logger = logging.getLogger(__name__)
 
-try:
-    ANON_GROUP = Group.objects.get(name='Public')
-    ANON_PERM_CHECKER = ObjectPermissionChecker(ANON_GROUP)
-except:
-    # This should only happen on first installation before database is migrated
-    pass
-
 SECONDS_IN_DAY = 86400
 
 
 def _assert_has_perm(request, dataset, perm_required):
     if not settings.LOGIN_REQUIRED and not \
             request.user.is_authenticated():
-        if not ANON_PERM_CHECKER.has_perm(perm_required, dataset):
+        anon_group = Group.objects.get(name='Public')
+        anon_perm_checker = ObjectPermissionChecker(anon_group)
+        if not anon_perm_checker.has_perm(perm_required, dataset):
             raise Http404()
     elif dataset.owner_id != request.user.id and not \
             request.user.has_perm(
@@ -98,13 +93,6 @@ def home(request):
     return render(request, 'home.html', {'user_has_datasets':
                                          user_has_datasets,
                                          'back_link': False})
-
-
-class BrandedLoginView(LoginView):
-    def get_context_data(self, **kwargs):
-        ret = super(BrandedLoginView, self).get_context_data(**kwargs)
-        ret['branding'] = self.kwargs.get('branding', None)
-        return ret
 
 
 @login_required
@@ -489,7 +477,7 @@ def ajax_get_datasets(request):
 def ajax_get_datasets_group(request, group_id):
     if group_id == 'Public' and (request.user.is_authenticated() or
                                  not settings.LOGIN_REQUIRED):
-        group = ANON_GROUP
+        group = Group.objects.get(name='Public')
     else:
         try:
             group = request.user.groups.get(pk=group_id)
@@ -882,7 +870,7 @@ def view_dataset(request, dataset_id):
         perms = perms_base
     else:
         if not settings.LOGIN_REQUIRED and not request.user.is_authenticated():
-            perms = get_perms(ANON_GROUP, dataset)
+            perms = get_perms(Group.objects.get(name='Public'), dataset)
         else:
             perms = get_perms(request.user, dataset)
         if not (set(perms_base) & set(perms)):

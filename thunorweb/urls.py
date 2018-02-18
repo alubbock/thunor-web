@@ -5,8 +5,6 @@ from . import views
 app_name = 'thunorweb'
 urlpatterns = [
     url(r'^$', views.home, name='home'),
-    url(r'^incyte$', views.BrandedLoginView.as_view(), name='incyte',
-        kwargs={'branding': 'incyte'}),
 
     url('^accounts$', views.my_account, name='my_account'),
     url('^logout$', views.logout, name='logout'),

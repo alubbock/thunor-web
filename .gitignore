@@ -4,3 +4,5 @@ db.sqlite3
 _state/
 _conf/
 node_modules/
+docker-compose*
+!docker-compose.services.yml

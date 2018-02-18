@@ -1,9 +1,0 @@
-version: '2.1'
-services:
-  app:
-    build: .
-    volumes:
-      - $THUNORHOME/_state/thunor-static:/thunor/_state/thunor-static:ro
-      - $THUNORHOME/_state/thunor-files:/thunor/_state/thunor-files
-    env_file:
-      - ./_conf/thunor.env

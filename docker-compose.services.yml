@@ -1,0 +1,36 @@
+version: '2.1'
+services:
+  app:
+    build: .
+    volumes:
+      - ./_state/thunor-static:/thunor/_state/thunor-static:ro
+      - ./_state/thunor-files:/thunor/_state/thunor-files
+  certbot:
+    image: certbot/certbot
+    entrypoint: ""
+    volumes:
+      - $THUNORHOME/_state/certbot:/etc/letsencrypt
+      - $THUNORHOME/_state/thunor-static/.well-known:/thunor-static/.well-known
+    environment:
+      - TERM=xterm
+  nginx:
+    image: nginx:mainline
+    volumes:
+      - ./_state/nginx-config/nginx.base.conf:/etc/nginx/nginx.conf:ro
+      - ./_state/nginx-config/nginx.site.conf:/etc/nginx/nginx.site.conf:ro
+      - ./_state/logs/nginx/:/var/log/nginx/
+      - ./_state/thunor-files/:/srv/thunor-files/:ro
+      - ./_state/thunor-static/:/srv/thunor-static/:ro
+      - ./_state/certbot/:/etc/letsencrypt/:ro
+    ports:
+      - "80:80"
+      - "443:443"
+  postgres:
+    image: postgres:9.6
+    volumes:
+      - ./_state/postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 30s
+      retries: 6
