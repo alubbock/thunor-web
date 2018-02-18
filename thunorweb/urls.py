@@ -73,7 +73,7 @@ urlpatterns = [
 
     url(r'^ajax/dataset/all', views.ajax_get_datasets,
         name='ajax_get_datasets'),
-    url(r'^ajax/dataset/by-group/(?P<group_id>\d+)',
+    url(r'^ajax/dataset/by-group/(?P<group_id>\d+|Public)',
         views.ajax_get_datasets_group, name='ajax_get_datasets_by_group'),
 
     url(r'^ajax/dataset/create', views.ajax_create_dataset,

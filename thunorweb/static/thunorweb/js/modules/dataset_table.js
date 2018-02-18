@@ -3,9 +3,13 @@ var ajax = require("./ajax");
 var initDatasetTable = function(tableRowCallbackFn, loadingCompleteCallbackFn) {
     var $tabContent = $(".tab-content");
     $tabContent.loadingOverlay("show");
+
+    var $datasetTabs = $("#dataset-tabs");
+    var defaultTableUrl = $datasetTabs.find("li.active").first().data('url');
+
     var dataset_table = $("#dataset-table").DataTable({
         "ajax": {
-            "url": ajax.url("get_datasets"),
+            "url": defaultTableUrl,
             "timeout": 15000,
             "error": ajax.ajaxErrorCallback,
             "complete": function() {
@@ -30,8 +34,6 @@ var initDatasetTable = function(tableRowCallbackFn, loadingCompleteCallbackFn) {
             }
         }
     });
-
-    var $datasetTabs = $("#dataset-tabs");
 
     var lastTabClick = 0;
 

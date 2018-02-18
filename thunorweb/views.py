@@ -42,15 +42,39 @@ from django.contrib.sites.shortcuts import get_current_site
 from collections import OrderedDict, defaultdict
 from .helpers import AutoExtendList
 from guardian.shortcuts import get_objects_for_group, get_perms, \
-    get_groups_with_perms, assign_perm, remove_perm
+    get_groups_with_perms, assign_perm, remove_perm, ObjectPermissionChecker
 from django.contrib.contenttypes.models import ContentType
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 from allauth.account.views import LoginView
 
 logger = logging.getLogger(__name__)
 
+try:
+    ANON_GROUP = Group.objects.get(name='Public')
+    ANON_PERM_CHECKER = ObjectPermissionChecker(ANON_GROUP)
+except:
+    # This should only happen on first installation before database is migrated
+    pass
+
 SECONDS_IN_DAY = 86400
-# TODO: Improve this handling of controls!
+
+
+def _assert_has_perm(request, dataset, perm_required):
+    if not settings.LOGIN_REQUIRED and not \
+            request.user.is_authenticated():
+        if not ANON_PERM_CHECKER.has_perm(perm_required, dataset):
+            raise Http404()
+    elif dataset.owner_id != request.user.id and not \
+            request.user.has_perm(
+                perm_required, dataset):
+        raise Http404()
+
+
+def login_required_unless_public(func):
+    if settings.LOGIN_REQUIRED:
+        return login_required(func)
+    else:
+        return func
 
 
 def handler404(request):
@@ -67,7 +91,7 @@ def handler500(request):
         return HttpResponseServerError(render(request, 'error500.html', {}))
 
 
-@login_required
+@login_required_unless_public
 def home(request):
     user_has_datasets = HTSDataset.objects.filter(
         owner=request.user.id).exists()
@@ -361,7 +385,7 @@ def ajax_save_plate(request):
 
 def ajax_load_plate(request, plate_id, extra_return_args=None,
                     return_as_dict=False, use_names=False):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated() and settings.LOGIN_REQUIRED:
         return JsonResponse({}, status=401)
 
     try:
@@ -369,9 +393,7 @@ def ajax_load_plate(request, plate_id, extra_return_args=None,
     except Plate.DoesNotExist:
         raise Http404()
 
-    if request.user.id != p.dataset.owner_id and not request.user.has_perm(
-            'view_plate_layout', p.dataset):
-        raise Http404()
+    _assert_has_perm(request, p.dataset, 'view_plate_layout')
 
     field_ext = '__name' if use_names else '_id'
 
@@ -465,10 +487,14 @@ def ajax_get_datasets(request):
 
 
 def ajax_get_datasets_group(request, group_id):
-    try:
-        group = request.user.groups.get(pk=group_id)
-    except Group.DoesNotExist:
-        return JsonResponse({}, status=404)
+    if group_id == 'Public' and (request.user.is_authenticated() or
+                                 not settings.LOGIN_REQUIRED):
+        group = ANON_GROUP
+    else:
+        try:
+            group = request.user.groups.get(pk=group_id)
+        except Group.DoesNotExist:
+            return JsonResponse({}, status=404)
 
     try:
         datasets = get_objects_for_group(
@@ -483,7 +509,7 @@ def ajax_get_datasets_group(request, group_id):
     return JsonResponse({'data': list(datasets)})
 
 
-@login_required
+@login_required_unless_public
 @xframe_options_sameorigin
 def download_dip_fit_params(request, dataset_id):
     dataset_name = 'dataset'
@@ -535,15 +561,13 @@ def download_dip_fit_params(request, dataset_id):
     return response
 
 
-@login_required
+@login_required_unless_public
 @xframe_options_sameorigin
 def download_dataset_hdf5(request, dataset_id):
     try:
         dataset = HTSDataset.objects.get(pk=dataset_id)
 
-        if dataset.owner_id != request.user.id and not \
-                request.user.has_perm('download_data', dataset):
-            raise Http404()
+        _assert_has_perm(request, dataset, 'view_plate_layout')
 
         df_data = df_doses_assays_controls(
             dataset=dataset,
@@ -649,7 +673,7 @@ class DatasetXlsxWriter(object):
         self.tempfile.close()
 
 
-@login_required
+@login_required_unless_public
 @xframe_options_sameorigin
 def xlsx_get_annotation_data(request, dataset_id):
     with DatasetXlsxWriter(request, dataset_id, prefix='xlsxannot-') as xlsx:
@@ -716,7 +740,7 @@ def xlsx_get_annotation_data(request, dataset_id):
                                    '-officedocument.spreadsheetml.sheet')
 
 
-@login_required
+@login_required_unless_public
 @xframe_options_sameorigin
 def xlsx_get_assay_data(request, dataset_id):
     with DatasetXlsxWriter(request, dataset_id, prefix='xlsxassay-') as xlsx:
@@ -784,7 +808,7 @@ def xlsx_get_assay_data(request, dataset_id):
                                    '-officedocument.spreadsheetml.sheet')
 
 
-@login_required
+@login_required_unless_public
 def plate_designer(request, dataset_id, num_wells=None):
     editable = True
     plate_sizes = []
@@ -815,8 +839,7 @@ def plate_designer(request, dataset_id, num_wells=None):
 
         if dataset.owner_id != request.user.id:
             editable = False
-            if not request.user.has_perm('view_plate_layout', dataset):
-                raise Http404()
+            _assert_has_perm(request, dataset, 'view_plate_layout')
 
         for plate in plates:
             plate_size_exists = False
@@ -843,7 +866,7 @@ def plate_designer(request, dataset_id, num_wells=None):
     return response
 
 
-@login_required
+@login_required_unless_public
 def view_dataset(request, dataset_id):
     try:
         dataset = HTSDataset.objects.filter(id=dataset_id)\
@@ -858,7 +881,10 @@ def view_dataset(request, dataset_id):
     if dataset.owner_id == request.user.id:
         perms = perms_base
     else:
-        perms = get_perms(request.user, dataset)
+        if not settings.LOGIN_REQUIRED and not request.user.is_authenticated():
+            perms = get_perms(ANON_GROUP, dataset)
+        else:
+            perms = get_perms(request.user, dataset)
         if not (set(perms_base) & set(perms)):
             raise Http404()
 
@@ -928,6 +954,7 @@ def ajax_set_dataset_group_permission(request):
     return JsonResponse({'success': True})
 
 
+@login_required_unless_public
 def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
     dataset_ids = [dataset_id]
     if dataset2_id is not None:
@@ -944,9 +971,7 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
         raise Http404()
 
     for dataset in datasets:
-        if dataset.owner_id != request.user.id and not \
-                request.user.has_perm('view_plots', dataset):
-            raise Http404()
+        _assert_has_perm(request, dataset, 'view_plots')
 
     cell_lines = Well.objects.filter(
         cell_line__isnull=False,
@@ -955,7 +980,7 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
         'cell_line__name')
 
     cell_line_tags = CellLineTag.objects.filter(
-        owner=request.user,
+        owner_id__in=(request.user.id, None),
         cell_line_id__in=[cl['cell_line_id'] for cl in cell_lines]
     ).values_list('tag_name', flat=True).distinct().order_by('tag_name')
 
@@ -969,7 +994,7 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
       values('drug_id', 'drug__name').distinct().order_by('drug__name')
 
     drug_tags = DrugTag.objects.filter(
-        owner=request.user,
+        owner_id__in=(request.user.id, None),
         drug_id__in=[dr['drug_id'] for dr in drug_objs]
     ).values_list('tag_name', flat=True).distinct().order_by('tag_name')
 
@@ -1012,10 +1037,8 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
     })
 
 
+@login_required_unless_public
 def ajax_get_plot(request, file_type='json'):
-    if not request.user.is_authenticated():
-        return JsonResponse({}, status=401)
-
     try:
         plot_type = request.GET['plotType']
 
@@ -1089,9 +1112,7 @@ def ajax_get_plot(request, file_type='json'):
     except HTSDataset.DoesNotExist:
         raise Http404()
 
-    if dataset.owner_id != request.user.id and not request.user.has_perm(
-            'view_plots', dataset):
-        raise Http404()
+    _assert_has_perm(request, dataset, 'view_plots')
 
     if plot_type == 'tc':
         if len(drug_id) > 1 or len(cell_line_id) > 1:
@@ -1132,10 +1153,7 @@ def ajax_get_plot(request, file_type='json'):
             except HTSDataset.DoesNotExist:
                 raise Http404()
 
-            if dataset2.owner_id != request.user.id and not \
-                    request.user.has_perm(
-                    'view_plots', dataset2):
-                raise Http404()
+            _assert_has_perm(request, dataset2, 'view_plots')
 
             if dataset.name == dataset2.name:
                 return HttpResponse(
@@ -1300,7 +1318,7 @@ def ajax_get_plot(request, file_type='json'):
     return response
 
 
-@login_required
+@login_required_unless_public
 def plots(request):
     # Check the dataset exists
     dataset_id = request.GET.get('dataset', None)
@@ -1310,10 +1328,7 @@ def plots(request):
         except HTSDataset.DoesNotExist:
             raise Http404()
 
-        if dataset.owner_id != request.user.id:
-            if not (set(dataset.view_dataset_permission_names()) &
-                    set(get_perms(request.user, dataset))):
-                raise Http404()
+        _assert_has_perm(request, dataset, 'view_plots')
     else:
         dataset = None
 
@@ -1321,14 +1336,15 @@ def plots(request):
                                           'navbar_hide_dataset': True})
 
 
-@login_required
+@login_required_unless_public
 def tag_editor(request, tag_type=None):
     tag_dict = defaultdict(list)
     if tag_type == 'cell_lines':
         entity_type = 'Cell Line'
         entity_type_var = 'cl'
         entity_options = CellLine.objects.all().order_by('name')
-        tag_list = CellLineTag.objects.filter(owner=request.user).order_by(
+        tag_list = CellLineTag.objects.filter(
+            owner_id__in=(request.user.id, None)).order_by(
                 'tag_name', 'cell_line__name')
         for clt in tag_list:
             tag_dict[clt.tag_name].append(clt.cell_line_id)
@@ -1337,7 +1353,8 @@ def tag_editor(request, tag_type=None):
         entity_type = 'Drug'
         entity_type_var = 'drug'
         entity_options = Drug.objects.all().order_by('name')
-        tag_list = DrugTag.objects.filter(owner=request.user).order_by(
+        tag_list = DrugTag.objects.filter(
+            owner_id__in=(request.user.id, None)).order_by(
                 'tag_name', 'drug__name')
         for dt in tag_list:
             tag_dict[dt.tag_name].append(dt.drug_id)

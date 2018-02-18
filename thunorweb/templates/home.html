@@ -4,7 +4,7 @@
 {% block bodytitle %}Welcome to {{ SITE_NAME }}{% endblock %}
 
 {% block content %}
-{% if not user_has_datasets %}
+{% if not user_has_datasets and request.user.is_authenticated %}
 <div class="container">
     <div class="jumbotron">
         <p>Please create a dataset to get started.</p>
@@ -23,7 +23,7 @@
   <h2>Dataset Tasks</h2>
   <div class="square-btns">
   <a role="button" class="btn btn-primary btn-lg btn-sidebar"
-     href="{% url 'thunorweb:plate_upload' %}">
+     href="{% url 'thunorweb:plate_upload' %}" {% if not request.user.is_authenticated %}disabled{% endif %}>
     <i class="fa fa-3x fa-upload"></i><br>
     Create Dataset</a>
   <a role="button" class="btn btn-primary btn-lg btn-sidebar"

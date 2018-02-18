@@ -6,7 +6,7 @@
 
   <div class="two-btn">
   <div class="square-btns">
-<button class="btn btn-success btn-lg" style="width:170px" id="btn-add-tag">
+<button class="btn btn-success btn-lg" style="width:170px" id="btn-add-tag" {% if not request.user.is_authenticated %}disabled{% endif %}>
   <i class="fa fa-3x fa-plus"></i><br>
   Add {{ entity_type }} Tag</button>
   <a role="button" href="{% url 'thunorweb:home' %}" class="btn

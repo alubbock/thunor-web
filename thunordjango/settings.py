@@ -195,6 +195,10 @@ ACCOUNT_EMAIL_SUBJECT_PREFIX = ''
 
 LOGIN_REDIRECT_URL = 'thunorweb:home'
 
+# Can public datasets be accessed without login
+LOGIN_REQUIRED = os.environ.get('THUNOR_LOGIN_REQUIRED', 'true').lower() == \
+                 'true'
+
 MESSAGE_TAGS = {
     messages.ERROR: 'danger'
 }

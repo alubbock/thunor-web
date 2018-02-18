@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 from django.apps import AppConfig
 from django.conf import settings
 from django.db.models.signals import post_save
-from django.db.utils import ProgrammingError
+from django.db.utils import ProgrammingError, OperationalError, DatabaseError
 
 
 class ThunorConfig(AppConfig):
@@ -14,7 +14,7 @@ class ThunorConfig(AppConfig):
         from django.contrib.sites.models import Site
         try:
             settings.SITE_NAME = Site.objects.get_current().name
-        except ProgrammingError:
+        except (ProgrammingError, OperationalError):
             # Exception generated if migrations haven't been run yet
             # Use default site name instead
             settings.SITE_NAME = 'Thunor'

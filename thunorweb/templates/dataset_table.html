@@ -3,11 +3,17 @@
     {% if close_modal_btn %}<button role="button" class="btn close
     pull-right" data-dismiss="modal">&times;</button>{% endif %}
     <ul id="dataset-tabs" class="nav nav-tabs" role="tablist" style="padding-right:15px">
+        {% if user.is_authenticated %}
         <li role="presentation" data-url="{% url 'thunorweb:ajax_get_datasets' %}" class="active"><a href="#">My Datasets</a></li>
         {% for group in request.user.groups.all %}
             <li role="presentation" data-url="{% url 'thunorweb:ajax_get_datasets_by_group' group.id %}">
                 <a href="#">{{ group }}</a></li>
         {% endfor %}
+        {% else %}
+        <li role="presentation"
+            data-url="{% url 'thunorweb:ajax_get_datasets_by_group' 'Public' %}"
+            class="active"><a href="#">Public</a></li>
+        {% endif %}
     </ul>
     <div class="tab-content panel">
         <div role="tabpanel">
