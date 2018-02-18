@@ -2,14 +2,14 @@
 
 set -e
 
+: "${THUNORHOME:?"Need to set THUNORHOME environment variable"}"
+
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-THUNORHOME=${THUNORHOME:-$BASE_DIR}
 
 if [ "$1" = "--no-container" ]; then
   echo "Processing staticfiles outside of container; do not use in production"
-  cd $BASE_DIR
-  npm run build || exit 1
-  cd -
+  docker build -t thunor_webpack thunorweb/static
+  docker run --rm -v $THUNORHOME/_state/webpack-bundles:/_state/webpack-bundles thunor_webpack || exit $?
   python $BASE_DIR/manage.py collectstatic --no-input --ignore thunorweb
 else
   docker build -t thunor_webpack thunorweb/static

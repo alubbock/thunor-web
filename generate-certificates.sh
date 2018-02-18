@@ -2,8 +2,9 @@
 
 set -e
 
+: "${THUNORHOME:?"Need to set THUNORHOME environment variable"}"
+
 THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-THUNORHOME=${THUNORHOME:-.}
 
 echo "generating dhparams.pem if required..."
 #    docker-compose run --no-deps --rm -v ./_state/certbot:/certbot nginx openssl dhparam -out /certbot/dhparams.pem 2048
