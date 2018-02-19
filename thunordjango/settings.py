@@ -223,7 +223,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 
 INVITATIONS_GONE_ON_ACCEPT_ERROR = False
-INVITATIONS_INVITATION_ONLY = True
+INVITATIONS_INVITATION_ONLY = os.environ.get('THUNOR_SIGNUP_OPEN',
+                                             'false').lower() == 'false'
 INVITATIONS_ACCEPT_INVITE_AFTER_SIGNUP = True
 ACCOUNT_ADAPTER = 'invitations.models.InvitationsAdapter'
 INVITATIONS_ADAPTER = ACCOUNT_ADAPTER
