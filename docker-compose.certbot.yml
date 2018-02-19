@@ -1,0 +1,10 @@
+version: '2.1'
+services:
+  certbot:
+    image: certbot/certbot
+    entrypoint: ""
+    volumes:
+      - $THUNORHOME/_state/certbot:/etc/letsencrypt
+      - $THUNORHOME/_state/thunor-static/.well-known:/thunor-static/.well-known
+    environment:
+      - TERM=xterm
