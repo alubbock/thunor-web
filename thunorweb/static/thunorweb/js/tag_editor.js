@@ -9,9 +9,14 @@ var activateSelect = function($select) {
 };
 
 var activate = function() {
-    $("#btn-add-tag").click(function () {
+    $("#btn-add-tag,#btn-add-public-tag").click(function () {
         var $container = $(".tag-container").last().clone(true).prependTo(".tag-list")
             .fadeIn(400);
+        if(this.id === "btn-add-public-tag") {
+            $container.removeClass("panel-default").addClass("panel-primary")
+                .find(".tag-name").after(" <span class=\"badge badge-primary\">Public</span>");
+            $container.find("input[name=tagPublic]").val("1");
+        }
         activateSelect($container.find("select"));
         $container.find("input").focus();
     });
@@ -26,14 +31,16 @@ var activate = function() {
             });
             return;
         }
-        if ($.inArray(tagName, pyHTS.state.tagNames) !== -1) {
+        var tagIsPublic = $form.find("input[name=tagPublic]").val() === "1";
+        var existingTagArray = tagIsPublic ? pyHTS.state.publicTagNames : pyHTS.state.privateTagNames;
+        if ($.inArray(tagName, existingTagArray) !== -1) {
             ui.okModal({
                 title: "Tag already exists",
                 text: "A tag with that name already exists"
             });
             return;
         }
-        pyHTS.state.tagNames.push(tagName);
+        existingTagArray.push(tagName);
         var $tagContainer = $form.closest(".tag-container");
         var $taggingForm = $tagContainer.find("form.set-tag-targets");
         $tagContainer.find(".tag-name").text(tagName);
@@ -71,6 +78,7 @@ var activate = function() {
         var $container = $form.closest(".tag-container");
         $container.loadingOverlay("show");
         var tagName = $form.find("input[name=tagName]").val();
+        var targetTagNamesArray = $form.find("input[name=tagPublic]").val() === "1" ? pyHTS.state.publicTagNames : pyHTS.state.privateTagNames;
         $.ajax({
             type: "POST",
             headers: {"X-CSRFToken": ajax.getCsrfToken()},
@@ -78,9 +86,9 @@ var activate = function() {
             data: $form.serialize(),
             success: function () {
                 $container.remove();
-                var index = $.inArray(tagName, pyHTS.state.tagNames);
+                var index = $.inArray(tagName, targetTagNamesArray);
                 if (index !== -1) {
-                    pyHTS.state.tagNames.splice(index, 1);
+                    targetTagNamesArray.splice(index, 1);
                 }
             },
             error: ajax.ajaxErrorCallback,

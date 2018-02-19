@@ -9,6 +9,11 @@
 <button class="btn btn-success btn-lg" style="width:170px" id="btn-add-tag" {% if not request.user.is_authenticated %}disabled{% endif %}>
   <i class="fa fa-3x fa-plus"></i><br>
   Add {{ entity_type }} Tag</button>
+{% if request.user.is_staff %}
+    <button class="btn btn-primary btn-lg" style="width:170px" id="btn-add-public-tag">
+  <i class="fa fa-3x fa-plus"></i><br>
+  Add Public {{ entity_type }} Tag</button>
+{% endif %}
   <a role="button" href="{% url 'thunorweb:home' %}" class="btn
   btn-default btn-lg" style="width:170px"><i class="fa fa-3x
   fa-home"></i><br>Back to<br>Home
@@ -17,9 +22,9 @@
   </div>
 
 <div class="tag-list">
-{% for tag in tag_list %}{% ifchanged tag.tag_name %}
+{% for tag, entities in tag_dict_all.items %}
 {% include "tag_editor_tag_template.html" %}
-{% endifchanged %}{% endfor %}
+{% endfor %}
 </div>
 
 {% include "tag_editor_tag_template.html" %}
@@ -30,9 +35,13 @@
 <script>
 $(function() {
     $.extend(pyHTS.state, {
-        tagNames: [{% for k in tag_dict %}'{{ k|escapejs }}'{% if not forloop.last %}, {% endif %}{% endfor %}]
+        privateTagNames: [{% for k in private_tag_names %}'{{ k|escapejs }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+        publicTagNames: [{% for k in public_tag_names %}'{{ k|escapejs }}'{% if not forloop.last %}, {% endif %}{% endfor %}]
     });
     pyHTS.views.tag_editor.activate();
+    $( window ).unload(function() {
+        // Needed to avoid Firefox BFcache
+    });
 });
 </script>
 {% endblock %}

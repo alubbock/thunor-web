@@ -1,23 +1,26 @@
 {% load thunorweb_tags %}
-<div class="tag-container panel panel-default"
+<div class="tag-container panel {% if tag.is_public %}panel-primary{% else %}panel-default{% endif %}"
      {% if not tag %}style="display:none"{% endif %}>
 <div class="panel-heading">
+{% if not tag.is_public or request.user.is_staff %}
 <form class="pull-right form-inline delete-tag"
       {% if not tag %}style="display:none"{% endif %}>
     <input type="hidden" name="tagType" value="{{ entity_type_var }}">
     <input type="hidden" name="tagName" value="{{ tag.tag_name }}">
+    <input type="hidden" name="tagPublic" value="{{ tag.is_public|yesno:"1,0" }}">
 <button type="submit" role="button" class="btn btn-danger"
        >Delete</button>
 </form>
+{% endif %}
 
 <h4 class="tag-header"{% if not tag %} style="display:none"{% endif %}>
     <i class="fa fa-tag"></i>
     <span class="tag-name">{% if tag %}{{ tag.tag_name }}{% endif %}</span>
+    {% if tag.is_public %}<span class="badge badge-primary">Public</span>{% endif %}
     <span class="label label-success" style="display:none">Changes saved</span>
 </h4>
 <form class="set-tag-name" {% if tag %}style="display:none"{% endif %}>
 <div class="form-inline">
-    {% csrf_token %}
     <input type="hidden" name="tagType" value="{{ entity_type_var }}">
     <div class="input-group">
         <span class="input-group-addon"><i class="fa fa-tag"></i></span>
@@ -34,16 +37,22 @@
 </div><div class="panel-body">
 
 <form class="set-tag-targets" {% if not tag %}style="display:none"{% endif %}>
-    {% csrf_token %}
     <input type="hidden" name="tagType" value="{{ entity_type_var }}">
     <input type="hidden" name="tagName" value="{{ tag.tag_name }}">
+    <input type="hidden" name="tagPublic" value="{{ tag.is_public|yesno:"1,0" }}">
 <div class="form-group">
     <label for="entityId">{{ entity_type }}(s)</label>
+    {% if not tag.is_public or request.user.is_staff %}
     <select multiple data-live-search="true" name="entityId"
     class="form-control" title="Select {{ entity_type }}s" style="display:none">
-    {% for ent in entity_options %}<option name="entityId" value="{{ ent.id }}"{% if ent.id in tag_dict|get_item:tag.tag_name %} selected{% endif %}>{{ ent.name }}</option>
+    {% for ent, is_selected in entities %}<option name="entityId" value="{{ ent.id }}"{% if is_selected %} selected{% endif %}>{{ ent.name }}</option>
     {% endfor %}
     </select>
+    {% else %}<br>
+    {% for ent, is_selected in entities %}
+    {% if is_selected %}{{ent.name}}{% endif %}
+    {% endfor %}
+    {% endif %}
 </div>
     <button type="submit" role="button" class="btn btn-block btn-primary"
             style="display:none">Save Tag</button>

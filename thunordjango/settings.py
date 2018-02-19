@@ -296,7 +296,7 @@ LOGGING = {
     },
     'handlers': {
         'sentry': {
-            'level': 'WARNING',
+            'level': 'DEBUG' if DEBUG else 'INFO',
             'filters': ['require_debug_false'],
             'class': 'raven.contrib.django.raven_compat.handlers.SentryHandler',
             'tags': {},
@@ -309,7 +309,7 @@ LOGGING = {
     },
     'loggers': {
         'root': {
-            'level': 'DEBUG' if DEBUG else 'WARNING',
+            'level': 'DEBUG' if DEBUG else 'INFO',
             'handlers': ['sentry'],
         },
         'django.db.backends': {

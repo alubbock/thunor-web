@@ -39,13 +39,12 @@ import xlsxwriter
 import tempfile
 from .serve_file import serve_file
 from django.contrib.sites.shortcuts import get_current_site
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict, defaultdict, namedtuple
 from .helpers import AutoExtendList
 from guardian.shortcuts import get_objects_for_group, get_perms, \
     get_groups_with_perms, assign_perm, remove_perm, ObjectPermissionChecker
 from django.contrib.contenttypes.models import ContentType
 from django.views.decorators.clickjacking import xframe_options_sameorigin
-from allauth.account.views import LoginView
 
 logger = logging.getLogger(__name__)
 
@@ -196,6 +195,8 @@ def ajax_delete_dataset(request):
     if n_deleted < 1:
         raise Http404()
 
+    logger.info('Dataset deleted', extra={'request': request})
+
     messages.success(request, 'Dataset deleted successfully')
 
     return JsonResponse({'success': True})
@@ -214,6 +215,8 @@ def ajax_delete_platefile(request):
 
     if n_deleted < 1:
         raise Http404()
+
+    logger.info('Platefile deleted', extra={'request': request})
 
     return JsonResponse({'success': True})
 
@@ -967,10 +970,15 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
         'cell_line_id', 'cell_line__name').distinct().order_by(
         'cell_line__name')
 
-    cell_line_tags = CellLineTag.objects.filter(
-        owner_id__in=(request.user.id, None),
+    if request.user.is_authenticated():
+        tag_owner_filter = Q(owner=request.user) | Q(owner=None)
+    else:
+        tag_owner_filter = Q(owner=None)
+
+    cell_line_tags = CellLineTag.objects.filter(tag_owner_filter).filter(
         cell_line_id__in=[cl['cell_line_id'] for cl in cell_lines]
-    ).values_list('tag_name', flat=True).distinct().order_by('tag_name')
+    ).values_list('owner_id', 'tag_name').distinct().order_by(
+        'owner_id', 'tag_name')
 
     # Get drug without combinations
     drug_objs = WellDrug.objects.filter(
@@ -981,10 +989,10 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
       annotate(max_dose=Max('well__welldrug__dose')).filter(max_dose__gt=0).\
       values('drug_id', 'drug__name').distinct().order_by('drug__name')
 
-    drug_tags = DrugTag.objects.filter(
-        owner_id__in=(request.user.id, None),
+    drug_tags = DrugTag.objects.filter(tag_owner_filter).filter(
         drug_id__in=[dr['drug_id'] for dr in drug_objs]
-    ).values_list('tag_name', flat=True).distinct().order_by('tag_name')
+    ).values_list('owner_id', 'tag_name').distinct().order_by(
+        'owner_id', 'tag_name')
 
     assays = WellMeasurement.objects.filter(
         well__plate__dataset_id__in=dataset_ids
@@ -1017,9 +1025,15 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
     return JsonResponse({
         'cellLines': [{'id': cl['cell_line_id'],
                        'name': cl['cell_line__name']} for cl in cell_lines],
-        'cellLineTags': [{'id': tag, 'name': tag} for tag in cell_line_tags],
+        'cellLineTags': [{'id': ('1' if tag[0] is None else '0') + tag[1],
+                          'name': tag[1],
+                          'public': tag[0] is None}
+                         for tag in cell_line_tags],
         'drugs': drug_list,
-        'drugTags': [{'id': tag, 'name': tag} for tag in drug_tags],
+        'drugTags': [{'id': ('1' if tag[0] is None else '0') + tag[1],
+                      'name': tag[1],
+                      'public': tag[0] is None}
+                     for tag in drug_tags],
         'assays': [{'id': a['assay'], 'name': a['assay']} for a in assays],
         'plates': [{'id': p.id, 'name': p.name} for p in plates]
     })
@@ -1041,16 +1055,22 @@ def ajax_get_plot(request, file_type='json'):
         aggregate_cell_lines = request.GET.get('aggregateCellLines', False) \
                                == "true"
         if not cell_line_id and cell_line_tag_names:
+            public_cell_line_tags = [t[1:] for t in cell_line_tag_names if
+                                     t[0] == '1']
+            private_cell_line_tags = [t[1:] for t in cell_line_tag_names if
+                                      t[0] == '0']
+            cell_line_tag_base_query = CellLineTag.objects.filter(
+                owner=None, tag_name__in=public_cell_line_tags
+            )
+            if private_cell_line_tags and request.user.is_authenticated():
+                cell_line_tag_base_query |= CellLineTag.objects.filter(
+                    owner=request.user, tag_name__in=private_cell_line_tags)
             if not aggregate_cell_lines:
-                cell_line_id = CellLineTag.objects.filter(
-                    owner=request.user,
-                    tag_name__in=cell_line_tag_names
-                ).distinct().values_list(
+                cell_line_id = cell_line_tag_base_query.distinct(
+                ).values_list(
                     'cell_line_id', flat=True)
             else:
-                cell_line_tag_objs = CellLineTag.objects.filter(
-                    owner=request.user,
-                    tag_name__in=cell_line_tag_names).values_list(
+                cell_line_tag_objs = cell_line_tag_base_query.values_list(
                     'tag_name', 'cell_line_id', 'cell_line__name')
                 cell_line_id = [cl[1] for cl in cell_line_tag_objs]
                 aggregate_cell_lines = defaultdict(list)
@@ -1060,15 +1080,21 @@ def ajax_get_plot(request, file_type='json'):
         drug_tag_names = request.GET.getlist('drugTags')
         aggregate_drugs = request.GET.get('aggregateDrugs', False) == "true"
         if not drug_id and drug_tag_names:
+            public_drug_tags = [t[1:] for t in drug_tag_names if
+                                t[0] == '1']
+            private_drug_tags = [t[1:] for t in drug_tag_names if
+                                 t[0] == '0']
+            drug_tag_base_query = DrugTag.objects.filter(
+                owner=None, tag_name__in=public_drug_tags
+            )
+            if private_drug_tags and request.user.is_authenticated():
+                drug_tag_base_query |= DrugTag.objects.filter(
+                    owner=request.user, tag_name__in=private_drug_tags)
             if not aggregate_drugs:
-                drug_id = DrugTag.objects.filter(
-                    owner=request.user,
-                    tag_name__in=drug_tag_names).distinct().values_list(
+                drug_id = drug_tag_base_query.distinct().values_list(
                     'drug_id', flat=True)
             else:
-                drug_tag_objs = DrugTag.objects.filter(
-                    owner=request.user,
-                    tag_name__in=drug_tag_names).values_list(
+                drug_tag_objs = drug_tag_base_query.values_list(
                     'tag_name', 'drug_id', 'drug__name')
                 drug_id = [dt[1] for dt in drug_tag_objs]
                 aggregate_drugs = defaultdict(list)
@@ -1326,27 +1352,40 @@ def plots(request):
 
 @login_required_unless_public
 def tag_editor(request, tag_type=None):
-    tag_dict = defaultdict(list)
+    if request.user.is_authenticated():
+        tag_owner_filter = Q(owner=request.user) | Q(owner=None)
+    else:
+        tag_owner_filter = Q(owner=None)
+
     if tag_type == 'cell_lines':
         entity_type = 'Cell Line'
         entity_type_var = 'cl'
         entity_options = CellLine.objects.all().order_by('name')
-        tag_list = CellLineTag.objects.filter(
-            owner_id__in=(request.user.id, None)).order_by(
-                'tag_name', 'cell_line__name')
-        for clt in tag_list:
-            tag_dict[clt.tag_name].append(clt.cell_line_id)
-        # entity_list_ids = [tag.cell_line_id for tag in entity_list]
+        tag_list = CellLineTag.objects.filter(tag_owner_filter).order_by(
+                'owner_id', 'tag_name', 'cell_line__name')
+        tag_dict_selected = defaultdict(list)
+        Tag = namedtuple('Tag', ['is_public', 'tag_name'])
+        for tag in tag_list:
+            tag_dict_selected[Tag(tag.owner_id is None, tag.tag_name)].append(
+                tag.cell_line_id)
+        tag_dict_all = {}
+        for tag_key, cell_lines in tag_dict_selected.items():
+            tag_dict_all[tag_key] = [(ent, ent.id in cell_lines) for ent in
+                                     entity_options]
     elif tag_type == 'drugs':
         entity_type = 'Drug'
         entity_type_var = 'drug'
         entity_options = Drug.objects.all().order_by('name')
-        tag_list = DrugTag.objects.filter(
-            owner_id__in=(request.user.id, None)).order_by(
-                'tag_name', 'drug__name')
-        for dt in tag_list:
-            tag_dict[dt.tag_name].append(dt.drug_id)
-        # entity_list_ids = [tag.drug_id for tag in entity_list]
+        tag_list = DrugTag.objects.filter(tag_owner_filter).order_by(
+                'owner_id', 'tag_name', 'drug__name')
+        tag_dict_selected = defaultdict(list)
+        for tag in tag_list:
+            tag_dict_selected[Tag(tag.owner_id is None, tag.tag_name)].append(
+                tag.drug_id)
+        tag_dict_all = {}
+        for tag_key, drugs in tag_dict_selected.items():
+            tag_dict_all[tag_key] = [(ent, ent.id in drugs) for ent in
+                                     entity_options]
     else:
         return render(request, "tags.html")
 
@@ -1354,12 +1393,14 @@ def tag_editor(request, tag_type=None):
                   {'entity_type': entity_type,
                    'entity_type_var': entity_type_var,
                    'tag_type': tag_type,
-                   'entity_options': entity_options,
-                   'tag_dict': tag_dict,
-                   'tag_list': tag_list
-                   # 'entity_list_ids': entity_list_ids
+                   'tag_dict_all': tag_dict_all,
+                   'entities': [(tag, False) for tag in entity_options],
+                   'private_tags': [tag[1] for tag in
+                                    tag_dict_selected if not tag[0]],
+                   'public_tags': [tag[1] for tag in
+                                   tag_dict_selected if tag[0]],
                    }
-                      )
+                  )
 
 
 def ajax_rename_tag(request):
@@ -1396,26 +1437,35 @@ def ajax_assign_tag(request):
         if tag_type not in ('cl', 'drug'):
             raise ValueError
         entity_ids = [int(e_id) for e_id in request.POST.getlist('entityId')]
+
+        tag_public = request.POST.get('tagPublic') == '1'
     except (KeyError, ValueError):
         return JsonResponse({'error': 'Form not properly formatted'},
                             status=400)
 
+    if tag_public and not request.user.is_staff:
+        return JsonResponse({'error': 'Staff only'}, status=403)
+
+    owner = None if tag_public else request.user
+
     tag_cls = DrugTag if tag_type == 'drug' else CellLineTag
 
     # Clear any existing instances of the tag
-    tag_cls.objects.filter(tag_name=tag_name, owner=request.user).delete()
+    tag_cls.objects.filter(tag_name=tag_name, owner=owner).delete()
 
     # Create the new tags
     if tag_type == 'drug':
         DrugTag.objects.bulk_create([
-            DrugTag(tag_name=tag_name, owner=request.user, drug_id=drug_id)
+            DrugTag(tag_name=tag_name, owner=owner, drug_id=drug_id)
             for drug_id in entity_ids
         ])
     else:
         CellLineTag.objects.bulk_create([
-            CellLineTag(tag_name=tag_name, owner=request.user,
+            CellLineTag(tag_name=tag_name, owner=owner,
                         cell_line_id=cell_line_id)
             for cell_line_id in entity_ids
         ])
+
+    logger.info('Tag modified', extra={'request': request})
 
     return JsonResponse({'status': 'success'})

@@ -62,9 +62,14 @@ class CellLineTag(models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True)
     cell_line = models.ForeignKey(CellLine)
 
+    @property
+    def is_public(self):
+        return self.owner is None
+
     def __str__(self):
         return '%s [%s] (%s)' % (self.tag_name, self.cell_line.name,
-                                 self.owner.email)
+                                 self.owner.email if self.owner else
+                                 '<public>')
 
 
 class Drug(models.Model):
@@ -83,9 +88,14 @@ class DrugTag(models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True)
     drug = models.ForeignKey(Drug)
 
+    @property
+    def is_public(self):
+        return self.owner is None
+
     def __str__(self):
         return '%s [%s] (%s)' % (self.tag_name, self.drug.name,
-                                 self.owner.email)
+                                 self.owner.email if self.owner else
+                                 '<public>')
 
 
 class Plate(models.Model, PlateMap):

@@ -151,6 +151,9 @@ var plots = function() {
                 combinations.push($newOption);
             } else {
                 $newOption.text(optionList[i].name);
+                if(optionList[i].hasOwnProperty("public") && optionList[i].public) {
+                    $newOption.prepend("<span class=\"badge\">public</span> ");
+                }
                 $select.append($newOption);
             }
         }
