@@ -5,14 +5,6 @@ services:
     volumes:
       - ./_state/thunor-static:/thunor/_state/thunor-static:ro
       - ./_state/thunor-files:/thunor/_state/thunor-files
-  certbot:
-    image: certbot/certbot
-    entrypoint: ""
-    volumes:
-      - $THUNORHOME/_state/certbot:/etc/letsencrypt
-      - $THUNORHOME/_state/thunor-static/.well-known:/thunor-static/.well-known
-    environment:
-      - TERM=xterm
   nginx:
     image: nginx:mainline
     volumes:
