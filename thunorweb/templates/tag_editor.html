@@ -39,7 +39,7 @@ $(function() {
         publicTagNames: [{% for k in public_tag_names %}'{{ k|escapejs }}'{% if not forloop.last %}, {% endif %}{% endfor %}]
     });
     pyHTS.views.tag_editor.activate();
-    $( window ).unload(function() {
+    $(window).on("unload", function() {
         // Needed to avoid Firefox BFcache
     });
 });
