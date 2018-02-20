@@ -1365,7 +1365,8 @@ def tag_editor(request, tag_type=None):
         entity_type_var = 'cl'
         entity_options = CellLine.objects.all().order_by('name')
         tag_list = CellLineTag.objects.filter(tag_owner_filter).order_by(
-                'owner_id', 'tag_name', 'cell_line__name')
+                F('owner_id').asc(nulls_last=True), 'tag_name',
+                'cell_line__name')
         for tag in tag_list:
             tag_dict_selected[Tag(tag.owner_id is None, tag.tag_name)].append(
                 tag.cell_line_id)
@@ -1377,7 +1378,7 @@ def tag_editor(request, tag_type=None):
         entity_type_var = 'drug'
         entity_options = Drug.objects.all().order_by('name')
         tag_list = DrugTag.objects.filter(tag_owner_filter).order_by(
-                'owner_id', 'tag_name', 'drug__name')
+                F('owner_id').asc(nulls_last=True), 'tag_name', 'drug__name')
         for tag in tag_list:
             tag_dict_selected[Tag(tag.owner_id is None, tag.tag_name)].append(
                 tag.drug_id)
