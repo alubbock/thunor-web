@@ -1357,6 +1357,7 @@ def tag_editor(request, tag_type=None):
     else:
         tag_owner_filter = Q(owner=None)
 
+    Tag = namedtuple('Tag', ['is_public', 'tag_name'])
     if tag_type == 'cell_lines':
         entity_type = 'Cell Line'
         entity_type_var = 'cl'
@@ -1364,7 +1365,6 @@ def tag_editor(request, tag_type=None):
         tag_list = CellLineTag.objects.filter(tag_owner_filter).order_by(
                 'owner_id', 'tag_name', 'cell_line__name')
         tag_dict_selected = defaultdict(list)
-        Tag = namedtuple('Tag', ['is_public', 'tag_name'])
         for tag in tag_list:
             tag_dict_selected[Tag(tag.owner_id is None, tag.tag_name)].append(
                 tag.cell_line_id)
