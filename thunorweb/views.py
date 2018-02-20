@@ -1358,17 +1358,17 @@ def tag_editor(request, tag_type=None):
         tag_owner_filter = Q(owner=None)
 
     Tag = namedtuple('Tag', ['is_public', 'tag_name'])
+    tag_dict_selected = defaultdict(list)
+    tag_dict_all = {}
     if tag_type == 'cell_lines':
         entity_type = 'Cell Line'
         entity_type_var = 'cl'
         entity_options = CellLine.objects.all().order_by('name')
         tag_list = CellLineTag.objects.filter(tag_owner_filter).order_by(
                 'owner_id', 'tag_name', 'cell_line__name')
-        tag_dict_selected = defaultdict(list)
         for tag in tag_list:
             tag_dict_selected[Tag(tag.owner_id is None, tag.tag_name)].append(
                 tag.cell_line_id)
-        tag_dict_all = {}
         for tag_key, cell_lines in tag_dict_selected.items():
             tag_dict_all[tag_key] = [(ent, ent.id in cell_lines) for ent in
                                      entity_options]
@@ -1378,11 +1378,9 @@ def tag_editor(request, tag_type=None):
         entity_options = Drug.objects.all().order_by('name')
         tag_list = DrugTag.objects.filter(tag_owner_filter).order_by(
                 'owner_id', 'tag_name', 'drug__name')
-        tag_dict_selected = defaultdict(list)
         for tag in tag_list:
             tag_dict_selected[Tag(tag.owner_id is None, tag.tag_name)].append(
                 tag.drug_id)
-        tag_dict_all = {}
         for tag_key, drugs in tag_dict_selected.items():
             tag_dict_all[tag_key] = [(ent, ent.id in drugs) for ent in
                                      entity_options]

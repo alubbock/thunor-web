@@ -22,6 +22,7 @@
 <form class="set-tag-name" {% if tag %}style="display:none"{% endif %}>
 <div class="form-inline">
     <input type="hidden" name="tagType" value="{{ entity_type_var }}">
+    <input type="hidden" name="tagPublic" value="{{ tag.is_public|yesno:"1,0" }}">
     <div class="input-group">
         <span class="input-group-addon"><i class="fa fa-tag"></i></span>
         <input type="text" class="form-control" name="tagName"
@@ -43,7 +44,7 @@
 <div class="form-group">
     <label for="entityId">{{ entity_type }}(s)</label>
     {% if not tag.is_public or request.user.is_staff %}
-    <select multiple data-live-search="true" name="entityId"
+    <select multiple data-live-search="true" name="entityId" autocomplete="off"
     class="form-control" title="Select {{ entity_type }}s" style="display:none">
     {% for ent, is_selected in entities %}<option name="entityId" value="{{ ent.id }}"{% if is_selected %} selected{% endif %}>{{ ent.name }}</option>
     {% endfor %}
