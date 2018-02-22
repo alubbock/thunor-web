@@ -1,7 +1,7 @@
 from .models import HTSDataset, WellMeasurement, WellStatistic, CellLine, \
     Drug, WellDrug, Well
 from .pandas import df_doses_assays_controls, NoDataException
-from thunor.dip import dip_rates, choose_dip_assay
+from thunor.dip import dip_rates, _choose_dip_assay
 import itertools
 import numpy as np
 from django.db import transaction
@@ -21,7 +21,7 @@ def precalculate_dip_rates(dataset_or_id):
         well__plate__dataset_id=dataset.id
     ).values_list('assay', flat=True).distinct()
 
-    dip_assay = choose_dip_assay(assays)
+    dip_assay = _choose_dip_assay(assays)
 
     if dip_assay is None:
         return

@@ -103,7 +103,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'thunorweb.context_processors.site_branding'
+                'thunorweb.context_processors.thunor_options'
             ],
         },
     },

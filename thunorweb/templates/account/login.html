@@ -7,20 +7,14 @@
 
 {% block content %}
 <div class="row">
-  {% if branding %}
-    <div class="col-lg-offset-1 col-lg-6 col-md-6 col-sm-12"
-         style="min-height:500px">
-      <div style="float:left;width:250px">
-      <img src="//thunor-static.lolab.xyz/img/vanderbilt-incyte.png"
-           width="200" height="500" alt="Vanderbilt-Incyte Alliance">
-      </div>
-      <h2>Vanderbilt&ndash;Incyte<br>Research Alliance Program Grant</h2>
-      <p>Please contact <a href="mailto:thunor@lolab.xyz">thunor@lolab.xyz</a>
-        to request an account.</p>
-  </div>
-  {% endif %}
-    <div class="{% if not branding %}col-lg-offset-6
-    col-md-offset-3 {% endif %}col-lg-3 col-md-6 col-sm-12">
+    {% if SIGNUP_OPEN %}
+    <div class="col-lg-offset-2 col-md-offset-2 col-lg-4 col-md-4 col-sm-12">
+      <h2>Need an account?</h2>
+    <a href="{{ signup_url }}" role="button"
+       class="btn btn-primary btn-block">Sign up</a>
+    </div>
+    {% endif %}
+    <div class="col-lg-4 col-md-6 col-sm-12">
       <h2 class="form-signin-heading">Log in</h2>
       {% crispy form %}
       <a href="{% url 'account_reset_password' %}">Forgotten your

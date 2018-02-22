@@ -12,14 +12,15 @@
             <a class="navbar-brand" href="{% url 'thunorweb:home' %}"><i
                     class="fa fa-bolt"></i> {{ SITE_NAME }}</a>
         </div>
-        {% if user.is_authenticated %}
         <div class="collapse navbar-collapse" id="myNavbar">
             <ul class="nav navbar-top-links navbar-nav navbar-right">
+              {% if user.is_authenticated %}
               <li><a href="{% url 'thunorweb:plate_upload' %}"
                      data-toggle="tooltip"
                      data-placement="bottom" title="Create Dataset">
                 <i class="fa fa-upload fa-fw"></i>
                 <span class="visible-xs-inline">Create Dataset</span></a></li>
+              {% endif %}
               <li><a href="{% url 'thunorweb:plots' %}"
                      data-toggle="tooltip"
                      data-placement="bottom" title="Interactive Plots">
@@ -60,15 +61,18 @@
                       <i class="fa fa-caret-down"></i>
                   </a>
                   <ul class="dropdown-menu">
-                      <li><a href="{% url 'thunorweb:my_account' %}"><i class="fa fa-user fa-fw"></i>User Profile</a></li>
+                    {% if user.is_authenticated %}
+                      <li><a href="{% url 'thunorweb:my_account' %}"><i class="fa fa-user fa-fw"></i> User Profile</a></li>
                       <li class="divider"></li>
-                      <li><a href="{% url 'thunorweb:logout' %}"><i class="fa fa-sign-out fa-fw"></i>Logout</a>
-                      </li>
+                      <li><a href="{% url 'thunorweb:logout' %}"><i class="fa fa-sign-out fa-fw"></i> Logout</a></li>
+                    {% else %}
+                      {% if SIGNUP_OPEN %}<li><a href="{% url 'account_signup' %}"><i class="fa fa-user-plus fa-fw"></i> Create account</a></li>{% endif %}
+                      <li><a href="{% url 'account_login' %}"><i class="fa fa-sign-in fa-fw"></i> Log in</a></li>
+                    {% endif %}
                   </ul>
               </li>
             </ul>
         </div>
-        {% endif %}
     </nav>
 
     <div id="page-wrapper">
