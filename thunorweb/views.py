@@ -1041,6 +1041,11 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
 
 @login_required_unless_public
 def ajax_get_plot(request, file_type='json'):
+    if file_type in ('csv', 'json'):
+        permission_required = 'download_data'
+    else:
+        permission_required = 'view_plots'
+
     try:
         plot_type = request.GET['plotType']
 
@@ -1126,7 +1131,7 @@ def ajax_get_plot(request, file_type='json'):
     except HTSDataset.DoesNotExist:
         raise Http404()
 
-    _assert_has_perm(request, dataset, 'view_plots')
+    _assert_has_perm(request, dataset, permission_required)
 
     if plot_type == 'tc':
         if len(drug_id) > 1 or len(cell_line_id) > 1:
@@ -1167,7 +1172,7 @@ def ajax_get_plot(request, file_type='json'):
             except HTSDataset.DoesNotExist:
                 raise Http404()
 
-            _assert_has_perm(request, dataset2, 'view_plots')
+            _assert_has_perm(request, dataset2, permission_required)
 
             if dataset.name == dataset2.name:
                 return HttpResponse(
