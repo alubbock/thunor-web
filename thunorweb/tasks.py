@@ -56,19 +56,20 @@ def precalculate_dip_rates(dataset_or_id):
     ]
 
     if ctrl_dip_data is not None:
+        ctrl_dip_data.reset_index('well_id', inplace=True)
         well_stats_to_create.extend([
             (WellStatistic(
-                well_id=well_stat.Index[1],
+                well_id=well_stat.well_id,
                 stat_name='dip_rate',
                 value=well_stat.dip_rate
             ),
              WellStatistic(
-                well_id=well_stat.Index[1],
+                well_id=well_stat.well_id,
                 stat_name='dip_fit_std_err',
                 value=well_stat.dip_fit_std_err
             ))
             for well_stat in
-            ctrl_dip_data.itertuples()
+            ctrl_dip_data.itertuples(index=False)
         ])
 
     # Delete any existing WellStatistics
