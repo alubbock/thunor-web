@@ -52,6 +52,8 @@ SECONDS_IN_DAY = 86400
 
 
 def _assert_has_perm(request, dataset, perm_required):
+    if dataset.deleted_date is not None:
+        raise Http404()
     if not settings.LOGIN_REQUIRED and not \
             request.user.is_authenticated():
         anon_group = Group.objects.get(name='Public')
@@ -88,7 +90,7 @@ def handler500(request):
 @login_required_unless_public
 def home(request):
     user_has_datasets = HTSDataset.objects.filter(
-        owner=request.user.id).exists()
+        owner=request.user.id, deleted_date=None).exists()
     return render(request, 'home.html', {'user_has_datasets':
                                          user_has_datasets,
                                          'back_link': False})
@@ -116,7 +118,8 @@ def dataset_upload(request, dataset_id=None):
         else:
             try:
                 dataset = HTSDataset.objects.get(id=dataset_id,
-                                                 owner_id=request.user.id)
+                                                 owner_id=request.user.id,
+                                                 deleted_date=None)
             except HTSDataset.DoesNotExist:
                 raise Http404()
 
@@ -134,7 +137,8 @@ def ajax_upload_platefiles(request):
     single_file_upload = len(files) == 1
 
     try:
-        dataset = HTSDataset.objects.get(owner=request.user, id=dataset_id)
+        dataset = HTSDataset.objects.get(owner=request.user, id=dataset_id,
+                                         deleted_date=None)
     except (ValueError, HTSDataset.DoesNotExist):
         return JsonResponse({'error': 'Dataset %s does not exist or '
                                       'you do not have access' % dataset_id,
@@ -186,13 +190,13 @@ def ajax_delete_dataset(request):
 
     dataset_id = request.POST.get('dataset_id')
     try:
-        n_deleted, _ = HTSDataset.objects.filter(id=dataset_id,
-                                                 owner_id=request.user.id).\
-            delete()
+        n_updated = HTSDataset.objects.filter(
+            id=dataset_id, owner_id=request.user.id).update(
+            deleted_date=timezone.now())
     except ValueError:
         raise Http404()
 
-    if n_deleted < 1:
+    if n_updated < 1:
         raise Http404()
 
     logger.info('Dataset deleted', extra={'request': request})
@@ -208,8 +212,11 @@ def ajax_delete_platefile(request):
 
     platefile_id = request.POST.get('key', None)
     try:
-        n_deleted, _ = PlateFile.objects.filter(id=platefile_id,
-                               dataset__owner_id=request.user.id).delete()
+        n_deleted, _ = PlateFile.objects.filter(
+            id=platefile_id,
+            dataset__owner_id=request.user.id,
+            dataset__deleted_date=None
+        ).delete()
     except ValueError:
         raise Http404()
 
@@ -250,7 +257,8 @@ def ajax_save_plate(request):
         pl_objs = Plate.objects.filter(id=plate_id)
     else:
         pl_objs = Plate.objects.filter(id__in=plate_ids)
-    pl_objs = pl_objs.filter(dataset__owner_id=request.user.id)
+    pl_objs = pl_objs.filter(dataset__owner_id=request.user.id,
+                             dataset__deleted_date=None)
 
     pre_mod_savepoint = None
     if apply_mode != 'normal':
@@ -471,7 +479,8 @@ def ajax_get_datasets(request):
     if not request.user.is_authenticated():
         return JsonResponse({}, status=401)
 
-    datasets = HTSDataset.objects.filter(owner_id=request.user.id).values(
+    datasets = HTSDataset.objects.filter(owner_id=request.user.id,
+                                         deleted_date=None).values(
         'id', 'name', 'creation_date')
 
     return JsonResponse({'data': list(datasets)})
@@ -493,7 +502,7 @@ def ajax_get_datasets_group(request, group_id):
             HTSDataset.view_dataset_permission_names(),
             klass=HTSDataset,
             any_perm=True
-        ).values('id', 'name', 'creation_date')
+        ).filter(deleted_date=None).values('id', 'name', 'creation_date')
     except ContentType.DoesNotExist:
         return JsonResponse({'data': list()})
 
@@ -506,7 +515,7 @@ def download_dip_fit_params(request, dataset_id):
     dataset_name = 'dataset'
     try:
         dataset_id = int(dataset_id)
-        dataset = HTSDataset.objects.get(pk=dataset_id)
+        dataset = HTSDataset.objects.get(pk=dataset_id, deleted_date=None)
         dataset_name = dataset.name
 
         if dataset.owner_id != request.user.id and not \
@@ -556,7 +565,7 @@ def download_dip_fit_params(request, dataset_id):
 @xframe_options_sameorigin
 def download_dataset_hdf5(request, dataset_id):
     try:
-        dataset = HTSDataset.objects.get(pk=dataset_id)
+        dataset = HTSDataset.objects.get(pk=dataset_id, deleted_date=None)
 
         _assert_has_perm(request, dataset, 'view_plate_layout')
 
@@ -594,7 +603,8 @@ def download_dataset_hdf5(request, dataset_id):
 class DatasetXlsxWriter(object):
     def __init__(self, request, dataset_id, prefix=None):
         try:
-            self.dataset = HTSDataset.objects.filter(id=dataset_id)\
+            self.dataset = HTSDataset.objects.filter(id=dataset_id,
+                                                     deleted_date=None)\
                 .annotate(last_upload=Max('platefile__upload_date'),
                           last_annotated=Max(
                               'plate__last_annotated')).select_related(
@@ -828,6 +838,8 @@ def plate_designer(request, dataset_id, num_wells=None):
             except HTSDataset.DoesNotExist:
                 raise Http404()
 
+        if dataset.deleted_date is not None:
+            raise Http404()
         if dataset.owner_id != request.user.id:
             editable = False
             _assert_has_perm(request, dataset, 'view_plate_layout')
@@ -860,7 +872,7 @@ def plate_designer(request, dataset_id, num_wells=None):
 @login_required_unless_public
 def view_dataset(request, dataset_id):
     try:
-        dataset = HTSDataset.objects.filter(id=dataset_id)\
+        dataset = HTSDataset.objects.filter(id=dataset_id, deleted_date=None)\
         .select_related('owner')\
         .annotate(last_upload=Max('platefile__upload_date'),
                   last_annotated=Max('plate__last_annotated')).get()
@@ -888,7 +900,7 @@ def view_dataset(request, dataset_id):
 @login_required
 def view_dataset_permissions(request, dataset_id):
     try:
-        dataset = HTSDataset.objects.get(id=dataset_id)
+        dataset = HTSDataset.objects.get(id=dataset_id, deleted_date=None)
     except HTSDataset.DoesNotExist:
         raise Http404()
 
@@ -924,12 +936,9 @@ def ajax_set_dataset_group_permission(request):
         return JsonResponse({'error': 'Malformed Request'}, status=400)
 
     try:
-        dataset = HTSDataset.objects.get(pk=dataset_id)
+        dataset = HTSDataset.objects.get(pk=dataset_id, deleted_date=None,
+                                         owner=request.user)
     except HTSDataset.DoesNotExist:
-        raise Http404()
-
-    # Does user own this dataset?
-    if dataset.owner_id != request.user.id:
         raise Http404()
 
     # Is user a member of the requested group?

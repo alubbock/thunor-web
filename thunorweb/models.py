@@ -16,6 +16,7 @@ class HTSDataset(models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL)
     name = models.TextField()
     creation_date = models.DateTimeField(auto_now_add=True)
+    deleted_date = models.DateTimeField(null=True, default=None)
 
     def __str__(self):
         return '%s (%d)' % (self.name, self.id)
