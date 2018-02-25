@@ -19,7 +19,7 @@ from thunor.plots import plot_time_course, plot_dip, plot_dip_params, \
     PARAM_NAMES, IC_REGEX, EC_REGEX, E_REGEX, E_REL_REGEX
 from thunor.dip import dip_fit_params, AAFitWarning, \
     DrugCombosNotImplementedError
-from thunor.io import write_hdf
+from thunor.io import write_hdf, PlateData
 from thunor.helpers import plotly_to_dataframe
 from plotly.utils import PlotlyJSONEncoder
 from .pandas import df_doses_assays_controls, df_dip_rates, \
@@ -383,7 +383,7 @@ def ajax_save_plate(request):
 
 
 def ajax_load_plate(request, plate_id, extra_return_args=None,
-                    return_as_dict=False, use_names=False):
+                    return_as_platedata=False, use_names=False):
     if not request.user.is_authenticated() and settings.LOGIN_REQUIRED:
         return JsonResponse({}, status=401)
 
@@ -433,11 +433,14 @@ def ajax_load_plate(request, plate_id, extra_return_args=None,
              'numRows': p.height,
              'wells': wells}
 
+    if return_as_platedata:
+        return PlateData.from_dict(plate)
+
     return_dict = {'success': True, 'plateMap': plate}
     if extra_return_args is not None:
         return_dict.update(extra_return_args)
 
-    return return_dict if return_as_dict else JsonResponse(return_dict)
+    return JsonResponse(return_dict)
 
 
 def ajax_create_dataset(request):
@@ -1315,9 +1318,10 @@ def ajax_get_plot(request, file_type='json'):
                 plate_id = int(plate_id)
             except ValueError:
                 return HttpResponse('Integer plateId required', status=400)
-            pl_data = ajax_load_plate(request,  plate_id, return_as_dict=True,
+            pl_data = ajax_load_plate(request, plate_id,
+                                      return_as_platedata=True,
                                       use_names=True)
-            plot_fig = plot_plate_map(pl_data['plateMap'], color_by='dipRate')
+            plot_fig = plot_plate_map(pl_data, color_by='dip_rates')
         else:
             return HttpResponse('Unimplemented QC view: {}'.format(qc_view),
                                 status=400)

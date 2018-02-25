@@ -103,14 +103,6 @@ class Migration(migrations.Migration):
             index_together=set([('well', 'assay', 'timepoint')]),
         ),
         migrations.AlterUniqueTogether(
-            name='welldrug',
-            unique_together=set([('well', 'drug')]),
-        ),
-        migrations.AlterIndexTogether(
-            name='welldrug',
-            index_together=set([('well', 'drug')]),
-        ),
-        migrations.AlterUniqueTogether(
             name='well',
             unique_together=set([('plate', 'well_num')]),
         ),
