@@ -1,5 +1,5 @@
 import re
-from django.core.files.uploadedfile import UploadedFile
+from django.core.files import File
 from django.utils import timezone
 from datetime import timedelta
 from .models import PlateFile, Plate, Well, WellMeasurement, CellLine, Drug,\
@@ -29,6 +29,16 @@ class PlateFileParser(object):
                'plate_id_time_hours': re.compile(_RE_PLATE_TIME_HOURS,
                                                  re.IGNORECASE)}
 
+    supported_extensions = {
+        '.csv': 'text',
+        '.tsv': 'text',
+        '.txt': 'text',
+        '.h5': 'hdf',
+        '.hdf': 'hdf',
+        '.hdf5': 'hdf',
+        '.xlsx': 'excel'
+    }
+
     supported_mimetypes = {'application/vnd.openxmlformats-officedocument'
                            '.spreadsheetml.sheet': 'excel',
                            'application/zip': 'excel',
@@ -37,8 +47,9 @@ class PlateFileParser(object):
                            'application/x-hdf': 'hdf'
                            }
 
+
     def __init__(self, plate_files, dataset):
-        if isinstance(plate_files, UploadedFile):
+        if isinstance(plate_files, File):
             self.all_plate_files = [plate_files, ]
         elif isinstance(plate_files, collections.Iterable):
             self.all_plate_files = plate_files
@@ -786,26 +797,40 @@ class PlateFileParser(object):
         """
         Attempt to auto-detect platefile format and parse
         """
-        file_first_kb = self.plate_file.read(1024)
+        # Try to use file extension
+        file_type = None
+        file_first_kb = None
+        for ext, fmt in self.supported_extensions.items():
+            if self.plate_file.name and self.plate_file.name.endswith(ext):
+                file_type = fmt
+                break
 
-        mimetype = magic.from_buffer(
-            file_first_kb,
-            mime=True
-        )
-        self.plate_file.file.seek(0)
-        file_type = self.supported_mimetypes.get(mimetype, None)
+        if file_type is None:
+            # Try to use MIME type
+            file_first_kb = self.plate_file.read(1024)
+
+            mimetype = magic.from_buffer(
+                file_first_kb,
+                mime=True
+            )
+            self.plate_file.file.seek(0)
+            file_type = self.supported_mimetypes.get(mimetype, None)
 
         if file_type == 'excel':
             self.parse_platefile_imagexpress()
         elif file_type == 'text':
-            try:
-                file_first_kb = file_first_kb.decode('utf-8')
-            except UnicodeDecodeError:
-                raise PlateFileUnknownFormat('Error opening file with UTF-8 '
-                                             'encoding (does file contain '
-                                             'non-standard characters?)')
-            if file_first_kb.find('expt.id') != -1 and file_first_kb.find(
-                    'expt.date') != -1:
+            if file_first_kb is None:
+                file_first_kb = self.plate_file.read(1024)
+            if not isinstance(file_first_kb, str):
+                try:
+                    file_first_kb = file_first_kb.decode('utf-8')
+                except UnicodeDecodeError:
+                    raise PlateFileUnknownFormat('Error opening file with '
+                                                 'UTF-8 encoding (does file '
+                                                 'contain non-standard '
+                                                 'characters?)')
+            if file_first_kb.find('cell.count') != -1 and file_first_kb.find(
+                    'drug1.conc') != -1:
                 parsers = (self.parse_platefile_vanderbilt_hts,
                            self.parse_platefile_synergy_neo)
             else:
