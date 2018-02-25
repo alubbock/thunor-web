@@ -67,10 +67,12 @@ def _assert_has_perm(request, dataset, perm_required):
 
 
 def login_required_unless_public(func):
-    if settings.LOGIN_REQUIRED:
-        return login_required(func)
-    else:
-        return func
+    def wrap(*args, **kwargs):
+        if settings.LOGIN_REQUIRED:
+            return login_required(func)(*args, **kwargs)
+        else:
+            return func(*args, **kwargs)
+    return wrap
 
 
 def handler404(request):
