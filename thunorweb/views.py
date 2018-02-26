@@ -523,9 +523,7 @@ def download_dip_fit_params(request, dataset_id):
         dataset = HTSDataset.objects.get(pk=dataset_id, deleted_date=None)
         dataset_name = dataset.name
 
-        if dataset.owner_id != request.user.id and not \
-                request.user.has_perm('download_data', dataset):
-            raise HTSDataset.DoesNotExist()
+        _assert_has_perm(request, dataset, 'download_data')
 
         # Fetch the DIP rates from the DB
         ctrl_dip_data, expt_dip_data = df_dip_rates(
@@ -572,7 +570,7 @@ def download_dataset_hdf5(request, dataset_id):
     try:
         dataset = HTSDataset.objects.get(pk=dataset_id, deleted_date=None)
 
-        _assert_has_perm(request, dataset, 'view_plate_layout')
+        _assert_has_perm(request, dataset, 'download_data')
 
         df_data = df_doses_assays_controls(
             dataset=dataset,
@@ -912,7 +910,7 @@ def view_dataset_permissions(request, dataset_id):
     if dataset.owner_id != request.user.id:
         raise Http404()
 
-    available_perms = {p[0]: p[1] for p in HTSDataset._meta.permissions}
+    available_perms = HTSDataset.view_dataset_permission_names()
 
     all_groups = request.user.groups.all()
     groups_with_perms = get_groups_with_perms(dataset, True)

@@ -258,6 +258,9 @@ def df_dip_rates(dataset_id, drug_id, cell_line_id,
             rename_columns=('stat_name', 'value', 'well_id')
         )
 
+        if df_cl_dset.empty:
+            raise NoDataException()
+
         df_stats = df_cl_dset.pivot_table(index='well_id', columns='stat_name',
                                           values='value')
 
