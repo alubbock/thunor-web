@@ -2,6 +2,71 @@ var ajax = require("./modules/ajax");
 var ui = require("./modules/ui");
 var datasetTable = require("./modules/dataset_table");
 
+var getQueryStrings = function() {
+    var sPageURL = window.location.search.substring(1),
+        sURLVariables = sPageURL.split('&'),
+        sParameterName,
+        i,
+        plotStrings = [],
+        colsLg = 1,
+        colsMd = 1;
+
+    for (i = 0; i < sURLVariables.length; i++) {
+        sParameterName = sURLVariables[i].split('=');
+
+        if (sParameterName[0] === "plotdata" && sParameterName[1] !== undefined && plotStrings.length < 20) {
+            plotStrings.push(decodeURIComponent(sParameterName[1]));
+        }
+        if (sParameterName[0] === "colsLg" && sParameterName[1] !== undefined) {
+            colsLg = parseInt(sParameterName[1]);
+            if(isNaN(colsLg)) colsLg = 1;
+        }
+        if (sParameterName[0] === "colsMd" && sParameterName[1] !== undefined) {
+            colsMd = parseInt(sParameterName[1]);
+            if(isNaN(colsMd)) colsMd = 1;
+        }
+    }
+
+    return {plotStrings: plotStrings, colsLg: colsLg, colsMd: colsMd};
+};
+
+var updateURL = function() {
+    if (!window.history.replaceState) return;
+
+    var $newPlotBtn = $(".new-plot-btn");
+    var datasetId = $newPlotBtn.data("datasetId");
+    var url = ajax.url("view_plots") + '?';
+
+    if (datasetId !== undefined && datasetId !== null && datasetId !== "") {
+        url += 'dataset=' + $newPlotBtn.data("datasetId");
+    }
+
+    if (isDataset2active()) {
+        var dataset2Id = $newPlotBtn.data("dataset2Id");
+        if (dataset2Id !== undefined && dataset2Id !== null &&
+            dataset2Id !== "") {
+            url += '&dataset2=' + dataset2Id;
+        }
+    }
+
+    url += '&colsLg=' + $("#hts-current-num-cols-lg").data("cols");
+    url += '&colsMd=' + $("#hts-current-num-cols-md").data("cols");
+
+    $(".sortable-panels").find("form").each(function(i, obj) {
+        url += '&plotdata=' + encodeURIComponent($(obj).serialize());
+    });
+
+    window.history.replaceState(
+      null,
+      document.title,
+      url
+    );
+};
+
+var isDataset2active = function() {
+    return $("input[name=secondDataset]").is(":checked");
+};
+
 var downloadImage = function(gd, fmt) {
     var $gd = $(gd);
     var filename = $gd.find(".gtitle").text();
@@ -60,6 +125,7 @@ var plots = function() {
                     );
                     $("#" + dataset + "-name").text(truncateDatasetName($this.data("datasetName")));
                     $target.data("datasetChanged", true);
+                    updateURL();
                     $("#change-dataset-modal").modal("hide");
                 });
             });
@@ -74,7 +140,7 @@ var plots = function() {
 
     $("input[name=secondDataset]").bootstrapSwitch({
         "onSwitchChange": function (event, state) {
-            var $dataset2Btn = $("#dataset2-btn");
+            var $dataset2Btn = $("#dataset2-btn").data('active', state);
             if (state) {
                 $dataset2Btn.show();
                 if($(".new-plot-btn").data("dataset2Id") === undefined) {
@@ -83,6 +149,7 @@ var plots = function() {
             } else {
                 $dataset2Btn.hide();
             }
+            updateURL();
         }
     });
 
@@ -110,9 +177,9 @@ var plots = function() {
             "panel-placeholder col-lg-" + numBScolsLg +
             " col-md-" + numBScolsMd);
         $("#hts-current-num-cols-lg").text(numColsLg + " column" +
-            (numColsLg > 1 ? "s" : ""));
+            (numColsLg > 1 ? "s" : "")).data("cols", numColsLg);
         $("#hts-current-num-cols-md").text(numColsMd + " column" +
-            (numColsMd > 1 ? "s" : ""));
+            (numColsMd > 1 ? "s" : "")).data("cols", numColsMd);
     };
 
     var resizeGraphs = function () {
@@ -133,11 +200,14 @@ var plots = function() {
         var lgCols = $(e.currentTarget).data("cols");
         var mdCols = lgCols >= 2 ? 2 : 1;
         setColumns(mdCols, lgCols);
+        updateURL();
     });
 
     $("#hts-num-cols-md").find("li").click(function (e) {
+        e.preventDefault();
         var mdCols = $(e.currentTarget).data("cols");
         setColumns(mdCols, mdCols);
+        updateURL();
     });
 
     var pushOptionsToSelect = function ($select, optionList, selectedOption) {
@@ -219,7 +289,7 @@ var plots = function() {
                 .selectpicker(selectPickerOptionsSingle)
                 .selectpicker("refresh");
 
-            $dataPanel.find("button.names-link").click();
+            $dataPanel.find(".name-tag-switch").find('input[value=off]').click();
             $actionBtns.hide();
         } else {
             // Disable drug combinations
@@ -261,19 +331,16 @@ var plots = function() {
         $dataPanel.find("select[name=plateId]").closest(".form-group").toggle(
             $target.val() === "dipplatemap");
     });
-    $(".tags-link").click(function() {
-        var $this = $(this).addClass("active");
+    $(".name-tag-switch").find("input[type=radio]").change(function() {
+        var $this = $(this);
         var $formGroup = $this.closest(".form-group");
-        $formGroup.find(".names-link").removeClass("active");
-        $formGroup.find(".tag-select").prop("disabled", false).selectpicker("refresh").selectpicker("show");
-        $formGroup.find(".name-select").prop("disabled", true).selectpicker("hide");
-    });
-    $(".names-link").click(function() {
-        var $this = $(this).addClass("active");
-        var $formGroup = $this.closest(".form-group");
-        $formGroup.find(".tags-link").removeClass("active");
-        $formGroup.find(".tag-select").prop("disabled", true).selectpicker("hide");
-        $formGroup.find(".name-select").prop("disabled", false).selectpicker("refresh").selectpicker("show");
+        if ($(this).val() === "on") {
+            $formGroup.find(".tag-select").prop("disabled", false).selectpicker("refresh").selectpicker("show");
+            $formGroup.find(".name-select").prop("disabled", true).selectpicker("hide");
+        } else {
+            $formGroup.find(".tag-select").prop("disabled", true).selectpicker("hide");
+            $formGroup.find(".name-select").prop("disabled", false).selectpicker("refresh").selectpicker("show");
+        }
     });
     $(".hts-change-data > form").submit(function (e) {
         e.preventDefault();
@@ -308,7 +375,6 @@ var plots = function() {
 
         var $plotPanel = $(this).closest(".plot-panel");
         var $plotPanelBody = $plotPanel.find(".panel-body");
-        var $changeDataBtn = $plotPanel.find(".hts-change-data-btn");
         $plotPanelBody.loadingOverlay("show");
         var $submit = $form.find("button[type=submit]");
 
@@ -322,7 +388,8 @@ var plots = function() {
                     $plotPanelBody.find(".plotly-graph-div").addClass("loaded"),
                     data
                 );
-                $changeDataBtn.click();
+                toggleDataPanel($plotPanel, false);
+                updateURL();
             },
             error: ajax.ajaxErrorCallback,
             complete: function () {
@@ -456,7 +523,7 @@ var plots = function() {
         }
     };
 
-    var prepareDataPanel = function($plotPanel, defaultOptions) {
+    var prepareDataPanel = function($plotPanel, defaultOptions, autoSubmit) {
         var $dataPanel = $plotPanel.find(".hts-change-data");
 
         $dataPanel.find("input.dipParTwoToggle").bootstrapSwitch({
@@ -514,10 +581,14 @@ var plots = function() {
             $dataPanel.find(".hts-plot-type").removeClass("btn-group-3")
                 .addClass("btn-group-2").find("input[name=plotType]").first()
                 .click();
-            $dataPanel.find("span[class=dataset2-name-container]").show();
         }
 
         var populatePlotPanelOptions = function(data) {
+            $plotPanel.find("span[class=dataset-name]").text(data.datasets[0]['name']);
+            if(dataset2Id !== undefined && dataset2Id !== null && dataset2Id !== "") {
+                $plotPanel.find("span[class=dataset2-name]").text(data.datasets[1]['name']);
+                $dataPanel.find("span[class=dataset2-name-container]").show();
+            }
             var clTitle = "Please select a cell line",
                 drTitle = "Please select a drug";
             $cellLineSelect.selectpicker({title: clTitle})
@@ -552,7 +623,7 @@ var plots = function() {
                 data.drugTags
             );
 
-            if(!plotOptionsCache.hasOwnProperty(datasetGroupingsIds)) {
+            if(plotOptionsCache[datasetGroupingsIds] === 'PENDING') {
                 plotOptionsCache[datasetGroupingsIds] = data;
             }
 
@@ -575,16 +646,45 @@ var plots = function() {
                     }
                 });
             }
+
+            if (autoSubmit === true) {
+                $dataPanel.find("form").submit();
+            }
+        };
+
+        var waitForAjaxQuery = function() {
+            if(!plotOptionsCache.hasOwnProperty(datasetGroupingsIds)) {
+                $plotPanel.find(".panel-body").loadingOverlay("hide");
+                return;
+            }
+            if(plotOptionsCache[datasetGroupingsIds] !== 'PENDING') {
+                return populatePlotPanelOptions(plotOptionsCache[datasetGroupingsIds]);
+            }
+            setTimeout(waitForAjaxQuery, 200);
         };
 
         if(plotOptionsCache.hasOwnProperty(datasetGroupingsIds)) {
-            populatePlotPanelOptions(plotOptionsCache[datasetGroupingsIds]);
+            waitForAjaxQuery();
         } else {
+            plotOptionsCache[datasetGroupingsIds] = 'PENDING';
             $.ajax({
                 url: ajax.url("dataset_groupings", datasetGroupingsIds),
                 type: "GET",
                 success: populatePlotPanelOptions,
-                error: ajax.ajaxErrorCallback
+                error: function(jqXHR, textStatus, errorThrown) {
+                    delete plotOptionsCache[datasetGroupingsIds];
+                    $plotPanel.find(".panel-body").loadingOverlay("hide");
+                    if(jqXHR.status === 404) {
+                        ui.okModal({title: "Dataset not found",
+                                    text: "The requested dataset does not " +
+                                    "exist, or you don't have access to it. " +
+                                    "Check you're logged with the correct " +
+                                    "account, or request access from the " +
+                                    "dataset owner." });
+                    } else {
+                        ajax.ajaxErrorCallback(jqXHR, textStatus, errorThrown);
+                    }
+                }
             });
         }
     };
@@ -599,6 +699,7 @@ var plots = function() {
                 if($(".panel-container").length === 1) {
                     $("#quickstart").fadeIn();
                 }
+                updateURL();
             });
     });
 
@@ -606,13 +707,6 @@ var plots = function() {
         var $panel = $(this).closest(".panel-container");
         var $newPanel = $(".panel-container").last().clone(true, true);
         var $newPlotly = $newPanel.find(".plotly-graph-div");
-
-        $newPanel.find("span[class=dataset-name]").text(
-            $panel.find("span[class=dataset-name]").text()
-        );
-        $newPanel.find("span[class=dataset2-name]").text(
-            $panel.find("span[class=dataset2-name]").text()
-        );
 
         // Insert the panel, add the plot
         $newPanel.insertAfter($panel).fadeIn(400);
@@ -628,20 +722,12 @@ var plots = function() {
         // is added to the DOM or the bootstrap events don't fire properly
         var formData = objectifyForm($panel.find("form").serializeArray());
         prepareDataPanel($newPanel, formData);
-        // Set name/tag toggle switches
-        $panel.find(".names-link.active,.tags-link.active").each(
-          function(i, obj) {
-              var $this = $(obj);
-              $newPanel
-                  .find($this.hasClass("names-link") ?
-                                       ".names-link" : ".tags-link")
-                  .filter("[data-entity=\""+$this.data("entity")+"\"]")
-                  .click();
-        });
 
         if($panel.find(".hts-change-data-btn").parent().hasClass("open")) {
             $newPanel.find(".hts-change-data-btn").click();
         }
+
+        updateURL();
 
         $("html, body").animate({
             scrollTop: $newPanel.offset().top
@@ -652,18 +738,16 @@ var plots = function() {
     var $newPlotBtn = $(".new-plot-btn");
     $newPlotBtn.click(function () {
         var datasetId = $newPlotBtn.data("datasetId");
-        var datasetName = $("#dataset-name").text();
         if(datasetId === "") {
             $("#change-dataset-modal")
                 .data("addPlot", true);
             $("#dataset-btn").click();
             return;
         }
-        var dataset2active = $("#dataset2-btn").css("display") !== "none";
-        var dataset2Id, dataset2Name;
+        var dataset2active = isDataset2active();
+        var dataset2Id;
         if (dataset2active) {
             dataset2Id = $newPlotBtn.data("dataset2Id");
-            dataset2Name = $("#dataset2-name").text();
             if (datasetId === dataset2Id) {
                 return ui.okModal({
                     title: "Datasets are the same",
@@ -680,11 +764,8 @@ var plots = function() {
         }
         var $plotPanel = $(".panel-container").last().clone(true, true);
         $plotPanel.find("input[name=datasetId]").val(datasetId);
-        $plotPanel.find("span[class=dataset-name]").text(datasetName);
         if (dataset2active) {
             $plotPanel.find("input[name=dataset2Id]").val(dataset2Id);
-            $plotPanel.find("span[class=dataset2-name]").text(dataset2Name);
-            $plotPanel.find("span[class=dataset2-name-container]").show();
         }
         var $changeDataBtn = $plotPanel.find(".hts-change-data-btn");
 
@@ -715,13 +796,60 @@ var plots = function() {
           screenX: first.screenX,
           screenY: first.screenY,
           clientX: first.clientX,
-          clientY: first.clientY,
+          clientY: first.clientY
         };
 
         var simulatedEvent = new MouseEvent(type, opts);
 
         first.target.dispatchEvent(simulatedEvent);
         event.preventDefault();
+    }
+
+    var queryStrings = getQueryStrings();
+    var plotStrings = queryStrings.plotStrings;
+    setColumns(queryStrings.colsMd, queryStrings.colsLg);
+
+    //restore any plots
+    if (plotStrings.length) {
+        var $panelTemplate = $(".panel-container").last();
+        var $showPlotDelayedMsg = $(".show-plot-delayed");
+        for (var i = 0; i < plotStrings.length; i++) {
+            var formData = {};
+            try {
+                var plotStringData = plotStrings[i].split("&");
+                for (var j = 0; j < plotStringData.length; j++) {
+                    var keyValuePair = plotStringData[j].split("=");
+                    if(typeof formData[keyValuePair[0]] === 'undefined') {
+                        formData[keyValuePair[0]] = decodeURIComponent(keyValuePair[1]);
+                    } else {
+                        if (typeof formData[keyValuePair[0]] === 'string') {
+                            formData[keyValuePair[0]] = [formData[keyValuePair[0]]];
+                        }
+                        formData[keyValuePair[0]].push(decodeURIComponent(keyValuePair[1]));
+                    }
+                }
+            } catch(e) {
+                // Ignore
+                console.log(e);
+            }
+            if(!$.isEmptyObject(formData)) {
+                var $plotPanel = $panelTemplate.clone(true, true);
+                var showByDefault = i < 4;
+                prepareDataPanel($plotPanel, formData, showByDefault);
+                if(!showByDefault) {
+                    $showPlotDelayedMsg.clone().appendTo($plotPanel.find(".plotly-graph-div"));
+                }
+                $plotPanel.appendTo(".sortable-panels").show();
+                if(showByDefault) {
+                    $plotPanel.find(".panel-body").loadingOverlay("show");
+                }
+            }
+        }
+        $(".show-plot-delayed").not(":last").show().find("button").click(function() {
+           $(this).closest(".plot-panel").find(".hts-change-data > form").submit();
+        });
+    } else {
+        $("#quickstart").show();
     }
 };
 module.exports = {

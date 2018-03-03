@@ -60,17 +60,20 @@
                 {{ default_dataset.name|truncatechars:20 }}
               {% else %}<em>Select Dataset</em>{% endif %}</span>
             </button>
-            <button type="button" style="display:none" class="btn btn-default"
+            <button type="button" style="{% if not second_dataset %}display:none{% endif %}" class="btn btn-default"
                     data-keyboard="true"
                     data-toggle="modal" data-dataset="dataset2"
                     data-target="#change-dataset-modal"
                     id="dataset2-btn">
                 <i class="fa fa-database"></i> <span id="dataset2-name">
-              <em>Select Dataset</em></span>
+              {% if second_dataset %}{{ second_dataset.name|truncatechars:20}}{% else %}<em>Select Dataset</em>{% endif %}
+                </span>
             </button>
             <button class="btn btn-success new-plot-btn"
                     style="margin-bottom:0"
-                    data-dataset-id="{{ default_dataset.id }}"><i class="fa
+                    data-dataset-id="{{ default_dataset.id }}"
+                    data-dataset2-id="{{ second_dataset.id }}"
+                    ><i class="fa
                     fa-plus"></i> Add Plot</button>
         </div>
         </div>
@@ -79,8 +82,8 @@
         <div class="plot-header-ctrl">
           <label>Second Dataset</label>
           <form>
-            <input type="checkbox" name="secondDataset"
-               class="form-control-inline">
+            <input type="checkbox" name="secondDataset" autocomplete="off"
+               class="form-control-inline" {% if second_dataset %}checked{% endif %}>
          </form>
         </div>
     </div>
@@ -88,7 +91,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="jumbotron row" id="quickstart">
+<div class="jumbotron row" id="quickstart" style="display:none">
     <div class="col-md-2" style="text-align:center;padding-right:0">
         <i class="fa fa-line-chart fa-jumbo"></i>
     </div>
@@ -212,13 +215,15 @@
     <input type="hidden" name="dataset2Id">
     <div class="form-group hidden-qc">
         <div class="pull-right name-tag-switch btn-group btn-group-inline
-        hidden-tc">
-            <button data-entity="cell_line"
-                    class="names-link btn btn-default btn-xs active"
-                   data-enabled="true" type="button">Names</button>
-            <button data-entity="cell_line"
-                    class="tags-link btn btn-default btn-xs"
-                    data-enabled="false" type="button">Tags</button>
+        hidden-tc" data-toggle="buttons">
+            <label class="btn btn-default btn-xs active">
+              <input type="radio" name="useCellLineTags" value="off"
+                     autocomplete="off" checked> Names
+            </label>
+            <label class="btn btn-default btn-xs">
+              <input type="radio" name="useCellLineTags" value="on"
+                     autocomplete="off"> Tags
+            </label>
         </div>
         <label for="hts-change-cell-line">Cell Line</label>
         <select multiple data-live-search="true" name="cellLineId"
@@ -247,13 +252,15 @@
     </div>
     <div class="form-group hidden-qc">
         <span class="pull-right name-tag-switch btn-group btn-group-inline
-        hidden-tc">
-            <button data-entity="drug"
-                    class="names-link btn btn-default btn-xs active"
-                   data-enabled="true" type="button">Names</button>
-            <button data-entity="drug"
-                    class="tags-link btn btn-default btn-xs"
-                    data-enabled="false" type="button">Tags</button>
+        hidden-tc" data-toggle="buttons">
+            <label class="btn btn-default btn-xs active">
+              <input type="radio" name="useDrugTags" value="off"
+                     autocomplete="off" checked> Names
+            </label>
+            <label class="btn btn-default btn-xs">
+              <input type="radio" name="useDrugTags" value="on"
+                     autocomplete="off"> Tags
+            </label>
         </span>
         <label for="hts-change-drug">Drug</label>
         <select multiple data-live-search="true" name="drugId"
@@ -385,6 +392,7 @@
         form-control">Show Plot</button>
     </div>
 </div>
+  <input type="hidden" name="drMetric" value="dip">
 </form>
 </div>
 <div class="plotly-graph-div" style="width:100%; height:100%"></div>
@@ -403,6 +411,11 @@
         </div>
     </div>
   </div>
+</div>
+
+<div class="show-plot-delayed">
+  <p class="lead">Plot not shown to avoid loading too many plots at once.</p>
+  <button class="btn btn-primary">Show Plot</button>
 </div>
 
 

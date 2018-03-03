@@ -1035,6 +1035,7 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
         drug_list.append({'id': drug_ids, 'name': drug_names})
 
     return JsonResponse({
+        'datasets': [{'id': d.id, 'name': d.name} for d in datasets],
         'cellLines': [{'id': cl['cell_line_id'],
                        'name': cl['cell_line__name']} for cl in cell_lines],
         'cellLineTags': [{'id': ('1' if tag[0] is None else '0') + tag[1],
@@ -1354,17 +1355,30 @@ def ajax_get_plot(request, file_type='json'):
 def plots(request):
     # Check the dataset exists
     dataset_id = request.GET.get('dataset', None)
+    dataset2_id = request.GET.get('dataset2', None)
+    dataset = None
+    dataset2 = None
     if dataset_id is not None:
         try:
-            dataset = HTSDataset.objects.get(id=dataset_id)
-        except HTSDataset.DoesNotExist:
+            dataset_id = int(dataset_id)
+            if dataset2_id is not None:
+                dataset2_id = int(dataset2_id)
+        except ValueError:
             raise Http404()
 
+        datasets = HTSDataset.objects.in_bulk([dataset_id, dataset2_id])
+
+        if not datasets:
+            raise Http404()
+
+        dataset = datasets[dataset_id]
+        if dataset2_id in datasets:
+            dataset2 = datasets[dataset2_id]
+
         _assert_has_perm(request, dataset, 'view_plots')
-    else:
-        dataset = None
 
     return render(request, 'plots.html', {'default_dataset': dataset,
+                                          'second_dataset': dataset2,
                                           'navbar_hide_dataset': True})
 
 

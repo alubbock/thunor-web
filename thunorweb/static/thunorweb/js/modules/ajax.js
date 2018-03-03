@@ -144,6 +144,7 @@ var ajax = (function () {
         "set_dataset_group_permission": "/ajax/dataset/set-permission",
         "page_annotate_dataset": "/dataset/{ARG}/annotate",
         "dataset_groupings": "/ajax/dataset/{ARG}/groupings",
+        "view_plots": "/plots",
         "get_plot": "/ajax/plot.json",
         "get_plot_csv": "/ajax/plot.csv",
         "assign_tag": "/ajax/tags/assign"
