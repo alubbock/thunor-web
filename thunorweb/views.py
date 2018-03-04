@@ -14,11 +14,12 @@ from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, \
     Well, WellMeasurement, WellDrug, CellLineTag, DrugTag, WellStatistic
 from django.urls import reverse
 import json
-from thunor.plots import plot_time_course, plot_dip, plot_dip_params, \
+from thunor.plots import plot_time_course, plot_drc, plot_drc_params, \
     plot_ctrl_dip_by_plate, plot_plate_map, \
     PARAM_NAMES, IC_REGEX, EC_REGEX, E_REGEX, E_REL_REGEX
 from thunor.dip import dip_fit_params, AAFitWarning, \
     DrugCombosNotImplementedError
+from thunor.viability import viability
 from thunor.io import write_hdf, PlateData
 from thunor.helpers import plotly_to_dataframe
 from plotly.utils import PlotlyJSONEncoder
@@ -535,7 +536,7 @@ def download_dip_fit_params(request, dataset_id):
         # Fit Hill curves and compute parameters
         fit_params = dip_fit_params(
             ctrl_dip_data, expt_dip_data,
-            include_dip_rates=False
+            include_response_values=False
         )
         # Remove -ve AA values
         fit_params.loc[fit_params['aa'] < 0.0, 'aa'] = np.nan
@@ -1179,132 +1180,12 @@ def ajax_get_plot(request, file_type='json'):
             subtitle=dataset.name
         )
     elif plot_type in ('drc', 'drpar'):
-        if dataset2_id is not None:
-            try:
-                dataset2 = HTSDataset.objects.get(pk=dataset2_id)
-            except HTSDataset.DoesNotExist:
-                raise Http404()
-
-            _assert_has_perm(request, dataset2, permission_required)
-
-            if dataset.name == dataset2.name:
-                return HttpResponse(
-                    'Cannot compare two datasets with the same '
-                    'name. Please rename one of the datasets.',
-                    status=400)
-
-        # Fetch the DIP rates from the DB
-        dataset_ids = dataset_id if dataset2_id is None else [dataset_id,
-                                                              dataset2_id]
-        try:
-            ctrl_dip_data, expt_dip_data = df_dip_rates(
-                dataset_id=dataset_ids,
-                drug_id=drug_id,
-                cell_line_id=cell_line_id,
-                use_dataset_names=True
-            )
-        except NoDataException:
-            return HttpResponse('No data found for this request. This '
-                                'drug/cell line/assay combination may not '
-                                'exist.', status=400)
-
-        def _setup_dip_par(name, needs_toggle=False):
-            if needs_toggle and \
-                            request.GET.get(name + 'Toggle', 'off') != 'on':
-                return None
-            par_name = request.GET.get(name, None)
-            if par_name is not None and '_custom' in par_name:
-                rep_value = request.GET.get(name + 'Custom', None)
-                if int(rep_value) < 0:
-                    raise ValueError()
-                par_name = par_name.replace('_custom', rep_value)
-            return par_name
-
-        try:
-            dip_par = _setup_dip_par('drPar')
-        except ValueError:
-            return HttpResponse('Parameter custom value '
-                                'needs to be a positive integer', status=400)
-
-        try:
-            dip_par_two = _setup_dip_par('drParTwo', needs_toggle=True)
-        except ValueError:
-            return HttpResponse('Parameter two custom value '
-                                'needs to be a positive integer', status=400)
-
-        try:
-            dip_par_order = _setup_dip_par('drParOrder', needs_toggle=True)
-        except ValueError:
-            return HttpResponse('Parameter order custom value '
-                                'needs to be a positive integer', status=400)
-
-        # Work out any non-standard parameters we need to calculate
-        # e.g. non-standard IC concentrations
-        ic_concentrations = {50}
-        ec_concentrations = set()
-        e_values = set()
-        e_rel_values = set()
-        regexes = {IC_REGEX: ic_concentrations,
-                   EC_REGEX: ec_concentrations,
-                   E_REGEX: e_values,
-                   E_REL_REGEX: e_rel_values
-                   }
-        for param in (dip_par, dip_par_two, dip_par_order):
-            if param is None:
-                continue
-            for regex, value_list in regexes.items():
-                match = regex.match(param)
-                if not match:
-                    continue
-                try:
-                    value = int(match.groups(0)[0])
-                    if value < 0 or value > 100:
-                        raise ValueError()
-                    value_list.add(value)
-                except ValueError:
-                    return HttpResponse('Invalid custom value - must be '
-                                        'an integer between 1 and 100',
-                                        status=400)
-
-        # Fit Hill curves and compute parameters
-        with warnings.catch_warnings(record=True) as w:
-            fit_params = dip_fit_params(
-                ctrl_dip_data, expt_dip_data,
-                include_dip_rates=plot_type == 'drc',
-                custom_ic_concentrations=ic_concentrations,
-                custom_ec_concentrations=ec_concentrations,
-                custom_e_values=e_values,
-                custom_e_rel_values=e_rel_values
-            )
-            # Currently only care about warnings if plotting AA
-            if plot_type == 'drpar' and (dip_par == 'aa' or
-                                          dip_par_two == 'aa'):
-                w = [i for i in w if issubclass(i.category, AAFitWarning)]
-                if w:
-                    return HttpResponse(w[0].message, status=400)
-        if plot_type == 'drpar':
-            if dip_par is None:
-                return HttpResponse('Dose response parameter sort field is '
-                                    'required', status=400)
-            try:
-                plot_fig = plot_dip_params(
-                    fit_params,
-                    fit_param=dip_par,
-                    fit_param_compare=dip_par_two,
-                    fit_param_sort=dip_par_order,
-                    log_yaxis=yaxis == 'log2',
-                    aggregate_cell_lines=aggregate_cell_lines,
-                    aggregate_drugs=aggregate_drugs,
-                    multi_dataset=dataset2_id is not None
-                )
-            except ValueError as e:
-                return HttpResponse(e, status=400)
-        else:
-            dip_absolute = request.GET.get('drcType', 'rel') == 'abs'
-            plot_fig = plot_dip(
-                fit_params,
-                is_absolute=dip_absolute
-            )
+        plot_fig = _dose_response_plot(request, dataset, dataset2_id,
+                                       permission_required, drug_id,
+                                       cell_line_id, plot_type, yaxis,
+                                       aggregate_cell_lines, aggregate_drugs)
+        if isinstance(plot_fig, HttpResponse):
+            return plot_fig
     elif plot_type == 'qc':
         qc_view = request.GET.get('qcView', None)
         if qc_view == 'ctrldipbox':
@@ -1353,6 +1234,168 @@ def ajax_get_plot(request, file_type='json'):
             'attachment; filename="{}.{}"'.format(strip_tags(title), file_type)
 
     return response
+
+
+def _dose_response_plot(request, dataset, dataset2_id,
+                        permission_required, drug_id, cell_line_id,
+                        plot_type, yaxis, aggregate_cell_lines,
+                        aggregate_drugs):
+    dataset_id = dataset.id
+    response_metric = request.GET.get('drMetric', 'dip')
+    if response_metric not in ('dip', 'viability'):
+        return HttpResponse('Unknown metric. Supported values: dip or '
+                            'viability.', status=400)
+    if dataset2_id is not None:
+        try:
+            dataset2 = HTSDataset.objects.get(pk=dataset2_id)
+        except HTSDataset.DoesNotExist:
+            raise Http404()
+
+        _assert_has_perm(request, dataset2, permission_required)
+
+        if dataset.name == dataset2.name:
+            return HttpResponse(
+                'Cannot compare two datasets with the same '
+                'name. Please rename one of the datasets.',
+                status=400)
+
+    if response_metric == 'dip':
+        # Fetch the DIP rates from the DB
+        dataset_ids = dataset_id if dataset2_id is None else [dataset_id,
+                                                              dataset2_id]
+        try:
+            ctrl_dip_data, expt_resp_data = df_dip_rates(
+                dataset_id=dataset_ids,
+                drug_id=drug_id,
+                cell_line_id=cell_line_id,
+                use_dataset_names=True
+            )
+        except NoDataException:
+            return HttpResponse('No DIP data found for this request. This '
+                                'drug/cell line/assay combination may not '
+                                'exist.', status=400)
+    else:
+        viability_time = request.GET.get('drViabilityHrs', None)
+        try:
+            viability_time = float(viability_time)
+        except ValueError:
+            return HttpResponse('Viability time must be a number', status=400)
+        ctrl_dip_data = None
+        df_data = df_doses_assays_controls(
+            dataset=dataset if not dataset2_id else [dataset, dataset2],
+            drug_id=drug_id,
+            cell_line_id=cell_line_id,
+            assay=None,
+            use_dataset_names=True
+        )
+        expt_resp_data = viability(df_data, time_hrs=viability_time)
+        if expt_resp_data['viability'].isnull().values.all():
+            return HttpResponse('No viability for this time point. The '
+                                'nearest time point to the time entered is '
+                                'used, but there must be control well '
+                                'measurements from the same time.',
+                                status=400)
+
+    def _setup_dr_par(name, needs_toggle=False):
+        if needs_toggle and \
+                request.GET.get(name + 'Toggle', 'off') != 'on':
+            return None
+        par_name = request.GET.get(name, None)
+        if par_name is not None and '_custom' in par_name:
+            rep_value = request.GET.get(name + 'Custom', None)
+            if int(rep_value) < 0:
+                raise ValueError()
+            par_name = par_name.replace('_custom', rep_value)
+        return par_name
+
+    try:
+        dr_par = _setup_dr_par('drPar')
+    except ValueError:
+        return HttpResponse('Parameter custom value '
+                            'needs to be a positive integer', status=400)
+
+    try:
+        dr_par_two = _setup_dr_par('drParTwo', needs_toggle=True)
+    except ValueError:
+        return HttpResponse('Parameter two custom value '
+                            'needs to be a positive integer', status=400)
+
+    try:
+        dr_par_order = _setup_dr_par('drParOrder', needs_toggle=True)
+    except ValueError:
+        return HttpResponse('Parameter order custom value '
+                            'needs to be a positive integer', status=400)
+
+    # Work out any non-standard parameters we need to calculate
+    # e.g. non-standard IC concentrations
+    ic_concentrations = {50}
+    ec_concentrations = set()
+    e_values = set()
+    e_rel_values = set()
+    regexes = {IC_REGEX: ic_concentrations,
+               EC_REGEX: ec_concentrations,
+               E_REGEX: e_values,
+               E_REL_REGEX: e_rel_values
+               }
+    for param in (dr_par, dr_par_two, dr_par_order):
+        if param is None:
+            continue
+        for regex, value_list in regexes.items():
+            match = regex.match(param)
+            if not match:
+                continue
+            try:
+                value = int(match.groups(0)[0])
+                if value < 0 or value > 100:
+                    raise ValueError()
+                value_list.add(value)
+            except ValueError:
+                return HttpResponse('Invalid custom value - must be '
+                                    'an integer between 1 and 100',
+                                    status=400)
+
+    # Fit Hill curves and compute parameters
+    with warnings.catch_warnings(record=True) as w:
+        fit_params = dip_fit_params(
+            ctrl_dip_data, expt_resp_data,
+            include_response_values=plot_type == 'drc',
+            custom_ic_concentrations=ic_concentrations,
+            custom_ec_concentrations=ec_concentrations,
+            custom_e_values=e_values,
+            custom_e_rel_values=e_rel_values
+        )
+        # Currently only care about warnings if plotting AA
+        if plot_type == 'drpar' and (dr_par == 'aa' or
+                                     dr_par_two == 'aa'):
+            w = [i for i in w if issubclass(i.category, AAFitWarning)]
+            if w:
+                return HttpResponse(w[0].message, status=400)
+
+    if plot_type == 'drpar':
+        if dr_par is None:
+            return HttpResponse('Dose response parameter sort field is '
+                                'required', status=400)
+        try:
+            plot_fig = plot_drc_params(
+                fit_params,
+                fit_param=dr_par,
+                fit_param_compare=dr_par_two,
+                fit_param_sort=dr_par_order,
+                log_yaxis=yaxis == 'log2',
+                aggregate_cell_lines=aggregate_cell_lines,
+                aggregate_drugs=aggregate_drugs,
+                multi_dataset=dataset2_id is not None
+            )
+        except ValueError as e:
+            return HttpResponse(e, status=400)
+    else:
+        dip_absolute = request.GET.get('drcType', 'rel') == 'abs'
+        plot_fig = plot_drc(
+            fit_params,
+            is_absolute=dip_absolute
+        )
+
+    return plot_fig
 
 
 @login_required_unless_public

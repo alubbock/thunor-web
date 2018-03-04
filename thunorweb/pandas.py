@@ -161,14 +161,22 @@ def _dataframe_wellinfo(dataset_id, drug_id, cell_line_id,
 
 
 def df_doses_assays_controls(dataset, drug_id, cell_line_id, assay,
-                             for_export=False):
-    dataset_id = dataset.id
+                             for_export=False, use_dataset_names=False):
+    dataset_id_field = 'well__plate__dataset' + ('__name' if
+                                                 use_dataset_names else '_id')
+
+    if isinstance(dataset, Iterable):
+        dataset_id = [d.id for d in dataset]
+    else:
+        dataset_id = dataset.id
 
     well_info, drug_id, cell_line_id = _queryset_well_info(
         dataset_id, drug_id, cell_line_id)
 
     df_doses = _dataframe_wellinfo(dataset_id, drug_id, cell_line_id,
-                                   for_export=for_export)
+                                   for_export=for_export,
+                                   use_dataset_names=use_dataset_names
+                                   )
 
     if df_doses.isnull().values.all():
         raise NoDataException()
@@ -188,14 +196,21 @@ def df_doses_assays_controls(dataset, drug_id, cell_line_id, assay,
     if df_vals.isnull().values.all():
         raise NoDataException()
 
-    controls = WellMeasurement.objects.filter(
-        well__plate__dataset_id=dataset_id).select_related(
-        'well').order_by('well__cell_line', 'timepoint')
+    if isinstance(dataset, Iterable):
+        controls = WellMeasurement.objects.filter(
+            well__plate__dataset_id__in=dataset_id)
+    else:
+        controls = WellMeasurement.objects.filter(
+            well__plate__dataset_id=dataset_id)
+
+    controls = controls.select_related('well').order_by(
+        dataset_id_field, 'well__cell_line', 'timepoint')
     if assay is not None:
         controls = controls.filter(assay=assay)
     controls = _apply_control_filter(controls, cell_line_id)
 
-    ctrl_cols = ['assay',
+    ctrl_cols = [dataset_id_field,
+                 'assay',
                  'well__cell_line__name',
                  'well__plate__name' if
                     for_export else
@@ -203,13 +218,15 @@ def df_doses_assays_controls(dataset, drug_id, cell_line_id, assay,
                  'well_id',
                  'timepoint',
                  'value']
-    ctrl_rename_cols = ['assay',
+    ctrl_rename_cols = ['dataset',
+                        'assay',
                         'cell_line',
                         'plate',
                         'well_id',
                         'timepoint',
                         'value']
-    ctrl_indexes = ['assay',
+    ctrl_indexes = ['dataset',
+                    'assay',
                     'cell_line',
                     'plate',
                     'well_id',

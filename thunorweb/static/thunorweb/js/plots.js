@@ -270,11 +270,11 @@ var plots = function() {
         showPanels.splice(showPanels.indexOf(thisHiddenPanel), 1);
         showPanels = showPanels.join(",");
         // text, hidden, radio, select
-        $(thisHiddenPanel).find("input,select").not(".no-disable,[type=checkbox]").prop("disabled", true);
-        $(showPanels).not(thisHiddenPanel).find("input,select").not(".no-disable,[type=checkbox]").prop("disabled", false);
-        // checkbox (not yet working)
-        // $(thisHiddenPanel).find("input[type=checkbox]").bootstrapSwitch("disabled", true);
-        // $(showPanels).find("input[type=checkbox]").bootstrapSwitch("disabled", false);
+        $dataPanel.find(thisHiddenPanel).find("input,select").not(".no-disable,[type=checkbox]").prop("disabled", true);
+        $dataPanel.find(showPanels).not(thisHiddenPanel).find("input,select").not(".no-disable,[type=checkbox]").prop("disabled", false);
+        // checkbox
+        $dataPanel.find(thisHiddenPanel).find("input[type=checkbox]").bootstrapSwitch("disabled", true);
+        $dataPanel.find(showPanels).find("input[type=checkbox]").bootstrapSwitch("disabled", false);
 
         if (plotType === "qc") {
             $dataPanel.find("select[name=plateId]").selectpicker("refresh");
@@ -347,6 +347,15 @@ var plots = function() {
         var $dataPanel = $target.closest(".hts-change-data");
         $dataPanel.find("select[name=plateId]").closest(".form-group").toggle(
             $target.val() === "dipplatemap");
+    });
+    $("input[name=drMetric]").change(function(e) {
+        var $target = $(e.target);
+        var $viabilityTimeBox = $target.closest(".form-group").find(".hts-viability-time");
+        if($target.val() === "viability") {
+            $viabilityTimeBox.slideDown().find("input[type=text]").focus();
+        } else {
+            $viabilityTimeBox.slideUp();
+        }
     });
     $(".name-tag-switch").find("input[type=radio]").change(function() {
         var $this = $(this);
@@ -556,8 +565,8 @@ var plots = function() {
 
         $dataPanel.find("select[name=cellLineId],select[name=drugId]")
             .selectpicker(selectPickerOptionsSingle);
-        $dataPanel.find(".hts-drpar-select").find("select")
-            .selectpicker().on("changed.bs.select", function(e) {
+        $dataPanel.find("select.drpar-select")
+            .on("changed.bs.select", function(e) {
                 var $target = $(e.target);
                 var $customBox = $target.closest(".hts-drpar-group").find(".hts-drpar-custom");
                 if($target.val().indexOf("_custom") !== -1) {
@@ -566,7 +575,7 @@ var plots = function() {
                     $customBox.slideUp();
                 }
         });
-        $dataPanel.find(".hts-drpar-custom").find("input[type=text]").focus(
+        $dataPanel.find(".hts-drpar-custom,.hts-viability-time").find("input[type=text]").focus(
             function() { $(this).select(); }
         );
 

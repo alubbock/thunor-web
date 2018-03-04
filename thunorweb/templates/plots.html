@@ -324,6 +324,28 @@
     </div>
     </div>
     <div class="col-sm-6">
+    <div class="form-group hidden-tc hidden-qc">
+        <label for="hts-dr-metric">Response Metric</label>
+        <div class="hts-dr-metric btn-group btn-group-2
+        btn-group-responsive" data-toggle="buttons">
+          <label class="btn btn-default active">
+            <input type="radio" name="drMetric" value="dip"
+                   autocomplete="off" checked> DIP Rate
+          </label>
+          <label class="btn btn-default">
+            <input type="radio" name="drMetric" value="viability"
+                   autocomplete="off"> Viability
+          </label>
+        </div>
+        <div class="hts-viability-time pull-right" style="display:none">
+          <label>Time point (hrs)</label>
+          <input type="text" name="drViabilityHrs"
+               value="72"
+               class="form-control" style="display:inline;width:50px;"
+               maxlength="4">
+        </div>
+        <div class="clearfix"></div>
+    </div>{% comment %}
     <div class="form-group" style="display:none">
         <label for="hts-error-bars">Error Bars</label>
         <div class="hts-error-bars btn-group btn-group-3 btn-group-responsive"
@@ -341,7 +363,7 @@
                    autocomplete="off" disabled> Range
           </label>
         </div>
-    </div>
+    </div>{% endcomment %}
     {% with param_form_name="drPar" param_label="Parameter" %}
     {% include "parameter_selection_panel.html" %}
     {% endwith %}
@@ -409,9 +431,6 @@
     <button class="btn btn-success
         form-control">Show Plot</button>
     </div>
-</div>
-<div class="hidden-tc hidden-qc">
-  <input type="hidden" name="drMetric" value="dip">
 </div>
 </form>
 </div>
