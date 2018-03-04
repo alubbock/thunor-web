@@ -33,6 +33,7 @@
 <meta name="msapplication-square310x310logo" content="{% webpack_static 'favicon/mstile-310.png' %}" />
 {% render_bundle 'vendor' 'css' %}
 {% render_bundle 'app' 'css' %}
+{% block head %}{% endblock %}
 </head>
 
 <body>{% block body %}{% endblock %}

@@ -147,6 +147,7 @@ var ajax = (function () {
         "view_plots": "/plots",
         "get_plot": "/ajax/plot.json",
         "get_plot_csv": "/ajax/plot.csv",
+        "get_plot_html": "/ajax/plot.html",
         "assign_tag": "/ajax/tags/assign"
     };
 

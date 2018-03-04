@@ -703,6 +703,14 @@ var plots = function() {
             });
     });
 
+    $(".panel-newwin-btn").click(function() {
+       window.open(
+           ajax.url("get_plot_html") + "?" + $(this).closest(".plot-panel").find("form").serialize(),
+           '',
+           'height=400,width=600,scrollbars=no,status=no,menubar=no'
+       );
+    });
+
     $(".panel-copy-btn").on("click", function() {
         var $panel = $(this).closest(".panel-container");
         var $newPanel = $(".panel-container").last().clone(true, true);
@@ -840,9 +848,9 @@ var plots = function() {
                     $showPlotDelayedMsg.clone().appendTo($plotPanel.find(".plotly-graph-div"));
                 }
                 $plotPanel.appendTo(".sortable-panels").show();
-                if(showByDefault) {
-                    $plotPanel.find(".panel-body").loadingOverlay("show");
-                }
+                // if(showByDefault) {
+                //     $plotPanel.find(".panel-body").loadingOverlay("show");
+                // }
             }
         }
         $(".show-plot-delayed").not(":last").show().find("button").click(function() {

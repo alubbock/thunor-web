@@ -1337,6 +1337,10 @@ def ajax_get_plot(request, file_type='json'):
     elif file_type == 'csv':
         response = HttpResponse(plotly_to_dataframe(plot_fig).to_csv(),
                                 content_type='text/csv')
+    elif file_type == 'html':
+        response = render(request, 'plotly_plot.html',
+            {'data': JsonResponse(plot_fig,
+                                  encoder=PlotlyJSONEncoder).content})
     else:
         return HttpResponse('Unknown file type: %s' % file_type, status=400)
 

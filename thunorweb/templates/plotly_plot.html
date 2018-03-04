@@ -1,0 +1,45 @@
+{% extends "base-outer.html" %}
+{% block head %}
+<style>
+  html, body, #plotly-graph-div {width: 100%; height: 100%;}
+  .powered-by {position: absolute;bottom:0;right:0;margin-right:1em;}
+</style>
+{% endblock %}
+{% block title %}Plot{% endblock %}
+{% block body %}
+<div id="plotly-graph-div">
+
+</div>
+<div class="powered-by"><i class="fa fa-bolt"></i> Thunor</div>
+
+{% load webpack_loader %}{% get_files 'raven' 'js' as raven_js %}
+<script src="{{ raven_js.0.url }}" crossorigin="anonymous"></script>
+<script>{% load raven %}{% load thunorweb_tags %}Raven.config('{% sentry_public_dsn %}', {
+    environment: '{% sentry_environment %}', release: '{% thunorweb_version %}'
+}).install();
+{% if user.is_authenticated %}Raven.setUserContext({email: '{{ user.email }}',
+    id: '{{ user.id }}'});{% endif %}</script>
+{% render_bundle 'vendor' 'js' %}
+{% render_bundle 'app' 'js' %}
+{% render_bundle 'plots' 'js' %}
+<script>
+  var data = {{ data|safe }};
+  Plotly.newPlot(
+    document.getElementById('plotly-graph-div'),
+    data.data,
+    data.layout,
+    {
+        showLink: false,
+        displaylogo: false,
+        modeBarButtonsToRemove: ["sendDataToCloud", "toImage"]
+    }
+  );
+
+  $(window).resize(function () {
+      clearTimeout($.data(window, "resizeTimer"));
+      $.data(window, "resizeTimer", setTimeout(function () {
+          Plotly.Plots.resize(document.getElementById('plotly-graph-div'));
+      }, 100));
+  });
+</script>
+{% endblock %}
