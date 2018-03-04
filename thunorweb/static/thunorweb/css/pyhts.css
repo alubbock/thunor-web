@@ -831,7 +831,7 @@ form.set-tag-targets button[type=submit] {
 .tag-container {
     position: relative;
 }
-.plot-type-tc .hidden-tc, .plot-type-dip .hidden-dip, .plot-type-dippar .hidden-dippar,
+.plot-type-tc .hidden-tc, .plot-type-drc .hidden-drc, .plot-type-drpar .hidden-drpar,
 .plot-type-qc .hidden-qc {
     display: none;
 }

@@ -198,11 +198,11 @@
                          autocomplete="off" checked><span>Time Course</span>
               </label>
               <label class="btn btn-primary">
-                  <input type="radio" name="plotType" value="dip"
+                  <input type="radio" name="plotType" value="drc"
                          autocomplete="off"><span>Dose Response Curves</span>
               </label>
               <label class="btn btn-primary">
-                  <input type="radio" name="plotType" value="dippar"
+                  <input type="radio" name="plotType" value="drpar"
                          autocomplete="off"><span>Dose Response
                       Parameters</span>
               </label>
@@ -219,9 +219,9 @@
     <div class="col-sm-6">
     <input type="hidden" name="datasetId">
     <input type="hidden" name="dataset2Id">
-    <div class="form-group hidden-qc">
-        <div class="pull-right name-tag-switch btn-group btn-group-inline
-        hidden-tc" data-toggle="buttons">
+    <div class="cl-or-drug">
+      <div class="hidden-tc hidden-qc">
+        <div class="pull-right name-tag-switch btn-group btn-group-inline" data-toggle="buttons">
             <label class="btn btn-default btn-xs active">
               <input type="radio" name="useCellLineTags" value="off"
                      autocomplete="off" checked> Names
@@ -231,20 +231,25 @@
                      autocomplete="off"> Tags
             </label>
         </div>
+      </div>
+      <div class="hidden-qc">
         <label for="hts-change-cell-line">Cell Line</label>
+      </div>
+      <div class="hidden-qc">
         <select multiple data-live-search="true" name="cellLineId"
                 class="hts-change-cell-line form-control name-select"
                 title="Loading...">
         </select>
-        <select disabled style="display:none" multiple data-live-search="true"
-                name="cellLineTags"
-                class="form-control tag-select"
+      </div>
+      <div class="hidden-tc hidden-qc">
+        <select disabled multiple data-live-search="true"
+                name="cellLineTags" class="form-control tag-select no-disable"
                 title="Select a tag">
         </select>
-        <div class="form-group" style="display:none">
+      </div>
+      <div class="hidden-tc hidden-drc hidden-qc">
         <div class="btn-group btn-group-2 hts-aggregate
-        hts-aggregate-cell-lines"
-             data-toggle="buttons">
+        hts-aggregate-cell-lines" data-toggle="buttons">
           <label class="btn btn-default active">
             <input type="radio" name="aggregateCellLines" value="false"
                    autocomplete="off" checked disabled> Separate
@@ -254,11 +259,12 @@
                    autocomplete="off" disabled> Aggregated
           </label>
         </div>
-        </div>
+      </div>
+      <div class="hidden-qc" style="height:15px">&nbsp;</div>
     </div>
-    <div class="form-group hidden-qc">
-        <span class="pull-right name-tag-switch btn-group btn-group-inline
-        hidden-tc" data-toggle="buttons">
+    <div class="cl-or-drug">
+      <div class="hidden-tc hidden-qc">
+        <span class="pull-right name-tag-switch btn-group btn-group-inline" data-toggle="buttons">
             <label class="btn btn-default btn-xs active">
               <input type="radio" name="useDrugTags" value="off"
                      autocomplete="off" checked> Names
@@ -268,16 +274,20 @@
                      autocomplete="off"> Tags
             </label>
         </span>
+      </div>
+      <div class="hidden-qc">
         <label for="hts-change-drug">Drug</label>
         <select multiple data-live-search="true" name="drugId"
         class="hts-change-drug form-control name-select" title="Loading...">
         </select>
-        <select disabled style="display:none" multiple data-live-search="true"
-                name="drugTags" class="form-control
-                tag-select"
+      </div>
+      <div class="hidden-tc hidden-qc">
+        <select disabled multiple data-live-search="true"
+                name="drugTags" class="form-control tag-select no-disable"
                 title="Select a tag">
         </select>
-        <div class="form-group" style="display:none">
+      </div>
+      <div class="hidden-tc hidden-drc hidden-qc">
         <div class="btn-group btn-group-2 hts-aggregate hts-aggregate-drugs"
              data-toggle="buttons">
           <label class="btn btn-default active">
@@ -289,17 +299,18 @@
                    autocomplete="off" disabled> Aggregated
           </label>
         </div>
-        </div>
+      </div>
+      <div class="hidden-qc" style="height:15px">&nbsp;</div>
     </div>
-    <div class="form-group hidden-dip hidden-dippar hidden-qc" style="display:none">
+    <div class="form-group hidden-drc hidden-drpar hidden-qc" style="display:none">
         <label for="hts-change-assay">Assay</label>
         <select name="assayId" class="hts-change-assay form-control"
                 title="Loading..." disabled>
         </select>
     </div>
-    <div class="form-group hidden-tc hidden-dip hidden-dippar">
-        <label for="hts-dip-type">Quality Control View</label>
-        <div class="hts-dip-type btn-group btn-group-2 btn-group-responsive"
+    <div class="form-group hidden-tc hidden-drc hidden-drpar">
+        <label for="hts-qc-view">Quality Control View</label>
+        <div class="hts-qc-view btn-group btn-group-2 btn-group-responsive"
              data-toggle="buttons">
           <label class="btn btn-primary active">
             <input type="radio" name="qcView" value="ctrldipbox"
@@ -331,16 +342,16 @@
           </label>
         </div>
     </div>
-    {% with param_form_name="dipPar" param_label="Parameter" %}
+    {% with param_form_name="drPar" param_label="Parameter" %}
     {% include "parameter_selection_panel.html" %}
     {% endwith %}
-    {% with parameter_toggle=True param_form_name="dipParTwo" param_label="Second Parameter" %}
+    {% with parameter_toggle=True param_form_name="drParTwo" param_label="Second Parameter" %}
     {% include "parameter_selection_panel.html" %}
     {% endwith %}
-    {% with parameter_toggle=True param_form_name="dipParOrder" param_label="Ordering Parameter" %}
+    {% with parameter_toggle=True param_form_name="drParOrder" param_label="Ordering Parameter" %}
     {% include "parameter_selection_panel.html" %}
     {% endwith %}
-    <div class="form-group hidden-dip hidden-dippar hidden-qc">
+    <div class="form-group hidden-drc hidden-drpar hidden-qc">
         <label for="hts-log-transform">Vertical Axis</label>
         <div class="hts-log-transform btn-group btn-group-2 btn-group-responsive"
              data-toggle="buttons">
@@ -354,7 +365,7 @@
           </label>
         </div>
     </div>
-    <div class="form-group hidden-dip hidden-dippar hidden-qc">
+    <div class="form-group hidden-drc hidden-drpar hidden-qc">
         <label for="hts-show-dip-fit">Overlay Dip Fit</label>
         <div class="hts-show-dip-fit btn-group btn-group-2
         btn-group-responsive"
@@ -369,26 +380,27 @@
           </label>
         </div>
     </div>
-    <div class="form-group hidden-tc hidden-dippar hidden-qc">
-        <label for="hts-dip-type">Vertical Axis</label>
-        <div class="hts-dip-type btn-group btn-group-2 btn-group-responsive"
+    <div class="form-group hidden-tc hidden-drpar hidden-qc">
+        <label for="hts-drc-type">Vertical Axis</label>
+        <div class="hts-drc-type btn-group btn-group-2 btn-group-responsive"
              data-toggle="buttons">
           <label class="btn btn-default active">
-            <input type="radio" name="dipType" value="rel"
+            <input type="radio" name="drcType" value="rel"
                    autocomplete="off" checked> Relative
           </label>
           <label class="btn btn-default">
-            <input type="radio" name="dipType" value="abs"
+            <input type="radio" name="drcType" value="abs"
                    autocomplete="off"> Absolute
           </label>
         </div>
     </div>
-    <div class="form-group hidden-tc hidden-dip hidden-dippar"
-         style="display:none">
+    <div class="hidden-tc hidden-drc hidden-drpar">
+      <div class="form-group" style="display:none">
         <label for="hts-change-plate">Plate</label>
         <select name="plateId" class="hts-change-plate form-control"
                 title="Loading...">
         </select>
+      </div>
     </div>
     </div>
 </div>
@@ -398,7 +410,9 @@
         form-control">Show Plot</button>
     </div>
 </div>
+<div class="hidden-tc hidden-qc">
   <input type="hidden" name="drMetric" value="dip">
+</div>
 </form>
 </div>
 <div class="plotly-graph-div" style="width:100%; height:100%"></div>

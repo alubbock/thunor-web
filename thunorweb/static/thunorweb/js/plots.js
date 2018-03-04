@@ -229,8 +229,7 @@ var plots = function() {
         }
         var numCombos = combinations.length;
         if (numCombos > 0) {
-            var $comboGrp = $("<optgroup label=\"Combinations\"" +
-                "></optgroup>");
+            var $comboGrp = $("<optgroup label=\"Combinations\"></optgroup>");
             for (var i = 0; i < numCombos; i++) {
                 $comboGrp.append(combinations[i]);
             }
@@ -264,6 +263,24 @@ var plots = function() {
         $dataPanel.removeClass (function (index, className) {
             return (className.match (/(^|\s)plot-type-\S+/g) || []).join(" ");
         }).addClass("plot-type-"+plotType);
+
+        // Disable non-active form components
+        var showPanels = [".hidden-tc", ".hidden-drc", ".hidden-drpar", ".hidden-qc"];
+        var thisHiddenPanel = ".hidden-" + plotType;
+        showPanels.splice(showPanels.indexOf(thisHiddenPanel), 1);
+        showPanels = showPanels.join(",");
+        // text, hidden, radio, select
+        $(thisHiddenPanel).find("input,select").not(".no-disable,[type=checkbox]").prop("disabled", true);
+        $(showPanels).not(thisHiddenPanel).find("input,select").not(".no-disable,[type=checkbox]").prop("disabled", false);
+        // checkbox (not yet working)
+        // $(thisHiddenPanel).find("input[type=checkbox]").bootstrapSwitch("disabled", true);
+        // $(showPanels).find("input[type=checkbox]").bootstrapSwitch("disabled", false);
+
+        if (plotType === "qc") {
+            $dataPanel.find("select[name=plateId]").selectpicker("refresh");
+        } else if (plotType === "drpar") {
+            $dataPanel.find("select.drpar-select").selectpicker("refresh");
+        }
 
         // Select multiple cell lines/drugs or not
         var $changeCL = $dataPanel.find("select.hts-change-cell-line"),
@@ -304,11 +321,11 @@ var plots = function() {
             $actionBtns.show();
         }
         // Only enable drug combos on timecourse plot for now
-        var $toggleDipparTwoSwitch = $dataPanel.find("input[name=dipParTwoToggle]");
-        var $toggleDipparOrderSwitch = $dataPanel.find("input[name=dipParOrderToggle]");
-        if (plotType === "dippar") {
-            toggleDipparTwoSwitch($toggleDipparTwoSwitch, $toggleDipparTwoSwitch.prop("checked"));
-            toggleDipparOrderSwitch($toggleDipparOrderSwitch, $toggleDipparOrderSwitch.prop("checked"));
+        var $toggleDRparTwoSwitch = $dataPanel.find("input[name=drParTwoToggle]");
+        var $toggleDRparOrderSwitch = $dataPanel.find("input[name=drParOrderToggle]");
+        if (plotType === "drpar") {
+            toggleDRparTwoSwitch($toggleDRparTwoSwitch, $toggleDRparTwoSwitch.prop("checked"));
+            toggleDRparOrderSwitch($toggleDRparOrderSwitch, $toggleDRparOrderSwitch.prop("checked"));
         } else {
             setRadio($dataPanel.find(".hts-aggregate"), false);
         }
@@ -333,7 +350,7 @@ var plots = function() {
     });
     $(".name-tag-switch").find("input[type=radio]").change(function() {
         var $this = $(this);
-        var $formGroup = $this.closest(".form-group");
+        var $formGroup = $this.closest(".cl-or-drug");
         if ($(this).val() === "on") {
             $formGroup.find(".tag-select").prop("disabled", false).selectpicker("refresh").selectpicker("show");
             $formGroup.find(".name-select").prop("disabled", true).selectpicker("hide");
@@ -356,8 +373,8 @@ var plots = function() {
             var plotType = $form.find("input[name=plotType]:checked").val();
             var numTraces = numCellLines * numDrugs;
 
-            if (plotType === "dip" && numTraces > 100 ||
-                plotType === "dippar" && numTraces > 1000) {
+            if (plotType === "drc" && numTraces > 100 ||
+                plotType === "drpar" && numTraces > 1000) {
                 ui.okCancelModal({
                     title: "Large plot requested",
                     text: "The plot you've requested has up to " +
@@ -489,16 +506,16 @@ var plots = function() {
       return returnArray;
     };
 
-    var toggleDipparTwoSwitch = function($toggleSwitch, state) {
+    var toggleDRparTwoSwitch = function($toggleSwitch, state) {
         var $dataPanel = $toggleSwitch.closest(".hts-change-data");
         if(state) {
-            var $dipParOrder = $dataPanel.find("input[name=dipParOrderToggle]");
-            $dipParOrder.bootstrapSwitch("state", false, true);
-            $dipParOrder.closest(".hts-dippar-group").find(".hts-dippar-entry").slideUp();
+            var $drParOrder = $dataPanel.find("input[name=drParOrderToggle]");
+            $drParOrder.bootstrapSwitch("state", false, true);
+            $drParOrder.closest(".hts-drpar-group").find(".hts-drpar-entry").slideUp();
         }
         setRadio($dataPanel.find(".hts-aggregate"), !state);
-        var $group = $toggleSwitch.closest(".hts-dippar-group");
-        var $buttons = $group.find(".hts-dippar-entry");
+        var $group = $toggleSwitch.closest(".hts-drpar-group");
+        var $buttons = $group.find(".hts-drpar-entry");
         if(state) {
             $buttons.slideDown();
         } else {
@@ -506,16 +523,16 @@ var plots = function() {
         }
     };
 
-    var toggleDipparOrderSwitch = function($toggleSwitch, state) {
+    var toggleDRparOrderSwitch = function($toggleSwitch, state) {
         var $dataPanel = $toggleSwitch.closest(".hts-change-data");
         if(state) {
-            var $parTwoToggle = $dataPanel.find("input[name=dipParTwoToggle]");
+            var $parTwoToggle = $dataPanel.find("input[name=drParTwoToggle]");
             $parTwoToggle.bootstrapSwitch("state", false, true);
-            $parTwoToggle.closest(".hts-dippar-group").find(".hts-dippar-entry").slideUp();
+            $parTwoToggle.closest(".hts-drpar-group").find(".hts-drpar-entry").slideUp();
             setRadio($dataPanel.find(".hts-aggregate"), true);
         }
-        var $group = $toggleSwitch.closest(".hts-dippar-group");
-        var $buttons = $group.find(".hts-dippar-entry");
+        var $group = $toggleSwitch.closest(".hts-drpar-group");
+        var $buttons = $group.find(".hts-drpar-entry");
         if(state) {
             $buttons.slideDown();
         } else {
@@ -526,30 +543,30 @@ var plots = function() {
     var prepareDataPanel = function($plotPanel, defaultOptions, autoSubmit) {
         var $dataPanel = $plotPanel.find(".hts-change-data");
 
-        $dataPanel.find("input.dipParTwoToggle").bootstrapSwitch({
+        $dataPanel.find("input.drParTwoToggle").bootstrapSwitch({
             "onSwitchChange": function(event, state) {
-                toggleDipparTwoSwitch($(event.currentTarget), state);
+                toggleDRparTwoSwitch($(event.currentTarget), state);
             }
         });
-        $dataPanel.find("input.dipParOrderToggle").bootstrapSwitch({
+        $dataPanel.find("input.drParOrderToggle").bootstrapSwitch({
             "onSwitchChange": function(event, state) {
-                toggleDipparOrderSwitch($(event.currentTarget), state);
+                toggleDRparOrderSwitch($(event.currentTarget), state);
             }
         });
 
         $dataPanel.find("select[name=cellLineId],select[name=drugId]")
             .selectpicker(selectPickerOptionsSingle);
-        $dataPanel.find(".hts-dippar-select").find("select")
+        $dataPanel.find(".hts-drpar-select").find("select")
             .selectpicker().on("changed.bs.select", function(e) {
                 var $target = $(e.target);
-                var $customBox = $target.closest(".hts-dippar-group").find(".hts-dippar-custom");
+                var $customBox = $target.closest(".hts-drpar-group").find(".hts-drpar-custom");
                 if($target.val().indexOf("_custom") !== -1) {
                     $customBox.slideDown().find("input[type=text]").focus();
                 } else {
                     $customBox.slideUp();
                 }
         });
-        $dataPanel.find(".hts-dippar-custom").find("input[type=text]").focus(
+        $dataPanel.find(".hts-drpar-custom").find("input[type=text]").focus(
             function() { $(this).select(); }
         );
 
@@ -571,6 +588,7 @@ var plots = function() {
         } else {
             datasetId = $dataPanel.find("input[name=datasetId]").val();
             dataset2Id = $dataPanel.find("input[name=dataset2Id]").val();
+            setPlotType($dataPanel);
         }
 
         var datasetGroupingsIds = datasetId;
@@ -611,13 +629,13 @@ var plots = function() {
                 setSelectPicker($assaySelect, true);
             }
             var $selectClTags = $dataPanel.find("select[name=cellLineTags]");
-            $selectClTags.selectpicker("hide");
+            $selectClTags.prop("disabled", true).selectpicker("hide");
             pushOptionsToSelect(
                 $selectClTags,
                 data.cellLineTags
             );
             var $selectDrTags = $dataPanel.find("select[name=drugTags]");
-            $selectDrTags.selectpicker("hide");
+            $selectDrTags.prop("disabled", true).selectpicker("hide");
             pushOptionsToSelect(
                 $selectDrTags,
                 data.drugTags
@@ -772,8 +790,11 @@ var plots = function() {
         }
         var $plotPanel = $(".panel-container").last().clone(true, true);
         $plotPanel.find("input[name=datasetId]").val(datasetId);
+        var $dataset2Id = $plotPanel.find("input[name=dataset2Id]");
         if (dataset2active) {
-            $plotPanel.find("input[name=dataset2Id]").val(dataset2Id);
+            $dataset2Id.val(dataset2Id);
+        } else {
+            $dataset2Id.prop("disabled", true);
         }
         var $changeDataBtn = $plotPanel.find(".hts-change-data-btn");
 
@@ -843,11 +864,11 @@ var plots = function() {
             if(!$.isEmptyObject(formData)) {
                 var $plotPanel = $panelTemplate.clone(true, true);
                 var showByDefault = i < 4;
-                prepareDataPanel($plotPanel, formData, showByDefault);
                 if(!showByDefault) {
                     $showPlotDelayedMsg.clone().appendTo($plotPanel.find(".plotly-graph-div"));
                 }
                 $plotPanel.appendTo(".sortable-panels").show();
+                prepareDataPanel($plotPanel, formData, showByDefault);
                 // if(showByDefault) {
                 //     $plotPanel.find(".panel-body").loadingOverlay("show");
                 // }

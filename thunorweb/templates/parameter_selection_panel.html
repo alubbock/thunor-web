@@ -1,4 +1,4 @@
-<div class="hts-dippar-group hidden-tc hidden-dip hidden-qc">
+<div class="hts-drpar-group hidden-tc hidden-drc hidden-qc">
   <div class="form-group">
     {% if parameter_toggle %}
       <div class="pull-right" style="margin-top:-2px;margin-right:4px">
@@ -7,11 +7,11 @@
                data-size="mini">
       </div>
     {% endif %}
-      <label for="hts-dippar-select">{{ param_label }}</label>
-      <div class="hts-dippar-entry"{% if parameter_toggle %} style="display:none"{% endif %}>
-      <div class="hts-dippar-select">
-        <select class="form-control" title="Select a parameter" name=
-            "{{ param_form_name }}">
+      <label for="hts-drpar-select">{{ param_label }}</label>
+      <div class="hts-drpar-entry"{% if parameter_toggle %} style="display:none"{% endif %}>
+      <div class="hts-drpar-select">
+        <select class="form-control drpar-select" title="Select a parameter"
+                name="{{ param_form_name }}">
           <optgroup label="Inhibitory concentration">
             <option data-content="IC<sub>10</sub>" value="ic10">IC10</option>
             <option data-content="IC<sub>50</sub>" value="ic50" selected>IC50</option>
@@ -46,7 +46,7 @@
           </optgroup>
         </select>
       </div>
-      <div class="hts-dippar-custom pull-right" style="display:none">
+      <div class="hts-drpar-custom pull-right" style="display:none">
         <label for="{{ param_form_name }}Custom">Custom Value</label>
         <input type="text" name="{{ param_form_name }}Custom"
                value="50"

@@ -1178,7 +1178,7 @@ def ajax_get_plot(request, file_type='json'):
             show_dip_fit=overlay_dip_fit,
             subtitle=dataset.name
         )
-    elif plot_type in ('dip', 'dippar'):
+    elif plot_type in ('drc', 'drpar'):
         if dataset2_id is not None:
             try:
                 dataset2 = HTSDataset.objects.get(pk=dataset2_id)
@@ -1221,19 +1221,19 @@ def ajax_get_plot(request, file_type='json'):
             return par_name
 
         try:
-            dip_par = _setup_dip_par('dipPar')
+            dip_par = _setup_dip_par('drPar')
         except ValueError:
             return HttpResponse('Parameter custom value '
                                 'needs to be a positive integer', status=400)
 
         try:
-            dip_par_two = _setup_dip_par('dipParTwo', needs_toggle=True)
+            dip_par_two = _setup_dip_par('drParTwo', needs_toggle=True)
         except ValueError:
             return HttpResponse('Parameter two custom value '
                                 'needs to be a positive integer', status=400)
 
         try:
-            dip_par_order = _setup_dip_par('dipParOrder', needs_toggle=True)
+            dip_par_order = _setup_dip_par('drParOrder', needs_toggle=True)
         except ValueError:
             return HttpResponse('Parameter order custom value '
                                 'needs to be a positive integer', status=400)
@@ -1270,19 +1270,19 @@ def ajax_get_plot(request, file_type='json'):
         with warnings.catch_warnings(record=True) as w:
             fit_params = dip_fit_params(
                 ctrl_dip_data, expt_dip_data,
-                include_dip_rates=plot_type == 'dip',
+                include_dip_rates=plot_type == 'drc',
                 custom_ic_concentrations=ic_concentrations,
                 custom_ec_concentrations=ec_concentrations,
                 custom_e_values=e_values,
                 custom_e_rel_values=e_rel_values
             )
             # Currently only care about warnings if plotting AA
-            if plot_type == 'dippar' and (dip_par == 'aa' or
+            if plot_type == 'drpar' and (dip_par == 'aa' or
                                           dip_par_two == 'aa'):
                 w = [i for i in w if issubclass(i.category, AAFitWarning)]
                 if w:
                     return HttpResponse(w[0].message, status=400)
-        if plot_type == 'dippar':
+        if plot_type == 'drpar':
             if dip_par is None:
                 return HttpResponse('Dose response parameter sort field is '
                                     'required', status=400)
@@ -1300,7 +1300,7 @@ def ajax_get_plot(request, file_type='json'):
             except ValueError as e:
                 return HttpResponse(e, status=400)
         else:
-            dip_absolute = request.GET.get('dipType', 'rel') == 'abs'
+            dip_absolute = request.GET.get('drcType', 'rel') == 'abs'
             plot_fig = plot_dip(
                 fit_params,
                 is_absolute=dip_absolute
