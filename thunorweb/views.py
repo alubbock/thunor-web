@@ -1281,13 +1281,18 @@ def _dose_response_plot(request, dataset, dataset2_id,
         except ValueError:
             return HttpResponse('Viability time must be a number', status=400)
         ctrl_dip_data = None
-        df_data = df_doses_assays_controls(
-            dataset=dataset if not dataset2_id else [dataset, dataset2],
-            drug_id=drug_id,
-            cell_line_id=cell_line_id,
-            assay=None,
-            use_dataset_names=True
-        )
+        try:
+            df_data = df_doses_assays_controls(
+                dataset=dataset if not dataset2_id else [dataset, dataset2],
+                drug_id=drug_id,
+                cell_line_id=cell_line_id,
+                assay=None,
+                use_dataset_names=True
+            )
+        except NoDataException:
+            return HttpResponse('No viability data found for this request. '
+                                'This drug/cell line/time point combination '
+                                'may not exist.', status=400)
         expt_resp_data = viability(df_data, time_hrs=viability_time)
         if expt_resp_data['viability'].isnull().values.all():
             return HttpResponse('No viability for this time point. The '
