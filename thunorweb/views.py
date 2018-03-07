@@ -1182,7 +1182,7 @@ def ajax_get_plot(request, file_type='json'):
     elif plot_type in ('drc', 'drpar'):
         plot_fig = _dose_response_plot(request, dataset, dataset2_id,
                                        permission_required, drug_id,
-                                       cell_line_id, plot_type, yaxis,
+                                       cell_line_id, plot_type,
                                        aggregate_cell_lines, aggregate_drugs)
         if isinstance(plot_fig, HttpResponse):
             return plot_fig
@@ -1238,7 +1238,7 @@ def ajax_get_plot(request, file_type='json'):
 
 def _dose_response_plot(request, dataset, dataset2_id,
                         permission_required, drug_id, cell_line_id,
-                        plot_type, yaxis, aggregate_cell_lines,
+                        plot_type, aggregate_cell_lines,
                         aggregate_drugs):
     dataset_id = dataset.id
     response_metric = request.GET.get('drMetric', 'dip')
@@ -1378,15 +1378,14 @@ def _dose_response_plot(request, dataset, dataset2_id,
 
     if plot_type == 'drpar':
         if dr_par is None:
-            return HttpResponse('Dose response parameter sort field is '
-                                'required', status=400)
+            return HttpResponse('Dose response parameter is a required field',
+                                status=400)
         try:
             plot_fig = plot_drc_params(
                 fit_params,
                 fit_param=dr_par,
                 fit_param_compare=dr_par_two,
                 fit_param_sort=dr_par_order,
-                log_yaxis=yaxis == 'log2',
                 aggregate_cell_lines=aggregate_cell_lines,
                 aggregate_drugs=aggregate_drugs,
                 multi_dataset=dataset2_id is not None

@@ -350,11 +350,17 @@ var plots = function() {
     });
     $("input[name=drMetric]").change(function(e) {
         var $target = $(e.target);
+        var $dataPanel = $target.closest(".hts-change-data");
+        var $drcTypeBox = $dataPanel.find("input[name=drcType]").closest(".form-group");
         var $viabilityTimeBox = $target.closest(".form-group").find(".hts-viability-time");
         if($target.val() === "viability") {
             $viabilityTimeBox.slideDown().find("input[type=text]").focus();
+            $drcTypeBox.slideUp();
+            $dataPanel.find("option.rel-metric").prop("disabled", true).closest("select").selectpicker("refresh");
         } else {
             $viabilityTimeBox.slideUp();
+            $drcTypeBox.slideDown();
+            $dataPanel.find("option.rel-metric").prop("disabled", false).closest("select").selectpicker("refresh");
         }
     });
     $(".name-tag-switch").find("input[type=radio]").change(function() {
