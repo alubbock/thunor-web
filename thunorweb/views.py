@@ -1055,7 +1055,7 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
 
 @login_required_unless_public
 def ajax_get_plot(request, file_type='json'):
-    if file_type in ('csv', 'json'):
+    if file_type == 'csv':
         permission_required = 'download_data'
     else:
         permission_required = 'view_plots'
