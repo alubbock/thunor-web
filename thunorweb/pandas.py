@@ -196,12 +196,8 @@ def df_doses_assays_controls(dataset, drug_id, cell_line_id, assay,
     if df_vals.isnull().values.all():
         raise NoDataException()
 
-    if isinstance(dataset, Iterable):
-        controls = WellMeasurement.objects.filter(
-            well__plate__dataset_id__in=dataset_id)
-    else:
-        controls = WellMeasurement.objects.filter(
-            well__plate__dataset_id=dataset_id)
+    controls = WellMeasurement.objects.filter(
+        well__plate_id__in=df_doses['plate_id'].unique())
 
     controls = controls.select_related('well').order_by(
         dataset_id_field, 'well__cell_line', 'timepoint')
@@ -285,8 +281,9 @@ def df_dip_rates(dataset_id, drug_id, cell_line_id,
             WellDrug.objects.filter(well_id__in=well_ids).order_by('well_id',
                                                                    'order'),
             columns=('well_id', 'drug__name', 'dose', 'well__cell_line__name',
-                     dataset_id_field),
-            rename_columns=('well_id', 'drug', 'dose', 'cell_line', 'dataset'),
+                     dataset_id_field, 'well__plate_id'),
+            rename_columns=('well_id', 'drug', 'dose', 'cell_line',
+                            'dataset', 'plate'),
             index=('well_id', )
         )
 
@@ -299,7 +296,8 @@ def df_dip_rates(dataset_id, drug_id, cell_line_id,
 
         df_doses = pd.merge(df_stats, df_drugs, left_index=True, right_index=True)
         df_doses.reset_index(inplace=True)
-        df_doses.set_index(['dataset', 'drug', 'cell_line', 'dose', 'well_id'],
+        df_doses.set_index(['dataset', 'drug', 'cell_line', 'dose',
+                            'plate', 'well_id'],
                            inplace=True)
         df_doses.sort_index(inplace=True)
     else:
@@ -311,10 +309,10 @@ def df_dip_rates(dataset_id, drug_id, cell_line_id,
             ),
             columns=('stat_name', 'value', 'well__welldrug__dose', 'well_id',
                      'well__cell_line__name', 'well__welldrug__drug__name',
-                     dataset_id_field),
+                     dataset_id_field, 'well__plate_id'),
             rename_columns=(
             'stat_name', 'value', 'dose', 'well_id', 'cell_line',
-            'drug', 'dataset')
+            'drug', 'dataset', 'plate')
         )
 
         if df_doses.isnull().values.all():
@@ -325,29 +323,28 @@ def df_dip_rates(dataset_id, drug_id, cell_line_id,
                                 'drug': lambda x: (x, )})
 
         df_doses = df_doses.pivot_table(
-            index=('dataset', 'drug', 'cell_line', 'dose', 'well_id'),
+            index=('dataset', 'drug', 'cell_line', 'dose', 'plate', 'well_id'),
             columns='stat_name', values=['value'])['value']
 
-    controls = WellStatistic.objects.filter(stat_name__in=DIP_STATS)
-    if isinstance(dataset_id, Iterable):
-        controls = controls.filter(well__plate__dataset_id__in=dataset_id)
-    else:
-        controls = controls.filter(well__plate__dataset_id=dataset_id)
+    plates = df_doses.index.levels[df_doses.index.names.index('plate')]
+    controls = WellStatistic.objects.filter(stat_name__in=DIP_STATS,
+                                            well__plate_id__in=plates)
     controls = _apply_control_filter(controls, cell_line_id)
 
     df_controls = queryset_to_dataframe(
         controls,
-        columns=(dataset_id_field, 'well__cell_line__name', 'well_id',
+        columns=(dataset_id_field, 'well__cell_line__name',
+                 'well__plate_id', 'well_id',
                  'stat_name', 'value'),
-        rename_columns=('dataset', 'cell_line', 'well_id', 'stat_name',
-                        'value')
+        rename_columns=('dataset', 'cell_line', 'plate', 'well_id',
+                        'stat_name', 'value')
     )
 
     if df_controls.isnull().values.all():
         df_controls = None
     else:
         df_controls = df_controls.pivot_table(
-            index=('dataset', 'cell_line', 'well_id'),
+            index=('dataset', 'cell_line', 'plate', 'well_id'),
             columns='stat_name', values=['value'])['value']
 
     return df_controls, df_doses

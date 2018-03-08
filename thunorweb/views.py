@@ -19,7 +19,7 @@ from thunor.plots import plot_time_course, plot_drc, plot_drc_params, \
     PARAM_NAMES, IC_REGEX, EC_REGEX, E_REGEX, E_REL_REGEX
 from thunor.dip import dip_fit_params, AAFitWarning, \
     DrugCombosNotImplementedError
-from thunor.viability import viability
+from thunor.viability import viability, viability_fit_params
 from thunor.io import write_hdf, PlateData
 from thunor.helpers import plotly_to_dataframe
 from plotly.utils import PlotlyJSONEncoder
@@ -1361,14 +1361,23 @@ def _dose_response_plot(request, dataset, dataset2_id,
 
     # Fit Hill curves and compute parameters
     with warnings.catch_warnings(record=True) as w:
-        fit_params = dip_fit_params(
-            ctrl_dip_data, expt_resp_data,
-            include_response_values=plot_type == 'drc',
-            custom_ic_concentrations=ic_concentrations,
-            custom_ec_concentrations=ec_concentrations,
-            custom_e_values=e_values,
-            custom_e_rel_values=e_rel_values
-        )
+        if response_metric == 'dip':
+            fit_params = dip_fit_params(
+                ctrl_dip_data, expt_resp_data,
+                include_response_values=plot_type == 'drc',
+                custom_ic_concentrations=ic_concentrations,
+                custom_ec_concentrations=ec_concentrations,
+                custom_e_values=e_values,
+                custom_e_rel_values=e_rel_values
+            )
+        else:
+            fit_params = viability_fit_params(
+                expt_resp_data,
+                include_response_values=plot_type == 'drc',
+                custom_ic_concentrations=ic_concentrations,
+                custom_ec_concentrations=ec_concentrations,
+                custom_e_values=e_values
+            )
         # Currently only care about warnings if plotting AA
         if plot_type == 'drpar' and (dr_par == 'aa' or
                                      dr_par_two == 'aa'):
