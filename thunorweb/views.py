@@ -911,7 +911,7 @@ def view_dataset_permissions(request, dataset_id):
     if dataset.owner_id != request.user.id:
         raise Http404()
 
-    available_perms = HTSDataset.view_dataset_permission_names()
+    available_perms = HTSDataset.view_dataset_permissions()
 
     all_groups = request.user.groups.all()
     groups_with_perms = get_groups_with_perms(dataset, True)

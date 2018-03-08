@@ -28,6 +28,10 @@ class HTSDataset(models.Model):
         """
         return [p[0] for p in cls._meta.permissions]
 
+    @classmethod
+    def view_dataset_permissions(cls):
+        return dict(cls._meta.permissions)
+
 
 class HTSDatasetUserObjectPermission(UserObjectPermissionBase):
     content_object = models.ForeignKey(HTSDataset)
