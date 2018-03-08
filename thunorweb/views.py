@@ -920,7 +920,7 @@ def view_dataset_permissions(request, dataset_id):
     for gr in all_groups:
         matching_gr_perms = groups_with_perms.get(gr, [])
         group_perms[gr] = [(perm, perm in matching_gr_perms) for perm in
-                           available_perms.keys()]
+                           available_perms]
 
     response = render(request, 'dataset-permissions.html', {
         'dataset': dataset, 'available_perms': available_perms,
