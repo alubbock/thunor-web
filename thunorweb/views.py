@@ -980,8 +980,15 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
     cell_lines = Well.objects.filter(
         cell_line__isnull=False,
         plate__dataset_id__in=dataset_ids).values(
-        'cell_line_id', 'cell_line__name').distinct().order_by(
-        'cell_line__name')
+        'cell_line_id', 'cell_line__name', 'wellmeasurement__assay'
+    ).distinct()
+
+    cell_line_dict = set((cl['cell_line_id'], cl['cell_line__name']) for
+                         cl in cell_lines)
+    cell_line_dict = [{'id': cl[0], 'name': cl[1]} for cl in
+                      sorted(cell_line_dict, key=lambda v: v[1])]
+    assays = set(cl['wellmeasurement__assay'] for cl in cell_lines)
+    assays = [{'id': a, 'name': a} for a in assays if a is not None]
 
     if request.user.is_authenticated():
         tag_owner_filter = Q(owner=request.user) | Q(owner=None)
@@ -996,49 +1003,46 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
     # Get drug without combinations
     drug_objs = WellDrug.objects.filter(
         drug__isnull=False,
-        dose__isnull=False,
+        dose__gt=0,
         well__plate__dataset_id__in=dataset_ids,
-    ).annotate(num_drugs=Count('well__welldrug')).filter(num_drugs=1).\
-      annotate(max_dose=Max('well__welldrug__dose')).filter(max_dose__gt=0).\
-      values('drug_id', 'drug__name').distinct().order_by('drug__name')
+    ).annotate(num_drugs=Count('well__welldrug')).\
+      values('drug_id', 'drug__name', 'num_drugs').distinct()
+
+    has_drug_combos = any(dr['num_drugs'] > 1 for dr in drug_objs)
+    drug_list = [{'id': dr['drug_id'], 'name': dr['drug__name']} for dr in
+                 drug_objs if dr['num_drugs'] == 1]
+    drug_list = sorted(drug_list, key=lambda d: d['name'])
 
     drug_tags = DrugTag.objects.filter(tag_owner_filter).filter(
         drug_id__in=[dr['drug_id'] for dr in drug_objs]
     ).values_list('owner_id', 'tag_name').distinct().order_by(
         'owner_id', 'tag_name')
 
-    assays = WellMeasurement.objects.filter(
-        well__plate__dataset_id__in=dataset_ids
-    ).values('assay').distinct().order_by('assay')
+    if has_drug_combos:
+        # Get drugs with combinations... this is inefficient but works
+        # for arbitrary numbers of drugs per well
+        drug_objs_combos = WellDrug.objects.filter(
+            drug__isnull=False,
+            dose__isnull=False,
+            well__plate__dataset_id__in=dataset_ids
+        ).annotate(drug2_id=F('well__welldrug__drug_id')
+        ).exclude(drug_id=F('drug2_id')).values(
+            'well_id', 'drug_id', 'drug__name') \
+            .distinct()
 
-    drug_list = [{'id': dr['drug_id'], 'name': dr['drug__name']} for dr in
-                 drug_objs]
+        drug_well_combos = defaultdict(set)
+        for d in drug_objs_combos:
+            drug_well_combos[d['well_id']].add((d['drug_id'], d['drug__name']))
 
-    # Get drugs with combinations... this is inefficient but works
-    # for arbitrary numbers of drugs per well
-    drug_objs_combos = WellDrug.objects.filter(
-        drug__isnull=False,
-        dose__isnull=False,
-        well__plate__dataset_id__in=dataset_ids
-    ).annotate(drug2_id=F('well__welldrug__drug_id')
-    ).exclude(drug_id=F('drug2_id')).values(
-        'well_id', 'drug_id', 'drug__name') \
-        .distinct()
+        drug_combos = set(frozenset(d) for d in drug_well_combos.values())
 
-    drug_well_combos = defaultdict(set)
-    for d in drug_objs_combos:
-        drug_well_combos[d['well_id']].add((d['drug_id'], d['drug__name']))
-
-    drug_combos = set(frozenset(d) for d in drug_well_combos.values())
-
-    for dc in drug_combos:
-        drug_ids, drug_names = zip(*sorted(dc, key=lambda d: d[1]))
-        drug_list.append({'id': drug_ids, 'name': drug_names})
+        for dc in drug_combos:
+            drug_ids, drug_names = zip(*sorted(dc, key=lambda d: d[1]))
+            drug_list.append({'id': drug_ids, 'name': drug_names})
 
     return JsonResponse({
         'datasets': [{'id': d.id, 'name': d.name} for d in datasets],
-        'cellLines': [{'id': cl['cell_line_id'],
-                       'name': cl['cell_line__name']} for cl in cell_lines],
+        'cellLines': cell_line_dict,
         'cellLineTags': [{'id': ('1' if tag[0] is None else '0') + tag[1],
                           'name': tag[1],
                           'public': tag[0] is None}
@@ -1048,7 +1052,7 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
                       'name': tag[1],
                       'public': tag[0] is None}
                      for tag in drug_tags],
-        'assays': [{'id': a['assay'], 'name': a['assay']} for a in assays],
+        'assays': assays,
         'plates': [{'id': p.id, 'name': p.name} for p in plates]
     })
 
