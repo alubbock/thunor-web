@@ -111,12 +111,18 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'thunordjango.wsgi.application'
 
-EMAIL_HOST = os.environ['DJANGO_EMAIL_HOST']
-EMAIL_PORT = os.environ['DJANGO_EMAIL_PORT']
-EMAIL_HOST_USER = os.environ['DJANGO_EMAIL_USER']
-EMAIL_HOST_PASSWORD = os.environ['DJANGO_EMAIL_PASSWORD']
 EMAIL_USE_TLS = True
-DEFAULT_FROM_EMAIL = os.environ.get('DJANGO_EMAIL_FROM', EMAIL_HOST_USER)
+try:
+    EMAIL_HOST = os.environ['DJANGO_EMAIL_HOST']
+    EMAIL_PORT = os.environ['DJANGO_EMAIL_PORT']
+    EMAIL_HOST_USER = os.environ['DJANGO_EMAIL_USER']
+    EMAIL_HOST_PASSWORD = os.environ['DJANGO_EMAIL_PASSWORD']
+    DEFAULT_FROM_EMAIL = os.environ.get('DJANGO_EMAIL_FROM', EMAIL_HOST_USER)
+except KeyError:
+    if DEBUG:
+        print('Email configuration missing; email sending disabled')
+    else:
+        raise
 
 # Database
 # https://docs.djangoproject.com/en/1.10/ref/settings/#databases
