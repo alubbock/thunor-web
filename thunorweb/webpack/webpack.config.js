@@ -3,6 +3,7 @@ var webpack = require("webpack");
 var BundleTracker = require("webpack-bundle-tracker");
 var ExtractTextPlugin = require("extract-text-webpack-plugin");
 var glob = require("glob");
+const IgnoreUnchangedFilesPlugin = require("ignore-unchanged-webpack-plugin");
 var isDebug = (process.env.DJANGO_DEBUG === undefined ? false : process.env.DJANGO_DEBUG.toLowerCase() === "true");
 
 var config = {
@@ -56,7 +57,8 @@ var config = {
     plugins: [
         new BundleTracker({path: __dirname,
             filename: "../_state/webpack-bundles/webpack-stats.json"}),
-        new ExtractTextPlugin("[name]-[chunkhash].css")
+        new ExtractTextPlugin("[name]-[chunkhash].css"),
+        new IgnoreUnchangedFilesPlugin()
     ],
 
     module: {
@@ -123,7 +125,8 @@ if (!isDebug) {
     var CompressionPlugin = require("compression-webpack-plugin");
     config.plugins.push(
         new CompressionPlugin({
-            test: /\.(js|html|css|ico|map|svg|eot|otf|ttf|json)$/
+            test: /\.(js|html|css|ico|map|svg|eot|otf|ttf|json)$/,
+            cache: true
         })
     );
 }
