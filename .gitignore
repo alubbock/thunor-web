@@ -7,3 +7,5 @@ node_modules/
 docker-compose*
 !docker-compose.services.yml
 !docker-compose.certbot.yml
+/thunor-app.env
+/thunor-db.env

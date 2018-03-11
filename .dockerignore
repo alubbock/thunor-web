@@ -3,3 +3,5 @@
 thunorweb/static
 _state/
 _conf/
+*.yml
+*.env
