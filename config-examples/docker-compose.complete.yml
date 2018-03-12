@@ -4,25 +4,9 @@ services:
     extends:
       file: docker-compose.services.yml
       service: app
-    environment:
-      - THUNOR_LOGIN_REQUIRED=True
-      - THUNOR_SIGNUP_OPEN=False
-      - DJANGO_SENTRY_DSN=
-      - DJANGO_EMAIL_HOST=
-      - DJANGO_EMAIL_PORT=587
-      - DJANGO_EMAIL_USER=
-      - DJANGO_EMAIL_PASSWORD=
-      - DJANGO_EMAIL_FROM=
-      - DJANGO_SECRET_KEY=
-      - DJANGO_DEBUG=False
-      - DJANGO_DATABASE=postgres
-      - DJANGO_HOSTNAME=
-      - DJANGO_STATIC_URL=/static/
-      - POSTGRES_HOST=postgres
-      - POSTGRES_USER=thunor
-      - POSTGRES_PASSWORD=
-      - UWSGI_PROCESSES=5
-      - UWSGI_BUFFER_SIZE=32768
+    env_file:
+      - thunor-db.env
+      - thunor-app.env
     volumes:
       - $THUNORHOME/_state/thunor-static:/thunor/_state/thunor-static:ro
       - $THUNORHOME/_state/thunor-files:/thunor/_state/thunor-files
@@ -45,3 +29,5 @@ services:
       service: postgres
     volumes:
       - $THUNORHOME/_state/postgres-data:/var/lib/postgresql/data
+    env_file:
+      - thunor-db.env
