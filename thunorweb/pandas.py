@@ -196,8 +196,16 @@ def df_doses_assays_controls(dataset, drug_id, cell_line_id, assay,
     if df_vals.isnull().values.all():
         raise NoDataException()
 
-    controls = WellMeasurement.objects.filter(
-        well__plate_id__in=df_doses['plate_id'].unique())
+    if for_export:
+        # Get all plates in the dataset
+        if isinstance(dataset_id, Iterable):
+            raise NotImplementedError()
+        controls = WellMeasurement.objects.filter(
+            well__plate__dataset_id=dataset_id)
+    else:
+        # Just get controls on the plates with expt data
+        controls = WellMeasurement.objects.filter(
+            well__plate_id__in=df_doses['plate_id'].unique())
 
     controls = controls.select_related('well').order_by(
         dataset_id_field, 'well__cell_line', 'timepoint')
@@ -290,8 +298,9 @@ def df_dip_rates(dataset_id, drug_id, cell_line_id,
         df_drugs = df_drugs.groupby('well_id').aggregate({
             'drug': lambda x: tuple(x),
             'dose': lambda x: tuple(x),
-            'dataset': lambda x: x,
-            'cell_line': lambda x: x
+            'dataset': lambda x: x.iloc[0],
+            'cell_line': lambda x: x.iloc[0],
+            'plate': lambda x: x.iloc[0]
         })
 
         df_doses = pd.merge(df_stats, df_drugs, left_index=True, right_index=True)

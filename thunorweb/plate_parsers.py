@@ -11,6 +11,7 @@ import collections
 from thunor.io import read_vanderbilt_hts_single_df, read_hdf, PlateMap
 import math
 import pandas as pd
+import itertools
 
 
 class PlateFileParseException(Exception):
@@ -169,9 +170,9 @@ class PlateFileParser(object):
         df_wells = df_data.doses.copy().reset_index()
         df_wells.set_index('well_id', inplace=True)
         plates_to_create = {}
-        for row in df_wells.itertuples():
-            pl_name = row.plate_id
-
+        for pl_name in itertools.chain(
+                df_wells['plate_id'].unique(),
+                df_data.controls.index.get_level_values('plate').unique()):
             if pl_name not in self._plate_objects.keys():
                 plates_to_create[pl_name] = Plate(
                     dataset=self.dataset,
