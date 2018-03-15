@@ -351,9 +351,10 @@ class PlateFileParser(object):
         # Check for duplicate drugs in any row
         if len(drug_nums) == 2:
             # Ignore rows where both concentrations are zero
-            dup_drugs = pd.loc[pd['drug1.conc'] != 0 | pd['drug2.conc'] !=
-                               0, :]
-            dup_drugs = dup_drugs.loc[pd['drug1'] == pd['drug2'], :]
+            dup_drugs = pd.loc[
+                ((pd['drug1.conc'] != 0) | (pd['drug2.conc'] != 0)) &
+                pd['drug1'] == pd['drug2'],
+                :]
             if not dup_drugs.empty:
                 ind_val = dup_drugs.index.tolist()[0]
                 well_name = pm.well_id_to_name(ind_val[1])
