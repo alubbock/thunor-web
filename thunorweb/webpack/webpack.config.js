@@ -50,13 +50,13 @@ var config = {
     },
 
     output: {
-        path: path.resolve("../_state/webpack-bundles/"),
+        path: path.resolve("/thunor/_state/webpack-bundles/"),
         filename: "[name]-[chunkhash].js"
     },
 
     plugins: [
-        new BundleTracker({path: __dirname,
-            filename: "../_state/webpack-bundles/webpack-stats.json"}),
+        new BundleTracker({path: "/thunor/_state/webpack-bundles/",
+            filename: "webpack-stats.json"}),
         new ExtractTextPlugin("[name]-[chunkhash].css"),
         new IgnoreUnchangedFilesPlugin()
     ],
@@ -80,7 +80,6 @@ var config = {
                 test: /\.(png|ico)$/,
                 include: [
                     path.resolve(__dirname, "thunor/favicons"),
-                    path.resolve(__dirname, "../thunorweb/static/thunorweb/favicons")
                 ],
                 loader: "file-loader?name=favicon/[name].[ext]"
             },
@@ -92,9 +91,12 @@ var config = {
             {test: /\.(woff|woff2)(\?v=\d+\.\d+\.\d+)?$/, loader: "url-loader?limit=10000&mimetype=application/font-woff&name=font/[name]-[hash].[ext]"},
             {test: /\.ttf(\?v=\d+\.\d+\.\d+)?$/, loader: "url-loader?limit=10000&mimetype=application/octet-stream&name=font/[name]-[hash].[ext]"},
             {test: /\.eot(\?v=\d+\.\d+\.\d+)?$/, loader: "file-loader?name=font/[name]-[hash].[ext]"},
-            {test: /\.svg(\?v=\d+\.\d+\.\d+)?$/, loader: "url-loader?limit=10000&mimetype=image/svg+xml&name=font/[name]-[hash].[ext]"}
+            {test: /\.svg(\?v=\d+\.\d+\.\d+)?$/, loader: "url-loader?limit=10000&mimetype=image/svg+xml&name=font/[name]-[hash].[ext]"},
+            // Load existing source maps, if desired (disabled by default)
+            //{test:  /\.js$/, use: ["source-map-loader"], enforce: "pre"}
         ]
     },
+    devtool: 'source-map',
 
     resolve: {
         modules: ["node_modules"],
@@ -113,7 +115,8 @@ if (!isDebug) {
                 screw_ie8: true,
                 warnings: false
             },
-            mangle: true
+            mangle: true,
+            sourceMap: true
         })
     );
     config.plugins.push(

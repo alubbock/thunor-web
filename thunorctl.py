@@ -61,7 +61,7 @@ def migrate(args):
 
 
 def _build_webpack():
-    return _run_cmd(['docker', 'build', '-t', 'thunor_webpack',
+    return _run_cmd(['docker', 'build', '-t', 'thunorweb_webpack',
                      'thunorweb/webpack'])
 
 
@@ -83,7 +83,7 @@ def generate_static(args):
         thunorhome = cwd
     else:
         thunorhome = _get_thunorhome(args)
-    cmd += ['-v', _volume_webpack_bundles(thunorhome), 'thunor_webpack']
+    cmd += ['-v', _volume_webpack_bundles(thunorhome), 'thunorweb_webpack']
     return _run_cmd(cmd)
 
 
