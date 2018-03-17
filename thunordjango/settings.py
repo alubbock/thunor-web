@@ -270,6 +270,8 @@ WEBPACK_LOADER = {
 MEDIA_ROOT = os.environ.get('DJANGO_MEDIA_ROOT', os.path.join(STATE_DIR,
                                                               'thunor-files'))
 MEDIA_URL = os.environ.get('DJANGO_MEDIA_URL', '/_state/thunor-files/')
+DATA_UPLOAD_MAX_NUMBER_FIELDS = int(os.environ.get(
+    'DJANGO_UPLOAD_MAX_NUMBER_FIELDS', 1000))
 
 # These DOWNLOADS_* settings need to match nginx config
 DOWNLOADS_ROOT = os.path.join(MEDIA_ROOT, 'downloads')
