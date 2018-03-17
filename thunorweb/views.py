@@ -1023,7 +1023,7 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
     ).values_list('owner_id', 'tag_name').distinct().order_by(
         'owner_id', 'tag_name')
 
-    plate_dict = None
+    plate_dict = []
     if num_timepoints > 1:
         plate_dict = [{'id': p.id, 'name': p.name} for p in plates]
 
