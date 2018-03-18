@@ -170,9 +170,6 @@ def df_doses_assays_controls(dataset, drug_id, cell_line_id, assay,
     else:
         dataset_id = dataset.id
 
-    well_info, drug_id, cell_line_id = _queryset_well_info(
-        dataset_id, drug_id, cell_line_id)
-
     df_doses = _dataframe_wellinfo(dataset_id, drug_id, cell_line_id,
                                    for_export=for_export,
                                    use_dataset_names=use_dataset_names
