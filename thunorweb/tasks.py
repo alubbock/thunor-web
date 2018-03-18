@@ -17,13 +17,19 @@ def precalculate_dip_rates(dataset_or_id):
                          'primary key')
 
     # Auto-select DIP rate assay
-    assays = WellMeasurement.objects.filter(
+    assays_times = WellMeasurement.objects.filter(
         well__plate__dataset_id=dataset.id
-    ).values_list('assay', flat=True).distinct()
+    ).values_list('assay', 'timepoint').distinct()
+
+    assays = set(at[0] for at in assays_times)
 
     dip_assay = _choose_dip_assay(assays)
 
     if dip_assay is None:
+        return
+
+    times = set(at[1] for at in assays_times if at[0] == dip_assay)
+    if len(times) < 2:
         return
 
     try:
@@ -37,6 +43,9 @@ def precalculate_dip_rates(dataset_or_id):
         return
 
     ctrl_dip_data, expt_dip_data = dip_rates(df_data)
+
+    if expt_dip_data.empty:
+        return
 
     expt_dip_data.reset_index('well_id', inplace=True)
 
