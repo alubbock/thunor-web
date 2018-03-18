@@ -131,7 +131,11 @@ except KeyError:
 
 DATABASE_SETTING = os.environ.get('DJANGO_DATABASE', None)
 
+DB_MAX_BATCH_SIZE = None
+
 if DATABASE_SETTING == 'postgres':
+    # Bigger batch size is faster but uses more memory
+    DB_MAX_BATCH_SIZE = 100000
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql_psycopg2',
