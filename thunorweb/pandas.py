@@ -333,35 +333,23 @@ def df_dip_rates(dataset_id, drug_id, cell_line_id,
             columns='stat_name', values=['value'])['value']
 
     plates = df_doses.index.levels[df_doses.index.names.index('plate')]
-    controls = WellStatistic.objects.filter(stat_name__in=DIP_STATS,
-                                            well__plate_id__in=plates)
-    controls = _apply_control_filter(controls, cell_line_id)
-
-    df_controls = queryset_to_dataframe(
-        controls,
-        columns=(dataset_id_field, 'well__cell_line__name',
-                 'well__plate_id', 'well_id',
-                 'stat_name', 'value'),
-        rename_columns=('dataset', 'cell_line', 'plate', 'well_id',
-                        'stat_name', 'value')
-    )
-
-    if df_controls.isnull().values.all():
-        df_controls = None
-    else:
-        df_controls = df_controls.pivot_table(
-            index=('dataset', 'cell_line', 'plate', 'well_id'),
-            columns='stat_name', values=['value'])['value']
+    df_controls = df_ctrl_dip_rates(dataset_id=None,
+                                    plate_ids=plates,
+                                    cell_line_id=cell_line_id)
 
     return df_controls, df_doses
 
 
-def df_ctrl_dip_rates(dataset_id):
-    controls = WellStatistic.objects.filter(
-        well__plate__dataset__id=dataset_id,
-        stat_name__in=DIP_STATS)
+def df_ctrl_dip_rates(dataset_id, plate_ids=None, cell_line_id=None):
+    controls = WellStatistic.objects.filter(stat_name__in=DIP_STATS)
+    if plate_ids is not None and dataset_id is None:
+        controls = controls.filter(well__plate_id__in=plate_ids)
+    elif dataset_id is not None and plate_ids is None:
+        controls = controls.filter(well__plate__dataset__id=dataset_id)
+    else:
+        raise ValueError('Must specify one of dataset_id or plate_ids')
 
-    controls = _apply_control_filter(controls, None)
+    controls = _apply_control_filter(controls, cell_line_id)
 
     df_controls = queryset_to_dataframe(
         controls,
