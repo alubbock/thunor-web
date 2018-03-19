@@ -963,11 +963,9 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
     dataset_ids = [dataset_id]
     if dataset2_id is not None:
         dataset_ids.append(dataset2_id)
-    try:
-        plates = Plate.objects.filter(
-            dataset__in=dataset_ids).select_related('dataset')
-    except Plate.DoesNotExist:
-        raise Http404()
+
+    plates = Plate.objects.filter(
+        dataset__in=dataset_ids).select_related('dataset')
 
     datasets = set([p.dataset for p in plates])
 
@@ -980,20 +978,20 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
     cell_lines = Well.objects.filter(
         cell_line__isnull=False,
         plate__dataset_id__in=dataset_ids).values(
-        'cell_line_id', 'cell_line__name', 'wellmeasurement__assay',
-        'wellmeasurement__timepoint'
+        'cell_line_id', 'cell_line__name'
     ).distinct()
 
-    cell_line_dict = set((cl['cell_line_id'], cl['cell_line__name']) for
-                         cl in cell_lines)
-    cell_line_dict = [{'id': cl[0], 'name': cl[1]} for cl in
-                      sorted(cell_line_dict, key=lambda v: v[1])]
-    assays = set(cl['wellmeasurement__assay'] for cl in cell_lines)
+    cell_line_dict = [{'id': cl['cell_line_id'], 'name': cl['cell_line__name']}
+                      for cl in cell_lines]
+
+    assays_query = WellMeasurement.objects.filter(
+        well__plate__dataset_id__in=dataset_ids
+    ).values('assay', 'timepoint').distinct()
+
+    assays = set(a['assay'] for a in assays_query)
     assays = [{'id': a, 'name': a} for a in assays if a is not None]
 
-    num_timepoints = len(set(cl['wellmeasurement__timepoint'] for cl in
-                         cell_lines if cl['wellmeasurement__timepoint'] is
-                             not None))
+    num_timepoints = len(set(a['timepoint'] for a in assays_query))
 
     if request.user.is_authenticated():
         tag_owner_filter = Q(owner=request.user) | Q(owner=None)
@@ -1001,7 +999,7 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
         tag_owner_filter = Q(owner=None)
 
     cell_line_tags = CellLineTag.objects.filter(tag_owner_filter).filter(
-        cell_line_id__in=[cl['cell_line_id'] for cl in cell_lines]
+        cell_line_id__in=[cl['id'] for cl in cell_line_dict]
     ).values_list('owner_id', 'tag_name').distinct().order_by(
         'owner_id', 'tag_name')
 
@@ -1019,7 +1017,7 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
     drug_list = sorted(drug_list, key=lambda d: d['name'])
 
     drug_tags = DrugTag.objects.filter(tag_owner_filter).filter(
-        drug_id__in=[dr['drug_id'] for dr in drug_objs]
+        drug_id__in=set(dr['drug_id'] for dr in drug_objs)
     ).values_list('owner_id', 'tag_name').distinct().order_by(
         'owner_id', 'tag_name')
 
