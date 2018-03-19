@@ -163,7 +163,6 @@ def dataset_groupings(datasets, regenerate_cache=False):
 
     cell_lines = _combine_id_name_dicts(groups[i]['cellLines'] for i in grp_it)
     drugs = _combine_id_name_dicts(groups[i]['drugs'] for i in grp_it)
-    assays = _combine_id_name_dicts(groups[i]['assays'] for i in grp_it)
 
     single_timepoint = False
     timepoints = list(set(groups[i]['singleTimepoint'] for i in grp_it))
@@ -174,7 +173,8 @@ def dataset_groupings(datasets, regenerate_cache=False):
         'datasets': list(groups[i]['datasets'][0] for i in grp_it),
         'cellLines': cell_lines,
         'drugs': drugs,
-        'assays': assays,
+        'assays': [groups[i]['assays'] for i in grp_it],
+        'dipAssay': [groups[i]['dipAssay'] for i in grp_it],
         'singleTimepoint': single_timepoint
     }
 
@@ -254,7 +254,8 @@ def _dataset_groupings(dataset, regenerate_cache=False):
         'datasets': [{'id': dataset.id, 'name': dataset.name}],
         'cellLines': cell_line_dict,
         'drugs': drug_list,
-        'assays': assays,
+        'assays': [assays],
+        'dipAssay': _choose_dip_assay(assays),
         'singleTimepoint': timepoints[0] if len(timepoints) == 1 else False
     }
 

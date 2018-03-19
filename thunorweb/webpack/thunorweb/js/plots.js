@@ -621,8 +621,10 @@ var plots = function() {
         }
 
         var datasetGroupingsIds = datasetId;
+        var multiDataset = false;
         if (dataset2Id !== undefined && dataset2Id !== null &&
             dataset2Id !== "") {
+            multiDataset = true;
             datasetGroupingsIds += "," + dataset2Id;
             $dataPanel.find("input[name=plotType]").filter("[class=no-multi-dataset]").parent().remove();
             $dataPanel.find(".hts-plot-type").removeClass("btn-group-3")
@@ -631,9 +633,9 @@ var plots = function() {
         }
 
         var populatePlotPanelOptions = function(data) {
-            $plotPanel.find("span[class=dataset-name]").text(data.datasets[0]['name']);
+            $dataPanel.find("span[class=dataset-name]").text(data.datasets[0]['name']);
             if(dataset2Id !== undefined && dataset2Id !== null && dataset2Id !== "") {
-                $plotPanel.find("span[class=dataset2-name]").text(data.datasets[1]['name']);
+                $dataPanel.find("span[class=dataset2-name]").text(data.datasets[1]['name']);
                 $dataPanel.find("span[class=dataset2-name-container]").show();
             }
             if(data.singleTimepoint !== false) {
@@ -653,11 +655,11 @@ var plots = function() {
                 data.drugs);
             pushOptionsToSelect(
                 $assaySelect,
-                data.assays);
+                $.map(data.assays, function(a){return a;}));
             pushOptionsToSelect(
                 $plateSelect,
                 data.plates);
-            if (data.assays.length > 1) {
+            if (!multiDataset && data.assays[0].length > 1) {
                 setSelectPicker($assaySelect, true);
             }
             var $selectClTags = $dataPanel.find("select[name=cellLineTags]");
