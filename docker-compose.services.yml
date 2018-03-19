@@ -30,7 +30,4 @@ services:
     image: redis:latest
     volumes:
       - ./_state/redis-data:/data
-    entrypoint:
-      - redis-server
-      - --append-only
-      - yes
+    command: ["redis-server", "--appendonly", "yes"]
