@@ -155,20 +155,24 @@ else:
         }
     }
 
+CACHES = {}
+if 'DJANGO_REDIS_URL' in os.environ:
+    CACHES['default'] = {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': os.environ['DJANGO_REDIS_URL'],
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
+    }
+elif DEBUG:
+    CACHES['default'] = {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'
+    }
+else:
+    CACHES['default'] = {
+        'BACKEND': 'django.core.cache.backends.dummy.DummyCache'
+    }
 
-# CACHES = {
-#     'default': {},
-#
-#     # this cache backend will be used by django-debug-panel
-#     'debug-panel': {
-#         'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
-#         'LOCATION': '/var/tmp/debug-panel-cache',
-#         'TIMEOUT': 600,
-#         'OPTIONS': {
-#             'MAX_ENTRIES': 200
-#         }
-#     }
-# }
 
 RAVEN_CONFIG = {
     'dsn': os.environ.get('DJANGO_SENTRY_DSN', None),

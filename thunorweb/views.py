@@ -25,7 +25,7 @@ from thunor.helpers import plotly_to_dataframe
 from plotly.utils import PlotlyJSONEncoder
 from .pandas import df_doses_assays_controls, df_dip_rates, \
     df_ctrl_dip_rates, NoDataException
-from .tasks import precalculate_dip_rates
+from .tasks import precalculate_dip_rates, dataset_groupings
 from .plate_parsers import PlateFileParser
 import numpy as np
 import datetime
@@ -175,6 +175,7 @@ def ajax_upload_platefiles(request):
     if some_success:
         # TODO: Hand this off to celery for asynchronous processing
         precalculate_dip_rates(dataset)
+        dataset_groupings(dataset, regenerate_cache=True)
 
     response = {
         'initialPreview': initial_previews,
@@ -370,6 +371,8 @@ def ajax_save_plate(request):
             WellDrug(well_id=k[0], order=k[1], drug_id=v[0], dose=v[1] if
                      len(v) > 1 else None) for k, v in
                      well_drugs_to_create.items()])
+
+    dataset_groupings(pl_objs[0].dataset, regenerate_cache=True)
 
     if apply_mode != 'normal':
         # If this was a template-based update...
@@ -958,6 +961,25 @@ def ajax_set_dataset_group_permission(request):
     return JsonResponse({'success': True})
 
 
+def _get_tags(request, cell_line_ids, drug_ids):
+    if request.user.is_authenticated():
+        tag_owner_filter = Q(owner=request.user) | Q(owner=None)
+    else:
+        tag_owner_filter = Q(owner=None)
+
+    cell_line_tags = CellLineTag.objects.filter(tag_owner_filter).filter(
+        cell_line_id__in=cell_line_ids
+    ).values_list('owner_id', 'tag_name').distinct().order_by(
+        'owner_id', 'tag_name')
+
+    drug_tags = DrugTag.objects.filter(tag_owner_filter).filter(
+        drug_id__in=drug_ids
+    ).values_list('owner_id', 'tag_name').distinct().order_by(
+        'owner_id', 'tag_name')
+
+    return cell_line_tags, drug_tags
+
+
 @login_required_unless_public
 def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
     dataset_ids = [dataset_id]
@@ -975,93 +997,35 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
     for dataset in datasets:
         _assert_has_perm(request, dataset, 'view_plots')
 
-    cell_lines = Well.objects.filter(
-        cell_line__isnull=False,
-        plate__dataset_id__in=dataset_ids).values(
-        'cell_line_id', 'cell_line__name'
-    ).distinct()
+    groupings_dict = dataset_groupings(datasets)
 
-    cell_line_dict = [{'id': cl['cell_line_id'], 'name': cl['cell_line__name']}
-                      for cl in cell_lines]
+    cell_line_ids = [cl['id'] for cl in groupings_dict['cellLines']]
+    drug_ids = []
+    for dr in groupings_dict['drugs']:
+        drug_ids.append(dr['id']) if isinstance(dr['id'], int) else \
+            drug_ids.extend(dr['id'])
 
-    assays_query = WellMeasurement.objects.filter(
-        well__plate__dataset_id__in=dataset_ids
-    ).values('assay', 'timepoint').distinct()
+    cell_line_tags, drug_tags = _get_tags(request, cell_line_ids, drug_ids)
 
-    assays = set(a['assay'] for a in assays_query)
-    assays = [{'id': a, 'name': a} for a in assays if a is not None]
+    groupings_dict['drugTags'] = \
+        [{'id': ('1' if tag[0] is None else '0') + tag[1],
+          'name': tag[1],
+          'public': tag[0] is None}
+         for tag in drug_tags]
 
-    num_timepoints = len(set(a['timepoint'] for a in assays_query))
+    groupings_dict['cellLineTags'] = \
+        [{'id': ('1' if tag[0] is None else '0') + tag[1],
+          'name': tag[1],
+          'public': tag[0] is None}
+         for tag in cell_line_tags]
 
-    if request.user.is_authenticated():
-        tag_owner_filter = Q(owner=request.user) | Q(owner=None)
+    if groupings_dict['singleTimepoint'] is False:
+        groupings_dict['plates'] = [{'id': p.id, 'name': p.name}
+                                    for p in plates]
     else:
-        tag_owner_filter = Q(owner=None)
+        groupings_dict['plates'] = []
 
-    cell_line_tags = CellLineTag.objects.filter(tag_owner_filter).filter(
-        cell_line_id__in=[cl['id'] for cl in cell_line_dict]
-    ).values_list('owner_id', 'tag_name').distinct().order_by(
-        'owner_id', 'tag_name')
-
-    # Get drug without combinations
-    drug_objs = WellDrug.objects.filter(
-        drug__isnull=False,
-        dose__gt=0,
-        well__plate__dataset_id__in=dataset_ids,
-    ).annotate(num_drugs=Count('well__welldrug')).\
-      values('drug_id', 'drug__name', 'num_drugs').distinct()
-
-    has_drug_combos = any(dr['num_drugs'] > 1 for dr in drug_objs)
-    drug_list = [{'id': dr['drug_id'], 'name': dr['drug__name']} for dr in
-                 drug_objs if dr['num_drugs'] == 1]
-    drug_list = sorted(drug_list, key=lambda d: d['name'])
-
-    drug_tags = DrugTag.objects.filter(tag_owner_filter).filter(
-        drug_id__in=set(dr['drug_id'] for dr in drug_objs)
-    ).values_list('owner_id', 'tag_name').distinct().order_by(
-        'owner_id', 'tag_name')
-
-    plate_dict = []
-    if num_timepoints > 1:
-        plate_dict = [{'id': p.id, 'name': p.name} for p in plates]
-
-    if has_drug_combos:
-        # Get drugs with combinations... this is inefficient but works
-        # for arbitrary numbers of drugs per well
-        drug_objs_combos = WellDrug.objects.filter(
-            drug__isnull=False,
-            dose__isnull=False,
-            well__plate__dataset_id__in=dataset_ids
-        ).annotate(drug2_id=F('well__welldrug__drug_id')
-        ).exclude(drug_id=F('drug2_id')).values(
-            'well_id', 'drug_id', 'drug__name') \
-            .distinct()
-
-        drug_well_combos = defaultdict(set)
-        for d in drug_objs_combos:
-            drug_well_combos[d['well_id']].add((d['drug_id'], d['drug__name']))
-
-        drug_combos = set(frozenset(d) for d in drug_well_combos.values())
-
-        for dc in drug_combos:
-            drug_ids, drug_names = zip(*sorted(dc, key=lambda d: d[1]))
-            drug_list.append({'id': drug_ids, 'name': drug_names})
-
-    return JsonResponse({
-        'datasets': [{'id': d.id, 'name': d.name} for d in datasets],
-        'cellLines': cell_line_dict,
-        'cellLineTags': [{'id': ('1' if tag[0] is None else '0') + tag[1],
-                          'name': tag[1],
-                          'public': tag[0] is None}
-                         for tag in cell_line_tags],
-        'drugs': drug_list,
-        'drugTags': [{'id': ('1' if tag[0] is None else '0') + tag[1],
-                      'name': tag[1],
-                      'public': tag[0] is None}
-                     for tag in drug_tags],
-        'assays': assays,
-        'plates': plate_dict
-    })
+    return JsonResponse(groupings_dict)
 
 
 @login_required_unless_public
