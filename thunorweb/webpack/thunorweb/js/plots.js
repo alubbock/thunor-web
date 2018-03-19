@@ -374,6 +374,10 @@ var plots = function() {
             $formGroup.find(".name-select").prop("disabled", false).selectpicker("refresh").selectpicker("show");
         }
     });
+    $(".btn-group").on("click", ".disabled", function(e) {
+        e.preventDefault();
+        return false;
+    });
     $(".hts-change-data > form").submit(function (e) {
         e.preventDefault();
         var $form = $(e.currentTarget);
@@ -450,6 +454,16 @@ var plots = function() {
         $element[0].addEventListener('touchstart', plotlyTouchHandler);
         $element[0].addEventListener('touchmove', plotlyTouchHandler);
         $element[0].addEventListener('touchend', plotlyTouchHandler);
+    };
+
+    var setViabilityOnly = function($dataPanel) {
+        var $vaxis = $dataPanel.find('input[name=logTransform]');
+        var $drMetric = $dataPanel.find('input[name=drMetric]');
+
+        $drMetric.filter('[value=viability]').add($vaxis.filter('[value=None]')).click();
+        $drMetric.filter('[value=dip]').add($vaxis.filter('[value=log2]'))
+            .add($dataPanel.find('input[name=qcView]')).prop('disabled', true)
+            .closest('label').addClass('disabled');
     };
 
     var toggleDataPanel = function($panel, showIfTrue) {
@@ -621,6 +635,9 @@ var plots = function() {
             if(dataset2Id !== undefined && dataset2Id !== null && dataset2Id !== "") {
                 $plotPanel.find("span[class=dataset2-name]").text(data.datasets[1]['name']);
                 $dataPanel.find("span[class=dataset2-name-container]").show();
+            }
+            if(data.singleTimepoint !== false) {
+                setViabilityOnly($dataPanel);
             }
             var clTitle = "Please select a cell line",
                 drTitle = "Please select a drug";
