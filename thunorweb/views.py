@@ -1268,7 +1268,10 @@ def _dose_response_plot(request, dataset, dataset2_id,
             return HttpResponse('No viability data found for this request. '
                                 'This drug/cell line/time point combination '
                                 'may not exist.', status=400)
-        expt_resp_data = viability(df_data, time_hrs=viability_time)
+        try:
+            expt_resp_data = viability(df_data, time_hrs=viability_time)
+        except NotImplementedError as e:
+            return HttpResponse(e, status=400)
         if expt_resp_data['viability'].isnull().values.all():
             return HttpResponse('No viability for this time point. The '
                                 'nearest time point to the time entered is '
