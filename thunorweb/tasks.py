@@ -153,8 +153,8 @@ def dataset_groupings(datasets, regenerate_cache=False):
         datasets = datasets[0]
 
     if isinstance(datasets, HTSDataset):
-        return _dataset_groupings(_dataset_groupings(
-            datasets, regenerate_cache=regenerate_cache))
+        return _dataset_groupings(
+            datasets, regenerate_cache=regenerate_cache)
 
     # Multi dataset
     groups = [_dataset_groupings(d, regenerate_cache=regenerate_cache)
@@ -173,7 +173,7 @@ def dataset_groupings(datasets, regenerate_cache=False):
         'datasets': list(groups[i]['datasets'][0] for i in grp_it),
         'cellLines': cell_lines,
         'drugs': drugs,
-        'assays': [groups[i]['assays'] for i in grp_it],
+        'assays': [groups[i]['assays'][0] for i in grp_it],
         'dipAssay': [groups[i]['dipAssay'] for i in grp_it],
         'singleTimepoint': single_timepoint
     }
