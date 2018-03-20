@@ -215,11 +215,12 @@ var plots = function() {
         var combinations = [];
         for (var i = 0; i < len; i++) {
             var $newOption = $("<option></option>");
-            $newOption.val(optionList[i].id);
-            if(Array.isArray(optionList[i].name)) {
+            if(Array.isArray(optionList[i].id)) {
+                $newOption.val(optionList[i].id.join(","));
                 $newOption.text(optionList[i].name.join(" & "));
                 combinations.push($newOption);
             } else {
+                $newOption.val(optionList[i].id);
                 $newOption.text(optionList[i].name);
                 if(optionList[i].hasOwnProperty("public") && optionList[i].public) {
                     $newOption.prepend("<span class=\"badge\">public</span> ");
@@ -240,7 +241,8 @@ var plots = function() {
                     find("span").first().text("No options available");
         } else {
             if (selectedOption === undefined) {
-                $select.selectpicker("val", optionList[0].id);
+                $select.selectpicker("val",
+                    Array.isArray(optionList[0].id) ? optionList[0].id.join(",") : optionList[0].id);
             } else {
                 $select.val(selectedOption);
             }
@@ -437,7 +439,7 @@ var plots = function() {
     // End data panel events
 
     var createPlot = function($element, data) {
-        $element.data("plotly", data);
+        $element.empty().data("plotly", data);
         Plotly.newPlot(
             $element[0],
             data.data,
@@ -903,9 +905,9 @@ var plots = function() {
                 }
                 $plotPanel.appendTo(".sortable-panels").show();
                 prepareDataPanel($plotPanel, formData, showByDefault);
-                // if(showByDefault) {
-                //     $plotPanel.find(".panel-body").loadingOverlay("show");
-                // }
+                if(showByDefault) {
+                    $plotPanel.find(".panel-body").loadingOverlay("show");
+                }
             }
         }
         $(".show-plot-delayed").not(":last").show().find("button").click(function() {
