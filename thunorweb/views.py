@@ -4,8 +4,7 @@ from django.template.loader import get_template
 from django.contrib import auth
 from django.contrib.auth.models import Group
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, \
-    HttpResponseServerError, HttpResponseNotFound
+from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest
 from django.contrib import messages
 from django.db import transaction
 from django.db.models import Q, F, Count, Max
@@ -80,14 +79,14 @@ def handler404(request):
     if request.is_ajax():
         return JsonResponse({}, status=404)
     else:
-        return HttpResponseNotFound(render(request, 'error404.html', {}))
+        return render(request, 'error404.html', status=404)
 
 
 def handler500(request):
     if request.is_ajax():
         return JsonResponse({'error': 'Internal server error'}, status=500)
     else:
-        return HttpResponseServerError(render(request, 'error500.html', {}))
+        return render(request, 'error500.html', status=500)
 
 
 @login_required_unless_public
