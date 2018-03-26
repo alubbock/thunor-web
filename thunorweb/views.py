@@ -996,7 +996,7 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
     for dataset in datasets:
         _assert_has_perm(request, dataset, 'view_plots')
 
-    groupings_dict = dataset_groupings(datasets)
+    groupings_dict = dataset_groupings(list(datasets))
 
     cell_line_ids = [cl['id'] for cl in groupings_dict['cellLines']]
     drug_ids = []

@@ -184,7 +184,16 @@ def _combine_id_name_dicts(dicts):
     for d in dicts:
         combined.update({e['id']: e for e in d})
 
-    return sorted(combined.values(), key=lambda e: e['name'])
+    try:
+        return sorted(combined.values(), key=lambda e: e['name'])
+    except TypeError:
+        # Dataset contains single drugs and combinations, sort them separately
+        return sorted((e for e in combined.values()
+                       if not isinstance(e['name'], tuple)),
+                      key=lambda e: e['name']) + \
+               sorted((e for e in combined.values()
+                       if isinstance(e['name'], tuple)),
+                      key=lambda e: e['name'])
 
 
 def _dataset_groupings(dataset, regenerate_cache=False):
