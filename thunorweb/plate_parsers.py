@@ -261,14 +261,17 @@ class PlateFileParser(object):
             well_num = row.well_num
             well_id = self._well_sets[plate.id][well_num]
             for order, d_num in enumerate(drug_nums):
-                well_drugs_to_create.append(
-                    WellDrug(
-                        well_id=well_id,
-                        drug_id=drugs[getattr(row, 'drug%d' % d_num)],
-                        order=order,
-                        dose=getattr(row, 'dose%d' % d_num)
+                drug_name = getattr(row, 'drug%d' % d_num)
+
+                if not pd.isnull(drug_name):
+                    well_drugs_to_create.append(
+                        WellDrug(
+                            well_id=well_id,
+                            drug_id=drugs[drug_name],
+                            order=order,
+                            dose=getattr(row, 'dose%d' % d_num)
+                        )
                     )
-                )
 
         WellDrug.objects.bulk_create(well_drugs_to_create,
                                      batch_size=settings.DB_MAX_BATCH_SIZE)
