@@ -210,9 +210,9 @@ def _dataset_groupings(dataset, regenerate_cache=False):
         'cell_line_id', 'cell_line__name'
     ).distinct()
 
-    cell_line_dict = [{'id': cl['cell_line_id'],
-                       'name': cl['cell_line__name']}
-                      for cl in cell_lines]
+    cell_line_dict = sorted(({'id': cl['cell_line_id'],
+                             'name': cl['cell_line__name']}
+                            for cl in cell_lines), key=lambda cl: cl['name'])
 
     assays_query = WellMeasurement.objects.filter(
         well__plate__dataset_id=dataset.id
