@@ -179,7 +179,7 @@ class PlateFileParser(object):
         df_wells.set_index('well_id', inplace=True)
         plates_to_create = {}
         well_sets_to_create = collections.defaultdict(list)
-        plate_names = set(df_wells['plate_id'].unique())
+        plate_names = set(df_wells['plate'].unique())
         plate_names.update(
             df_data.controls.index.get_level_values('plate').unique()
         )
@@ -218,7 +218,7 @@ class PlateFileParser(object):
 
         # Set cell lines on wells
         for row in df_wells.itertuples():
-            plate_id = self._plate_objects[row.plate_id].id
+            plate_id = self._plate_objects[row.plate].id
             if plate_id not in self._well_sets:
                 well_sets_to_create[plate_id][row.well_num].cell_line_id = \
                     cell_lines[row.cell_line]
@@ -256,7 +256,7 @@ class PlateFileParser(object):
         # Create welldrugs
         well_drugs_to_create = []
         for row in df_wells.itertuples():
-            pl_name = row.plate_id
+            pl_name = row.plate
             plate = self._plate_objects[pl_name]
             well_num = row.well_num
             well_id = self._well_sets[plate.id][well_num]
@@ -293,10 +293,10 @@ class PlateFileParser(object):
         # Create wellmeasurements from non-controls
         assays = df_data.assays.reset_index()
         assays.set_index('well_id', inplace=True)
-        assays = pd.merge(assays, df_wells[['plate_id', 'well_num']],
+        assays = pd.merge(assays, df_wells[['plate', 'well_num']],
                           how='left', left_index=True, right_index=True)
         for row in assays.itertuples():
-            pl_name = row.plate_id
+            pl_name = row.plate
             plate = self._plate_objects[pl_name]
             well_num = row.well_num
             well_id = self._well_sets[plate.id][well_num]
