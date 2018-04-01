@@ -145,7 +145,7 @@ def _dataframe_wellinfo(dataset_id, drug_id, cell_line_id,
                              'cell_line': well.cell_line.name,
                              'drug': tuple(d.drug.name for d in
                                       well.welldrug_set.all()),
-                             'plate_id': well.plate_id if not
+                             'plate': well.plate_id if not
                                       for_export else well.plate.name,
                              'dataset': dataset_id if (not isinstance(
                                  dataset_id, Iterable) and not
@@ -202,7 +202,7 @@ def df_doses_assays_controls(dataset, drug_id, cell_line_id, assay,
     else:
         # Just get controls on the plates with expt data
         controls = WellMeasurement.objects.filter(
-            well__plate_id__in=df_doses['plate_id'].unique())
+            well__plate_id__in=df_doses['plate'].unique())
 
     controls = controls.select_related('well').order_by(
         dataset_id_field, 'well__cell_line', 'timepoint')
@@ -335,12 +335,14 @@ def df_dip_rates(dataset_id, drug_id, cell_line_id,
     plates = df_doses.index.levels[df_doses.index.names.index('plate')]
     df_controls = df_ctrl_dip_rates(dataset_id=None,
                                     plate_ids=plates,
-                                    cell_line_id=cell_line_id)
+                                    cell_line_id=cell_line_id,
+                                    use_plate_ids=True)
 
     return df_controls, df_doses
 
 
-def df_ctrl_dip_rates(dataset_id, plate_ids=None, cell_line_id=None):
+def df_ctrl_dip_rates(dataset_id, plate_ids=None, cell_line_id=None,
+                      use_plate_ids=False):
     controls = WellStatistic.objects.filter(stat_name__in=DIP_STATS)
     if plate_ids is not None and dataset_id is None:
         controls = controls.filter(well__plate_id__in=plate_ids)
@@ -355,7 +357,7 @@ def df_ctrl_dip_rates(dataset_id, plate_ids=None, cell_line_id=None):
         controls,
         columns=('well__plate__dataset__name',
                  'well__cell_line__name',
-                 'well__plate__name',
+                 'well__plate_id' if use_plate_ids else 'well__plate__name',
                  'well_id',
                  'stat_name', 'value'),
         rename_columns=('dataset', 'cell_line', 'plate', 'well_id',
