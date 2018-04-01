@@ -16,7 +16,7 @@ class TestPlateParsers(TestCase):
 
     def test_parse_hdf(self):
         filename = pkg_resources.resource_filename(
-            'thunor', 'testdata/VU001.h5')
+            'thunor', 'testdata/hts007.h5')
         with open(filename, 'rb') as src:
             f = File(src)
             pfp = PlateFileParser(f, dataset=self.d)
@@ -28,7 +28,7 @@ class TestPlateParsers(TestCase):
 
     def test_parse_vanderbilt_csv(self):
         filename = pkg_resources.resource_filename(
-            'thunor', 'testdata/VU001.h5')
+            'thunor', 'testdata/hts007.h5')
 
         with io.StringIO() as csv_buffer:
             # convert HDF to CSV in memory

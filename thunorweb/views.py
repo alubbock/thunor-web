@@ -538,8 +538,9 @@ def download_dip_fit_params(request, dataset_id):
         # Fit Hill curves and compute parameters
         fit_params = dip_fit_params(
             ctrl_dip_data, expt_dip_data,
-            include_response_values=False
+            include_response_values=False,
         )
+        fit_params.reset_index('dataset_id', drop=True, inplace=True)
         # Remove -ve AA values
         fit_params.loc[fit_params['aa'] < 0.0, 'aa'] = np.nan
 

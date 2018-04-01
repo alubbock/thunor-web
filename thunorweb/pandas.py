@@ -336,13 +336,14 @@ def df_dip_rates(dataset_id, drug_id, cell_line_id,
     df_controls = df_ctrl_dip_rates(dataset_id=None,
                                     plate_ids=plates,
                                     cell_line_id=cell_line_id,
-                                    use_plate_ids=True)
+                                    use_plate_ids=True,
+                                    use_dataset_names=use_dataset_names)
 
     return df_controls, df_doses
 
 
 def df_ctrl_dip_rates(dataset_id, plate_ids=None, cell_line_id=None,
-                      use_plate_ids=False):
+                      use_plate_ids=False, use_dataset_names=True):
     controls = WellStatistic.objects.filter(stat_name__in=DIP_STATS)
     if plate_ids is not None and dataset_id is None:
         controls = controls.filter(well__plate_id__in=plate_ids)
@@ -355,7 +356,8 @@ def df_ctrl_dip_rates(dataset_id, plate_ids=None, cell_line_id=None,
 
     df_controls = queryset_to_dataframe(
         controls,
-        columns=('well__plate__dataset__name',
+        columns=('well__plate__dataset__name' if use_dataset_names else
+                 'well__plate__dataset_id',
                  'well__cell_line__name',
                  'well__plate_id' if use_plate_ids else 'well__plate__name',
                  'well_id',
