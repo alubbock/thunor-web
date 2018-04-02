@@ -14,3 +14,4 @@ ADD thunordjango $THUNOR_HOME/thunordjango
 ADD thunor $THUNOR_HOME/thunor
 RUN cd $THUNOR_HOME/thunor && python setup.py install
 ADD thunorweb $THUNOR_HOME/thunorweb
+ADD .git $THUNOR_HOME/.git
