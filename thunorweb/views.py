@@ -14,7 +14,7 @@ from .models import HTSDataset, PlateFile, Plate, CellLine, Drug, \
 from django.urls import reverse
 import json
 from thunor.plots import plot_time_course, plot_drc, plot_drc_params, \
-    plot_ctrl_dip_by_plate, plot_plate_map, \
+    plot_ctrl_dip_by_plate, plot_plate_map, CannotPlotError, \
     PARAM_NAMES, IC_REGEX, EC_REGEX, E_REGEX, E_REL_REGEX
 from thunor.dip import dip_fit_params, AAFitWarning, \
     DrugCombosNotImplementedError
@@ -1377,7 +1377,7 @@ def _dose_response_plot(request, dataset, dataset2_id,
                 aggregate_drugs=aggregate_drugs,
                 multi_dataset=dataset2_id is not None
             )
-        except ValueError as e:
+        except CannotPlotError as e:
             return HttpResponse(e, status=400)
     else:
         dip_absolute = request.GET.get('drcType', 'rel') == 'abs'
