@@ -268,6 +268,6 @@ def _dataset_groupings(dataset, regenerate_cache=False):
         'singleTimepoint': timepoints[0] if len(timepoints) == 1 else False
     }
 
-    cache.set(cache_key, groupings_dict)
+    cache.set(cache_key, groupings_dict, timeout=None)
 
     return groupings_dict
