@@ -4,6 +4,10 @@ from django.contrib.auth.models import Group
 from django.core.exceptions import PermissionDenied
 
 
+admin.site.site_header = 'Thunor Administration'
+admin.site.site_title = 'Thunor Admin'
+
+
 class GroupAdmin(admin.ModelAdmin):
     form = GroupAdminForm
     filter_horizontal = ['permissions']
