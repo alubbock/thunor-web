@@ -44,7 +44,6 @@ if DEBUG:
 # Application definition
 
 INSTALLED_APPS = [
-    'thunorweb.apps.ThunorConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -53,6 +52,7 @@ INSTALLED_APPS = [
     'django.contrib.sites',
     'django.contrib.staticfiles',
     'raven.contrib.django.raven_compat',
+    'thunorweb.apps.ThunorConfig',
     'custom_user',
     'allauth',
     'allauth.account',
