@@ -10,7 +10,7 @@ import xlrd
 import magic
 import collections
 from thunor.io import read_vanderbilt_hts_single_df, _read_hdf_unstacked, \
-    PlateMap
+    PlateMap, STANDARD_PLATE_SIZES
 import math
 import pandas as pd
 import itertools
@@ -22,6 +22,14 @@ class PlateFileParseException(Exception):
 
 class PlateFileUnknownFormat(PlateFileParseException):
     pass
+
+
+def _plate_size_selector(num_wells):
+    for size in STANDARD_PLATE_SIZES:
+        if num_wells < size:
+            return size
+
+    raise ValueError('Unsupported plate size: ' + num_wells)
 
 
 class PlateFileParser(object):
@@ -136,9 +144,6 @@ class PlateFileParser(object):
             Well.objects.raw('SET LOCAL synchronous_commit TO OFF;')
 
         self.file_format = 'HDF5'
-        # TODO: Get plate size dynamically from file
-        PLATE_WIDTH = 24
-        PLATE_HEIGHT = 16
 
         df_data = _read_hdf_unstacked(self.plate_file.read())
 
@@ -179,18 +184,33 @@ class PlateFileParser(object):
         df_wells.set_index('well_id', inplace=True)
         plates_to_create = {}
         well_sets_to_create = collections.defaultdict(list)
-        plate_names = set(df_wells['plate'].unique())
+
+        # Get the plate sizes by the largest well number on each plate
+        plate_sizes = df_wells.groupby('plate')['well_num'].max()
+        ctrl_plate_sizes = df_data.controls.groupby('plate')['well_num'].max()
+        plate_sizes = plate_sizes.to_frame().join(ctrl_plate_sizes,
+                                                  rsuffix='ctrl').max(axis=1)
+
+        # Convert the plate sizes to one of (96, 384, 1536)
+        plate_sizes = plate_sizes.apply(_plate_size_selector)
+        plate_dims = {size: PlateMap.plate_size_from_num_wells(size)
+                      for size in plate_sizes.unique()}
+
+        plate_names = set(plate_sizes.index)
+
         plate_names.update(
             df_data.controls.index.get_level_values('plate').unique()
         )
         for pl_name in plate_names:
             if pl_name not in self._plate_objects.keys():
+                plate_size = plate_sizes.loc[pl_name]
+                plate_width, plate_height = plate_dims[plate_size]
                 plates_to_create[pl_name] = Plate(
                     dataset=self.dataset,
                     name=pl_name,
                     last_annotated=timezone.now(),
-                    width=PLATE_WIDTH,
-                    height=PLATE_HEIGHT
+                    width=plate_width,
+                    height=plate_height
                 )
 
         if plates_to_create:
@@ -207,10 +227,12 @@ class PlateFileParser(object):
                 self._plate_objects.update(plates_to_create)
 
         # Create wells
-        for plate in self._plate_objects.values():
+        for pl_name, plate in self._plate_objects.items():
             plate_id = plate.id
             if plate_id not in self._well_sets:
-                for well_idx in range(PLATE_WIDTH * PLATE_HEIGHT):
+                plate_size = plate_sizes.loc[pl_name]
+                plate_width, plate_height = plate_dims[plate_size]
+                for well_idx in range(plate_width * plate_height):
                     well_sets_to_create[plate_id].append(Well(
                         plate_id=plate_id,
                         well_num=well_idx
