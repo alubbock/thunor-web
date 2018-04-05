@@ -136,6 +136,79 @@ class PlateFileParser(object):
                 'timepoint': timedelta(hours=int(tp.group('time_hours')))} if tp \
             else None
 
+    def _create_wells(self, plate_sizes, plate_dims, df_data,
+                      df_wells, cell_lines):
+        well_sets_to_create = collections.defaultdict(list)
+        # Create wells
+        for pl_name, plate in self._plate_objects.items():
+            plate_id = plate.id
+            if plate_id not in self._well_sets:
+                plate_size = plate_sizes.loc[pl_name]
+                plate_width, plate_height = plate_dims[plate_size]
+                for well_idx in range(plate_width * plate_height):
+                    well_sets_to_create[plate_id].append(Well(
+                        plate_id=plate_id,
+                        well_num=well_idx
+                    ))
+
+        # Set cell lines on wells
+        for row in df_wells.itertuples():
+            plate_id = self._plate_objects[row.plate].id
+            if plate_id not in self._well_sets:
+                well_sets_to_create[plate_id][row.well_num].cell_line_id = \
+                    cell_lines[row.cell_line]
+
+        # Add any control wells
+        ctrl_idx_names = df_data.controls.index.names
+        ctrl_plate_idx = ctrl_idx_names.index('plate')
+        ctrl_cell_line_idx = ctrl_idx_names.index('cell_line')
+        for row in df_data.controls.itertuples():
+            pl_name = row.Index[ctrl_plate_idx]
+            plate_id = self._plate_objects[pl_name].id
+
+            if plate_id not in self._well_sets:
+                well_sets_to_create[plate_id][row.well_num].cell_line_id = \
+                    cell_lines[row.Index[ctrl_cell_line_idx]]
+
+        # Flatten the well sets (n.b. bulk_create evaluates generators)
+        try:
+            first_well = next(iter(well_sets_to_create.values()))[0]
+        except (KeyError, StopIteration):
+            first_well = None
+        Well.objects.bulk_create(itertools.chain.from_iterable(
+            well_sets_to_create.values()),
+            batch_size=settings.DB_MAX_BATCH_SIZE)
+
+        # Again, on non-PostgreSQL datasets, we'll need to fetch the PKs
+        if first_well and first_well.pk is None:
+            self._get_well_sets_db(well_sets_to_create.keys())
+        else:
+            for plate_id, well_objs in well_sets_to_create.items():
+                self._well_sets[plate_id] = [w.pk for w in well_objs]
+
+    def _create_welldrugs(self, df_wells, drug_nums, drugs):
+        well_drugs_to_create = []
+        for row in df_wells.itertuples():
+            pl_name = row.plate
+            plate = self._plate_objects[pl_name]
+            well_num = row.well_num
+            well_id = self._well_sets[plate.id][well_num]
+            for order, d_num in enumerate(drug_nums):
+                drug_name = getattr(row, 'drug%d' % d_num)
+
+                if not pd.isnull(drug_name):
+                    well_drugs_to_create.append(
+                        WellDrug(
+                            well_id=well_id,
+                            drug_id=drugs[drug_name],
+                            order=order,
+                            dose=getattr(row, 'dose%d' % d_num)
+                        )
+                    )
+
+        WellDrug.objects.bulk_create(well_drugs_to_create,
+                                     batch_size=settings.DB_MAX_BATCH_SIZE)
+
     @transaction.atomic
     def parse_thunor_h5(self):
         if settings.DATABASE_SETTING == 'postgres':
@@ -146,6 +219,8 @@ class PlateFileParser(object):
         self.file_format = 'HDF5'
 
         df_data = _read_hdf_unstacked(self.plate_file.read())
+
+        self.plate_file.close()
 
         doses_unstacked = df_data.doses
 
@@ -183,7 +258,6 @@ class PlateFileParser(object):
         df_wells = doses_unstacked
         df_wells.set_index('well_id', inplace=True)
         plates_to_create = {}
-        well_sets_to_create = collections.defaultdict(list)
 
         # Get the plate sizes by the largest well number on each plate
         plate_sizes = df_wells.groupby('plate')['well_num'].max()
@@ -227,78 +301,17 @@ class PlateFileParser(object):
                 self._plate_objects.update(plates_to_create)
 
         # Create wells
-        for pl_name, plate in self._plate_objects.items():
-            plate_id = plate.id
-            if plate_id not in self._well_sets:
-                plate_size = plate_sizes.loc[pl_name]
-                plate_width, plate_height = plate_dims[plate_size]
-                for well_idx in range(plate_width * plate_height):
-                    well_sets_to_create[plate_id].append(Well(
-                        plate_id=plate_id,
-                        well_num=well_idx
-                    ))
+        self._create_wells(plate_sizes, plate_dims, df_data, df_wells,
+                           cell_lines)
 
-        # Set cell lines on wells
-        for row in df_wells.itertuples():
-            plate_id = self._plate_objects[row.plate].id
-            if plate_id not in self._well_sets:
-                well_sets_to_create[plate_id][row.well_num].cell_line_id = \
-                    cell_lines[row.cell_line]
+        # Create welldrugs
+        self._create_welldrugs(df_wells, drug_nums, drugs)
 
-        # Add any control wells
+        # Create wellmeasurements from controls
         ctrl_idx_names = df_data.controls.index.names
         ctrl_plate_idx = ctrl_idx_names.index('plate')
         ctrl_assay_idx = ctrl_idx_names.index('assay')
         ctrl_timepoint_idx = ctrl_idx_names.index('timepoint')
-        ctrl_cell_line_idx = ctrl_idx_names.index('cell_line')
-        for row in df_data.controls.itertuples():
-            pl_name = row.Index[ctrl_plate_idx]
-            plate_id = self._plate_objects[pl_name].id
-
-            if plate_id not in self._well_sets:
-                well_sets_to_create[plate_id][row.well_num].cell_line_id = \
-                    cell_lines[row.Index[ctrl_cell_line_idx]]
-
-        # Flatten the well sets (n.b. bulk_create evaluates generators)
-        try:
-            first_well = next(iter(well_sets_to_create.values()))[0]
-        except (KeyError, StopIteration):
-            first_well = None
-        Well.objects.bulk_create(itertools.chain.from_iterable(
-            well_sets_to_create.values()),
-            batch_size=settings.DB_MAX_BATCH_SIZE)
-
-        # Again, on non-PostgreSQL datasets, we'll need to fetch the PKs
-        if first_well and first_well.pk is None:
-            self._get_well_sets_db(well_sets_to_create.keys())
-        else:
-            for plate_id, well_objs in well_sets_to_create.items():
-                self._well_sets[plate_id] = [w.pk for w in well_objs]
-
-        # Create welldrugs
-        well_drugs_to_create = []
-        for row in df_wells.itertuples():
-            pl_name = row.plate
-            plate = self._plate_objects[pl_name]
-            well_num = row.well_num
-            well_id = self._well_sets[plate.id][well_num]
-            for order, d_num in enumerate(drug_nums):
-                drug_name = getattr(row, 'drug%d' % d_num)
-
-                if not pd.isnull(drug_name):
-                    well_drugs_to_create.append(
-                        WellDrug(
-                            well_id=well_id,
-                            drug_id=drugs[drug_name],
-                            order=order,
-                            dose=getattr(row, 'dose%d' % d_num)
-                        )
-                    )
-
-        WellDrug.objects.bulk_create(well_drugs_to_create,
-                                     batch_size=settings.DB_MAX_BATCH_SIZE)
-
-        # Create wellmeasurements from controls
         well_measurements_to_create = []
         for row in df_data.controls.itertuples():
             pl_name = row.Index[ctrl_plate_idx]
