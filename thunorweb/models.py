@@ -34,6 +34,13 @@ class HTSDataset(models.Model):
     def view_dataset_permissions(cls):
         return dict(cls._meta.permissions)
 
+    def add_platefile(self, filename):
+        from thunorweb.plate_parsers import PlateFileParser
+        from django.core.files import File
+        with open(filename, 'rb') as f:
+            pfp = PlateFileParser(File(f), dataset=self)
+            pfp.parse_all()
+
 
 class HTSDatasetUserObjectPermission(UserObjectPermissionBase):
     content_object = models.ForeignKey(HTSDataset)
@@ -63,7 +70,6 @@ class CellLine(models.Model):
 class CellLineTag(models.Model):
     class Meta:
         unique_together = (('tag_name', 'owner', 'cell_line'), )
-        index_together = (('tag_name', 'owner', 'cell_line'), )
 
     tag_name = models.TextField()
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True)
@@ -89,7 +95,6 @@ class Drug(models.Model):
 class DrugTag(models.Model):
     class Meta:
         unique_together = (('tag_name', 'owner', 'drug'), )
-        index_together = (('tag_name', 'owner', 'drug'), )
 
     tag_name = models.TextField()
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True)
@@ -122,11 +127,8 @@ class Plate(models.Model, PlateMap):
 
 
 class Well(models.Model):
-    # __slots__ = ('plate', 'well_num')
-
     class Meta:
         unique_together = (('plate', 'well_num'), )
-        index_together = (('plate', 'well_num'), )
 
     plate = models.ForeignKey(Plate)
     well_num = models.IntegerField()
@@ -134,11 +136,8 @@ class Well(models.Model):
 
 
 class WellMeasurement(models.Model):
-    # __slots__ = ('well', 'assay', 'timepoint', 'value')
-
     class Meta:
         unique_together = (("well", "assay", "timepoint"), )
-        index_together = (("well", "assay", "timepoint"), )
 
     well = models.ForeignKey(Well)
     assay = models.TextField()
@@ -147,11 +146,8 @@ class WellMeasurement(models.Model):
 
 
 class WellDrug(models.Model):
-    # __slots__ = ('plate', 'well', 'drug', 'dose')
-
     class Meta:
         unique_together = (("well", "drug"), ("well", "order"))
-        index_together = (("well", "drug", "order"), )
 
     well = models.ForeignKey(Well)
     drug = models.ForeignKey(Drug, null=True)
@@ -167,7 +163,7 @@ class WellDrug(models.Model):
 
 class WellStatistic(models.Model):
     class Meta:
-        pass
+        unique_together = (('well', 'stat_name'), )
 
     well = models.ForeignKey(Well)
     stat_name = models.TextField()
