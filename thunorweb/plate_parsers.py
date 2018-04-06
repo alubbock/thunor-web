@@ -58,7 +58,6 @@ class PlateFileParser(object):
                            'application/x-hdf': 'hdf'
                            }
 
-
     def __init__(self, plate_files, dataset):
         if isinstance(plate_files, File):
             self.all_plate_files = [plate_files, ]
@@ -909,7 +908,7 @@ class PlateFileParser(object):
             self.parse_thunor_h5()
         else:
             raise PlateFileParseException('File type not supported: {}'.
-                                          format(mimetype))
+                                          format(file_type or mimetype))
 
     def parse_all(self):
         self._results = []
