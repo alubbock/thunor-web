@@ -9,15 +9,10 @@ from django.db import IntegrityError, transaction
 import xlrd
 import magic
 import collections
-from thunor.io import read_vanderbilt_hts_single_df, _read_hdf_unstacked, \
-    PlateMap, STANDARD_PLATE_SIZES
-import math
+from thunor.io import _read_hdf_unstacked, \
+    PlateMap, STANDARD_PLATE_SIZES, PlateFileParseException
 import pandas as pd
 import itertools
-
-
-class PlateFileParseException(Exception):
-    pass
 
 
 class PlateFileUnknownFormat(PlateFileParseException):
@@ -263,7 +258,7 @@ class PlateFileParser(object):
         plate_names.update(
             df_data.controls.index.get_level_values('plate').unique()
         )
-        for pl_name in plate_names:
+        for pl_name in sorted(plate_names):
             if pl_name not in self._plate_objects.keys():
                 plate_size = plate_sizes.loc[pl_name]
                 plate_width, plate_height = plate_dims[plate_size]
@@ -341,285 +336,27 @@ class PlateFileParser(object):
         self.file_format = 'HDF5'
 
         df_data = _read_hdf_unstacked(self.plate_file.read())
-
+        self._create_db_platefile()
         self.plate_file.close()
 
         self._import_thunor(df_data)
 
     @transaction.atomic
-    def parse_platefile_vanderbilt_hts_conversion(self, sep='\t'):
+    def parser_thunor_vanderbilt_hts(self, sep='\t'):
         self.file_format = 'Vanderbilt HTS Core'
 
         from thunor.io import read_vanderbilt_hts
-
-
-    @transaction.atomic
-    def parse_platefile_vanderbilt_hts(self, sep='\t'):
-        """
-        Extracts data from a platefile in Vanderbilt HTS format
-
-        This format includes annotations (cell lines, drugs, doses)
-
-        Notes
-        -----
-
-        Limitations: assumes 384 well plate
-        """
-        self.file_format = 'Vanderbilt HTS Core'
-
-        # Create plates (assume 384 well)
-        # TODO: Check actual plate size
-        pm = PlateMap(width=24, height=16)
-
         self.plate_file.file.seek(0)
         try:
-            pd = read_vanderbilt_hts_single_df(self.plate_file.file, sep=sep)
-        except Exception as e:
+            df_data = read_vanderbilt_hts(self.plate_file.file, sep=sep,
+                                          _unstacked=True)
+        except KeyError as e:
             raise PlateFileUnknownFormat(e)
 
-        # Sanity checks
-        if (pd['cell.count'] < 0).any():
-            raise PlateFileParseException('cell.count contains negative '
-                                          'values')
-
-        if (pd['time'] < self._ZERO_TIMEDELTA).any():
-            raise PlateFileParseException('time contains negative value(s)')
-
-        drug_no = 1
-        drug_nums = []
-        while ('drug%d' % drug_no) in pd.columns.values:
-            if (pd['drug%d.conc' % drug_no] < 0).any():
-                raise PlateFileParseException('drug%d.conc contains negative '
-                                              'value(s)' % drug_no)
-            for du in pd['drug%d.units' % drug_no].unique():
-                if not isinstance(du, str) and math.isnan(du):
-                    continue
-
-                if du != 'M':
-                    raise PlateFileParseException(
-                        'Only supported drug concentration unit is M (not {})'.
-                            format(du))
-            drug_nums.append(drug_no)
-            drug_no += 1
-
-        # Check for duplicate drugs in any row
-        if len(drug_nums) == 2:
-            # Ignore rows where both concentrations are zero
-            dup_drugs = pd.loc[
-                ((pd['drug1.conc'] != 0) | (pd['drug2.conc'] != 0)) &
-                pd['drug1'] == pd['drug2'],
-                :]
-            if not dup_drugs.empty:
-                ind_val = dup_drugs.index.tolist()[0]
-                well_name = pm.well_id_to_name(ind_val[1])
-                raise PlateFileParseException(
-                    '{} entries have the same drug listed in the same well, '
-                    'e.g. plate "{}", well {}'.format(
-                        len(dup_drugs),
-                        ind_val[0],
-                        well_name
-                    )
-                )
-
-        # Check for duplicate time point definitions
-        dup_timepoints = pd.set_index('time', append=True)
-        if dup_timepoints.index.duplicated().any():
-            dups =  dup_timepoints.loc[dup_timepoints.index.duplicated(),
-                                       :].index.tolist()
-            n_dups = len(dups)
-            first_dup = dups[0]
-
-            raise PlateFileParseException(
-                'There are {} duplicate time points defined, e.g. plate "{}"'
-                ', well {}, time {}'.format(
-                    n_dups,
-                    first_dup[0],
-                    pm.well_id_to_name(first_dup[1]),
-                    first_dup[2]
-                )
-            )
-
-        # OK, we'll assume all is good and start hitting the DB
         self._create_db_platefile()
+        self.plate_file.close()
 
-        # Get/create cell lines
-        cell_lines = {}
-        for cl in pd['cell.line'].unique():
-            if not isinstance(cl, str):
-                continue
-            cl_obj, _ = CellLine.objects.get_or_create(
-                name__iexact=cl,
-                defaults={'name': cl}
-            )
-            cell_lines[cl] = cl_obj.pk
-
-        # Get/create drugs
-        drugs = {}
-        for drug_no in drug_nums:
-            for dr in pd['drug%d' % drug_no].unique():
-                if not isinstance(dr, str):
-                    continue
-                dr_obj, _ = Drug.objects.get_or_create(
-                    name__iexact=dr,
-                    defaults={'name': dr}
-                )
-                drugs[dr] = dr_obj.pk
-
-        # Get/create plates
-        plate_names = [pn for pn in pd.index.get_level_values(
-                       'upid').unique() if isinstance(pn, str)]
-        plates_to_create = {}
-        for pl_name in plate_names:
-            if pl_name not in self._plate_objects.keys():
-                if 'expt.id' in pd.columns.values:
-                    expt_id = pd.loc[pl_name]['expt.id'].unique()
-                    if len(expt_id) > 1:
-                        raise PlateFileParseException('Plate %s contains '
-                                                      'more than one '
-                                                      'expt.id' % pl_name)
-                    expt_id = expt_id[0]
-                else:
-                    expt_id = None
-
-                if 'expt.date' in pd.columns.values:
-                    expt_date = pd.loc[pl_name]['expt.date'].unique()
-                    if len(expt_date) > 1:
-                        raise PlateFileParseException('Plate %s contains '
-                                                      'more than one '
-                                                      'expt.date' % pl_name)
-                    expt_date = expt_date[0]
-                else:
-                    expt_date = None
-
-                plates_to_create[pl_name] = Plate(
-                    dataset=self.dataset,
-                    name=pl_name,
-                    last_annotated=timezone.now(),
-                    width=pm.width,
-                    height=pm.height,
-                    expt_id=expt_id,
-                    expt_date=expt_date
-                )
-
-        # If any plates are not in the DB, now's the time...
-        if plates_to_create:
-            Plate.objects.bulk_create(plates_to_create.values())
-
-            # Depending on DB backend, we may need to refetch to get the PKs
-            # (Thankfully not PostgreSQL)
-            if plates_to_create[list(plates_to_create)[0]].pk is None:
-                for p in Plate.objects.filter(dataset_id=self.dataset.id):
-                    self._plate_objects[p.name] = p
-            else:
-                # Otherwise, just add the plates into the local cache
-                self._plate_objects.update(plates_to_create)
-
-            # Create the well set objects
-            well_sets_to_create = {}
-            for pl_name in plate_names:
-                plate = self._plate_objects[pl_name]
-                wells = self._well_sets.get(plate.id, None)
-
-                if not wells:
-                    pl_data = pd.loc[pl_name]
-                    cell_lines_this_plate = {well: set(dat['cell.line']) for
-                                             well, dat in
-                                             pl_data.groupby(level='well')}
-
-                    # Check for more than one cell line defined in same well
-                    dup_wells = [well for well, cl in
-                                 cell_lines_this_plate.items() if len(cl) > 1]
-                    if any(dup_wells):
-                        raise PlateFileParseException(
-                            'Plate {} has more than one cell line defined for '
-                            'well(s): {}'.format(pl_name, ",".join([
-                                pm.well_id_to_name(d) for d in dup_wells])))
-
-                    # Checks complete, create the wells
-                    well_sets_to_create[plate.id] = []
-                    for w in range(pm.num_wells):
-                        cl_id = cell_lines_this_plate.get(w, None)
-                        if cl_id is not None:
-                            cl_id = cell_lines[list(cl_id)[0]]
-                        well_sets_to_create[plate.id].append(
-                            Well(plate_id=plate.id,
-                                 well_num=w,
-                                 cell_line_id=cl_id
-                                 )
-                        )
-
-            # Run the DB query to create the well sets
-            # Use a generator to avoid creating an intermediate list
-            def well_generator():
-                for plate_wells in well_sets_to_create.values():
-                    for well in plate_wells:
-                        yield well
-
-            Well.objects.bulk_create(well_generator())
-
-            # Again, on non-PostgreSQL datasets, we'll need to fetch the PKs
-            if well_sets_to_create and \
-                    well_sets_to_create[list(well_sets_to_create)[0]][0].pk\
-                            is None:
-                self._get_well_sets_db(well_sets_to_create.keys())
-            else:
-                for plate_id, well_objs in well_sets_to_create.items():
-                    self._well_sets[plate_id] = [w.pk for w in well_objs]
-
-        # Add WellDrugs and WellMeasurements
-        well_drugs_to_create = []
-        well_measurements_to_create = []
-        for pl_name in plate_names:
-            plate = self._plate_objects[pl_name]
-            well_set = self._well_sets[plate.id]
-            for well, dat in pd.loc[pl_name].groupby(level='well'):
-                well_id = well_set[well]
-                for drug_no in drug_nums:
-                    drug_name = dat['drug%d' % drug_no].unique()
-                    if len(drug_name) > 1:
-                        raise PlateFileParseException(
-                            'Plate {}, well {} has more than one drug defined '
-                            'in drug%d column'.format(
-                                pl_name, pm.well_id_to_name(well), drug_no
-                            )
-                        )
-                    drug_name = drug_name[0]
-                    drug_conc = dat['drug%d.conc' % drug_no].unique()
-                    if len(drug_conc) > 1:
-                        raise PlateFileParseException(
-                            'Plate {}, well {} has more than one drug '
-                            'concentration defined in drug%d.conc '
-                            'column'.format(
-                                pl_name, pm.well_id_to_name(well), drug_no
-                            )
-                        )
-                    drug_conc = drug_conc[0]
-                    if drug_conc != 0.0:
-                        well_drugs_to_create.append(
-                            WellDrug(
-                                well_id=well_id,
-                                drug_id=drugs[drug_name],
-                                order=(drug_no - 1),
-                                dose=drug_conc
-                            )
-                        )
-
-                well_measurements_to_create.extend([
-                    WellMeasurement(
-                        well_id=well_id,
-                        assay='Cell count',
-                        timepoint=measurement.time,
-                        value=measurement._1
-                    )
-                    for measurement in
-                    dat[['time', 'cell.count']].itertuples(index=False)
-                ])
-
-        # Fire off the bulk DB queries...
-        WellDrug.objects.bulk_create(well_drugs_to_create)
-        WellMeasurement.objects.bulk_create(well_measurements_to_create)
-
-        self.dataset.save()
+        self._import_thunor(df_data)
 
     @transaction.atomic
     def parse_platefile_synergy_neo(self, sep='\t'):
@@ -879,11 +616,11 @@ class PlateFileParser(object):
                                                  'characters?)')
             if file_first_kb.find('cell.count') != -1 and file_first_kb.find(
                     'drug1.conc') != -1:
-                parsers = (self.parse_platefile_vanderbilt_hts,
+                parsers = (self.parser_thunor_vanderbilt_hts,
                            self.parse_platefile_synergy_neo)
             else:
                 parsers = (self.parse_platefile_synergy_neo,
-                           self.parse_platefile_vanderbilt_hts)
+                           self.parser_thunor_vanderbilt_hts)
 
             sep = '\t'
             first_line = file_first_kb.split('\n')[0]
