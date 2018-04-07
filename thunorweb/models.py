@@ -125,12 +125,16 @@ class Plate(models.Model, PlateMap):
     def __str__(self):
         return self.name
 
+# Note about indexes: I've removed foreign key indexes for some fields where
+# the unique_together constraint has those fields covered by a unique
+# constraint, because (in postgres at least) this already creates an index
+
 
 class Well(models.Model):
     class Meta:
         unique_together = (('plate', 'well_num'), )
 
-    plate = models.ForeignKey(Plate)
+    plate = models.ForeignKey(Plate, db_index=False)
     well_num = models.IntegerField()
     cell_line = models.ForeignKey(CellLine, null=True)
 
@@ -139,7 +143,7 @@ class WellMeasurement(models.Model):
     class Meta:
         unique_together = (("well", "assay", "timepoint"), )
 
-    well = models.ForeignKey(Well)
+    well = models.ForeignKey(Well, db_index=False)
     assay = models.TextField()
     timepoint = models.DurationField()
     value = models.FloatField(null=True)
@@ -149,7 +153,7 @@ class WellDrug(models.Model):
     class Meta:
         unique_together = (("well", "drug"), ("well", "order"))
 
-    well = models.ForeignKey(Well)
+    well = models.ForeignKey(Well, db_index=False)
     drug = models.ForeignKey(Drug, null=True)
     order = models.PositiveSmallIntegerField()
     dose = models.FloatField(null=True)
