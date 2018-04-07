@@ -310,12 +310,26 @@ def ajax_save_plate(request):
     # Add the cell lines
     if apply_mode not in ['drugs', 'doses']:
         cell_line_ids = [well['cellLine'] for well in wells]
+        existing_wells = set(Well.objects.filter(
+            plate_id__in=plate_ids).values_list('plate_id', 'well_num'))
+        # Update existing wells
         for cl_id in set(cell_line_ids):
             Well.objects.filter(
                 plate_id__in=plate_ids,
                 well_num__in=np.where([this_id == cl_id for this_id in
                                    cell_line_ids])[0]).update(
                                                         cell_line_id=cl_id)
+        # Insert new wells
+        wells_to_insert = []
+        for plate in plate_ids:
+            for well_num, cell_line_id in enumerate(cell_line_ids):
+                if not (plate, well_num) in existing_wells:
+                    wells_to_insert.append(Well(
+                        well_num=well_num,
+                        plate_id=plate,
+                        cell_line_id=cell_line_id
+                    ))
+        Well.objects.bulk_create(wells_to_insert)
 
     # Since we don't know how many drugs in each well there were previously
     # in the case of an update, the easy

@@ -76,19 +76,19 @@ class PlateFileParser(object):
         self._results = []
         self._well_sets = {}
 
-        # Get existing plate objects
-        for p in Plate.objects.filter(dataset_id=dataset.id):
-            self._plate_objects[p.name] = p
-        if self._plate_objects:
-            self._get_well_sets_db([p.id for p in
-                                    self._plate_objects.values()])
+        # Get existing well and plate objects
+        for w in Well.objects.filter(
+                plate__dataset_id=self.dataset.id).select_related('plate'):
+            if w.plate.name not in self._plate_objects:
+                self._plate_objects[w.plate.name] = w.plate
+                self._well_sets[w.plate_id] = {}
+            self._well_sets[w.plate_id][w.well_num] = w.pk
 
     def _get_well_sets_db(self, plate_ids):
         """ Reads Well primary keys into a local variable cache """
         for w in Well.objects.filter(
-                plate_id__in=plate_ids).order_by(
-                'plate_id', 'well_num'):
-            self._well_sets.setdefault(w.plate_id, []).append(w.pk)
+                plate_id__in=plate_ids):
+            self._well_sets.setdefault(w.plate_id, {})[w.well_num] = w.pk
 
     def _create_db_platefile(self):
         self._db_platefile = PlateFile.objects.create(
@@ -135,39 +135,33 @@ class PlateFileParser(object):
                 'timepoint': timedelta(hours=int(tp.group('time_hours')))} if tp \
             else None
 
-    def _create_wells(self, plate_sizes, plate_dims, df_data,
+    def _create_wells(self, df_data,
                       df_wells, cell_lines):
         well_sets_to_create = collections.defaultdict(list)
-        # Create wells
-        for pl_name, plate in self._plate_objects.items():
-            plate_id = plate.id
-            if plate_id not in self._well_sets:
-                plate_size = plate_sizes.loc[pl_name]
-                plate_width, plate_height = plate_dims[plate_size]
-                for well_idx in range(plate_width * plate_height):
-                    well_sets_to_create[plate_id].append(Well(
-                        plate_id=plate_id,
-                        well_num=well_idx
-                    ))
 
-        # Set cell lines on wells
+        # Expt wells
         for row in df_wells.itertuples():
             plate_id = self._plate_objects[row.plate].id
-            if plate_id not in self._well_sets:
-                well_sets_to_create[plate_id][row.well_num].cell_line_id = \
-                    cell_lines[row.cell_line]
+            if row.well_num not in self._well_sets.get(plate_id, {}):
+                well_sets_to_create[plate_id].append(Well(
+                    plate_id=plate_id,
+                    well_num=row.well_num,
+                    cell_line_id=cell_lines[row.cell_line]
+                ))
 
         # Add any control wells
-        ctrl_idx_names = df_data.controls.index.names
-        ctrl_plate_idx = ctrl_idx_names.index('plate')
-        ctrl_cell_line_idx = ctrl_idx_names.index('cell_line')
-        for row in df_data.controls.itertuples():
-            pl_name = row.Index[ctrl_plate_idx]
+        control_wells = df_data.controls['well_num'].reset_index([
+            'cell_line', 'plate']).reset_index(drop=True).drop_duplicates()
+        for w in control_wells.itertuples():
+            pl_name = w.plate
+            well_num = w.well_num
             plate_id = self._plate_objects[pl_name].id
-
-            if plate_id not in self._well_sets:
-                well_sets_to_create[plate_id][row.well_num].cell_line_id = \
-                    cell_lines[row.Index[ctrl_cell_line_idx]]
+            if well_num not in self._well_sets.get(plate_id, {}):
+                well_sets_to_create[plate_id].append(Well(
+                    plate_id=plate_id,
+                    well_num=well_num,
+                    cell_line_id=cell_lines[w.cell_line]
+                ))
 
         # Flatten the well sets (n.b. bulk_create evaluates generators)
         try:
@@ -183,7 +177,8 @@ class PlateFileParser(object):
             self._get_well_sets_db(well_sets_to_create.keys())
         else:
             for plate_id, well_objs in well_sets_to_create.items():
-                self._well_sets[plate_id] = [w.pk for w in well_objs]
+                self._well_sets.setdefault(plate_id, {}).update({
+                    w.well_num: w.pk for w in well_objs})
 
     def _create_welldrugs(self, df_wells, drug_nums, drugs):
         well_drugs_to_create = []
@@ -208,18 +203,12 @@ class PlateFileParser(object):
         WellDrug.objects.bulk_create(well_drugs_to_create,
                                      batch_size=settings.DB_MAX_BATCH_SIZE)
 
-    @transaction.atomic
-    def parse_thunor_h5(self):
+    def _import_thunor(self, df_data):
+        """ Import from a Thunor core dataset with unstacked doses """
         if settings.DATABASE_SETTING == 'postgres':
             # This is wrapped in an outer commit block, so we can gain a bit of
             # speed by not waiting for WAL in this inner transaction
             Well.objects.raw('SET LOCAL synchronous_commit TO OFF;')
-
-        self.file_format = 'HDF5'
-
-        df_data = _read_hdf_unstacked(self.plate_file.read())
-
-        self.plate_file.close()
 
         doses_unstacked = df_data.doses
 
@@ -300,8 +289,7 @@ class PlateFileParser(object):
                 self._plate_objects.update(plates_to_create)
 
         # Create wells
-        self._create_wells(plate_sizes, plate_dims, df_data, df_wells,
-                           cell_lines)
+        self._create_wells(df_data, df_wells, cell_lines)
 
         # Create welldrugs
         self._create_welldrugs(df_wells, drug_nums, drugs)
@@ -347,6 +335,23 @@ class PlateFileParser(object):
         )
 
         self.dataset.save()
+
+    @transaction.atomic
+    def parse_thunor_h5(self):
+        self.file_format = 'HDF5'
+
+        df_data = _read_hdf_unstacked(self.plate_file.read())
+
+        self.plate_file.close()
+
+        self._import_thunor(df_data)
+
+    @transaction.atomic
+    def parse_platefile_vanderbilt_hts_conversion(self, sep='\t'):
+        self.file_format = 'Vanderbilt HTS Core'
+
+        from thunor.io import read_vanderbilt_hts
+
 
     @transaction.atomic
     def parse_platefile_vanderbilt_hts(self, sep='\t'):
@@ -806,6 +811,7 @@ class PlateFileParser(object):
                                           'uploaded to this dataset before')
 
     def _get_or_create_plate(self, plate_name, well_cols, well_rows):
+        # TODO: Replace with sparse plate implementation
         if plate_name is None or plate_name == '':
             raise PlateFileParseException('Plate name must not be empty')
 
@@ -826,21 +832,12 @@ class PlateFileParser(object):
             # Get the well IDs without an extra select, if the DB backend
             # supports this (just PostgreSQL as of Django 1.10)
             if wells[0].pk is not None:
-                self._well_sets[plate.id] = [w.pk for w in wells]
+                self._well_sets[plate.id].update({
+                    w.well_num: w.pk for w in wells})
 
         if plate.id not in self._well_sets:
-            self._well_sets[plate.id] = list(
-                plate.well_set.order_by('well_num').values_list(
-                    'pk', flat=True))
-
-        if len(self._well_sets[plate.id]) != well_cols * well_rows:
-            raise PlateFileParseException(
-                'Retrieved {} wells for plate {} (was expecting '
-                '{})'.format(len(self._well_sets[plate.id]),
-                             plate.id,
-                             well_cols * well_rows
-                             )
-            )
+            self._well_sets[plate.id].update({
+                w.well_num: w.pk for w in plate.well_set.all()})
 
         return plate
 
@@ -893,15 +890,13 @@ class PlateFileParser(object):
             if ',' in first_line:
                 sep = ','
 
-            parsed = False
             for parser in parsers:
                 try:
                     parser(sep=sep)
-                    parsed = True
                     break
                 except PlateFileUnknownFormat:
                     pass
-            if not parsed:
+            else:
                 raise PlateFileParseException('File type not recognized. '
                                               'Please check the format.')
         elif file_type == 'hdf':
