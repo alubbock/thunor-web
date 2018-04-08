@@ -1058,7 +1058,7 @@ def ajax_get_plot(request, file_type='json'):
             dataset2_id = None
         if dataset2_id is not None:
             dataset2_id = int(dataset2_id)
-        cell_line_id = request.GET.getlist('cellLineId')
+        cell_line_id = request.GET.getlist('c')
         cell_line_tag_names = request.GET.getlist('cellLineTags')
         aggregate_cell_lines = request.GET.get('aggregateCellLines', False) \
                                == "true"
@@ -1084,7 +1084,7 @@ def ajax_get_plot(request, file_type='json'):
                 aggregate_cell_lines = defaultdict(list)
                 for tag_name, _, cl_name in cell_line_tag_objs:
                     aggregate_cell_lines[tag_name].append(cl_name)
-        drug_id = request.GET.getlist('drugId')
+        drug_id = request.GET.getlist('d')
         drug_tag_names = request.GET.getlist('drugTags')
         aggregate_drugs = request.GET.get('aggregateDrugs', False) == "true"
         if not drug_id and drug_tag_names:

@@ -387,9 +387,9 @@ var plots = function() {
         if($form.data("force")) {
             $form.data("force", false);
         } else {
-            var numCellLines = $form.find("select[name=cellLineId]:enabled")
+            var numCellLines = $form.find("select[name=c]:enabled")
                 .find("option:selected").length;
-            var numDrugs = $form.find("select[name=drugId]:enabled")
+            var numDrugs = $form.find("select[name=d]:enabled")
                 .find("option:selected").length;
             var plotType = $form.find("input[name=plotType]:checked").val();
             var numTraces = numCellLines * numDrugs;
@@ -585,7 +585,7 @@ var plots = function() {
             }
         });
 
-        $dataPanel.find("select[name=cellLineId],select[name=drugId]")
+        $dataPanel.find("select[name=c],select[name=d]")
             .selectpicker(selectPickerOptionsSingle);
         $dataPanel.find("select.drpar-select")
             .on("changed.bs.select", function(e) {
@@ -605,8 +605,8 @@ var plots = function() {
 
         var datasetId, dataset2Id;
 
-        var $cellLineSelect = $dataPanel.find("select[name=cellLineId]"),
-            $drugSelect = $dataPanel.find("select[name=drugId]"),
+        var $cellLineSelect = $dataPanel.find("select[name=c]"),
+            $drugSelect = $dataPanel.find("select[name=d]"),
             $assaySelect = $dataPanel.find("select[name=assayId]"),
             $plateSelect = $dataPanel.find("select[name=plateId]");
 
