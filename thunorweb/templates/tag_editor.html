@@ -9,7 +9,7 @@
 <button class="btn btn-success btn-lg" style="width:170px" id="btn-add-tag" {% if not request.user.is_authenticated %}disabled{% endif %}>
   <i class="fa fa-3x fa-plus"></i><br>
   Add {{ entity_type }} Tag</button>
-{% if request.user.is_staff %}
+{% if request.user.is_superuser %}
     <button class="btn btn-primary btn-lg" style="width:170px" id="btn-add-public-tag">
   <i class="fa fa-3x fa-plus"></i><br>
   Add Public {{ entity_type }} Tag</button>
@@ -23,6 +23,7 @@
 
 <div class="tag-list">
 {% for tag, entities in tag_dict_all.items %}
+  {% ifchanged tag.tag_category %}<h2>{{ tag.tag_category }}</h2>{% endifchanged %}
 {% include "tag_editor_tag_template.html" %}
 {% endfor %}
 </div>

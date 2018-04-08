@@ -93,6 +93,14 @@ var selectPickerOptionsSingle = {
   maxOptions: 1
 };
 
+var selectPickerTagOptions = {
+  countSelectedText: function(n, N) {
+    return n + " of " + N + " tags selected";
+  },
+  selectedTextFormat: "count > 4",
+  actionsBox: true
+};
+
 var plots = function() {
     var plotOptionsCache = {};
 
@@ -222,8 +230,12 @@ var plots = function() {
             } else {
                 $newOption.val(optionList[i].id);
                 $newOption.text(optionList[i].name);
+                if(optionList[i].hasOwnProperty("cat")) {
+                    $newOption.prepend("<span class=\"label" +
+                        " label-default\">" + optionList[i].cat + "</span> ");
+                }
                 if(optionList[i].hasOwnProperty("public") && optionList[i].public) {
-                    $newOption.prepend("<span class=\"badge\">public</span> ");
+                    $newOption.prepend("<i class=\"fa fa-users\"></i> ");
                 }
                 $select.append($newOption);
             }
@@ -665,13 +677,13 @@ var plots = function() {
                 setSelectPicker($assaySelect, true);
             }
             var $selectClTags = $dataPanel.find("select[name=cellLineTags]");
-            $selectClTags.prop("disabled", true).selectpicker("hide");
+            $selectClTags.prop("disabled", true).selectpicker(selectPickerTagOptions).selectpicker("hide");
             pushOptionsToSelect(
                 $selectClTags,
                 data.cellLineTags
             );
             var $selectDrTags = $dataPanel.find("select[name=drugTags]");
-            $selectDrTags.prop("disabled", true).selectpicker("hide");
+            $selectDrTags.prop("disabled", true).selectpicker(selectPickerTagOptions).selectpicker("hide");
             pushOptionsToSelect(
                 $selectDrTags,
                 data.drugTags

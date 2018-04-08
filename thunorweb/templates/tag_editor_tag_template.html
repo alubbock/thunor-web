@@ -2,7 +2,7 @@
 <div class="tag-container panel {% if tag.is_public %}panel-primary{% else %}panel-default{% endif %}"
      {% if not tag %}style="display:none"{% endif %}>
 <div class="panel-heading">
-{% if not tag.is_public or request.user.is_staff %}
+{% if not tag.is_public or request.user.is_superuser %}
 <form class="pull-right form-inline delete-tag"
       {% if not tag %}style="display:none"{% endif %}>
     <input type="hidden" name="tagType" value="{{ entity_type_var }}">
@@ -15,6 +15,9 @@
 
 <h4 class="tag-header"{% if not tag %} style="display:none"{% endif %}>
     <i class="fa fa-tag"></i>
+    {% if tag.tag_category %}<span class="label label-default">
+      {{ tag.tag_category }}</span>
+    {% endif %}
     <span class="tag-name">{% if tag %}{{ tag.tag_name }}{% endif %}</span>
     {% if tag.is_public %}<span class="badge badge-primary">Public</span>{% endif %}
     <span class="label label-success" style="display:none">Changes saved</span>
@@ -43,7 +46,7 @@
     <input type="hidden" name="tagPublic" value="{{ tag.is_public|yesno:"1,0" }}">
 <div class="form-group">
     <label for="entityId">{{ entity_type }}(s)</label>
-    {% if not tag.is_public or request.user.is_staff %}
+    {% if not tag.is_public or request.user.is_superuser %}
     <select multiple data-live-search="true" name="entityId" autocomplete="off"
     class="form-control" title="Select {{ entity_type }}s" style="display:none">
     {% for ent, is_selected in entities %}<option name="entityId" value="{{ ent.id }}"{% if is_selected %} selected{% endif %}>{{ ent.name }}</option>

@@ -983,13 +983,13 @@ def _get_tags(request, cell_line_ids, drug_ids):
 
     cell_line_tags = CellLineTag.objects.filter(tag_owner_filter).filter(
         cell_line_id__in=cell_line_ids
-    ).values_list('owner_id', 'tag_name').distinct().order_by(
-        'owner_id', 'tag_name')
+    ).values_list('owner_id', 'tag_category', 'tag_name').distinct().order_by(
+        'owner_id', 'tag_category', 'tag_name')
 
     drug_tags = DrugTag.objects.filter(tag_owner_filter).filter(
         drug_id__in=drug_ids
-    ).values_list('owner_id', 'tag_name').distinct().order_by(
-        'owner_id', 'tag_name')
+    ).values_list('owner_id', 'tag_category', 'tag_name').distinct().order_by(
+        'owner_id', 'tag_category', 'tag_name')
 
     return cell_line_tags, drug_tags
 
@@ -1022,14 +1022,16 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
     cell_line_tags, drug_tags = _get_tags(request, cell_line_ids, drug_ids)
 
     groupings_dict['drugTags'] = \
-        [{'id': ('1' if tag[0] is None else '0') + tag[1],
-          'name': tag[1],
+        [{'id': ('1' if tag[0] is None else '0') + tag[2],
+          'cat': tag[1],
+          'name': tag[2],
           'public': tag[0] is None}
          for tag in drug_tags]
 
     groupings_dict['cellLineTags'] = \
-        [{'id': ('1' if tag[0] is None else '0') + tag[1],
-          'name': tag[1],
+        [{'id': ('1' if tag[0] is None else '0') + tag[2],
+          'cat': tag[1],
+          'name': tag[2],
           'public': tag[0] is None}
          for tag in cell_line_tags]
 
@@ -1443,7 +1445,7 @@ def tag_editor(request, tag_type=None):
     else:
         tag_owner_filter = Q(owner=None)
 
-    Tag = namedtuple('Tag', ['is_public', 'tag_name'])
+    Tag = namedtuple('Tag', ['is_public', 'tag_category', 'tag_name'])
     tag_dict_selected = defaultdict(list)
     tag_dict_all = {}
     if tag_type == 'cell_lines':
@@ -1451,10 +1453,11 @@ def tag_editor(request, tag_type=None):
         entity_type_var = 'cl'
         entity_options = CellLine.objects.all().order_by('name')
         tag_list = CellLineTag.objects.filter(tag_owner_filter).order_by(
-                F('owner_id').asc(nulls_last=True), 'tag_name',
+                F('owner_id').asc(nulls_last=True), 'tag_category', 'tag_name',
                 'cell_line__name')
         for tag in tag_list:
-            tag_dict_selected[Tag(tag.owner_id is None, tag.tag_name)].append(
+            tag_dict_selected[Tag(tag.owner_id is None,
+                                  tag.tag_category, tag.tag_name)].append(
                 tag.cell_line_id)
         for tag_key, cell_lines in tag_dict_selected.items():
             tag_dict_all[tag_key] = [(ent, ent.id in cell_lines) for ent in
@@ -1464,9 +1467,11 @@ def tag_editor(request, tag_type=None):
         entity_type_var = 'drug'
         entity_options = Drug.objects.all().order_by('name')
         tag_list = DrugTag.objects.filter(tag_owner_filter).order_by(
-                F('owner_id').asc(nulls_last=True), 'tag_name', 'drug__name')
+                F('owner_id').asc(nulls_last=True), 'tag_category',
+                'tag_name', 'drug__name')
         for tag in tag_list:
-            tag_dict_selected[Tag(tag.owner_id is None, tag.tag_name)].append(
+            tag_dict_selected[Tag(tag.owner_id is None,
+                                  tag.tag_category, tag.tag_name)].append(
                 tag.drug_id)
         for tag_key, drugs in tag_dict_selected.items():
             tag_dict_all[tag_key] = [(ent, ent.id in drugs) for ent in
