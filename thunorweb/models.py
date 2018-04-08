@@ -103,7 +103,7 @@ class CellLineTag(models.Model):
         cls.objects.bulk_create(
             cls(tag_name=row.tag_name,
                 tag_category=row.tag_category,
-                cell_line_id=cl_mapping[row.drug],
+                cell_line_id=cl_mapping[row.cell_line],
                 owner=owner_id)
             for row in csv.itertuples())
 
