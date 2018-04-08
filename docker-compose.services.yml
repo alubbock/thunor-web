@@ -17,8 +17,8 @@ services:
     ports:
       - "80:80"
       - "443:443"
-  postgres:
-    image: postgres:9.6
+  postgres10:
+    image: postgres:10
     volumes:
       - ./_state/postgres-data:/var/lib/postgresql/data
     healthcheck:
