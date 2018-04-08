@@ -1283,7 +1283,8 @@ def _dose_response_plot(request, dataset, dataset2_id,
                                 'This drug/cell line/time point combination '
                                 'may not exist.', status=400)
         try:
-            expt_resp_data = viability(df_data, time_hrs=viability_time)
+            expt_resp_data, ctrl_resp_data = viability(
+                df_data, time_hrs=viability_time)
         except NotImplementedError as e:
             return HttpResponse(e, status=400)
         if expt_resp_data['viability'].isnull().values.all():
@@ -1365,6 +1366,7 @@ def _dose_response_plot(request, dataset, dataset2_id,
         else:
             fit_params = viability_fit_params(
                 expt_resp_data,
+                ctrl_viability=ctrl_resp_data,
                 include_response_values=plot_type == 'drc',
                 custom_ic_concentrations=ic_concentrations,
                 custom_ec_concentrations=ec_concentrations,
