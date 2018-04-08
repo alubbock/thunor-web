@@ -230,7 +230,7 @@ var plots = function() {
             } else {
                 $newOption.val(optionList[i].id);
                 $newOption.text(optionList[i].name);
-                if(optionList[i].hasOwnProperty("cat")) {
+                if(optionList[i].hasOwnProperty("cat") && optionList[i].cat !== null) {
                     $newOption.prepend("<span class=\"label" +
                         " label-default\">" + optionList[i].cat + "</span> ");
                 }
