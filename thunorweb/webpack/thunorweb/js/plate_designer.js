@@ -1178,6 +1178,7 @@ var plate_designer = function () {
             if($('#hts-well-dip').hasClass('active')) return;
             if ($('.hts-well.ui-selected').length) {
                 $('#well-all,.hts-well').removeClass('ui-selected');
+                clearAllInputs();
             } else {
                 $('#well-all,.hts-well').addClass('ui-selected');
                 updateInputsWithWellData();
@@ -1381,6 +1382,7 @@ var plate_designer = function () {
 
     // Loading and saving plates
     var plateLoadedCallback = function (data) {
+        clearAllInputs();
         if(pyHTS.state.completeFlag) {
             pyHTS.state.plateMap.unsaved_changes = false;
             window.location = pyHTS.state.redirectURL;
