@@ -159,7 +159,12 @@ PlateMap.prototype = {
                this.colNumToName(wellNum % this.numCols, padded);
     },
     rowNumToName: function(rowNum) {
-        return String.fromCharCode(65 + rowNum);
+        if(rowNum < 26) {
+            return String.fromCharCode(65 + rowNum);
+        } else {
+            return String.fromCharCode(64 + Math.floor(rowNum / 26)) +
+                String.fromCharCode(65 + rowNum % 26);
+        }
     },
     colNumToName: function(colNum, padded) {
         if(padded === true) {
@@ -186,7 +191,7 @@ PlateMap.prototype = {
         var wells = [];
         for(var w=0, len=this.wells.length; w<len; w++) {
             wells.push([
-               this.wellNumToName(w, true),
+                {"id": w, "name": this.wellNumToName(w, true)},
                util.filterObjectsAttr(this.wells[w].cellLine,
                                             pyHTS.state.cell_lines,
                                             "id", "name").toString().replace(/^-1$/, ""),
@@ -913,7 +918,7 @@ var plate_designer = function () {
         $('#hts-well-table-view').find('table').DataTable({
             data: pyHTS.state.plateMap.asDataTable(),
             columns: [
-                {title: 'Well'},
+                {title: 'Well', render: {_: "name", sort: "id"}, type: "num"},
                 {title: 'Cell Line'},
                 {title: 'Drugs'},
                 {title: 'Doses'},
