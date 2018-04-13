@@ -409,6 +409,9 @@ user-select: none;}
 .modal-header {
     font-size: 20pt;
 }
+#hts-well-plate-inner.xlplate {
+    font-size: 60%;
+}
 /** Loading indicators **/
 .loading-overlay {
     display: none;

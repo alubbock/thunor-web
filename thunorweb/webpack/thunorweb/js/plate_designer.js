@@ -534,6 +534,7 @@ var plate_designer = function () {
                 .find('li').css('width', wellWidthPercent)
                      .css('padding-bottom', wellWidthPercent);
         $('#selectable-well-rows').css('width', wellWidthPercent);
+        $('#hts-well-plate-inner').toggleClass('xlplate', tgtNumWells > 384);
 
         // refresh the legend and well CSS classes
         refreshLegend(selectedWells, wellIds, 'cell-line');
@@ -762,7 +763,7 @@ var plate_designer = function () {
         // Validations succeeded, apply attributes to wells
         var wellIds = [];
         $.each($selectedWells, function(i, well) {
-            var wellId = $(well).data('well');
+            var wellId = $(well).index();
             wellIds.push(wellId);
             if(cl_id != -1) {
                 pyHTS.state.plateMap.wells[wellId].setCellLine(cl_id);
@@ -1079,7 +1080,7 @@ var plate_designer = function () {
         var $selectedWells = $('#selectable-wells').find('.ui-selected');
         var wellIds = [], newWellIds;
         $.each($selectedWells, function(i, well) {
-            wellIds.push($(well).data('well'));
+            wellIds.push($(well).index());
         });
         try {
             newWellIds = pyHTS.state.plateMap.moveSelectionBy(wellIds, amount,
@@ -1111,24 +1112,25 @@ var plate_designer = function () {
         }
 
         $('#selectable-wells').find('.ui-selected').each(function(i, ele){
-            var well = pyHTS.state.plateMap.wells[$(ele).data('well')];
-            if($.inArray(well.cellLine, cellLines) == -1) {
+            var well = pyHTS.state.plateMap.wells[$(ele).index()];
+            // Only get the first two for speed, just checking if 0/1/multiple
+            if(cellLines.length < 2 && $.inArray(well.cellLine, cellLines) === -1) {
                 cellLines.push(well.cellLine);
             }
             for(i=0; i<numDrugs; i++) {
-                if(well.drugs && $.inArray(well.drugs[i], drugs[i]) == -1) {
+                if(drugs[i].length < 2 && well.drugs && $.inArray(well.drugs[i], drugs[i]) === -1) {
                     drugs[i].push(well.drugs[i]);
                 }
             }
             for(i=0; i<numDoses; i++) {
-                if(well.doses && $.inArray(well.doses[i], doses[i]) == -1) {
+                if(doses[i].length < 2 && well.doses && $.inArray(well.doses[i], doses[i]) === -1) {
                     doses[i].push(well.doses[i]);
                 }
             }
         });
 
         $cellLineTypeahead.typeahead('val', '');
-        if(cellLines.length == 1 && cellLines[0] != null) {
+        if(cellLines.length === 1 && cellLines[0] != null) {
             $cellLineTypeahead.typeahead('val', util
                     .filterObjectsAttr(cellLines[0], pyHTS.state.cell_lines,
                             'id', 'name'));
@@ -1138,7 +1140,7 @@ var plate_designer = function () {
 
         $drugTypeaheads.typeahead('val', '');
         for(i=0; i<numDrugs; i++) {
-            if(drugs[i].length == 1 && drugs[i][0] != null) {
+            if(drugs[i].length === 1 && drugs[i][0] != null) {
                 $drugTypeaheads.eq(i).typeahead('val',
                         util.filterObjectsAttr(drugs[i][0], pyHTS.state.drugs,
                             'id', 'name'));
@@ -1149,7 +1151,7 @@ var plate_designer = function () {
 
         $doseInputs.val('');
         for(i=0; i<numDoses; i++) {
-            if(doses[i].length == 1 && doses[i][0] != null) {
+            if(doses[i].length === 1 && doses[i][0] != null) {
                 var doseSplit = util.doseSplitter(doses[i][0]);
                 $doseInputs.eq(i).val(doseSplit[0]);
                 $doseUnits.eq(i).data('dose', doseSplit[1]).text(doseSplit[2]);
@@ -1192,17 +1194,19 @@ var plate_designer = function () {
             selecting: function (event, ui) {
                 var rowNo = $(ui.selecting).data('row');
                 $('#selectable-wells').find('li').filter(function () {
-                    return $(this).data('well') >
+                    var idx = $(this).index();
+                    return idx >
                         ((pyHTS.state.plateMap.numCols * (rowNo - 1)) - 1)
-                        && $(this).data('well') < (pyHTS.state.plateMap.numCols * rowNo);
+                        && idx < (pyHTS.state.plateMap.numCols * rowNo);
                 }).addClass('ui-selected');
             },
             unselecting: function (event, ui) {
                 var rowNo = $(ui.unselecting).data('row');
                 $('#selectable-wells').find('li').filter(function () {
-                    return $(this).data('well') >
+                    var idx = $(this).index();
+                    return idx >
                         ((pyHTS.state.plateMap.numCols * (rowNo - 1)) - 1)
-                        && $(this).data('well') < (pyHTS.state.plateMap.numCols * rowNo);
+                        && idx < (pyHTS.state.plateMap.numCols * rowNo);
                 }).removeClass('ui-selected');
             },
             stop: updateInputsWithWellData
@@ -1217,14 +1221,14 @@ var plate_designer = function () {
             selecting: function (event, ui) {
                 var colNo = $(ui.selecting).data('col');
                 $('#selectable-wells').find('li').filter(function () {
-                    return $(this).data('well') % pyHTS.state.plateMap.numCols ==
+                    return $(this).index() % pyHTS.state.plateMap.numCols ==
                         (colNo - 1);
                 }).addClass('ui-selected');
             },
             unselecting: function (event, ui) {
                 var colNo = $(ui.unselecting).data('col');
                 $('#selectable-wells').find('li').filter(function () {
-                    return $(this).data('well') % pyHTS.state.plateMap.numCols ==
+                    return $(this).index() % pyHTS.state.plateMap.numCols ==
                         (colNo - 1);
                 }).removeClass('ui-selected');
             },
@@ -1255,7 +1259,7 @@ var plate_designer = function () {
         }
 
         $.each(selectedWells, function(i, well) {
-            var w = pyHTS.state.plateMap.wells[$(well).data('well')];
+            var w = pyHTS.state.plateMap.wells[$(well).index()];
             if(pyHTS.state.currentView == 'celllines') {
                 w.setCellLine(null);
             } else if(pyHTS.state.currentView == 'drugs') {
@@ -1321,7 +1325,7 @@ var plate_designer = function () {
 
     // Mouseovers
     $('#selectable-wells').find('.hts-well').mouseenter(function(e) {
-        var well = $(this).data('well'),
+        var well = $(this).index(),
             wellData = pyHTS.state.plateMap.wells[well],
             i,
             len;
