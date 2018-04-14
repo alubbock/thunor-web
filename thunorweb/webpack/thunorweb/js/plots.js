@@ -94,6 +94,7 @@ var selectPickerOptionsSingle = {
 };
 
 var selectPickerTagOptions = {
+  title: "Please select a tag",
   countSelectedText: function(n, N) {
     return n + " of " + N + " tags selected";
   },
@@ -231,8 +232,9 @@ var plots = function() {
                 $newOption.val(optionList[i].id);
                 $newOption.text(optionList[i].name);
                 if(optionList[i].hasOwnProperty("cat") && optionList[i].cat !== null) {
-                    $newOption.prepend("<span class=\"label" +
-                        " label-default\">" + optionList[i].cat + "</span> ");
+                    $newOption.prepend(" ");
+                    $newOption.prepend($('<span class="label' +
+                        ' label-default"></span>').text(optionList[i].cat));
                 }
                 if(optionList[i].hasOwnProperty("public") && optionList[i].public) {
                     $newOption.prepend("<i class=\"fa fa-users\"></i> ");
@@ -249,8 +251,7 @@ var plots = function() {
             $select.append($comboGrp);
         }
         if (len === 0) {
-            $select.closest(".bootstrap-select").
-                    find("span").first().text("No options available");
+            $select.selectpicker({title: "No options available"});
         } else {
             if (selectedOption === undefined) {
                 $select.selectpicker("val",
@@ -258,8 +259,8 @@ var plots = function() {
             } else {
                 $select.val(selectedOption);
             }
-            $select.selectpicker("refresh");
         }
+        $select.selectpicker("refresh");
     };
 
     var setSelectPicker = function($selectPicker, newState) {
