@@ -269,6 +269,11 @@ class PlateFileParser(object):
                     width=plate_width,
                     height=plate_height
                 )
+            else:
+                raise PlateFileParseException(
+                    'The plate "{}" already exists in this dataset'.format(
+                        pl_name)
+                )
 
         if plates_to_create:
             Plate.objects.bulk_create(plates_to_create.values(),
