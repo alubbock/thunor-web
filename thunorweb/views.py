@@ -23,7 +23,7 @@ from thunor.io import write_hdf, PlateData
 from thunor.helpers import plotly_to_dataframe
 from plotly.utils import PlotlyJSONEncoder
 from .pandas import df_doses_assays_controls, df_dip_rates, \
-    df_ctrl_dip_rates, NoDataException
+    df_ctrl_dip_rates, NoDataException, df_viability_fits
 from .tasks import precalculate_dip_rates, dataset_groupings
 from .plate_parsers import PlateFileParser
 import numpy as np
@@ -1250,54 +1250,6 @@ def _dose_response_plot(request, dataset, dataset2_id,
                 'name. Please rename one of the datasets.',
                 status=400)
 
-    if response_metric == 'dip':
-        # Fetch the DIP rates from the DB
-        dataset_ids = dataset_id if dataset2_id is None else [dataset_id,
-                                                              dataset2_id]
-        try:
-            ctrl_dip_data, expt_resp_data = df_dip_rates(
-                dataset_id=dataset_ids,
-                drug_id=drug_id,
-                cell_line_id=cell_line_id,
-                use_dataset_names=True
-            )
-        except NoDataException:
-            return HttpResponse('No DIP data found for this request. This '
-                                'drug/cell line/assay combination may not '
-                                'exist.', status=400)
-    else:
-        viability_time = request.GET.get('drViabilityHrs', None)
-        try:
-            viability_time = float(viability_time)
-        except ValueError:
-            return HttpResponse('Viability time must be a number', status=400)
-        ctrl_dip_data = None
-        try:
-            df_data = df_doses_assays_controls(
-                dataset=dataset if not dataset2_id else [dataset, dataset2],
-                drug_id=drug_id,
-                cell_line_id=cell_line_id,
-                assay=None,
-                use_dataset_names=True
-            )
-        except NoDataException:
-            return HttpResponse('No viability data found for this request. '
-                                'This drug/cell line/time point combination '
-                                'may not exist.', status=400)
-        try:
-            expt_resp_data, ctrl_resp_data = viability(
-                df_data, time_hrs=viability_time,
-                include_controls=plot_type == 'drc'
-            )
-        except NotImplementedError as e:
-            return HttpResponse(e, status=400)
-        if expt_resp_data['viability'].isnull().values.all():
-            return HttpResponse('No viability for this time point. The '
-                                'nearest time point to the time entered is '
-                                'used, but there must be control well '
-                                'measurements from the same time.',
-                                status=400)
-
     def _setup_dr_par(name, needs_toggle=False):
         if needs_toggle and \
                 request.GET.get(name + 'Toggle', 'off') != 'on':
@@ -1356,9 +1308,25 @@ def _dose_response_plot(request, dataset, dataset2_id,
                                     'an integer between 1 and 100',
                                     status=400)
 
+    dataset_ids = dataset_id if dataset2_id is None else [dataset_id,
+                                                          dataset2_id]
+
     # Fit Hill curves and compute parameters
     with warnings.catch_warnings(record=True) as w:
         if response_metric == 'dip':
+            # Fetch the DIP rates from the DB
+            try:
+                ctrl_dip_data, expt_resp_data = df_dip_rates(
+                    dataset_id=dataset_ids,
+                    drug_id=drug_id,
+                    cell_line_id=cell_line_id,
+                    use_dataset_names=True
+                )
+            except NoDataException:
+                return HttpResponse('No DIP data found for this request. This '
+                                    'drug/cell line/assay combination may not '
+                                    'exist.', status=400)
+
             fit_params = dip_fit_params(
                 ctrl_dip_data, expt_resp_data,
                 include_response_values=plot_type == 'drc',
@@ -1368,14 +1336,41 @@ def _dose_response_plot(request, dataset, dataset2_id,
                 custom_e_rel_values=e_rel_values
             )
         else:
-            fit_params = viability_fit_params(
-                expt_resp_data,
-                ctrl_viability=ctrl_resp_data,
-                include_response_values=plot_type == 'drc',
-                custom_ic_concentrations=ic_concentrations,
-                custom_ec_concentrations=ec_concentrations,
-                custom_e_values=e_values
-            )
+            viability_time = request.GET.get('drViabilityHrs', None)
+            try:
+                viability_time = float(viability_time)
+            except ValueError:
+                return HttpResponse('Viability time must be a number',
+                                    status=400)
+
+            datasets = dataset if not dataset2_id else [dataset, dataset2]
+
+            # # Try retrieving fitted objects first
+            base_params = df_viability_fits(dataset_ids, viability_time,
+                                            drug_id, cell_line_id)
+            from thunor.viability import viability_fit_params_from_base
+            if plot_type == 'drc' and len(drug_id) == 1 and len(
+                    cell_line_id) == 1:
+                expt_resp_data, ctrl_resp_data = _get_viability_scores(
+                    datasets,
+                    drug_id,
+                    cell_line_id,
+                    viability_time
+                )
+                fit_params = viability_fit_params_from_base(
+                    base_params,
+                    ctrl_resp_data=ctrl_resp_data,
+                    expt_resp_data=expt_resp_data,
+                    include_response_values=True
+                )
+            else:
+                fit_params = viability_fit_params_from_base(
+                    base_params,
+                    include_response_values=False,
+                    custom_ic_concentrations=ic_concentrations,
+                    custom_ec_concentrations=ec_concentrations,
+                    custom_e_values=e_values
+                )
         # Currently only care about warnings if plotting AA
         if plot_type == 'drpar' and (dr_par == 'aa' or
                                      dr_par_two == 'aa'):
@@ -1407,6 +1402,38 @@ def _dose_response_plot(request, dataset, dataset2_id,
         )
 
     return plot_fig
+
+
+def _get_viability_scores(datasets, drug_id, cell_line_id, viability_time):
+    try:
+        df_data = df_doses_assays_controls(
+            dataset=datasets,
+            drug_id=drug_id,
+            cell_line_id=cell_line_id,
+            assay=None,
+            use_dataset_names=True
+        )
+    except NoDataException:
+        return HttpResponse(
+            'No viability data found for this request. '
+            'This drug/cell line/time point combination '
+            'may not exist.', status=400)
+    try:
+        expt_resp_data, ctrl_resp_data = viability(
+            df_data, time_hrs=viability_time,
+            include_controls=True
+        )
+    except NotImplementedError as e:
+        return HttpResponse(e, status=400)
+    if expt_resp_data['viability'].isnull().values.all():
+        return HttpResponse('No viability for this time point. The '
+                            'nearest time point to the time entered '
+                            'is '
+                            'used, but there must be control well '
+                            'measurements from the same time.',
+                            status=400)
+
+    return expt_resp_data, ctrl_resp_data
 
 
 @login_required_unless_public

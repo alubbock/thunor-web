@@ -1,5 +1,5 @@
 from .models import HTSDataset, WellMeasurement, WellStatistic, CellLine, \
-    Drug, WellDrug, Well
+    Drug, WellDrug, Well, CurveFit
 from .pandas import df_doses_assays_controls, NoDataException
 from thunor.dip import dip_rates, _choose_dip_assay
 import itertools
@@ -8,6 +8,8 @@ from django.db import transaction
 from django.db.models import Count, F
 from collections import defaultdict, Sequence
 from django.core.cache import cache
+from datetime import timedelta
+import pickle
 
 
 def precalculate_dip_rates(dataset_or_id):
@@ -93,6 +95,70 @@ def precalculate_dip_rates(dataset_or_id):
     WellStatistic.objects.bulk_create(
         itertools.chain.from_iterable(well_stats_to_create)
     )
+
+
+@transaction.atomic
+def precalculate_viability(dataset_or_id, time_hrs=72, assay_name=None):
+    if isinstance(dataset_or_id, HTSDataset):
+        dataset = dataset_or_id
+    elif isinstance(dataset_or_id, int):
+        dataset = HTSDataset.objects.get(pk=dataset_or_id)
+    else:
+        raise ValueError('Argument must be an HTSDataset or an integer '
+                         'primary key')
+
+    cell_line_ids = Well.objects.filter(
+        plate__dataset=dataset
+    ).values_list('cell_line_id', flat=True).distinct()
+
+    from thunor.curve_fit import HillCurveLL3u
+    from thunor.viability import viability
+    from thunor.dip import fit_params_minimal
+
+    via_time = timedelta(hours=time_hrs)
+
+    cell_lines = {cl.name: cl for cl in CellLine.objects.all()}
+    drugs = {dr.name: dr for dr in Drug.objects.all()}
+
+    for i, cl_id in enumerate(cell_line_ids):
+        print('Cell line {} of {} (ID: {})...'.format(
+            i + 1, len(cell_line_ids), cl_id))
+        try:
+            df_data = df_doses_assays_controls(
+                dataset,
+                cell_line_id=cl_id,
+                drug_id=None,
+                assay=assay_name
+            )
+        except NoDataException:
+            continue
+
+        via, _ = viability(df_data, time_hrs=time_hrs,
+                           assay_name=assay_name, include_controls=False)
+
+        fits = []
+
+        for fp in fit_params_minimal(
+            ctrl_data=None,
+            expt_data=via,
+            fit_cls=HillCurveLL3u
+        ).itertuples():
+            fits.append(CurveFit(
+                stat_type='viability',
+                viability_time=via_time,
+                dataset=dataset,
+                cell_line=cell_lines[fp.Index[1]],
+                drug=drugs[fp.Index[2]],
+                curve_fit_class=fp.fit_obj.__class__.__name__
+                    if fp.fit_obj else None,
+                fit_params=pickle.dumps(fp.fit_obj.popt if fp.fit_obj else
+                                        None),
+                min_dose=fp.min_dose_measured,
+                max_dose=fp.max_dose_measured,
+                emax_obs=fp.emax_obs
+            ))
+
+        CurveFit.objects.bulk_create(fits)
 
 
 def _get_remapping(ids, names):

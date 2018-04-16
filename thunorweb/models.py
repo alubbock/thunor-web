@@ -219,3 +219,16 @@ class WellStatistic(models.Model):
     stat_name = models.TextField()
     stat_date = models.DateTimeField(auto_now=True)
     value = models.FloatField(null=True)
+
+
+class CurveFit(models.Model):
+    stat_type = models.CharField(max_length=10, db_index=True)
+    viability_time = models.DurationField(null=True, db_index=True)
+    dataset = models.ForeignKey(HTSDataset)
+    cell_line = models.ForeignKey(CellLine)
+    drug = models.ForeignKey(Drug)
+    curve_fit_class = models.CharField(max_length=20, null=True)
+    fit_params = models.BinaryField()
+    max_dose = models.FloatField()
+    min_dose = models.FloatField()
+    emax_obs = models.FloatField()

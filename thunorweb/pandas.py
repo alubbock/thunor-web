@@ -1,9 +1,12 @@
 import pandas as pd
-from .models import Well, WellDrug, WellMeasurement, WellStatistic
+from .models import Well, WellDrug, WellMeasurement, WellStatistic, CurveFit
 from django.db.models import Count, Max, Sum
 from django.db.models.functions import Coalesce
 from collections import Iterable
 from thunor.io import HtsPandas
+from datetime import timedelta
+import pickle
+import thunor.curve_fit
 
 
 class NoDataException(Exception):
@@ -374,6 +377,52 @@ def df_ctrl_dip_rates(dataset_id, plate_ids=None, cell_line_id=None,
             columns='stat_name', values=['value'])['value']
 
     return df_controls
+
+
+def _row_to_curve_fit(row):
+    class_name = row['curve_fit_class']
+
+    if class_name is None:
+        return None
+    else:
+        curve_class = getattr(thunor.curve_fit, class_name)
+
+    return curve_class(pickle.loads(row['fit_params']))
+
+
+def df_viability_fits(dataset_ids, viability_time, drug_id, cell_line_id):
+    cf = CurveFit.objects.filter(
+        stat_type='viability',
+        dataset_id__in=[dataset_ids] if isinstance(dataset_ids,
+                                                   int) else dataset_ids,
+        viability_time=timedelta(hours=viability_time)
+    ).select_related('drug', 'cell_line')
+    if drug_id is not None:
+        cf = cf.filter(drug_id__in=drug_id)
+    if cell_line_id is not None:
+        cf = cf.filter(cell_line_id__in=cell_line_id)
+    base_params = queryset_to_dataframe(
+        cf,
+        columns=['dataset__name', 'cell_line__name', 'drug__name',
+                 'curve_fit_class', 'fit_params', 'max_dose',
+                 'min_dose', 'emax_obs']
+    )
+    base_params['fit_obj'] = base_params.apply(_row_to_curve_fit, axis=1)
+    base_params.drop(columns=['curve_fit_class', 'fit_params'], inplace=True)
+    base_params.rename(columns={
+        'dataset__name': 'dataset_id',
+        'cell_line__name': 'cell_line',
+        'drug__name': 'drug',
+        'min_dose': 'min_dose_measured',
+        'max_dose': 'max_dose_measured'
+    }, inplace=True)
+    base_params.set_index(['dataset_id', 'cell_line', 'drug'], inplace=True)
+
+    base_params._drmetric = 'viability'
+    base_params._viability_time = viability_time
+    base_params._viability_assay = 'default'
+
+    return base_params
 
 
 def queryset_to_dataframe(queryset, columns, index=None, rename_columns=None):
