@@ -41,10 +41,7 @@ var dataset = function() {
     $("#btn-delete-dataset").click(function() {
         ui.okCancelModal({
             title: "Confirm Delete",
-            text: "Deleting this dataset is" +
-            " <strong>permanent</strong> and" +
-            " <strong>Irreversible</strong>." +
-            " Are you sure?",
+            text: "Are you sure you want to delete this dataset?",
             onOKHide: delete_dataset,
             okLabel: "Delete",
             okButtonClass: "btn-danger"
