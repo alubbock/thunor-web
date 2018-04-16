@@ -145,18 +145,19 @@ class PlateFileParser(object):
                 ))
 
         # Add any control wells
-        control_wells = df_data.controls['well_num'].reset_index([
-            'cell_line', 'plate']).reset_index(drop=True).drop_duplicates()
-        for w in control_wells.itertuples():
-            pl_name = w.plate
-            well_num = w.well_num
-            plate_id = self._plate_objects[pl_name].id
-            if well_num not in self._well_sets.get(plate_id, {}):
-                well_sets_to_create[plate_id].append(Well(
-                    plate_id=plate_id,
-                    well_num=well_num,
-                    cell_line_id=cell_lines[w.cell_line]
-                ))
+        if df_data.controls is not None:
+            control_wells = df_data.controls['well_num'].reset_index([
+                'cell_line', 'plate']).reset_index(drop=True).drop_duplicates()
+            for w in control_wells.itertuples():
+                pl_name = w.plate
+                well_num = w.well_num
+                plate_id = self._plate_objects[pl_name].id
+                if well_num not in self._well_sets.get(plate_id, {}):
+                    well_sets_to_create[plate_id].append(Well(
+                        plate_id=plate_id,
+                        well_num=well_num,
+                        cell_line_id=cell_lines[w.cell_line]
+                    ))
 
         # Flatten the well sets (n.b. bulk_create evaluates generators)
         try:
@@ -244,9 +245,11 @@ class PlateFileParser(object):
 
         # Get the plate sizes by the largest well number on each plate
         plate_sizes = df_wells.groupby('plate')['well_num'].max()
-        ctrl_plate_sizes = df_data.controls.groupby('plate')['well_num'].max()
-        plate_sizes = plate_sizes.to_frame().join(ctrl_plate_sizes,
-                                                  rsuffix='ctrl').max(axis=1)
+        if df_data.controls is not None:
+            ctrl_plate_sizes = df_data.controls.groupby(
+                'plate')['well_num'].max()
+            plate_sizes = plate_sizes.to_frame().join(
+                ctrl_plate_sizes, rsuffix='ctrl').max(axis=1)
 
         # Convert the plate sizes to one of (96, 384, 1536)
         plate_sizes = plate_sizes.apply(_plate_size_selector)
@@ -255,9 +258,6 @@ class PlateFileParser(object):
 
         plate_names = set(plate_sizes.index)
 
-        plate_names.update(
-            df_data.controls.index.get_level_values('plate').unique()
-        )
         for pl_name in sorted(plate_names):
             if pl_name not in self._plate_objects.keys():
                 plate_size = plate_sizes.loc[pl_name]
@@ -289,23 +289,25 @@ class PlateFileParser(object):
         # Create welldrugs
         self._create_welldrugs(df_wells, drug_nums, drugs)
 
-        # Create wellmeasurements from controls
-        ctrl_idx_names = df_data.controls.index.names
-        ctrl_plate_idx = ctrl_idx_names.index('plate')
-        ctrl_assay_idx = ctrl_idx_names.index('assay')
-        ctrl_timepoint_idx = ctrl_idx_names.index('timepoint')
         well_measurements_to_create = []
-        for row in df_data.controls.itertuples():
-            pl_name = row.Index[ctrl_plate_idx]
-            plate = self._plate_objects[pl_name]
-            well_num = row.well_num
-            well_id = self._well_sets[plate.id][well_num]
-            well_measurements_to_create.append(WellMeasurement(
-              well_id=well_id,
-              assay=row.Index[ctrl_assay_idx],
-              timepoint=row.Index[ctrl_timepoint_idx],
-              value=row.value
-            ))
+
+        # Create wellmeasurements from controls
+        if df_data.controls is not None:
+            ctrl_idx_names = df_data.controls.index.names
+            ctrl_plate_idx = ctrl_idx_names.index('plate')
+            ctrl_assay_idx = ctrl_idx_names.index('assay')
+            ctrl_timepoint_idx = ctrl_idx_names.index('timepoint')
+            for row in df_data.controls.itertuples():
+                pl_name = row.Index[ctrl_plate_idx]
+                plate = self._plate_objects[pl_name]
+                well_num = row.well_num
+                well_id = self._well_sets[plate.id][well_num]
+                well_measurements_to_create.append(WellMeasurement(
+                  well_id=well_id,
+                  assay=row.Index[ctrl_assay_idx],
+                  timepoint=row.Index[ctrl_timepoint_idx],
+                  value=row.value
+                ))
 
         # Create wellmeasurements from non-controls
         assays = df_data.assays.reset_index()
