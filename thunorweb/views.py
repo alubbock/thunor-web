@@ -18,13 +18,14 @@ from thunor.plots import plot_time_course, plot_drc, plot_drc_params, \
     PARAM_NAMES, IC_REGEX, EC_REGEX, E_REGEX, E_REL_REGEX
 from thunor.dip import dip_fit_params, AAFitWarning, \
     DrugCombosNotImplementedError
-from thunor.viability import viability, viability_fit_params
+from thunor.viability import viability
 from thunor.io import write_hdf, PlateData
 from thunor.helpers import plotly_to_dataframe
 from plotly.utils import PlotlyJSONEncoder
 from .pandas import df_doses_assays_controls, df_dip_rates, \
     df_ctrl_dip_rates, NoDataException, df_viability_fits
-from .tasks import precalculate_dip_rates, dataset_groupings
+from .tasks import precalculate_dip_rates, precalculate_viability, \
+    dataset_groupings
 from .plate_parsers import PlateFileParser
 import numpy as np
 import datetime
@@ -174,6 +175,7 @@ def ajax_upload_platefiles(request):
     if some_success:
         # TODO: Hand this off to celery for asynchronous processing
         precalculate_dip_rates(dataset)
+        precalculate_viability(dataset)
         dataset_groupings(dataset, regenerate_cache=True)
 
     response = {
@@ -385,7 +387,9 @@ def ajax_save_plate(request):
                      len(v) > 1 else None) for k, v in
                      well_drugs_to_create.items()])
 
+    # TODO: Hand off for asynchronous processing with celery
     dataset_groupings(pl_objs[0].dataset, regenerate_cache=True)
+    precalculate_viability(pl_objs[0].dataset)
 
     if apply_mode != 'normal':
         # If this was a template-based update...

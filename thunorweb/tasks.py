@@ -1,7 +1,7 @@
 from .models import HTSDataset, WellMeasurement, WellStatistic, CellLine, \
     Drug, WellDrug, Well, CurveFit
 from .pandas import df_doses_assays_controls, NoDataException
-from thunor.dip import dip_rates, _choose_dip_assay
+from thunor.dip import dip_rates, _choose_dip_assay, fit_params_minimal
 import itertools
 import numpy as np
 from django.db import transaction
@@ -10,6 +10,8 @@ from collections import defaultdict, Sequence
 from django.core.cache import cache
 from datetime import timedelta
 import pickle
+from thunor.curve_fit import HillCurveLL3u
+from thunor.viability import viability
 
 
 def precalculate_dip_rates(dataset_or_id):
@@ -98,7 +100,8 @@ def precalculate_dip_rates(dataset_or_id):
 
 
 @transaction.atomic
-def precalculate_viability(dataset_or_id, time_hrs=72, assay_name=None):
+def precalculate_viability(dataset_or_id, time_hrs=72, assay_name=None,
+                           verbose=False):
     if isinstance(dataset_or_id, HTSDataset):
         dataset = dataset_or_id
     elif isinstance(dataset_or_id, int):
@@ -111,18 +114,16 @@ def precalculate_viability(dataset_or_id, time_hrs=72, assay_name=None):
         plate__dataset=dataset
     ).values_list('cell_line_id', flat=True).distinct()
 
-    from thunor.curve_fit import HillCurveLL3u
-    from thunor.viability import viability
-    from thunor.dip import fit_params_minimal
-
-    via_time = timedelta(hours=time_hrs)
+    if not cell_line_ids:
+        return
 
     cell_lines = {cl.name: cl for cl in CellLine.objects.all()}
     drugs = {dr.name: dr for dr in Drug.objects.all()}
 
     for i, cl_id in enumerate(cell_line_ids):
-        print('Cell line {} of {} (ID: {})...'.format(
-            i + 1, len(cell_line_ids), cl_id))
+        if verbose:
+            print('Cell line {} of {} (ID: {})...'.format(
+                i + 1, len(cell_line_ids), cl_id))
         try:
             df_data = df_doses_assays_controls(
                 dataset,
@@ -138,11 +139,15 @@ def precalculate_viability(dataset_or_id, time_hrs=72, assay_name=None):
 
         fits = []
 
-        for fp in fit_params_minimal(
+        fp_data = fit_params_minimal(
             ctrl_data=None,
             expt_data=via,
             fit_cls=HillCurveLL3u
-        ).itertuples():
+        )
+
+        via_time = timedelta(hours=fp_data._viability_time)
+
+        for fp in fp_data.itertuples():
             fits.append(CurveFit(
                 stat_type='viability',
                 viability_time=via_time,
