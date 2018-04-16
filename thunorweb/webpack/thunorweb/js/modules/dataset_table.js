@@ -27,8 +27,7 @@ var initDatasetTable = function(tableRowCallbackFn, loadingCompleteCallbackFn) {
             {"targets": 1, "data": "creation_date"}
         ],
         "order": [[1, "desc"]],
-        "initComplete": function () {
-            $tabContent.loadingOverlay("hide");
+        "drawCallback": function () {
             if (loadingCompleteCallbackFn !== undefined) {
                 loadingCompleteCallbackFn();
             }
@@ -46,7 +45,7 @@ var initDatasetTable = function(tableRowCallbackFn, loadingCompleteCallbackFn) {
         lastTabClick = dateNow;
         $tabContent.loadingOverlay("show");
         var $this = $(e.currentTarget);
-        dataset_table.ajax.url($this.data("url")).load(loadingCompleteCallbackFn);
+        dataset_table.ajax.url($this.data("url")).load(function() {$tabContent.loadingOverlay("hide")});
         $datasetTabs.find("li").removeClass("active");
         $this.addClass("active");
     });
