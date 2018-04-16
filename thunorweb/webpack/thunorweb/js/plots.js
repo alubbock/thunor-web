@@ -381,7 +381,7 @@ var plots = function() {
     $(".name-tag-switch").find("input[type=radio]").change(function() {
         var $this = $(this);
         var $formGroup = $this.closest(".cl-or-drug");
-        if ($(this).val() === "on") {
+        if ($this.val() === "on") {
             $formGroup.find(".tag-select").prop("disabled", false).selectpicker("refresh").selectpicker("show");
             $formGroup.find(".name-select").prop("disabled", true).selectpicker("hide");
         } else {
