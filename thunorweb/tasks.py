@@ -134,6 +134,12 @@ def precalculate_viability(dataset_or_id, time_hrs=72, assay_name=None,
         except NoDataException:
             continue
 
+        # Exclude combinations
+        df_data = df_data.filter(drugs=[d for d in df_data.drugs if len(d)
+                                        == 1])
+        if df_data.doses.empty:
+            continue
+
         via, _ = viability(df_data, time_hrs=time_hrs,
                            assay_name=assay_name, include_controls=False)
 
