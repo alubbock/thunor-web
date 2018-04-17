@@ -109,6 +109,10 @@ def precalculate_dip_curves(dataset_or_id, verbose=False):
         raise ValueError('Argument must be an HTSDataset or an integer '
                          'primary key')
 
+    groupings = dataset_groupings(dataset)
+    if groupings['singleTimepoint'] is not False:
+        return
+
     cell_line_ids = Well.objects.filter(
         plate__dataset=dataset
     ).values_list('cell_line_id', flat=True).distinct()
@@ -118,6 +122,9 @@ def precalculate_dip_curves(dataset_or_id, verbose=False):
 
     cell_lines = {cl.name: cl for cl in CellLine.objects.all()}
     drugs = {dr.name: dr for dr in Drug.objects.all()}
+
+    # Delete existing curve fits
+    CurveFit.objects.filter(dataset=dataset).delete()
 
     for i, cl_id in enumerate(cell_line_ids):
         if verbose:
@@ -164,8 +171,6 @@ def precalculate_dip_curves(dataset_or_id, verbose=False):
                 emax_obs=fp.emax_obs
             ))
 
-        # Delete existing curve fits
-        CurveFit.objects.filter(dataset=dataset).delete()
         CurveFit.objects.bulk_create(fits)
 
 
@@ -190,6 +195,9 @@ def precalculate_viability(dataset_or_id, time_hrs=72, assay_name=None,
     cell_lines = {cl.name: cl for cl in CellLine.objects.all()}
     drugs = {dr.name: dr for dr in Drug.objects.all()}
 
+    # Delete existing curve fits
+    CurveFit.objects.filter(dataset=dataset).delete()
+
     for i, cl_id in enumerate(cell_line_ids):
         if verbose:
             print('Cell line {} of {} (ID: {})...'.format(
@@ -202,6 +210,9 @@ def precalculate_viability(dataset_or_id, time_hrs=72, assay_name=None,
                 assay=assay_name
             )
         except NoDataException:
+            continue
+
+        if df_data.controls is None:
             continue
 
         # Exclude combinations
@@ -239,8 +250,6 @@ def precalculate_viability(dataset_or_id, time_hrs=72, assay_name=None,
                 emax_obs=fp.emax_obs
             ))
 
-        # Delete existing curve fits
-        CurveFit.objects.filter(dataset=dataset).delete()
         CurveFit.objects.bulk_create(fits)
 
 
@@ -329,9 +338,12 @@ def dataset_groupings(datasets, regenerate_cache=False):
 
 
 def _combine_id_name_dicts(dicts):
-    combined = {}
-    for d in dicts:
-        combined.update({e['id']: e for e in d})
+    dicts = list(dicts)
+    combined = {k['id']: k for k in dicts[0]}
+    for d in dicts[1:]:
+        d_ids = set(k['id'] for k in d)
+        for k in combined.keys() - d_ids:
+            del combined[k]
 
     try:
         return sorted(combined.values(), key=lambda e: e['name'])
