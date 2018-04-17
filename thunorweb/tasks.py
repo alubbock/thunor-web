@@ -124,7 +124,7 @@ def precalculate_dip_curves(dataset_or_id, verbose=False):
     drugs = {dr.name: dr for dr in Drug.objects.all()}
 
     # Delete existing curve fits
-    CurveFit.objects.filter(dataset=dataset).delete()
+    CurveFit.objects.filter(dataset=dataset, stat_type='dip').delete()
 
     for i, cl_id in enumerate(cell_line_ids):
         if verbose:
@@ -196,7 +196,7 @@ def precalculate_viability(dataset_or_id, time_hrs=72, assay_name=None,
     drugs = {dr.name: dr for dr in Drug.objects.all()}
 
     # Delete existing curve fits
-    CurveFit.objects.filter(dataset=dataset).delete()
+    CurveFit.objects.filter(dataset=dataset, stat_type='viability').delete()
 
     for i, cl_id in enumerate(cell_line_ids):
         if verbose:
