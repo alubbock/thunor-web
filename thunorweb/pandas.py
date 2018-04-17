@@ -13,6 +13,7 @@ class NoDataException(Exception):
     pass
 
 
+SECONDS_IN_HOUR = 3600
 DIP_STATS = ('dip_rate', 'dip_fit_std_err')
 
 
@@ -390,23 +391,42 @@ def _row_to_curve_fit(row):
     return curve_class(pickle.loads(row['fit_params']))
 
 
-def df_viability_fits(dataset_ids, viability_time, drug_id, cell_line_id):
+def df_curve_fits(dataset_ids, stat_type,
+                  drug_ids, cell_line_ids, viability_time=None):
     cf = CurveFit.objects.filter(
-        stat_type='viability',
+        stat_type=stat_type,
         dataset_id__in=[dataset_ids] if isinstance(dataset_ids,
                                                    int) else dataset_ids,
-        viability_time=timedelta(hours=viability_time)
-    ).select_related('drug', 'cell_line')
-    if drug_id is not None:
-        cf = cf.filter(drug_id__in=drug_id)
-    if cell_line_id is not None:
-        cf = cf.filter(cell_line_id__in=cell_line_id)
+    ).select_related('drug', 'cell_line').order_by('dataset_id',
+                                                   'cell_line__name',
+                                                   'drug__name')
+    cols = ['dataset__name', 'cell_line__name', 'drug__name',
+            'curve_fit_class', 'fit_params', 'max_dose',
+            'min_dose', 'emax_obs']
+    if viability_time is None:
+        cols += ['viability_time']
+    else:
+        cf = cf.filter(viability_time=timedelta(hours=viability_time))
+    if drug_ids is not None:
+        cf = cf.filter(drug_id__in=drug_ids)
+    if cell_line_ids is not None:
+        cf = cf.filter(cell_line_id__in=cell_line_ids)
+
     base_params = queryset_to_dataframe(
         cf,
-        columns=['dataset__name', 'cell_line__name', 'drug__name',
-                 'curve_fit_class', 'fit_params', 'max_dose',
-                 'min_dose', 'emax_obs']
+        columns=cols
     )
+    if base_params.empty:
+        raise NoDataException()
+
+    if viability_time is None:
+        viability_times = base_params['viability_time'].unique()
+        assert len(viability_times) == 1
+        if viability_times[0] is not None:
+            viability_time = viability_times[0].astype(
+                'timedelta64[h]').item().total_seconds() / SECONDS_IN_HOUR
+        base_params.drop(columns='viability_time', inplace=True)
+
     base_params['fit_obj'] = base_params.apply(_row_to_curve_fit, axis=1)
     base_params.drop(columns=['curve_fit_class', 'fit_params'], inplace=True)
     base_params.rename(columns={
@@ -418,9 +438,10 @@ def df_viability_fits(dataset_ids, viability_time, drug_id, cell_line_id):
     }, inplace=True)
     base_params.set_index(['dataset_id', 'cell_line', 'drug'], inplace=True)
 
-    base_params._drmetric = 'viability'
-    base_params._viability_time = viability_time
-    base_params._viability_assay = 'default'
+    base_params._drmetric = stat_type
+    if stat_type == 'viability':
+        base_params._viability_time = viability_time
+        base_params._viability_assay = 'default'
 
     return base_params
 

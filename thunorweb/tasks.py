@@ -135,7 +135,7 @@ def precalculate_dip_curves(dataset_or_id, verbose=False):
             ctrl_dip_data, expt_dip_data = df_dip_rates(
                 dataset_id=dataset.id,
                 drug_id=None,
-                cell_line_id=None
+                cell_line_id=cl_id
             )
         except NoDataException:
             continue

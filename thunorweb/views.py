@@ -17,15 +17,15 @@ from thunor.plots import plot_time_course, plot_drc, plot_drc_params, \
     plot_ctrl_dip_by_plate, plot_plate_map, CannotPlotError, \
     PARAM_NAMES, IC_REGEX, EC_REGEX, E_REGEX, E_REL_REGEX
 from thunor.dip import dip_fit_params, AAFitWarning, \
-    DrugCombosNotImplementedError
+    DrugCombosNotImplementedError, fit_params_from_base
 from thunor.viability import viability
 from thunor.io import write_hdf, PlateData
 from thunor.helpers import plotly_to_dataframe
 from plotly.utils import PlotlyJSONEncoder
 from .pandas import df_doses_assays_controls, df_dip_rates, \
-    df_ctrl_dip_rates, NoDataException, df_viability_fits
+    df_ctrl_dip_rates, NoDataException, df_curve_fits
 from .tasks import precalculate_dip_rates, precalculate_viability, \
-    dataset_groupings
+    dataset_groupings, precalculate_dip_curves
 from .plate_parsers import PlateFileParser
 import numpy as np
 import datetime
@@ -175,6 +175,7 @@ def ajax_upload_platefiles(request):
     if some_success:
         # TODO: Hand this off to celery for asynchronous processing
         precalculate_dip_rates(dataset)
+        precalculate_dip_curves(dataset)
         precalculate_viability(dataset)
         dataset_groupings(dataset, regenerate_cache=True)
 
@@ -388,8 +389,10 @@ def ajax_save_plate(request):
                      well_drugs_to_create.items()])
 
     # TODO: Hand off for asynchronous processing with celery
-    dataset_groupings(pl_objs[0].dataset, regenerate_cache=True)
-    precalculate_viability(pl_objs[0].dataset)
+    dataset = pl_objs[0].dataset
+    dataset_groupings(dataset, regenerate_cache=True)
+    precalculate_dip_curves(dataset)
+    precalculate_viability(dataset)
 
     if apply_mode != 'normal':
         # If this was a template-based update...
@@ -1318,57 +1321,74 @@ def _dose_response_plot(request, dataset, dataset2_id,
     # Fit Hill curves and compute parameters
     with warnings.catch_warnings(record=True) as w:
         if response_metric == 'dip':
-            # Fetch the DIP rates from the DB
             try:
-                ctrl_dip_data, expt_resp_data = df_dip_rates(
-                    dataset_id=dataset_ids,
-                    drug_id=drug_id,
-                    cell_line_id=cell_line_id,
-                    use_dataset_names=True
-                )
-            except NoDataException:
-                return HttpResponse('No DIP data found for this request. This '
-                                    'drug/cell line/assay combination may not '
-                                    'exist.', status=400)
-
-            fit_params = dip_fit_params(
-                ctrl_dip_data, expt_resp_data,
-                include_response_values=plot_type == 'drc',
-                custom_ic_concentrations=ic_concentrations,
-                custom_ec_concentrations=ec_concentrations,
-                custom_e_values=e_values,
-                custom_e_rel_values=e_rel_values
-            )
-        else:
-            viability_time = request.GET.get('drViabilityHrs', None)
-            try:
-                viability_time = float(viability_time)
-            except ValueError:
-                return HttpResponse('Viability time must be a number',
-                                    status=400)
-
-            datasets = dataset if not dataset2_id else [dataset, dataset2]
-
-            # # Try retrieving fitted objects first
-            base_params = df_viability_fits(dataset_ids, viability_time,
+                base_params = df_curve_fits(dataset_ids, 'dip',
                                             drug_id, cell_line_id)
-            from thunor.viability import viability_fit_params_from_base
+            except NoDataException:
+                return HttpResponse(
+                    'No DIP data found for this request. This drug/cell '
+                    'line/assay combination may not exist.', status=400)
+
             if plot_type == 'drc' and len(drug_id) == 1 and len(
                     cell_line_id) == 1:
-                expt_resp_data, ctrl_resp_data = _get_viability_scores(
-                    datasets,
-                    drug_id,
-                    cell_line_id,
-                    viability_time
+                try:
+                    ctrl_dip_data, expt_resp_data = df_dip_rates(
+                        dataset_id=dataset_ids,
+                        drug_id=drug_id,
+                        cell_line_id=cell_line_id,
+                        use_dataset_names=True
+                    )
+                except NoDataException:
+                    return HttpResponse(
+                        'No DIP data found for this request. This drug/cell '
+                        'line/assay combination may not exist.', status=400)
+                fit_params = fit_params_from_base(
+                    base_params,
+                    ctrl_resp_data=ctrl_dip_data,
+                    expt_resp_data=expt_resp_data,
+                    include_response_values=True
                 )
-                fit_params = viability_fit_params_from_base(
+            else:
+                fit_params = fit_params_from_base(
+                    base_params,
+                    include_response_values=False,
+                    custom_ic_concentrations=ic_concentrations,
+                    custom_ec_concentrations=ec_concentrations,
+                    custom_e_values=e_values,
+                    custom_e_rel_values=e_rel_values
+                )
+        else:
+            try:
+                base_params = df_curve_fits(dataset_ids, 'viability',
+                                            drug_id, cell_line_id)
+            except NoDataException:
+                return HttpResponse(
+                    'No viability data found for this request. This drug/cell '
+                    'line/assay combination may not exist.', status=400)
+
+            if plot_type == 'drc' and len(drug_id) == 1 and len(
+                    cell_line_id) == 1:
+                datasets = dataset if not dataset2_id else [dataset, dataset2]
+                try:
+                    expt_resp_data, ctrl_resp_data = _get_viability_scores(
+                        datasets,
+                        drug_id,
+                        cell_line_id,
+                        viability_time=base_params._viability_time
+                    )
+                except NoDataException:
+                    return HttpResponse(
+                        'No viability data found for this request. This '
+                        'drug/cell '
+                        'line/assay combination may not exist.', status=400)
+                fit_params = fit_params_from_base(
                     base_params,
                     ctrl_resp_data=ctrl_resp_data,
                     expt_resp_data=expt_resp_data,
                     include_response_values=True
                 )
             else:
-                fit_params = viability_fit_params_from_base(
+                fit_params = fit_params_from_base(
                     base_params,
                     include_response_values=False,
                     custom_ic_concentrations=ic_concentrations,
