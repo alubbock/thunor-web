@@ -1,6 +1,6 @@
 from .models import HTSDataset, WellMeasurement, WellStatistic, CellLine, \
     Drug, WellDrug, Well, CurveFit
-from .pandas import df_doses_assays_controls, NoDataException
+from .pandas import df_doses_assays_controls, NoDataException, df_dip_rates
 from thunor.dip import dip_rates, _choose_dip_assay, fit_params_minimal
 import itertools
 import numpy as np
@@ -10,7 +10,7 @@ from collections import defaultdict, Sequence
 from django.core.cache import cache
 from datetime import timedelta
 import pickle
-from thunor.curve_fit import HillCurveLL3u
+from thunor.curve_fit import HillCurveLL3u, HillCurveLL4
 from thunor.viability import viability
 
 
@@ -97,6 +97,76 @@ def precalculate_dip_rates(dataset_or_id):
     WellStatistic.objects.bulk_create(
         itertools.chain.from_iterable(well_stats_to_create)
     )
+
+
+@transaction.atomic
+def precalculate_dip_curves(dataset_or_id, verbose=False):
+    if isinstance(dataset_or_id, HTSDataset):
+        dataset = dataset_or_id
+    elif isinstance(dataset_or_id, int):
+        dataset = HTSDataset.objects.get(pk=dataset_or_id)
+    else:
+        raise ValueError('Argument must be an HTSDataset or an integer '
+                         'primary key')
+
+    cell_line_ids = Well.objects.filter(
+        plate__dataset=dataset
+    ).values_list('cell_line_id', flat=True).distinct()
+
+    if not cell_line_ids:
+        return
+
+    cell_lines = {cl.name: cl for cl in CellLine.objects.all()}
+    drugs = {dr.name: dr for dr in Drug.objects.all()}
+
+    for i, cl_id in enumerate(cell_line_ids):
+        if verbose:
+            print('Cell line {} of {} (ID: {})...'.format(
+                i + 1, len(cell_line_ids), cl_id))
+        try:
+            # Fetch the DIP rates from the DB
+            ctrl_dip_data, expt_dip_data = df_dip_rates(
+                dataset_id=dataset.id,
+                drug_id=None,
+                cell_line_id=None
+            )
+        except NoDataException:
+            continue
+
+        # Exclude combinations
+        expt_dip_data = expt_dip_data[
+            [len(d) == 1 for d in
+             expt_dip_data.index.get_level_values('drug')]]
+
+        if expt_dip_data.empty:
+            continue
+
+        # Fit Hill curves and compute parameters
+        fp_data = fit_params_minimal(
+            ctrl_dip_data, expt_dip_data,
+            fit_cls=HillCurveLL4
+        )
+
+        fits = []
+
+        for fp in fp_data.itertuples():
+            fits.append(CurveFit(
+                stat_type='dip',
+                dataset=dataset,
+                cell_line=cell_lines[fp.Index[1]],
+                drug=drugs[fp.Index[2]],
+                curve_fit_class=fp.fit_obj.__class__.__name__
+                    if fp.fit_obj else None,
+                fit_params=pickle.dumps(fp.fit_obj.popt if fp.fit_obj else
+                                        None),
+                min_dose=fp.min_dose_measured,
+                max_dose=fp.max_dose_measured,
+                emax_obs=fp.emax_obs
+            ))
+
+        # Delete existing curve fits
+        CurveFit.objects.filter(dataset=dataset).delete()
+        CurveFit.objects.bulk_create(fits)
 
 
 @transaction.atomic
