@@ -169,6 +169,8 @@ def precalculate_viability(dataset_or_id, time_hrs=72, assay_name=None,
                 emax_obs=fp.emax_obs
             ))
 
+        # Delete existing curve fits
+        CurveFit.objects.filter(dataset=dataset).delete()
         CurveFit.objects.bulk_create(fits)
 
 
