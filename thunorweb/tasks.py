@@ -1,7 +1,8 @@
 from .models import HTSDataset, WellMeasurement, WellStatistic, CellLine, \
     Drug, WellDrug, Well, CurveFit
 from .pandas import df_doses_assays_controls, NoDataException, df_dip_rates
-from thunor.dip import dip_rates, _choose_dip_assay, fit_params_minimal
+from thunor.dip import dip_rates, _choose_dip_assay
+from thunor.curve_fit import fit_params_minimal
 import itertools
 import numpy as np
 from django.db import transaction

@@ -16,7 +16,7 @@ import json
 from thunor.plots import plot_time_course, plot_drc, plot_drc_params, \
     plot_ctrl_dip_by_plate, plot_plate_map, CannotPlotError, \
     PARAM_NAMES, IC_REGEX, EC_REGEX, E_REGEX, E_REL_REGEX
-from thunor.dip import dip_fit_params, AAFitWarning, \
+from thunor.curve_fit import fit_params, AAFitWarning, \
     DrugCombosNotImplementedError, fit_params_from_base
 from thunor.viability import viability
 from thunor.io import write_hdf, PlateData
@@ -557,18 +557,17 @@ def download_dip_fit_params(request, dataset_id):
         )
 
         # Fit Hill curves and compute parameters
-        fit_params = dip_fit_params(
-            ctrl_dip_data, expt_dip_data,
-            include_response_values=False,
+        fp = fit_params(
+            ctrl_dip_data, expt_dip_data
         )
-        fit_params.reset_index('dataset_id', drop=True, inplace=True)
+        fp.reset_index('dataset_id', drop=True, inplace=True)
         # Remove -ve AA values
-        fit_params.loc[fit_params['aa'] < 0.0, 'aa'] = np.nan
+        fp.loc[fp['aa'] < 0.0, 'aa'] = np.nan
 
         # Filter for the default list of parameters only
-        fit_params = fit_params.filter(items=PARAM_NAMES.keys())
+        fp = fp.filter(items=PARAM_NAMES.keys())
 
-        response = HttpResponse(fit_params.to_csv(), content_type='text/csv')
+        response = HttpResponse(fp.to_csv(), content_type='text/csv')
     except NoDataException:
         response = HttpResponse('No data found for this request. This '
                                 'drug/cell line/assay combination may not '
@@ -1289,7 +1288,7 @@ def _dose_response_plot(request, dataset, dataset2_id,
 
     # Work out any non-standard parameters we need to calculate
     # e.g. non-standard IC concentrations
-    ic_concentrations = {50}
+    ic_concentrations = set()
     ec_concentrations = set()
     e_values = set()
     e_rel_values = set()
@@ -1298,8 +1297,20 @@ def _dose_response_plot(request, dataset, dataset2_id,
                E_REGEX: e_values,
                E_REL_REGEX: e_rel_values
                }
+    need_aa = False
+    need_hill = False
+    need_emax = False
     for param in (dr_par, dr_par_two, dr_par_order):
         if param is None:
+            continue
+        if param == 'aa':
+            need_aa = True
+            continue
+        if param == 'hill':
+            need_hill = True
+            continue
+        if param.startswith('emax'):
+            need_emax = True
             continue
         for regex, value_list in regexes.items():
             match = regex.match(param)
@@ -1319,88 +1330,64 @@ def _dose_response_plot(request, dataset, dataset2_id,
                                                           dataset2_id]
 
     # Fit Hill curves and compute parameters
-    with warnings.catch_warnings(record=True) as w:
-        if response_metric == 'dip':
-            try:
-                base_params = df_curve_fits(dataset_ids, 'dip',
-                                            drug_id, cell_line_id)
-            except NoDataException:
-                return HttpResponse(
-                    'No DIP data found for this request. This drug/cell '
-                    'line/assay combination may not exist.', status=400)
+    try:
+        base_params = df_curve_fits(dataset_ids, response_metric,
+                                    drug_id, cell_line_id)
+    except NoDataException:
+        return HttpResponse(
+            'No data found for this request. This drug/cell '
+            'line/assay combination may not exist.', status=400)
 
-            if plot_type == 'drc' and len(drug_id) == 1 and len(
-                    cell_line_id) == 1:
-                try:
-                    ctrl_dip_data, expt_resp_data = df_dip_rates(
-                        dataset_id=dataset_ids,
-                        drug_id=drug_id,
-                        cell_line_id=cell_line_id,
-                        use_dataset_names=True
-                    )
-                except NoDataException:
-                    return HttpResponse(
-                        'No DIP data found for this request. This drug/cell '
-                        'line/assay combination may not exist.', status=400)
-                fit_params = fit_params_from_base(
-                    base_params,
-                    ctrl_resp_data=ctrl_dip_data,
-                    expt_resp_data=expt_resp_data,
-                    include_response_values=True
+    if plot_type == 'drc' and len(drug_id) == 1 and len(
+            cell_line_id) == 1:
+        try:
+            if response_metric == 'dip':
+                ctrl_resp_data, expt_resp_data = df_dip_rates(
+                    dataset_id=dataset_ids,
+                    drug_id=drug_id,
+                    cell_line_id=cell_line_id,
+                    use_dataset_names=True
                 )
             else:
-                fit_params = fit_params_from_base(
-                    base_params,
-                    include_response_values=False,
-                    custom_ic_concentrations=ic_concentrations,
-                    custom_ec_concentrations=ec_concentrations,
-                    custom_e_values=e_values,
-                    custom_e_rel_values=e_rel_values
+                datasets = dataset if not dataset2_id else [dataset,
+                                                            dataset2]
+                expt_resp_data, ctrl_resp_data = _get_viability_scores(
+                    datasets,
+                    drug_id,
+                    cell_line_id,
+                    viability_time=base_params._viability_time
                 )
-        else:
-            try:
-                base_params = df_curve_fits(dataset_ids, 'viability',
-                                            drug_id, cell_line_id)
-            except NoDataException:
-                return HttpResponse(
-                    'No viability data found for this request. This drug/cell '
-                    'line/assay combination may not exist.', status=400)
-
-            if plot_type == 'drc' and len(drug_id) == 1 and len(
-                    cell_line_id) == 1:
-                datasets = dataset if not dataset2_id else [dataset, dataset2]
-                try:
-                    expt_resp_data, ctrl_resp_data = _get_viability_scores(
-                        datasets,
-                        drug_id,
-                        cell_line_id,
-                        viability_time=base_params._viability_time
-                    )
-                except NoDataException:
-                    return HttpResponse(
-                        'No viability data found for this request. This '
-                        'drug/cell '
-                        'line/assay combination may not exist.', status=400)
-                fit_params = fit_params_from_base(
-                    base_params,
-                    ctrl_resp_data=ctrl_resp_data,
-                    expt_resp_data=expt_resp_data,
-                    include_response_values=True
-                )
-            else:
-                fit_params = fit_params_from_base(
-                    base_params,
-                    include_response_values=False,
-                    custom_ic_concentrations=ic_concentrations,
-                    custom_ec_concentrations=ec_concentrations,
-                    custom_e_values=e_values
-                )
-        # Currently only care about warnings if plotting AA
-        if plot_type == 'drpar' and (dr_par == 'aa' or
-                                     dr_par_two == 'aa'):
-            w = [i for i in w if issubclass(i.category, AAFitWarning)]
-            if w:
-                return HttpResponse(w[0].message, status=400)
+        except NoDataException:
+            return HttpResponse(
+                'No data found for this request. This '
+                'drug/cell line/assay combination may not exist.', status=400)
+        fit_params = fit_params_from_base(
+            base_params,
+            ctrl_resp_data=ctrl_resp_data,
+            expt_resp_data=expt_resp_data,
+            custom_ic_concentrations={50},
+            custom_ec_concentrations={50},
+            include_emax=True,
+            include_response_values=True
+        )
+    else:
+        with warnings.catch_warnings(record=True) as w:
+            fit_params = fit_params_from_base(
+                base_params,
+                include_response_values=False,
+                custom_ic_concentrations=ic_concentrations,
+                custom_ec_concentrations=ec_concentrations,
+                custom_e_values=e_values,
+                include_aa=need_aa,
+                include_hill=need_hill,
+                include_emax=need_emax
+            )
+            # Currently only care about warnings if plotting AA
+            if plot_type == 'drpar' and (dr_par == 'aa' or
+                                         dr_par_two == 'aa'):
+                w = [i for i in w if issubclass(i.category, AAFitWarning)]
+                if w:
+                    return HttpResponse(w[0].message, status=400)
 
     if plot_type == 'drpar':
         if dr_par is None:
