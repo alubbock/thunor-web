@@ -14,17 +14,7 @@ class TestPlateParsers(TestCase):
         cls.user = get_user_model().objects.create(email='test@example.com')
         cls.d = HTSDataset.objects.create(name='test', owner=cls.user)
 
-    def test_parse_hdf(self):
-        filename = pkg_resources.resource_filename(
-            'thunor', 'testdata/hts007.h5')
-        with open(filename, 'rb') as src:
-            f = File(src)
-            pfp = PlateFileParser(f, dataset=self.d)
-            results = pfp.parse_all()
-
-        assert len(results) == 1
-        assert results[0]['success']
-        assert results[0]['file_format'] == 'HDF5'
+    # HDF parsing is tested elsewhere
 
     def test_parse_vanderbilt_csv(self):
         filename = pkg_resources.resource_filename(
