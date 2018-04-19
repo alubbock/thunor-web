@@ -4,13 +4,18 @@
 
 {% block content %}
 
-  <div class="two-btn">
-  <div class="square-btns">
+<div class="square-btns btn170">
 {% if not public or request.user.is_superuser %}
-<button class="btn btn-success btn-lg" style="width:170px" id="btn-add-tag"
+<button class="btn btn-success btn-lg" id="btn-add-tag"
         {% if not request.user.is_authenticated %}disabled{% endif %}>
   <i class="fa fa-3x fa-plus"></i><br>
   Add {% if public %}Public {% endif %}{{ entity_type }} Tag</button>
+{% endif %}
+{% if request.user.is_authenticated and not public %}
+  <button class="btn btn-success btn-lg" id="btn-upload-tags"
+        {% if not request.user.is_authenticated %}disabled{% endif %}>
+  <i class="fa fa-3x fa-upload"></i><br>
+  Upload {{ entity_type }} Tags</button>
 {% endif %}
 {% if not public %}
   <a href="{% url 'thunorweb:tag_editor' tag_type %}" role="button"
@@ -22,10 +27,9 @@
     View Personal<br>{{ entity_type }} tags</a>
 {% endif %}
   <a role="button" href="{% url 'thunorweb:home' %}" class="btn
-  btn-default btn-lg" style="width:170px"><i class="fa fa-3x
+  btn-default btn-lg"><i class="fa fa-3x
   fa-home"></i><br>Back to<br>Home Page</a>
-    </div>
-  </div>
+</div>
 
 <div class="tag-list">
 {% for category, tag_entries in tags.items %}
@@ -39,6 +43,12 @@
 </div>
 
 {% include "tag_editor_tag_template.html" %}
+
+<div class="upload-tags" style="display:none">
+<form action="{% url 'thunorweb:ajax_upload_tagfile' tag_type %}">
+  <input type="file" name="tagfiles[]" multiple>
+</form>
+</div>
 
 <div class="entity-select" style="display:none">
 <select multiple data-live-search="true" name="entityId" autocomplete="off"

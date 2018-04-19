@@ -86,27 +86,6 @@ class CellLineTag(models.Model):
                                  self.owner.email if self.owner else
                                  '<public>')
 
-    @classmethod
-    def load(cls, filename, owner_id=None):
-        import pandas as pd
-        csv = pd.read_csv(filename, sep='\t')
-        cl_mapping = {cl.name.lower(): cl.id for cl in CellLine.objects.all()}
-
-        csv['cell_line'] = csv['cell_line'].str.lower()
-
-        missing_cls = set(csv['cell_line']).difference(
-            cl_mapping.keys())
-        if missing_cls:
-            print('Cell lines not in DB, skipping: {}'.format(missing_cls))
-            csv = csv.loc[~csv['cell_line'].isin(missing_cls), :]
-
-        cls.objects.bulk_create(
-            cls(tag_name=row.tag_name,
-                tag_category=row.tag_category,
-                cell_line_id=cl_mapping[row.cell_line],
-                owner=owner_id)
-            for row in csv.itertuples())
-
 
 class Drug(models.Model):
     name = models.TextField(unique=True)
@@ -133,27 +112,6 @@ class DrugTag(models.Model):
         return '%s [%s] (%s)' % (self.tag_name, self.drug.name,
                                  self.owner.email if self.owner else
                                  '<public>')
-
-    @classmethod
-    def load(cls, filename, owner_id=None):
-        import pandas as pd
-        csv = pd.read_csv(filename, sep='\t')
-        drug_mapping = {dr.name.lower(): dr.id for dr in Drug.objects.all()}
-
-        csv['drug'] = csv['drug'].str.lower()
-
-        missing_drugs = set(csv['drug']).difference(
-            drug_mapping.keys())
-        if missing_drugs:
-            print('Drugs not in DB, skipping: {}'.format(missing_drugs))
-            csv = csv.loc[~csv['drug'].isin(missing_drugs), :]
-
-        cls.objects.bulk_create(
-            cls(tag_name=row.tag_name,
-                tag_category=row.tag_category,
-                drug_id=drug_mapping[row.drug],
-                owner=owner_id)
-            for row in csv.itertuples())
 
 
 class Plate(models.Model, PlateMap):

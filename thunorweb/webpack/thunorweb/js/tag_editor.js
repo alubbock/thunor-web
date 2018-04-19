@@ -135,6 +135,41 @@ var activate = function() {
         });
         e.preventDefault();
     });
+    var ajaxSettings = {
+        headers: {"X-CSRFToken": ajax.getCsrfToken()}
+    };
+    var tagFileUploadComplete = function() {
+        ui.loadingModal.show();
+        window.location.reload(true);
+    };
+    $('#btn-upload-tags').click(function() {
+        var $uploaddiv = $('.upload-tags').first().clone().show();
+        $uploaddiv.find('input[type=file]').fileinput({
+            theme: "fa",
+            uploadUrl: $uploaddiv.find("form").attr('action'),
+            uploadAsync: false,
+            allowedFileExtensions: ["txt", "csv"],
+            maxFileSize: 5120,
+            maxFileCount: 5,
+            minFileCount: 1,
+            fileActionSettings: {
+                showUpload: false,
+                showZoom: false,
+                showDrag: false
+            },
+            allowedPreviewTypes: false,
+            ajaxSettings: ajaxSettings
+        }).on("filebatchuploadsuccess", tagFileUploadComplete)
+            .on("filebatchselected", function () {
+                $(this).fileinput("upload");
+            });
+
+        ui.okCancelModal({
+            text: $uploaddiv,
+            title: 'Upload tags',
+            okLabel: null
+        });
+    });
 };
 
 module.exports = {

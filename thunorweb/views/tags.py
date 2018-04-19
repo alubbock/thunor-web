@@ -4,6 +4,7 @@ from django.db.models import Q, F
 from thunorweb.models import CellLine, Drug, CellLineTag, DrugTag
 from thunorweb.views import login_required_unless_public
 import logging
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +78,90 @@ def ajax_rename_tag(request):
         tag_name=tag_name)
 
     return JsonResponse({'status': 'success'})
+
+
+def ajax_upload_tagfile(request, tag_type):
+    assert tag_type in ('cell_lines', 'drugs')
+
+    if not request.user.is_authenticated():
+        return JsonResponse({'error': 'Not logged in'}, status=401)
+
+    files = request.FILES.getlist('tagfiles[]')
+    if len(files) == 0:
+        return JsonResponse({'error': 'No files uploaded'}, status=400)
+
+    for file in files:
+        if file.name.endswith('.txt'):
+            sep = '\t'
+        elif file.name.endswith('.csv'):
+            sep = ','
+        else:
+            return JsonResponse({'error', 'File name must end with .txt'
+                                          '(Tab separated) or .csv '
+                                          '(Comma separated)'}, status=400)
+
+        try:
+            csv = pd.read_csv(file, sep=sep)
+        except:
+            return JsonResponse({
+                'error': 'Could not read file. Please ensure file is comma '
+                         'separated (with extension .csv) or tab separated ('
+                         'with extension .txt)'
+             }, status=400)
+
+        if 'tag_name' not in csv.columns:
+            return JsonResponse({'error': 'Column tag_name not found'},
+                                status=400)
+        if 'tag_category' not in csv.columns:
+            return JsonResponse({'error': 'Column tag_category not found'},
+                                status=400)
+        if tag_type == 'drugs' and 'drug' not in csv.columns:
+            return JsonResponse({'error': 'Column drug not found'},
+                                status=400)
+        if tag_type == 'cell_lines' and 'cell_line' not in csv.columns:
+            return JsonResponse({'error': 'Column cell_line not found'},
+                                status=400)
+
+        EntityClass = CellLine if tag_type == 'cell_lines' else Drug
+        ent_col = 'cell_line' if tag_type == 'cell_lines' else 'drug'
+        ent_name = 'Cell lines' if tag_type == 'cell_lines' else 'Drugs'
+
+        ent_mapping = {ent.name.lower(): ent.id for ent in
+                       EntityClass.objects.all()}
+
+        csv['ent_lower'] = csv[ent_col].str.lower()
+
+        csv = csv[['tag_name', 'tag_category', 'ent_lower']]
+        duplicates = csv.duplicated()
+        if duplicates.any():
+            duplicates = csv[duplicates].iloc[0, :]
+            dup_str = ','.join([duplicates['tag_category'], duplicates[
+                'tag_name'], duplicates['ent_lower']])
+            return JsonResponse({'error': 'File contains duplicates, '
+                                          'e.g. {}'.format(dup_str)})
+
+        missing_ents = set(csv['ent_lower']).difference(ent_mapping.keys())
+        if missing_ents:
+            return JsonResponse({
+                'error': '{} not found (shown in lower case): {}'.format(
+                    ent_name, missing_ents)})
+
+        if tag_type == 'cell_lines':
+            CellLineTag.objects.bulk_create(
+                CellLineTag(tag_name=row.tag_name,
+                            tag_category=row.tag_category,
+                            cell_line_id=ent_mapping[row.ent_lower],
+                            owner=request.user)
+                for row in csv.itertuples())
+        else:
+            DrugTag.objects.bulk_create(
+                DrugTag(tag_name=row.tag_name,
+                        tag_category=row.tag_category,
+                        drug_id=ent_mapping[row.ent_lower],
+                        owner=request.user)
+                for row in csv.itertuples())
+
+    return JsonResponse({'success': True})
 
 
 def ajax_assign_tag(request):

@@ -22,6 +22,8 @@ urlpatterns = [
     #     name='ajax_set_tag_name'),
     url(r'^ajax/tags/assign$', tags.ajax_assign_tag,
         name='ajax_assign_tag'),
+    url(r'tags/(?P<tag_type>cell_lines|drugs)/upload$',
+        tags.ajax_upload_tagfile, name='ajax_upload_tagfile'),
 
     url(r'platemap$', plate_mapper.plate_mapper,
         kwargs={'dataset_id': None}, name='plate_mapper'),

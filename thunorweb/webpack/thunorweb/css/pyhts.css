@@ -869,6 +869,9 @@ form.set-tag-targets button[type=submit] {
     min-width: 107px;
     display: inline-block;
 }
+.square-btns.btn170 button, .square-btns.btn170 a.btn {
+    width: 170px;
+}
 #dataset-table td {
     overflow: hidden;
     text-overflow: ellipsis;

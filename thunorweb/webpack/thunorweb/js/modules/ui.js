@@ -36,6 +36,7 @@ var ui = (function() {
         var settings = $.extend({}, modalDefaults, modalSettings);
         var $cancelBtn = $mok.find(".btn-cancel")
                          .addClass(settings.cancelButtonClass);
+        var $okBtn = $mok.find(".btn-ok").addClass(settings.okButtonClass);
         if (settings.cancelLabel !== null) {
             $cancelBtn.text(settings.cancelLabel).show();
         } else {
@@ -43,10 +44,14 @@ var ui = (function() {
         }
         $mok.find(".modal-header").text(settings.title);
         $mok.find(".modal-body").html(settings.text);
-        $mok.find(".btn-ok").addClass(settings.okButtonClass).text(
-            settings.okLabel).on("click", function () {
+        if (settings.okLabel === null) {
+            $okBtn.hide();
+        } else {
+            $okBtn.text(
+                settings.okLabel).on("click", function () {
                 $mok.data("success", true).modal("hide");
-        });
+            });
+        }
         $mok.on("shown.bs.modal", function () {
             $mok.find(settings.cancelByDefault ? ".btn-cancel" : ".btn-ok").focus();
         }).on("hide.bs.modal", function (e) {
