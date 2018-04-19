@@ -15,7 +15,9 @@ urlpatterns = [
 
     url(r'^tags$', tags.tag_editor, name='tag_editor'),
     url(r'^tags/(?P<tag_type>cell_lines|drugs)$', tags.tag_editor,
-        name='tag_editor'),
+        name='tag_editor_private'),
+    url(r'^tags/(?P<tag_type>cell_lines|drugs)/public$', tags.tag_editor,
+        name='tag_editor', kwargs={'tag_public': True}),
     # url(r'^ajax/tags/set_name$', views.ajax_set_tag_name,
     #     name='ajax_set_tag_name'),
     url(r'^ajax/tags/assign$', tags.ajax_assign_tag,
