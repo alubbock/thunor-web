@@ -26,6 +26,13 @@ var plate_upload = function () {
             maxFileSize: 153600,
             maxFileCount: 20,
             minFileCount: 1,
+            fileActionSettings: {
+                showUpload: false,
+                showZoom: false,
+                showDrag: false
+            },
+            showBrowse: false,
+            browseOnZoneClick: true,
             allowedPreviewTypes: false,
             initialPreview: pyHTS.state.initialPreview,
             initialPreviewConfig: pyHTS.state.initialPreviewConfig,
@@ -38,11 +45,14 @@ var plate_upload = function () {
         }).on("filelock", pyHTSLockNext2)
             .on("filereset", pyHTSLockNext2)
             .on("filebatchuploadcomplete", pyHTSUnlockNext2)
-            .on("fileuploaded", pyHTSUnlockNext2);
+            .on("fileuploaded", pyHTSUnlockNext2)
+            .on("filebatchselected", function() {
+                $(this).fileinput("upload");
+            });
     };
 
     var createDataset = function (name) {
-        if (name == "") {
+        if (name === "") {
             ui.okModal({
                 title: "Error creating dataset",
                 text: "Please enter a name for this dataset",

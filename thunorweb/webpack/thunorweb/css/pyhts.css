@@ -834,6 +834,9 @@ form.set-tag-targets button[type=submit] {
 .tag-container {
     position: relative;
 }
+.entity-options {
+    font-size: 1.25em;
+}
 .plot-type-tc .hidden-tc, .plot-type-drc .hidden-drc, .plot-type-drpar .hidden-drpar,
 .plot-type-qc .hidden-qc {
     display: none;

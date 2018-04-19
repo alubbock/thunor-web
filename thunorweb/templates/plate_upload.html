@@ -29,9 +29,10 @@
 
             <div id="hts-dataset-upload-2"
                  style="{% if not dataset %}display:none{% endif %}">
-                    <h4>Select files from your computer <small>
-                        Drag and drop or click
-                        <strong>Browse</strong></small></h4>
+                    <h4>Select files from your computer
+                      <small style="float:right">
+                        Drag and drop, or click within the dotted area</small>
+                    </h4>
                     <input type="hidden" name="dataset-id" value="">
                     <input type="file" name="file_field[]"
                            id="js-upload-files" multiple
@@ -71,8 +72,7 @@ $(function () {
         initialPreview.push('{% spaceless %}
         {% include "ajax_upload_template.html" with plate_file_format=pf.file_format %}
         {% endspaceless %}');
-        initialPreviewConfig.push({caption: '{{ pf.file.name|escapejs }}',
-            key:{{ pf.id }}});
+        initialPreviewConfig.push({caption: '{{ pf.file.name|escapejs }}', key:{{ pf.id }}});
     {% endfor %}
 
     $.extend(pyHTS.state, {
