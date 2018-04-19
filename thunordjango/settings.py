@@ -165,6 +165,11 @@ if 'DJANGO_REDIS_URL' in os.environ:
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
         }
     }
+elif os.environ.get('DJANGO_DB_CACHE', 'false').lower() == 'true':
+    CACHES['default'] = {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'thunor_cache'
+    }
 elif DEBUG:
     CACHES['default'] = {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'
