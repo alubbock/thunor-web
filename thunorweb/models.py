@@ -69,22 +69,16 @@ class CellLine(models.Model):
 
 class CellLineTag(models.Model):
     class Meta:
-        unique_together = (('owner', 'tag_category', 'tag_name',
-                            'cell_line'), )
+        unique_together = (('owner', 'tag_category', 'tag_name'), )
 
     tag_name = models.TextField()
     tag_category = models.TextField(null=True)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True)
-    cell_line = models.ForeignKey(CellLine)
+    cell_lines = models.ManyToManyField(CellLine, related_name='tags')
 
     @property
     def is_public(self):
         return self.owner is None
-
-    def __str__(self):
-        return '%s [%s] (%s)' % (self.tag_name, self.cell_line.name,
-                                 self.owner.email if self.owner else
-                                 '<public>')
 
 
 class Drug(models.Model):
@@ -96,22 +90,16 @@ class Drug(models.Model):
 
 class DrugTag(models.Model):
     class Meta:
-        unique_together = (('owner', 'tag_category', 'tag_name',
-                            'drug'), )
+        unique_together = (('owner', 'tag_category', 'tag_name'), )
 
     tag_name = models.TextField()
     tag_category = models.TextField(null=True)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True)
-    drug = models.ForeignKey(Drug)
+    drugs = models.ManyToManyField(Drug, related_name='tags')
 
     @property
     def is_public(self):
         return self.owner is None
-
-    def __str__(self):
-        return '%s [%s] (%s)' % (self.tag_name, self.drug.name,
-                                 self.owner.email if self.owner else
-                                 '<public>')
 
 
 class Plate(models.Model, PlateMap):
