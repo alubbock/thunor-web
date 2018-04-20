@@ -18,6 +18,44 @@ from thunorweb.views import login_required_unless_public, _assert_has_perm
 from thunorweb.views.plate_mapper import ajax_load_plate
 
 
+def _process_aggreate(request, tag_type, tag_ids, aggregation):
+    perm_query = Q(owner=None)
+    if request.user.is_authenticated():
+        perm_query |= Q(owner=request.user)
+
+    if tag_type == 'cell_lines':
+        TagClass = CellLineTag
+    else:
+        TagClass = DrugTag
+
+    tag_base_query = TagClass.objects.filter(
+        perm_query).filter(id__in=tag_ids)
+    if not aggregation:
+        return tag_base_query.values_list('{}__id'.format(tag_type),
+                                          flat=True).distinct(), aggregation
+
+    tag_objs = tag_base_query.values_list(
+        'tag_category', 'tag_name', '{}__id'.format(tag_type),
+        '{}__name'.format(tag_type))
+    entity_ids = [tag[2] for tag in tag_objs]
+    cats = set(tag[0] for tag in tag_objs)
+    use_cats = len(cats) > 1
+    # if not use_cats:
+    #     (aggregate_cell_lines_group, ) = cats
+
+    agg = defaultdict(list)
+    for tag in tag_objs:
+        tag_name = '{} [{}]'.format(tag[1], tag[0]) if use_cats \
+            else tag[1]
+        agg[tag_name].append(tag[3])
+    # Add counts to names
+    aggregation = {}
+    for tag_name, vals in agg.items():
+        aggregation['{} ({})'.format(tag_name, len(vals))] = vals
+
+    return entity_ids, aggregation
+
+
 @login_required_unless_public
 def ajax_get_plot(request, file_type='json'):
     if file_type == 'csv':
@@ -38,51 +76,20 @@ def ajax_get_plot(request, file_type='json'):
         cell_line_tag_ids = request.GET.getlist('cT')
         aggregate_cell_lines = request.GET.get('aggregateCellLines', False) \
                                == "true"
-        perm_query = Q(owner=None)
-        if request.user.is_authenticated():
-            perm_query |= Q(owner=request.user)
-        if not cell_line_id and cell_line_tag_ids:
-            cell_line_tag_base_query = CellLineTag.objects.filter(
-                perm_query).filter(id__in=cell_line_tag_ids)
-            if not aggregate_cell_lines:
-                cell_line_id = cell_line_tag_base_query.values_list(
-                    'cell_lines__id', flat=True).distinct()
-            else:
-                cell_line_tag_objs = cell_line_tag_base_query.values_list(
-                    'tag_category', 'tag_name', 'cell_lines__id',
-                    'cell_lines__name')
-                cell_line_id = [cl[2] for cl in cell_line_tag_objs]
-                cats = set(cl[0] for cl in cell_line_tag_objs)
-                use_cats = len(cats) > 1
-                # if not use_cats:
-                #     (aggregate_cell_lines_group, ) = cats
 
-                aggregate_cell_lines = defaultdict(list)
-                for cl in cell_line_tag_objs:
-                    tag_name = '{} [{}]'.format(cl[1], cl[0]) if use_cats \
-                        else cl[1]
-                    aggregate_cell_lines[tag_name].append(cl[3])
+        if not cell_line_id and cell_line_tag_ids:
+            cell_line_id, aggregate_cell_lines = _process_aggreate(
+                request, 'cell_lines', cell_line_tag_ids, aggregate_cell_lines
+            )
+
         drug_id = request.GET.getlist('d')
         drug_tag_ids = request.GET.getlist('dT')
         aggregate_drugs = request.GET.get('aggregateDrugs', False) == "true"
-        if not drug_id and drug_tag_ids:
-            drug_tag_base_query = DrugTag.objects.filter(
-                perm_query).filter(id__in=drug_tag_ids)
-            if not aggregate_drugs:
-                drug_id = drug_tag_base_query.values_list(
-                    'drugs__id', flat=True).distinct()
-            else:
-                drug_tag_objs = drug_tag_base_query.values_list(
-                    'tag_category', 'tag_name', 'drugs__id',
-                    'drugs__name')
-                drug_id = [dr[2] for dr in drug_tag_objs]
-                use_cats = len(set(dr[0] for dr in drug_tag_objs)) > 1
 
-                aggregate_drugs = defaultdict(list)
-                for dr in drug_tag_objs:
-                    tag_name = '{} [{}]'.format(dr[1], dr[0]) if use_cats \
-                        else dr[1]
-                    aggregate_drugs[tag_name].append(dr[3])
+        if not drug_id and drug_tag_ids:
+            drug_id, aggregate_drugs = _process_aggreate(
+                request, 'drugs', drug_tag_ids, aggregate_drugs
+            )
 
         if plot_type != 'qc' and (not cell_line_id or not drug_id):
             return HttpResponse('Please enter at least one cell line and '
