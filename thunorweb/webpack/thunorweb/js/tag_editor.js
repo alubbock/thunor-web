@@ -26,35 +26,35 @@ var activate = function() {
             });
             return;
         }
-        var tagCategory = $form.find("input[name=tagCategory]").val();
-        if (tagCategory.trim() === '') tagCategory = null;
-        var catExists = pyHTS.state.tags.hasOwnProperty(tagCategory);
-        if (catExists && pyHTS.state.tags[tagCategory].hasOwnProperty(tagName)) {
-            ui.okModal({
-                title: "Tag already exists",
-                text: "A tag with that name already exists in the specified" +
-                " category"
-            });
-            return;
-        }
-        if(!catExists) {
-            pyHTS.state.tags[tagCategory] = {};
-        }
-        pyHTS.state.tags[tagCategory][tagName] = [];
-        var $tagContainer = $form.closest(".tag-container");
-        var $taggingForm = $tagContainer.find("form.set-tag-targets");
-        $tagContainer.find(".tag-name").text(tagName);
-        if (tagCategory !== null) {
-            $tagContainer.find(".tag-category").text(tagCategory);
-            $tagContainer.find("input[name=tagCategory]").val(tagCategory);
-        }
-        $tagContainer.find("input[name=tagName]").val(tagName);
+        var $container = $form.closest(".tag-container");
+        $container.loadingOverlay("show");
+        $.ajax({
+            type: "POST",
+            headers: {"X-CSRFToken": ajax.getCsrfToken()},
+            url: ajax.url("create_tag"),
+            data: $form.serialize(),
+            success: function (data) {
+                pyHTS.state.tags[data.tagId] = [];
+                var $tagContainer = $form.closest(".tag-container");
+                var $taggingForm = $tagContainer.find("form.set-tag-targets");
+                $tagContainer.find(".tag-name").text(data.tagName);
+                if (data.tagCategory !== null) {
+                    $tagContainer.find(".tag-category").text(data.tagCategory);
+                    $tagContainer.find("input[name=tagCategory]").val(data.tagCategory);
+                }
+                $tagContainer.find("input[name=tagId]").val(data.tagId);
 
-        $tagContainer.find(".tag-header").show();
-        $form.hide();
-        $tagContainer.find(".btn-edit").trigger('click');
-        $taggingForm.slideDown();
-        $tagContainer.find("form.delete-tag").show();
+                $tagContainer.find(".tag-header").show();
+                $form.hide();
+                $tagContainer.find(".btn-edit").trigger('click');
+                $taggingForm.slideDown();
+                $tagContainer.find("form.delete-tag").show();
+            },
+            error: ajax.ajaxErrorCallback,
+            complete: function() {
+                $container.loadingOverlay("hide");
+            }
+        });
     });
     $("form.set-tag-targets").submit(function (e) {
         e.preventDefault();
@@ -69,14 +69,13 @@ var activate = function() {
             success: function (data) {
                 $form.find("button[type=submit]").hide();
                 $container.find(".label-success").fadeIn(400).delay(2000).fadeOut(400);
-                pyHTS.state.tags[data.tagCategory][data.tagName] = data.entityIds;
+                pyHTS.state.tags[data.tagId] = data.entityIds;
                 var $entNameTemplate = $('#ent-name-tplt');
                 var entities = $('<div></div>');
                 for (var i=0, len=data.entityIds.length; i<len; i++) {
-                    entities.append($entNameTemplate.clone().removeAttr("id").show().text(pyHTS.state.tagNames[data.entityIds[i]]));
+                    entities.append($entNameTemplate.clone().removeAttr("id").show().text(pyHTS.state.entNames[data.entityIds[i]]));
                     entities.append(' ');
                 }
-                console.log(entities);
                 $container.find('.btn-edit').show();
                 $container.find(".entity-change").hide();
                 $container.find(".entity-options").empty().append(entities).show();
@@ -95,10 +94,8 @@ var activate = function() {
         var $tagContainer = $btnEdit.closest(".tag-container");
         var $newSelect = $('.entity-select').last().clone().show();
         var $form = $btnEdit.closest('form');
-        var tagCategory = $form.find('input[name=tagCategory]').val();
-        if(tagCategory === '') tagCategory = null;
-        var tagName = $form.find('input[name=tagName]').val();
-        var entities = pyHTS.state.tags[tagCategory][tagName];
+        var tagId = $form.find('input[name=tagId]').val();
+        var entities = pyHTS.state.tags[tagId];
         for (var i=0, len=entities.length; i<len; i++) {
             $newSelect.find('option').filter('[value='+entities[i]+']').prop('selected', true);
         }
@@ -116,17 +113,15 @@ var activate = function() {
         var $form = $(this);
         var $container = $form.closest(".tag-container");
         $container.loadingOverlay("show");
-        var tagName = $form.find("input[name=tagName]").val();
-        var tagCategory = $form.find("input[name=tagCategory]").val();
-        if(tagCategory === '') tagCategory = null;
+        var tagId = $form.find("input[name=tagId]").val();
         $.ajax({
             type: "POST",
             headers: {"X-CSRFToken": ajax.getCsrfToken()},
-            url: ajax.url("assign_tag"),
+            url: ajax.url("delete_tag"),
             data: $form.serialize(),
             success: function () {
                 $container.remove();
-                delete pyHTS.state.tags[tagCategory][tagName];
+                delete pyHTS.state.tags[tagId];
             },
             error: ajax.ajaxErrorCallback,
             complete: function() {

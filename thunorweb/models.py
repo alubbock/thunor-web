@@ -78,7 +78,7 @@ class CellLineTag(models.Model):
 
     @property
     def is_public(self):
-        return self.owner is None
+        return self.owner_id is None
 
 
 class Drug(models.Model):
@@ -99,7 +99,7 @@ class DrugTag(models.Model):
 
     @property
     def is_public(self):
-        return self.owner is None
+        return self.owner_id is None
 
 
 class Plate(models.Model, PlateMap):

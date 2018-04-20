@@ -674,13 +674,13 @@ var plots = function() {
             if (!multiDataset && data.assays[0].length > 1) {
                 setSelectPicker($assaySelect, true);
             }
-            var $selectClTags = $dataPanel.find("select[name=cellLineTags]");
+            var $selectClTags = $dataPanel.find("select[name=cT]");
             $selectClTags.prop("disabled", true).selectpicker(selectPickerTagOptions).selectpicker("hide");
             pushOptionsToSelect(
                 $selectClTags,
                 data.cellLineTags
             );
-            var $selectDrTags = $dataPanel.find("select[name=drugTags]");
+            var $selectDrTags = $dataPanel.find("select[name=dT]");
             $selectDrTags.prop("disabled", true).selectpicker(selectPickerTagOptions).selectpicker("hide");
             pushOptionsToSelect(
                 $selectDrTags,

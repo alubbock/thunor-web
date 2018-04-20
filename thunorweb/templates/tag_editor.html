@@ -70,7 +70,7 @@ $(function() {
     {% load jsonify from thunorweb_tags %}
     $.extend(pyHTS.state, {
         tags: {{ tags_ids|jsonify }},
-        tagNames: {
+        entNames: {
     {% for eid, ent in entities.items %}{{eid}}:'{{ ent.name|escapejs }}'{% if not forloop.last %},{% endif %}{% endfor %}
         }
     });

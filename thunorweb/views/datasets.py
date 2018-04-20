@@ -115,14 +115,12 @@ def _get_tags(request, cell_line_ids, drug_ids):
         tag_owner_filter = Q(owner=None)
 
     cell_line_tags = CellLineTag.objects.filter(tag_owner_filter).filter(
-        cell_line_id__in=cell_line_ids
-    ).values_list('owner_id', 'tag_category', 'tag_name').distinct().order_by(
-        'owner_id', 'tag_category', 'tag_name')
+        cell_lines__id__in=cell_line_ids
+    ).distinct().order_by('owner', 'tag_category', 'tag_name')
 
     drug_tags = DrugTag.objects.filter(tag_owner_filter).filter(
-        drug_id__in=drug_ids
-    ).values_list('owner_id', 'tag_category', 'tag_name').distinct().order_by(
-        'owner_id', 'tag_category', 'tag_name')
+        drugs__id__in=drug_ids
+    ).distinct().order_by('owner_id', 'tag_category', 'tag_name')
 
     return cell_line_tags, drug_tags
 
@@ -155,17 +153,17 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
     cell_line_tags, drug_tags = _get_tags(request, cell_line_ids, drug_ids)
 
     groupings_dict['drugTags'] = \
-        [{'id': ('1' if tag[0] is None else '0') + tag[2],
-          'cat': tag[1],
-          'name': tag[2],
-          'public': tag[0] is None}
+        [{'id': tag.id,
+          'cat': tag.tag_category,
+          'name': tag.tag_name,
+          'public': tag.is_public}
          for tag in drug_tags]
 
     groupings_dict['cellLineTags'] = \
-        [{'id': ('1' if tag[0] is None else '0') + tag[2],
-          'cat': tag[1],
-          'name': tag[2],
-          'public': tag[0] is None}
+        [{'id': tag.id,
+          'cat': tag.tag_category,
+          'name': tag.tag_name,
+          'public': tag.is_public}
          for tag in cell_line_tags]
 
     if groupings_dict['singleTimepoint'] is False:

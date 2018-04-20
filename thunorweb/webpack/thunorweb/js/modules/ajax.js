@@ -148,7 +148,9 @@ var ajax = (function () {
         "get_plot": "/ajax/plot.json",
         "get_plot_csv": "/ajax/plot.csv",
         "get_plot_html": "/ajax/plot.html",
-        "assign_tag": "/ajax/tags/assign"
+        "assign_tag": "/ajax/tags/assign",
+        "create_tag": "/ajax/tags/create",
+        "delete_tag": "/ajax/tags/delete"
     };
 
     var url = function(view, arg) {

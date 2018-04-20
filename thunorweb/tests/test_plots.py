@@ -39,28 +39,25 @@ class TestPlateMapper(TestCase):
         entities_per_tag = 3
         num_tags = 3
         cell_lines = CellLine.objects.all()
-        cltags = []
-        for tag_num in range(num_tags):
-            for cell_line_idx in range(tag_num * entities_per_tag,
-                                       tag_num * (entities_per_tag + 1)):
-                cltags.append(CellLineTag(
-                    tag_name='tag{}'.format(tag_num),
-                    cell_line=cell_lines[cell_line_idx],
-                    owner=cls.user
-                ))
-        CellLineTag.objects.bulk_create(cltags)
-
         drugs = Drug.objects.all()
+        cltags = []
         drtags = []
         for tag_num in range(num_tags):
-            for drug_idx in range(tag_num * entities_per_tag,
-                                  tag_num * (entities_per_tag + 1)):
-                drtags.append(DrugTag(
-                    tag_name='tag{}'.format(tag_num),
-                    drug=drugs[drug_idx],
-                    owner=cls.user
-                ))
+            cltags.append(CellLineTag(
+                tag_name='tag{}'.format(tag_num),
+                owner=cls.user
+            ))
+            drtags.append(DrugTag(
+                tag_name='tag{}'.format(tag_num),
+                owner=cls.user
+            ))
+        CellLineTag.objects.bulk_create(cltags)
         DrugTag.objects.bulk_create(drtags)
+        for tag_num in range(num_tags):
+            idx = range(tag_num * entities_per_tag,
+                        tag_num * (entities_per_tag + 1))
+            cltags[tag_num].cell_lines.set([cell_lines[i] for i in idx])
+            drtags[tag_num].drugs.set([drugs[i] for i in idx])
 
         # Get the dataset groupings
         response = c.get(reverse('thunorweb:ajax_dataset_groupings',
@@ -162,8 +159,8 @@ class TestPlateMapper(TestCase):
         argdict = {
             'plotType': 'drpar',
             'datasetId': self.d.id,
-            'cellLineTags': [c['id'] for c in self.groupings['cellLineTags']],
-            'drugTags': [d['id'] for d in self.groupings['drugTags']],
+            'cT': [c['id'] for c in self.groupings['cellLineTags']],
+            'dT': [d['id'] for d in self.groupings['drugTags']],
             'drMetric': 'dip',
             'drPar': 'ic50',
             'drParOrder': 'emax_obs'

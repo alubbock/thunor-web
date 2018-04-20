@@ -3,9 +3,7 @@
 {% if not is_public or request.user.is_superuser %}
 <form class="pull-right form-inline delete-tag" {% if not tag_name %}style="display:none"{% endif %}>
     <input type="hidden" name="tagType" value="{{ entity_type_var }}">
-    <input type="hidden" name="tagName" value="{{ tag_name }}">
-    <input type="hidden" name="tagCategory" value="{{ category|default:"" }}">
-    <input type="hidden" name="tagPublic" value="{{ public|yesno:"1,0" }}">
+    <input type="hidden" name="tagId" value="{{ tag_name.0 }}">
 <button type="button" role="button" class="btn btn-default btn-edit">Edit</button>
 <button type="submit" role="button" class="btn btn-danger">Delete</button>
 </form>
@@ -14,13 +12,13 @@
 <h4 class="tag-header"{% if not tag_name %} style="display:none"{% endif %}>
     <i class="fa fa-tag"></i>
     <span class="label label-default tag-category">{{ category|default:"" }}</span>
-    <span class="tag-name">{{ tag_name }}</span>
+    <span class="tag-name">{{ tag_name.1 }}</span>
     <span class="label label-success" style="display:none">Changes saved</span>
 </h4>
 <form class="set-tag-name" {% if tag_name %}style="display:none"{% endif %}>
 <div class="form-inline">
     <input type="hidden" name="tagType" value="{{ entity_type_var }}">
-    <input type="hidden" name="tagPublic" value="{{ public|yesno:"1,0" }}">
+    <input type="hidden" name="tagId" value="{{ tag_name.0 }}">
     <div class="input-group">
         <span class="input-group-addon"><i class="fa fa-tag"></i></span>
         <input type="text" class="form-control" name="tagName"
@@ -42,11 +40,9 @@
 <form class="set-tag-targets" {% if not tag_name %}style="display:none
 "{% endif %}>
   <input type="hidden" name="tagType" value="{{ entity_type_var }}">
-  <input type="hidden" name="tagName" value="{{ tag_name }}">
-  <input type="hidden" name="tagCategory" value="{{ category|default:"" }}">
-  <input type="hidden" name="tagPublic" value="{{ public|yesno:"1,0" }}">
+  <input type="hidden" name="tagId" value="{{ tag_name.0 }}">
 <div class="entity-options">
-      {% for ent in tag_tgts %}<span class="label label-primary">{{ ent.name }}</span> {% endfor %}
+  {% for ent in tag_tgts %}<span class="label label-primary">{{ ent }}</span> {% endfor %}
 </div>
 <div class="form-group entity-change" style="display:none"></div>
 </form>
