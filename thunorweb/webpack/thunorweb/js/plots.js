@@ -219,27 +219,40 @@ var plots = function() {
         updateURL();
     });
 
+    var parseOption = function(option) {
+        var $newOption = $("<option></option>");
+        $newOption.val(option.id);
+        $newOption.text(option.name);
+        if (option.hasOwnProperty("public") && option.public) {
+            $newOption.prepend("<i class=\"fa fa-users\"></i> ");
+        }
+        return $newOption;
+    };
+
+    var parseOptGroup = function (optGroup) {
+        var $newOptgroup = $("<optgroup></optgroup>");
+        $newOptgroup.attr('label', optGroup.optgroup);
+        for (var i=0,len=optGroup.options.length; i < len; i++) {
+            $newOptgroup.append(parseOption(optGroup.options[i]));
+        }
+        return $newOptgroup;
+    };
+
     var pushOptionsToSelect = function ($select, optionList, selectedOption) {
         var len = optionList.length;
         var combinations = [];
         for (var i = 0; i < len; i++) {
-            var $newOption = $("<option></option>");
             if(Array.isArray(optionList[i].id)) {
+                var $newOption = $("<option></option>");
                 $newOption.val(optionList[i].id.join(","));
                 $newOption.text(optionList[i].name.join(" & "));
                 combinations.push($newOption);
             } else {
-                $newOption.val(optionList[i].id);
-                $newOption.text(optionList[i].name);
-                if(optionList[i].hasOwnProperty("cat") && optionList[i].cat !== null) {
-                    $newOption.prepend(" ");
-                    $newOption.prepend($('<span class="label' +
-                        ' label-default"></span>').text(optionList[i].cat));
+                if(optionList[i].hasOwnProperty("optgroup")) {
+                    $select.append(parseOptGroup(optionList[i]));
+                } else {
+                    $select.append(parseOption(optionList[i]));
                 }
-                if(optionList[i].hasOwnProperty("public") && optionList[i].public) {
-                    $newOption.prepend("<i class=\"fa fa-users\"></i> ");
-                }
-                $select.append($newOption);
             }
         }
         var numCombos = combinations.length;

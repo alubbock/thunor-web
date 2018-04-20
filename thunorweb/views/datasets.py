@@ -152,19 +152,36 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
 
     cell_line_tags, drug_tags = _get_tags(request, cell_line_ids, drug_ids)
 
-    groupings_dict['drugTags'] = \
-        [{'id': tag.id,
-          'cat': tag.tag_category,
-          'name': tag.tag_name,
-          'public': tag.is_public}
-         for tag in drug_tags]
+    groupings_dict['drugTags'] = []
+    groupings_dict['cellLineTags'] = []
 
-    groupings_dict['cellLineTags'] = \
-        [{'id': tag.id,
-          'cat': tag.tag_category,
-          'name': tag.tag_name,
-          'public': tag.is_public}
-         for tag in cell_line_tags]
+    last_cat = None
+    append_to = groupings_dict['drugTags']
+    for tag in drug_tags:
+        if tag.tag_category != last_cat:
+            groupings_dict['drugTags'].append({'optgroup': tag.tag_category,
+                                               'options': []})
+            last_cat = tag.tag_category
+            append_to = groupings_dict['drugTags'][-1]['options']
+        append_to.append(
+            {'id': tag.id,
+             'name': tag.tag_name,
+             'public': tag.is_public}
+        )
+
+    last_cat = None
+    append_to = groupings_dict['cellLineTags']
+    for tag in cell_line_tags:
+        if tag.tag_category != last_cat:
+            groupings_dict['cellLineTags'].append(
+                {'optgroup': tag.tag_category, 'options': []})
+            last_cat = tag.tag_category
+            append_to = groupings_dict['cellLineTags'][-1]['options']
+        append_to.append(
+            {'id': tag.id,
+             'name': tag.tag_name,
+             'public': tag.is_public}
+        )
 
     if groupings_dict['singleTimepoint'] is False:
         groupings_dict['plates'] = [{'id': p.id, 'name': p.name}
