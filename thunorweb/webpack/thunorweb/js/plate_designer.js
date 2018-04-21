@@ -499,14 +499,14 @@ var plate_designer = function () {
             var lastWell = selectedWells.filter(':last');
             var selectableWells = $('#selectable-wells');
             for(var w=selectedWells.length; w<tgtNumWells; w++) {
-                lastWell.clone().data('well', w).appendTo(selectableWells);
+                lastWell.clone().appendTo(selectableWells);
             }
 
             var selectableCols = $('#selectable-well-cols');
             var cols = selectableCols.find('li');
             var lastCol = cols.filter(':last');
             for(var c=cols.length; c<pyHTS.state.plateMap.numCols; c++) {
-                lastCol.clone().data('col', c).text(c+1)
+                lastCol.clone().data('col', c+1).text(c+1)
                        .appendTo(selectableCols);
             }
 
@@ -514,7 +514,7 @@ var plate_designer = function () {
             var rows = selectableRows.find('li');
             var lastRow = rows.filter(':last');
             for(var r=rows.length; r<pyHTS.state.plateMap.numRows; r++) {
-                lastRow.clone().data('row', r)
+                lastRow.clone().data('row', r+1)
                         .text(String.fromCharCode(65 + r))
                         .appendTo(selectableRows);
             }
