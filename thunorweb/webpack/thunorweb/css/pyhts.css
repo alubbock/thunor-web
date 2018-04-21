@@ -150,7 +150,7 @@ a[aria-expanded=false] .fa-chevron-down {
     text-overflow: ellipsis;
 }
   #selectable-wells .ui-selecting { background: #FECA40; }
-  #selectable-wells .ui-selected { background: #F39814; color: white; }
+  #selectable-wells .ui-selected { background: #F39814; }
   .welllist { list-style-type: none;
       margin: 0;
       padding: 0; }
@@ -261,7 +261,10 @@ user-select: none;}
 .tt-suggestion p {
     margin: 0;
 }
-
+.hts-well {
+    border: 1px solid #c5c5c5;
+    background: #f6f6f6;
+}
 .hts-overview .hts-cell-line {
     background-color: #a1aec7;
 }
@@ -401,7 +404,7 @@ user-select: none;}
 #hts-apply-template-multiple select, #apply-template-multiple-btn, .hts-drug-num {
     display: none;
 }
-#hts-well-table-view, #plate-map-edit-controls, #hts-dip-display {
+#hts-well-table-view, #hts-dip-display {
     display: none;
 }
 #hts-well-table-view table { width:100%; }

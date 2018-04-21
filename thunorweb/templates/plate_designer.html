@@ -102,8 +102,7 @@
             </ol>
 
             <ol id="selectable-wells" class="welllist hts-overview">
-                {% for well in plates.0.well_list %}
-                    <li class="ui-state-default hts-well"></li>
+                {% for well in plates.0.well_list %}<li class="hts-well"></li>
                 {% endfor %}
             </ol>
         </div>
@@ -224,7 +223,7 @@
             </div>
             <div id="hts-legend-container" class="panel-body hts-overview">
                 <ol class="welllist well-legend">
-                    <li class="hts-well ui-state-default"></li>
+                    <li class="hts-well"></li>
                         <span class="legend-label">Unannotated</span>
                     </ol>
                 <div id="legend-cell-lines"></div>
@@ -232,55 +231,51 @@
                 <div id="legend-doses"></div>
                 <div id="legend-dip">
                   <ol class="welllist well-legend">
-                    <li class="hts-well ui-state-default"
+                    <li class="hts-well"
                     style="background-color:#f48000;"></li>
                         Positive DIP rate (relative scale)
                   </ol>
                   <ol class="welllist well-legend">
-                    <li class="hts-well ui-state-default"
+                    <li class="hts-well"
                     style="background-color:white;"></li>
                         Zero DIP rate
                   </ol>
                   <ol class="welllist well-legend">
-                    <li class="hts-well ui-state-default"
+                    <li class="hts-well"
                     style="background-color:#3f83a3;"></li>
                         Negative DIP rate (relative scale)
                   </ol>
                 </div>
                 <div id="legend-overview">
                 <ol class="welllist well-legend">
-                    <li class="hts-well ui-state-default hts-cell-line"></li>
+                    <li class="hts-well hts-cell-line"></li>
                         Cell Line
                 </ol>
                 <ol class="welllist well-legend">
-                    <li class="hts-well ui-state-default hts-drug"></li>
+                    <li class="hts-well hts-drug"></li>
                         Drug
                 </ol>
                 <ol class="welllist well-legend">
-                    <li class="hts-well ui-state-default hts-dose"></li>
+                    <li class="hts-well hts-dose"></li>
                         Dose
                 </ol>
                 <ol class="welllist well-legend">
-                    <li class="hts-well ui-state-default hts-cell-line
-                    hts-drug"></li>
+                    <li class="hts-well hts-cell-line hts-drug"></li>
                         Cell Line and Drug<br />
                         <small>(dose missing)</small>
                 </ol>
                 <ol class="welllist well-legend">
-                    <li class="hts-well ui-state-default hts-cell-line
-                    hts-dose"></li>
+                    <li class="hts-well hts-cell-line hts-dose"></li>
                         Cell Line and Dose<br />
                         <small>(drug missing)</small>
                 </ol>
                 <ol class="welllist well-legend">
-                    <li class="hts-well ui-state-default hts-drug
-                    hts-dose"></li>
+                    <li class="hts-well hts-drug hts-dose"></li>
                         Drug and Dose<br />
                         <small>(cell line missing)</small>
                 </ol>
                 <ol class="welllist well-legend">
-                    <li class="hts-well ui-state-default hts-cell-line
-                    hts-drug hts-dose"></li>
+                    <li class="hts-well hts-cell-line hts-drug hts-dose"></li>
                         Fully annotated
                 </ol>
                 </div>
@@ -313,40 +308,38 @@
 
 {% block tailscript %}
 <script>
+var PlateMap = pyHTS.views.plate_designer.PlateMap;
+$.extend(pyHTS.state, {
+    {% if plates.0 %}plateMap: new PlateMap('{{ plates.0.id }}', {{ plates.0.height }}, {{ plates.0.width }}),{% endif %}
+
+    {% if not dataset %}plateMapperLocalOnly: true,{% endif %}
+
+    plateMapTemplates: {
+        {% for plate_size in plate_sizes %}
+            '{{ plate_size.numCols }}x{{ plate_size.numRows }}':
+                    new PlateMap("MASTER",{{ plate_size.numRows}}, {{ plate_size.numCols }})
+            {% if not forloop.last %},{% endif %}
+        {% endfor %}
+    },
+
+    last_edited: null,
+    cell_lines_used: [],
+    drugs_used: [],
+    doses_used: [],
+
+    completeFlag: false,
+    editableFlag: {% if editable %}true{% else %}false{% endif %},
+    redirectURL: {% if dataset %}'{% url 'thunorweb:view_dataset' dataset.id %}'{% else %}null{% endif %},
+    {% load jsonify from thunorweb_tags %}
+    cell_lines: {{ cell_lines|jsonify }},
+    drugs: {{ drugs|jsonify }},
+
+    plates: [{% for p in plates %}'{{ p.id }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+    savedPlates: [{% for p in plates %}{% if p.last_annotated %}{{ p.id }},{% endif %}{% endfor %}]
+});
+pyHTS.views.plate_designer.checkLoading();
 $(function () {
-    'use strict';
-    var PlateMap = pyHTS.views.plate_designer.PlateMap;
-    $.extend(pyHTS.state, {
-        {% if plates.0 %}plateMap: new PlateMap('{{ plates.0.id }}', {{ plates.0.height }}, {{ plates.0.width }}),{% endif %}
-
-        {% if not dataset %}plateMapperLocalOnly: true,{% endif %}
-
-        plateMapTemplates: {
-            {% for plate_size in plate_sizes %}
-                '{{ plate_size.numCols }}x{{ plate_size.numRows }}':
-                        new PlateMap("MASTER",{{ plate_size.numRows}}, {{ plate_size.numCols }})
-                {% if not forloop.last %},{% endif %}
-            {% endfor %}
-        },
-
-        last_edited: null,
-        cell_lines_used: [],
-        drugs_used: [],
-        doses_used: [],
-
-        completeFlag: false,
-        editableFlag: {% if editable %}true{% else %}false{% endif %},
-        redirectURL: {% if dataset %}'{% url 'thunorweb:view_dataset' dataset.id %}'{% else %}null{% endif %},
-        {% load jsonify from thunorweb_tags %}
-        cell_lines: {{ cell_lines|jsonify }},
-        drugs: {{ drugs|jsonify }},
-
-        plates: [{% for p in plates %}'{{ p.id }}'{% if not forloop.last %},{% endif %}{% endfor %}],
-        savedPlates: [{% for p in plates %}{% if p.last_annotated %}{{ p.id }},{% endif %}{% endfor %}]
-    });
-
     pyHTS.views.plate_designer.activate();
-
 });
 </script>
 {% endblock %}
