@@ -1194,8 +1194,7 @@ var plate_designer = function () {
             },
             selecting: function (event, ui) {
                 var rowNo = $(ui.selecting).data('row');
-                $('#selectable-wells').find('li').filter(function () {
-                    var idx = $(this).index();
+                $('#selectable-wells').find('li').filter(function (idx) {
                     return idx >
                         ((pyHTS.state.plateMap.numCols * (rowNo - 1)) - 1)
                         && idx < (pyHTS.state.plateMap.numCols * rowNo);
@@ -1203,8 +1202,7 @@ var plate_designer = function () {
             },
             unselecting: function (event, ui) {
                 var rowNo = $(ui.unselecting).data('row');
-                $('#selectable-wells').find('li').filter(function () {
-                    var idx = $(this).index();
+                $('#selectable-wells').find('li').filter(function (idx) {
                     return idx >
                         ((pyHTS.state.plateMap.numCols * (rowNo - 1)) - 1)
                         && idx < (pyHTS.state.plateMap.numCols * rowNo);
@@ -1221,16 +1219,14 @@ var plate_designer = function () {
             },
             selecting: function (event, ui) {
                 var colNo = $(ui.selecting).data('col');
-                $('#selectable-wells').find('li').filter(function () {
-                    return $(this).index() % pyHTS.state.plateMap.numCols ==
-                        (colNo - 1);
+                $('#selectable-wells').find('li').filter(function (idx) {
+                    return idx % pyHTS.state.plateMap.numCols === (colNo - 1);
                 }).addClass('ui-selected');
             },
             unselecting: function (event, ui) {
                 var colNo = $(ui.unselecting).data('col');
-                $('#selectable-wells').find('li').filter(function () {
-                    return $(this).index() % pyHTS.state.plateMap.numCols ==
-                        (colNo - 1);
+                $('#selectable-wells').find('li').filter(function (idx) {
+                    return idx % pyHTS.state.plateMap.numCols === (colNo - 1);
                 }).removeClass('ui-selected');
             },
             stop: updateInputsWithWellData
