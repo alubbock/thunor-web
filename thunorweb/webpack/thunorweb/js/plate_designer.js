@@ -204,6 +204,39 @@ PlateMap.prototype = {
         }
         return wells;
     },
+    toCSV: function(sep) {
+        var i;
+        var numDrugColumns = this.maxDrugsDosesUsed();
+        var header = ['WellID', 'WellName', 'CellLine'];
+        for(i=0; i < numDrugColumns; i++) {
+            header.push('Drug'+(i+1));
+            header.push('Dose'+(i+1));
+        }
+        var wells = [header.join(sep)];
+        for (var w=0, len=this.wells.length; w < len; w++) {
+            var elements = [w, this.wellNumToName(w)];
+            var well = this.wells[w];
+            if (well.cellLine === null) {
+                elements.push('');
+            } else {
+                elements.push(util.filterObjectsAttr(well.cellLine, pyHTS.state.cell_lines, 'id', 'name'));
+            }
+            for (i = 0; i < numDrugColumns; i++) {
+                if (well.drugs !== null && well.drugs.length > i) {
+                    elements.push(util.filterObjectsAttr(well.drugs[i], pyHTS.state.drugs, 'id', 'name'));
+                } else {
+                    elements.push('');
+                }
+                if (well.doses !== null && well.doses.length > i) {
+                    elements.push(well.doses[i]);
+                } else {
+                    elements.push('');
+                }
+            }
+            wells.push(elements.join(sep))
+        }
+        return wells.join('\n');
+    },
     wellDataIsEmpty: function() {
         return this.allCellLinesEmpty() && this.allDrugsEmpty() && this.allDosesEmpty();
     },
@@ -1655,26 +1688,38 @@ var plate_designer = function () {
         }
     });
 
-    var downloadPlate = function(ignoreErrors) {
+    var downloadPlate = function(ignoreErrors, format) {
         if(!ignoreErrors) {
-            if(!validatePlate(function() { downloadPlate(true); } )) {
+            if(!validatePlate(function() { downloadPlate(true, format); } )) {
                 return false;
             }
         }
-        var wells = [];
-        var numWells = pyHTS.state.plateMap.wells.length;
-        for (var w = 0; w < numWells; w++) {
-            wells.push(pyHTS.state.plateMap.wells[w].toStringFormat());
+        var blob;
+        if (format === 'tsv') {
+            blob = new Blob([pyHTS.state.plateMap.toCSV('\t')], {type: "text/tab-separated-values"});
+        } else if (format === 'json') {
+            var wells = [];
+            var numWells = pyHTS.state.plateMap.wells.length;
+            for (var w = 0; w < numWells; w++) {
+                wells.push(pyHTS.state.plateMap.wells[w].toStringFormat());
+            }
+            blob = new Blob([JSON.stringify({wells: wells})], {type: "application/json"});
+        } else {
+            ui.okModal({title: 'Unknown format', text: 'Unknown download' +
+                ' format'});
+            return;
         }
-        var blob = new Blob([JSON.stringify({wells: wells})], {type: "application/json"});
-        FileSaver.saveAs(blob, "platemap.json");
+        FileSaver.saveAs(blob, "platemap." + format);
         if(pyHTS.state.plates[0] === "MASTER") {
             pyHTS.state.plateMap.unsaved_changes = false;
         }
     };
 
-    $('#hts-download-plate').click(function() {
-        downloadPlate(!pyHTS.state.plateMap.unsaved_changes);
+    $('#hts-download-json').click(function() {
+        downloadPlate(!pyHTS.state.plateMap.unsaved_changes, 'json');
+    });
+    $('#hts-download-tsv').click(function() {
+        downloadPlate(!pyHTS.state.plateMap.unsaved_changes, 'tsv');
     });
 
     if(pyHTS.state.plates.length > 0) {

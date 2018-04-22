@@ -17,8 +17,7 @@
                     aria-haspopup="true" aria-expanded="true">
                 <span class="fa fa-th"
                       aria-hidden="true"></span>
-                <span id="hts-current-plate" data-id="{{ plates.0.id }}">
-                    {{ plates.0.name }}</span>
+                <span id="hts-current-plate" data-id="{{ plates.0.id }}">{{ plates.0.name }}</span>
                 <span class="caret"></span>
             </button>
             <ul class="dropdown-menu scrollable-menu" id="hts-plate-list"
@@ -140,9 +139,7 @@
                 {% if editable %}
                 <div id="plate-map-edit-controls">
                 <button type="button" class="btn btn-default
-                btn-sidebar btn-sidebar-nomgn"
-                        id="hts-add-drug">Add another
-                    drug</button>
+                btn-sidebar btn-sidebar-nomgn" id="hts-add-drug">Add another drug</button>
                 <hr>
 
                 <button type="button" class="btn btn-success btn-sidebar"
@@ -152,8 +149,8 @@
                         id="hts-clear-annotation">Clear <span
                     class="view-str"></span></button>
                 <button type="button" class="btn btn-default btn-sidebar"
-                    id="hts-apply-template">Apply template <span
-                    class="view-str"></span></button>
+                    id="hts-apply-template"{% if plates.0.id == 'MASTER'%} style="display:none"{% endif %}>Apply template
+                  <span class="view-str"></span></button>
 
                 <br>
                 <label>Auto-stepper</label>
@@ -203,9 +200,10 @@
                 {% endif %}
 
                 <label>Export</label><br>
-                    <button role="button" class="btn {% if dataset %}btn-default{% else %}btn-success{% endif %}"
-                id="hts-download-plate"><i class="fa fa-download"></i>
-                  Download Plate Map</button>
+                <div class="btn-group btn-sidebar btn-sidebar-nomgn">
+                    <button style="width:50%" role="button" class="btn {% if dataset %}btn-default{% else %}btn-success{% endif %}" id="hts-download-json"><i class="fa fa-download"></i> JSON</button>
+                    <button style="width:50%" role="button" class="btn {% if dataset %}btn-default{% else %}btn-success{% endif %}" id="hts-download-tsv"><i class="fa fa-download"></i> TSV</button>
+                </div>
 
             </div>
         </div>
