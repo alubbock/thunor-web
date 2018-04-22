@@ -8,13 +8,170 @@ var activateSelect = function($select) {
   });
 };
 
+var set_tag_group_permission = function(tag_id, group_id, state, $caller) {
+    ui.loadingModal.show();
+    $.ajax({type: 'POST',
+            url: ajax.url("set_tag_group_permission"),
+            headers: { 'X-CSRFToken': ajax.getCsrfToken() },
+            data: {
+                'tag_id': tag_id,
+                'tag_type': $('#entity-type').val(),
+                'group_id': group_id,
+                'state': state
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                if ($caller != null) {
+                    $caller.bootstrapSwitch('state', !state, true);
+                }
+                ajax.ajaxErrorCallback(jqXHR, textStatus, errorThrown);
+            },
+            complete: function() {
+                ui.loadingModal.hide();
+            },
+            dataType: 'json'});
+};
+
 var activate = function() {
-    $("#btn-add-tag").click(function () {
-        var $container = $(".tag-container").last().clone(true).prependTo(".tag-list")
-            .fadeIn(400);
-        activateSelect($container.find("select"));
-        $container.find("input[name=tagName]").focus();
+    var $tabContent = $(".tab-content");
+    $tabContent.loadingOverlay("show");
+
+    var $tagTabs = $("#tag-tabs");
+    var defaultTableUrl = $tagTabs.find("li.active").first().data('url');
+
+    var $tagTable = $("#tag-table").DataTable({
+        "ajax": {
+            "url": defaultTableUrl,
+            "timeout": 15000,
+            "error": ajax.ajaxErrorCallback,
+            "complete": function() {
+                $tabContent.loadingOverlay("hide");
+            }
+        },
+        "columnDefs": [
+            {"targets": 0, "data": "tag", "width": "25%", "render":
+                function(data) {
+                    if (!data.editable) return data.name;
+                    return '<a href="#" data-id="' + data.id + '">' + data.name + '</a>';
+                }
+            },
+            {"targets": 1, "data": "cat", "width": "25%"},
+            {"targets": 2, "data": "targets", "width": "50%", "render":
+                function(data) {
+                    var str = '';
+                    for (var t=0,len=data.length; t<len; t++) {
+                        str += '<label class="label label-primary">' + data[t] + '</label> ';
+                    }
+                    return str;
+                }
+            }
+        ],
+        "order": [[0, "desc"]],
+        "drawCallback": function () {
+            $("#tag-table").find("a").unbind('click').click(function(e){
+               e.preventDefault();
+               editTag($(this).data('id'));
+            });
+        }
     });
+
+    var lastTabClick = 0;
+
+    $tagTabs.find("li").click(function (e) {
+        e.preventDefault();
+        var dateNow = Date.now();
+        if (dateNow - lastTabClick < 500) {
+            return;
+        }
+        lastTabClick = dateNow;
+        $tabContent.loadingOverlay("show");
+        var $this = $(e.currentTarget);
+        $tagTable.ajax.url($this.data("url")).load(function() {$tabContent.loadingOverlay("hide")});
+        $tagTabs.find("li").removeClass("active");
+        $this.addClass("active");
+    });
+
+    var editTag = function(tagId) {
+        ui.loadingModal.show();
+         $.ajax({
+            type: "GET",
+            url: ajax.url("get_tag_targets", $('#entity-type').val()) + tagId,
+            success: function (data) {
+                var $container = $(".tag-container").last().clone(true).show();
+                // set up select box with current entries preselected
+                for (var i=0, len=data.targets.length; i<len; i++) {
+                    $container.find('option').filter('[value='+data.targets[i]+']').prop('selected', true);
+                }
+                activateSelect($container.find("select"));
+                // prepopulate form data
+                $container.find(".tag-name").text(data.tagName);
+                if (data.tagCategory !== null) {
+                    $container.find(".tag-category").text(data.tagCategory);
+                    $container.find("input[name=tagCategory]").val(data.tagCategory);
+                }
+                $container.find("input[name=tagId]").val(data.tagId);
+                // prepopulate groups
+                var $groupPerms = $container.find(".group-permissions");
+                for (var g=0; g<data.groups.length; g++) {
+                    var $groupInputDiv = $('.group-perm').last().clone().show();
+                    $groupInputDiv.find("input")
+                        .data('tag-id', data.tagId)
+                        .data('group-id', data.groups[g].groupId)
+                        .prop('checked', data.groups[g].canView);
+                    $groupInputDiv.find('.group-name').text(data.groups[g].groupName);
+                    $groupPerms.append($groupInputDiv);
+                }
+                if(data.groups.length) {
+                    $groupPerms.show();
+                }
+                $container.find(".tag-header").show();
+                $container.find("form.set-tag-name").hide();
+                $container.find("form.set-tag-targets").show();
+                $container.find("form.delete-tag").show();
+                $container.find("input[type=checkbox]").bootstrapSwitch({
+                    'onSwitchChange': function(event, state) {
+                        var $target = $(event.currentTarget);
+                        set_tag_group_permission(
+                            $target.data('tag-id'),
+                            $target.data('group-id'),
+                            state,
+                            $target
+                        );
+                    }
+                });
+                ui.okModal({
+                    title: 'Edit tag',
+                    text: $container,
+                    okLabel: 'Close',
+                    onHide: function() {
+                        $tagTable.ajax.reload();
+                    },
+                    onShow: function() {
+                        $container.find("input[name=tagName]").focus();
+                    }
+                });
+            },
+            error: ajax.ajaxErrorCallback,
+            complete: function() {
+                ui.loadingModal.hide();
+            }
+        });
+    };
+
+    $("#btn-add-tag").click(function () {
+        var $container = $(".tag-container").last().clone(true).show();
+        ui.okModal({
+            title: 'Add tag',
+            text: $container,
+            okLabel: 'Close',
+            onHide: function() {
+                $tagTable.ajax.reload();
+            },
+            onShow: function() {
+                $container.find("input[name=tagName]").focus();
+            }
+        });
+    });
+
     $("form.set-tag-name").submit(function (e) {
         e.preventDefault();
         var $form = $(this);
@@ -34,21 +191,8 @@ var activate = function() {
             url: ajax.url("create_tag"),
             data: $form.serialize(),
             success: function (data) {
-                pyHTS.state.tags[data.tagId] = [];
-                var $tagContainer = $form.closest(".tag-container");
-                var $taggingForm = $tagContainer.find("form.set-tag-targets");
-                $tagContainer.find(".tag-name").text(data.tagName);
-                if (data.tagCategory !== null) {
-                    $tagContainer.find(".tag-category").text(data.tagCategory);
-                    $tagContainer.find("input[name=tagCategory]").val(data.tagCategory);
-                }
-                $tagContainer.find("input[name=tagId]").val(data.tagId);
-
-                $tagContainer.find(".tag-header").show();
-                $form.hide();
-                $tagContainer.find(".btn-edit").trigger('click');
-                $taggingForm.slideDown();
-                $tagContainer.find("form.delete-tag").show();
+                editTag(data.tagId);
+                $container.closest('.modal').modal('hide');
             },
             error: ajax.ajaxErrorCallback,
             complete: function() {
@@ -66,19 +210,8 @@ var activate = function() {
             headers: {"X-CSRFToken": ajax.getCsrfToken()},
             url: ajax.url("assign_tag"),
             data: $form.serialize(),
-            success: function (data) {
-                $form.find("button[type=submit]").hide();
-                $container.find(".label-success").fadeIn(400).delay(2000).fadeOut(400);
-                pyHTS.state.tags[data.tagId] = data.entityIds;
-                var $entNameTemplate = $('#ent-name-tplt');
-                var entities = $('<div></div>');
-                for (var i=0, len=data.entityIds.length; i<len; i++) {
-                    entities.append($entNameTemplate.clone().removeAttr("id").show().text(pyHTS.state.entNames[data.entityIds[i]]));
-                    entities.append(' ');
-                }
-                $container.find('.btn-edit').show();
-                $container.find(".entity-change").hide();
-                $container.find(".entity-options").empty().append(entities).show();
+            success: function () {
+                $container.closest('.modal').modal('hide');
             },
             error: ajax.ajaxErrorCallback,
             complete: function() {
@@ -86,56 +219,30 @@ var activate = function() {
             }
         });
     });
-    $(".btn-cancel").click(function () {
-        $(this).closest(".tag-container").remove();
-    });
-    $(".btn-edit").click(function() {
-        var $btnEdit = $(this);
-        var $tagContainer = $btnEdit.closest(".tag-container");
-        var $newSelect = $('.entity-select').last().clone().show();
-        var $form = $btnEdit.closest('form');
-        var tagId = $form.find('input[name=tagId]').val();
-        var entities = pyHTS.state.tags[tagId];
-        for (var i=0, len=entities.length; i<len; i++) {
-            $newSelect.find('option').filter('[value='+entities[i]+']').prop('selected', true);
-        }
-        $tagContainer.find(".entity-options").hide();
-        $tagContainer.find(".entity-change").html($newSelect).show();
-        activateSelect($newSelect.find("select"));
-        $btnEdit.hide();
-        $tagContainer.find(".btn-cancel-edit-tag").click(function() {
-            $tagContainer.find(".entity-change").empty();
-            $tagContainer.find(".entity-options").show();
-            $btnEdit.show();
-        })
-    });
     $("form.delete-tag").submit(function (e) {
+        e.preventDefault();
         var $form = $(this);
         var $container = $form.closest(".tag-container");
         $container.loadingOverlay("show");
-        var tagId = $form.find("input[name=tagId]").val();
         $.ajax({
             type: "POST",
             headers: {"X-CSRFToken": ajax.getCsrfToken()},
             url: ajax.url("delete_tag"),
             data: $form.serialize(),
             success: function () {
-                $container.remove();
-                delete pyHTS.state.tags[tagId];
+                $container.replaceWith('<div>Tag deleted</div>');
             },
             error: ajax.ajaxErrorCallback,
             complete: function() {
                 $container.loadingOverlay("hide");
             }
         });
-        e.preventDefault();
     });
     var ajaxSettings = {
         headers: {"X-CSRFToken": ajax.getCsrfToken()}
     };
     var tagFileUploadComplete = function() {
-        ui.loadingModal.show();
-        window.location.reload(true);
+        $tagTable.ajax.reload();
     };
     $('#btn-upload-tags').click(function() {
         var $uploaddiv = $('.upload-tags').first().clone().show();

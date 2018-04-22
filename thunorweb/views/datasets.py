@@ -108,19 +108,37 @@ def ajax_set_dataset_group_permission(request):
     return JsonResponse({'success': True})
 
 
-def _get_tags(request, cell_line_ids, drug_ids):
+def _get_drugtag_permfilter(request):
     if request.user.is_authenticated():
-        tag_owner_filter = Q(owner=request.user) | Q(owner=None)
+        # These queries assume we only have one permission (view) for tags
+        return Q(owner=request.user) | Q(
+            drugtaggroupobjectpermission__group__user=request.user
+        )
     else:
-        tag_owner_filter = Q(owner=None)
+        return Q(drugtaggroupobjectpermission__group__name='Public')
 
-    cell_line_tags = CellLineTag.objects.filter(tag_owner_filter).filter(
+
+def _get_celllinetag_permfilter(request):
+    if request.user.is_authenticated():
+        # These queries assume we only have one permission (view) for tags
+        return Q(owner=request.user) | Q(
+            celllinetaggroupobjectpermission__group__user=request.user
+        )
+    else:
+        return Q(celllinetaggroupobjectpermission__group__name='Public')
+
+
+def _get_tags(request, cell_line_ids, drug_ids):
+    ct_perm_filter = _get_celllinetag_permfilter(request)
+    dt_perm_filter = _get_drugtag_permfilter(request)
+
+    cell_line_tags = CellLineTag.objects.filter(ct_perm_filter).filter(
         cell_lines__id__in=cell_line_ids
-    ).distinct().order_by('owner', 'tag_category', 'tag_name')
+    ).distinct().order_by('tag_category', 'tag_name')
 
-    drug_tags = DrugTag.objects.filter(tag_owner_filter).filter(
+    drug_tags = DrugTag.objects.filter(dt_perm_filter).filter(
         drugs__id__in=drug_ids
-    ).distinct().order_by('owner_id', 'tag_category', 'tag_name')
+    ).distinct().order_by('tag_category', 'tag_name')
 
     return cell_line_tags, drug_tags
 

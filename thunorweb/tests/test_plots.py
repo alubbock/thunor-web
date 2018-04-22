@@ -159,8 +159,9 @@ class TestPlateMapper(TestCase):
         argdict = {
             'plotType': 'drpar',
             'datasetId': self.d.id,
-            'cT': [c['id'] for c in self.groupings['cellLineTags']],
-            'dT': [d['id'] for d in self.groupings['drugTags']],
+            'cT': [c['id'] for c in self.groupings['cellLineTags'][0][
+                'options']],
+            'dT': [d['id'] for d in self.groupings['drugTags'][0]['options']],
             'drMetric': 'dip',
             'drPar': 'ic50',
             'drParOrder': 'emax_obs'

@@ -70,15 +70,22 @@ class CellLine(models.Model):
 class CellLineTag(models.Model):
     class Meta:
         unique_together = (('owner', 'tag_category', 'tag_name'), )
+        permissions = (
+            ('view', 'View tag'),
+        )
 
     tag_name = models.TextField()
-    tag_category = models.TextField(null=True)
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True)
+    tag_category = models.TextField()
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL)
     cell_lines = models.ManyToManyField(CellLine, related_name='tags')
 
     @property
     def is_public(self):
         return self.owner_id is None
+
+
+class CellLineTagGroupObjectPermission(GroupObjectPermissionBase):
+    content_object = models.ForeignKey(CellLineTag)
 
 
 class Drug(models.Model):
@@ -91,15 +98,22 @@ class Drug(models.Model):
 class DrugTag(models.Model):
     class Meta:
         unique_together = (('owner', 'tag_category', 'tag_name'), )
+        permissions = (
+            ('view', 'View tag'),
+        )
 
     tag_name = models.TextField()
-    tag_category = models.TextField(null=True)
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True)
+    tag_category = models.TextField()
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL)
     drugs = models.ManyToManyField(Drug, related_name='tags')
 
     @property
     def is_public(self):
         return self.owner_id is None
+
+
+class DrugTagGroupObjectPermission(GroupObjectPermissionBase):
+    content_object = models.ForeignKey(DrugTag)
 
 
 class Plate(models.Model, PlateMap):

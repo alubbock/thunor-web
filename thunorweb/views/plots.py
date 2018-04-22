@@ -16,20 +16,19 @@ import warnings
 from collections import defaultdict
 from thunorweb.views import login_required_unless_public, _assert_has_perm
 from thunorweb.views.plate_mapper import ajax_load_plate
+from thunorweb.views.datasets import _get_celllinetag_permfilter, \
+    _get_drugtag_permfilter
 
 
 def _process_aggreate(request, tag_type, tag_ids, aggregation):
-    perm_query = Q(owner=None)
-    if request.user.is_authenticated():
-        perm_query |= Q(owner=request.user)
-
     if tag_type == 'cell_lines':
         TagClass = CellLineTag
+        perm_filter = _get_celllinetag_permfilter(request)
     else:
         TagClass = DrugTag
+        perm_filter = _get_drugtag_permfilter(request)
 
-    tag_base_query = TagClass.objects.filter(
-        perm_query).filter(id__in=tag_ids)
+    tag_base_query = TagClass.objects.filter(perm_filter).filter(id__in=tag_ids)
     if not aggregation:
         return tag_base_query.values_list('{}__id'.format(tag_type),
                                           flat=True).distinct(), aggregation
@@ -73,7 +72,7 @@ def ajax_get_plot(request, file_type='json'):
         if dataset2_id is not None:
             dataset2_id = int(dataset2_id)
         cell_line_id = request.GET.getlist('c')
-        cell_line_tag_ids = request.GET.getlist('cT')
+        cell_line_tag_ids = [int(ct) for ct in request.GET.getlist('cT')]
         aggregate_cell_lines = request.GET.get('aggregateCellLines', False) \
                                == "true"
 
@@ -83,7 +82,7 @@ def ajax_get_plot(request, file_type='json'):
             )
 
         drug_id = request.GET.getlist('d')
-        drug_tag_ids = request.GET.getlist('dT')
+        drug_tag_ids = [int(dt) for dt in request.GET.getlist('dT')]
         aggregate_drugs = request.GET.get('aggregateDrugs', False) == "true"
 
         if not drug_id and drug_tag_ids:
@@ -91,9 +90,13 @@ def ajax_get_plot(request, file_type='json'):
                 request, 'drugs', drug_tag_ids, aggregate_drugs
             )
 
-        if plot_type != 'qc' and (not cell_line_id or not drug_id):
-            return HttpResponse('Please enter at least one cell line and '
-                                'drug', status=400)
+        if plot_type != 'qc':
+            if not cell_line_id:
+                return HttpResponse('Please enter at least one cell line',
+                                    status=400)
+            if not drug_id:
+                return HttpResponse('Please enter at least one drug',
+                                    status=400)
 
         cell_line_id = [int(cl) for cl in cell_line_id]
         drug_ids = []

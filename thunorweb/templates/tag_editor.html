@@ -1,56 +1,72 @@
 {% extends "base.html" %}
 
-{% block title %}{% if public %}Public{% else %}Personal{% endif %} {{ entity_type }} Tags{% endblock %}
+{% block title %}{{ entity_type }} Tags{% endblock %}
 
 {% block content %}
 
+<input id="entity-type" type="hidden" value="{{ tag_type }}">
+
 <div class="square-btns btn170">
-{% if not public or request.user.is_superuser %}
-<button class="btn btn-success btn-lg" id="btn-add-tag"
-        {% if not request.user.is_authenticated %}disabled{% endif %}>
+{% if request.user.is_authenticated %}
+  <button class="btn btn-success btn-lg" id="btn-add-tag">
   <i class="fa fa-3x fa-plus"></i><br>
-  Add {% if public %}Public {% endif %}{{ entity_type }} Tag</button>
-{% endif %}
-{% if request.user.is_authenticated and not public %}
+  Add {{ entity_type }} Tag</button>
   <button class="btn btn-success btn-lg" id="btn-upload-tags"
         {% if not request.user.is_authenticated %}disabled{% endif %}>
   <i class="fa fa-3x fa-upload"></i><br>
   Upload {{ entity_type }} Tags</button>
-{% endif %}
-{% if not public %}
-  <a href="{% url 'thunorweb:tag_editor' tag_type %}" role="button"
-     class="btn btn-primary btn-lg"><i class="fa fa-3x fa-users"></i><br>
-    View Public<br>{{ entity_type }} tags</a>
-{% elif request.user.is_authenticated %}
-    <a href="{% url 'thunorweb:tag_editor_private' tag_type %}" role="button"
-     class="btn btn-primary btn-lg"><i class="fa fa-3x fa-user"></i><br>
-    View Personal<br>{{ entity_type }} tags</a>
 {% endif %}
   <a role="button" href="{% url 'thunorweb:home' %}" class="btn
   btn-default btn-lg"><i class="fa fa-3x
   fa-home"></i><br>Back to<br>Home Page</a>
 </div>
 
-<div class="tag-list">
-{% for category, tag_entries in tags.items %}
-  {% if category %}<h2>{{ category }}</h2>{% endif %}
-  {% for tag_name, tag_tgts in tag_entries.items %}
-    {% include "tag_editor_tag_template.html" %}{% endfor %}
-{#{% empty %}#}
-{#  {% if public %}There are currently no public {{ entity_type }} tags#}
-{#  {% else %}You currently have no private {{ entity_type  }} tags{% endif %}#}
-{% endfor %}
-</div>
+<br>
 
-{% include "tag_editor_tag_template.html" %}
+{% include "tags_table.html" %}
 
-<div class="upload-tags" style="display:none">
-<form action="{% url 'thunorweb:ajax_upload_tagfile' tag_type %}">
-  <input type="file" name="tagfiles[]" multiple>
+<div class="tag-container panel {% if public %}panel-primary{% else %}panel-default{% endif %}" {% if not tag_name %}style="display:none"{% endif %}>
+<div class="panel-heading">
+{% if not is_public or request.user.is_superuser %}
+<form class="pull-right form-inline delete-tag" {% if not tag_name %}style="display:none"{% endif %}>
+    <input type="hidden" name="tagType" value="{{ entity_type_var }}">
+    <input type="hidden" name="tagId" value="{{ tag_name.0 }}">
+<button type="submit" role="button" class="btn btn-danger">Delete</button>
 </form>
-</div>
+{% endif %}
 
-<div class="entity-select" style="display:none">
+<h4 class="tag-header"{% if not tag_name %} style="display:none"{% endif %}>
+    <i class="fa fa-tag"></i>
+    <span class="label label-default tag-category">{{ category|default:"" }}</span>
+    <span class="tag-name">{{ tag_name.1 }}</span>
+    <span class="label label-success" style="display:none">Changes saved</span>
+</h4>
+<form class="set-tag-name" {% if tag_name %}style="display:none"{% endif %}>
+<div class="form">
+    <input type="hidden" name="tagType" value="{{ entity_type_var }}">
+    <input type="hidden" name="tagId" value="{{ tag_name.0 }}">
+    <div class="input-group">
+        <span class="input-group-addon"><i class="fa fa-tag"></i></span>
+        <input type="text" class="form-control" name="tagName"
+        placeholder="Tag name">
+    </div>
+      <div class="input-group">
+        <span class="input-group-addon"><i class="fa fa-folder-o"></i></span>
+        <input type="text" class="form-control" name="tagCategory"
+        placeholder="Tag category (optional)">
+    </div>
+    <button type="submit" role="button" class="btn btn-primary btn-block">Create</button>
+</div>
+</form>
+
+</div><div class="panel-body">
+
+<form class="set-tag-targets" {% if not tag_name %}style="display:none
+"{% endif %}>
+  <input type="hidden" name="tagType" value="{{ entity_type_var }}">
+  <input type="hidden" name="tagId" value="{{ tag_name.0 }}">
+<div class="form-group entity-change">
+  <div class="entity-select">
 <select multiple data-live-search="true" name="entityId" autocomplete="off"
 class="form-control" title="Select {{ entity_type }}s">
 {% for ent in entities.values %}<option name="entityId" value="{{ ent.id }}">{{ ent.name }}</option>
@@ -58,8 +74,27 @@ class="form-control" title="Select {{ entity_type }}s">
 </select>
 <button type="submit" role="button" class="btn btn-block btn-primary"
         style="display:none">Save Tag</button>
-<button type="button" role="button" class="btn btn-block btn-default btn-cancel-edit-tag">Cancel</button>
+  </div>
 </div>
+</form>
+<div class="group-permissions" style="display:none">
+  <strong>Groups with view permission</strong>
+</div>
+</div>
+
+</div>
+
+<div class="group-perm" style="display:none;padding-top:10px">
+  <span class="group-name"></span><br>
+  <input type="checkbox">
+</div>
+
+<div class="upload-tags" style="display:none">
+<form action="{% url 'thunorweb:ajax_upload_tagfile' tag_type %}">
+  <input type="file" name="tagfiles[]" multiple>
+</form>
+</div>
+
 <span class="label label-primary" style="display:none" id="ent-name-tplt"></span>
 
 {% endblock %}
@@ -69,7 +104,6 @@ class="form-control" title="Select {{ entity_type }}s">
 $(function() {
     {% load jsonify from thunorweb_tags %}
     $.extend(pyHTS.state, {
-        tags: {{ tags_ids|jsonify }},
         entNames: {
     {% for eid, ent in entities.items %}{{eid}}:'{{ ent.name|escapejs }}'{% if not forloop.last %},{% endif %}{% endfor %}
         }

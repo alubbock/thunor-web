@@ -26,6 +26,7 @@ var ui = (function() {
         onOKHidden: undefined,
         onHide: undefined,
         onHidden: undefined,
+        onShow: undefined,
         okButtonClass: "btn-success",
         cancelButtonClass: "btn-default",
         cancelByDefault: false
@@ -52,7 +53,10 @@ var ui = (function() {
                 $mok.data("success", true).modal("hide");
             });
         }
-        $mok.on("shown.bs.modal", function () {
+        $mok.on("shown.bs.modal", function (e) {
+            if(settings.onShow !== undefined) {
+                settings.onShow(e);
+            }
             $mok.find(settings.cancelByDefault ? ".btn-cancel" : ".btn-ok").focus();
         }).on("hide.bs.modal", function (e) {
             if($mok.data("success")) {

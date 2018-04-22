@@ -58,19 +58,23 @@ var ajax = (function () {
 
     var ajax409Handler = function (jqXHR) {
         // Is this a known error?
-        if (jqXHR.responseJSON.error != null
-            && jqXHR.responseJSON.error == "non_empty_plates") {
-            var errStr = "The template could not be applied because some of the" +
-                " selected plates are not empty. The non-empty plates" +
-                " are:<br>" + jqXHR.responseJSON.plateNames.join(", ");
-            if (pyHTS.state.currentView == "overview") {
-                errStr += "<br><br><strong>Switch to a different view tab" +
-                    " (other than overview - see tabs above the plate" +
-                    " layout) if you want to apply only one of cell lines, " +
-                    "drugs or doses</strong>";
+        if (jqXHR.responseJSON.error != null) {
+            var errStr;
+            if (jqXHR.responseJSON.error === "non_empty_plates") {
+                errStr = "The template could not be applied because some of the" +
+                    " selected plates are not empty. The non-empty plates" +
+                    " are:<br>" + jqXHR.responseJSON.plateNames.join(", ");
+                if (pyHTS.state.currentView === "overview") {
+                    errStr += "<br><br><strong>Switch to a different view tab" +
+                        " (other than overview - see tabs above the plate" +
+                        " layout) if you want to apply only one of cell lines, " +
+                        "drugs or doses</strong>";
+                }
+            } else {
+                errStr = jqXHR.responseJSON.error;
             }
             ui.okModal({
-                title: "Error applying template",
+                title: "Conflict error",
                 text: errStr
             });
             return true;
@@ -150,7 +154,9 @@ var ajax = (function () {
         "get_plot_html": "/ajax/plot.html",
         "assign_tag": "/ajax/tags/assign",
         "create_tag": "/ajax/tags/create",
-        "delete_tag": "/ajax/tags/delete"
+        "delete_tag": "/ajax/tags/delete",
+        "get_tag_targets": "/ajax/tags/{ARG}/targets/",
+        "set_tag_group_permission": "/ajax/tags/set-permission"
     };
 
     var url = function(view, arg) {

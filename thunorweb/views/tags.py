@@ -1,59 +1,104 @@
 from django.shortcuts import render
 from django.http import JsonResponse
-from django.db.models import Q, F
+from django.db.models import Q
 from thunorweb.models import CellLine, Drug, CellLineTag, DrugTag
-from thunorweb.views import login_required_unless_public
+from thunorweb.views import login_required_unless_public, login_required
 import logging
 import pandas as pd
-import collections
+from django.db.utils import IntegrityError
+from guardian.shortcuts import assign_perm, remove_perm, get_groups_with_perms
+from django.contrib.auth.models import Group
 
 logger = logging.getLogger(__name__)
 
 
 @login_required_unless_public
-def tag_editor(request, tag_type=None, tag_public=False):
-    if request.user.is_authenticated() and not tag_public:
-        tag_owner_filter = Q(owner=request.user)
-    else:
-        tag_owner_filter = Q(owner=None)
+def tag_editor(request, tag_type=None):
+    entity_options = None
 
     if tag_type == 'cell_lines':
         entity_type = 'Cell Line'
         entity_type_var = 'cl'
-        entity_options = {c.id: c for c in CellLine.objects.all().order_by(
-            'name')}
-        tag_list = CellLineTag.objects.filter(tag_owner_filter).order_by(
-            'tag_category', 'tag_name', 'cell_lines__name').values_list(
-            'tag_category', 'tag_name', 'cell_lines__id', 'cell_lines__name',
-            'id')
+        if request.user.is_authenticated():
+            entity_options = {c.id: c for c in CellLine.objects.all().order_by(
+                'name')}
     elif tag_type == 'drugs':
         entity_type = 'Drug'
         entity_type_var = 'drug'
-        entity_options = {d.id: d for d in Drug.objects.all().order_by('name')}
-        tag_list = DrugTag.objects.filter(tag_owner_filter).order_by(
-            'tag_category', 'tag_name').values_list(
-            'tag_category', 'tag_name', 'drugs__id', 'drugs__name', 'id')
+        if request.user.is_authenticated():
+            entity_options = {d.id: d for d in Drug.objects.all().order_by(
+                'name')}
     else:
         return render(request, "tags.html")
-
-    tag_dict_selected = collections.defaultdict(dict)
-    tag_ids = collections.defaultdict(list)
-    for tag in tag_list:
-        el = tag_dict_selected[tag[0]].setdefault((tag[4], tag[1]), [])
-        if tag[3]:
-            el.append(tag[3])
-        tag_ids[tag[4]].append(tag[2])
 
     return render(request, "tag_editor.html",
                   {'entity_type': entity_type,
                    'entity_type_var': entity_type_var,
                    'tag_type': tag_type,
                    'entities': entity_options,
-                   'tags': dict(tag_dict_selected),
-                   'public': tag_public,
-                   'tags_ids': tag_ids
                    }
                   )
+
+
+def ajax_get_tags(request, tag_type, group=None):
+    if tag_type not in ('cell_lines', 'drugs'):
+        return JsonResponse({'error': 'Tag type not recognised'}, status=400)
+
+    tag_cls = DrugTag if tag_type == 'drugs' else CellLineTag
+
+    if group is None:
+        if not request.user.is_authenticated():
+            return JsonResponse({'error', 'Authentication required'},
+                                status=401)
+        perm_filter = Q(owner=request.user)
+    elif group == 'Public':
+        if tag_type == 'drugs':
+            perm_filter = Q(drugtaggroupobjectpermission__group__name='Public')
+        else:
+            perm_filter = Q(celllinetaggroupobjectpermission__group__name
+                            ='Public')
+    else:
+        if tag_type == 'drugs':
+            perm_filter = Q(drugtaggroupobjectpermission__group_id=group)
+        else:
+            perm_filter = Q(celllinetaggroupobjectpermission__group_id=group)
+
+    tags = tag_cls.objects.filter(perm_filter).prefetch_related(tag_type)
+
+    return JsonResponse({
+        'data': [{'tag': {'id': tag.id, 'name': tag.tag_name, 'editable':
+                          tag.owner_id == request.user.id},
+                  'cat': tag.tag_category,
+                  'targets': [t.name for t in (tag.drugs if tag_type ==
+                                               'drugs' else
+                                               tag.cell_lines).all()]
+                  }
+                 for tag in tags]
+    })
+
+
+@login_required
+def ajax_get_tag_targets(request, tag_type, tag_id):
+    tag_cls = DrugTag if tag_type == 'drugs' else CellLineTag
+    try:
+        tag = tag_cls.objects.filter(owner=request.user).get(id=tag_id)
+    except tag_cls.DoesNotExist:
+        raise JsonResponse({'error': 'Tag not found'}, status=404)
+
+    groups = request.user.groups.all()
+
+    groups_with_perms = get_groups_with_perms(tag)
+
+    return JsonResponse({
+        'tagId': tag.id,
+        'tagName': tag.tag_name,
+        'tagCategory': tag.tag_category,
+        'targets': [t.id for t in (
+                    tag.drugs if tag_type == 'drugs' else
+                    tag.cell_lines).all()],
+        'groups': [{'groupId': g.id, 'groupName': g.name,
+                    'canView': g in groups_with_perms} for g in groups]
+    })
 
 
 def ajax_create_tag(request):
@@ -80,11 +125,16 @@ def ajax_create_tag(request):
 
     tag_cls = DrugTag if tag_type == 'drug' else CellLineTag
 
-    tag = tag_cls.objects.create(
-        owner=request.user,
-        tag_name=tag_name,
-        tag_category=tag_category
-    )
+    try:
+        tag = tag_cls.objects.create(
+            owner=request.user,
+            tag_name=tag_name,
+            tag_category=tag_category
+        )
+    except IntegrityError:
+        return JsonResponse({
+            'error': 'A tag with this name and category already exists'
+        }, status=409)
 
     return JsonResponse({
         'success': True,
@@ -285,3 +335,33 @@ def ajax_assign_tag(request):
         'tagId': tag_id,
         'entityIds': entity_ids
     })
+
+
+@login_required
+def ajax_set_tag_group_permission(request):
+    try:
+        tag_id = int(request.POST['tag_id'])
+        tag_type = request.POST['tag_type']
+        group_id = int(request.POST['group_id'])
+        state = request.POST['state'].lower() == 'true'
+    except (KeyError, ValueError):
+        return JsonResponse({'error': 'Malformed request'}, status=400)
+
+    tag_cls = DrugTag if tag_type == 'drugs' else CellLineTag
+
+    try:
+        tag = tag_cls.objects.get(pk=tag_id, owner=request.user)
+    except tag_cls.DoesNotExist:
+        return JsonResponse({}, status=404)
+
+    # Is user a member of the requested group?
+    try:
+        group = request.user.groups.get(pk=group_id)
+    except Group.DoesNotExist:
+        return JsonResponse({}, status=404)
+
+    # Assign or remove the permission as requested
+    permission_fn = assign_perm if state else remove_perm
+    permission_fn('view', group, tag)
+
+    return JsonResponse({'success': True})
