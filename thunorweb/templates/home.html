@@ -36,7 +36,11 @@
 {% include "tag_type_list.html" %}
 
 <h2 style="margin-top:5px">Plate Mapper</h2>
-{% include "plate_size_list.html" %}
+<div class="square-btns">
+  <a role="button" href="{% url 'thunorweb:plate_mapper' %}" class="btn
+  btn-primary btn-lg btn-sidebar" style="width:100%">
+    <span style="font-size:2.5em"><i class="fa fa-edit"></i></span><br>
+      Plate mapper</a>
 </div>
 </div>
 {% endblock %}

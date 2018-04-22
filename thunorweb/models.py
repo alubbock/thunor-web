@@ -115,7 +115,12 @@ class Plate(models.Model, PlateMap):
     expt_date = models.DateField(null=True)
 
     def __str__(self):
-        return self.name
+        if self.name:
+            return self.name
+        elif self.width and self.height:
+            return 'Unnamed {} well plate'.format(self.width * self.height)
+        else:
+            return 'Unnamed, unsized plate'
 
 # Note about indexes: I've removed foreign key indexes for some fields where
 # the unique_together constraint has those fields covered by a unique

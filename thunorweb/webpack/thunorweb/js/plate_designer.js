@@ -337,13 +337,23 @@ var check_loading = function() {
 
 var plate_designer = function () {
     var setWellSizes = function() {
-        var wellWidthPercent = (100 / (pyHTS.state.plateMap.numCols + 1)) + '%';
-        $('.welllist').not('#selectable-well-rows').not('.well-legend')
+        var numWells = pyHTS.state.plateMap.wells.length;
+        var $plate = $('#hts-well-plate-inner');
+        if (numWells === 96) {
+            $plate.removeClass("plate1536 plate384").addClass("plate96");
+        } else if (numWells === 384) {
+            $plate.removeClass("plate1536 plate96").addClass("plate384");
+        } else if (numWells === 1536) {
+            $plate.removeClass("plate384 plate96").addClass("plate1536");
+        } else {
+            // Set well size using javascript
+            $plate.toggleClass('plate1536', numWells > 384);
+            var wellWidthPercent = (100 / (pyHTS.state.plateMap.numCols + 1)) + '%';
+            $('.welllist').not('#selectable-well-rows').not('.well-legend')
                 .find('li').css('width', wellWidthPercent)
-                     .css('padding-bottom', wellWidthPercent);
-        $('#selectable-well-rows').css('width', wellWidthPercent);
-        $('#hts-well-plate-inner').toggleClass('xlplate',
-            pyHTS.state.plateMap.wells.length > 384);
+                .css('padding-bottom', wellWidthPercent);
+            $('#selectable-well-rows').css('width', wellWidthPercent);
+        }
     };
     if(pyHTS.state.plateMap.wells.length !== 384) {
         // triggers a repaint, so do this first
@@ -497,17 +507,14 @@ var plate_designer = function () {
     });
 
     var refreshViewAll = function() {
-        var wellIds = [],
-            tgtNumWells = pyHTS.state.plateMap.wells.length;
-        for(var i=0; i<tgtNumWells; i++) {
-            wellIds.push(i);
-        }
-        var selectedWells = $('#selectable-wells').find('.hts-well');
-        selectedWells.removeClass('ui-selected');
-        var needsResize = selectedWells.length !== tgtNumWells;
-        if(selectedWells.length > tgtNumWells) {
+        var tgtNumWells = pyHTS.state.plateMap.wells.length;
+        var $selectableWells = $('#selectable-wells');
+        var $wells = $selectableWells.find('.hts-well');
+        $wells.removeClass('ui-selected');
+        var needsResize = $wells.length !== tgtNumWells;
+        if($wells.length > tgtNumWells) {
             // remove wells
-            selectedWells.filter(':gt('+(tgtNumWells-1)+')').remove();
+            $wells.filter(':gt('+(tgtNumWells-1)+')').remove();
 
             $('#selectable-well-cols').find('li').filter(':gt(' +
                     (pyHTS.state.plateMap.numCols-1)+')').remove();
@@ -515,19 +522,17 @@ var plate_designer = function () {
             $('#selectable-well-rows').find('li').filter(':gt' +
                     '('+(pyHTS.state.plateMap.numRows-1)+')')
                     .remove();
-
-            selectedWells = $('#selectable-wells').find('.hts-well');
-        } else if (selectedWells.length < tgtNumWells) {
+        } else if ($wells.length < tgtNumWells) {
             // add wells
-            var lastWell = selectedWells.filter(':last');
-            var selectableWells = $('#selectable-wells');
-            for(var w=selectedWells.length; w<tgtNumWells; w++) {
-                lastWell.clone(true).appendTo(selectableWells);
+            var lastWell = $wells.last();
+
+            for(var w=$wells.length; w<tgtNumWells; w++) {
+                lastWell.clone(true).appendTo($selectableWells);
             }
 
             var selectableCols = $('#selectable-well-cols');
             var cols = selectableCols.find('li');
-            var lastCol = cols.filter(':last');
+            var lastCol = cols.last();
             for(var c=cols.length; c<pyHTS.state.plateMap.numCols; c++) {
                 lastCol.clone().data('col', c+1).text(c+1)
                        .appendTo(selectableCols);
@@ -535,15 +540,16 @@ var plate_designer = function () {
 
             var selectableRows = $('#selectable-well-rows');
             var rows = selectableRows.find('li');
-            var lastRow = rows.filter(':last');
+            var lastRow = rows.last();
             for(var r=rows.length; r<pyHTS.state.plateMap.numRows; r++) {
-                lastRow.clone().data('row', r+1)
-                        .text(String.fromCharCode(65 + r))
-                        .appendTo(selectableRows);
+                lastRow.clone().data('row', r + 1)
+                    .text(pyHTS.state.plateMap.rowNumToName(r))
+                    .appendTo(selectableRows);
             }
         }
         if (needsResize) {
             setWellSizes();
+            $wells = $selectableWells.find('.hts-well');
         }
 
         setNumberDrugInputs(pyHTS.state.plateMap.maxDrugsDosesUsed());
@@ -555,9 +561,13 @@ var plate_designer = function () {
         }
 
         // refresh the legend and well CSS classes
-        refreshLegend(selectedWells, wellIds, 'cell-line');
-        refreshLegend(selectedWells, wellIds, 'drug');
-        refreshLegend(selectedWells, wellIds, 'dose');
+        var wellIds = [];
+        for(var i=0; i<tgtNumWells; i++) {
+            wellIds.push(i);
+        }
+        refreshLegend($wells, wellIds, 'cell-line');
+        refreshLegend($wells, wellIds, 'drug');
+        refreshLegend($wells, wellIds, 'dose');
     };
 
     var refreshLegend = function(selectedWells, wellIds, data_type) {

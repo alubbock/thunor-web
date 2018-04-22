@@ -83,27 +83,21 @@
     </ul>
 
     <div id="hts-well-plate" class="panel-body">
-        <div id="hts-well-plate-inner">
+        <div id="hts-well-plate-inner" class="{% if plates.0.num_wells == 1536 %}plate1536{% elif plates.0.num_wells == 384 %}plate384{% elif plates.0.num_wells == 96 %}plate96{% endif %}">
             <ol id="selectable-well-all" class="welllist" data-last="">
                 <li id="well-all" class="hts-well ui-state-default">&nbsp;</li>
             </ol>
 
             <ol id="selectable-well-cols" class="welllist">
-                {% for col in plates.0.col_iterator %}
-                    <li data-col="{{ col }}" class="col">{{ col }}</li>
-                {% endfor %}
+                {% for col in plates.0.col_iterator %}<li data-col="{{ col }}" class="col">{{ col }}</li>{% endfor %}
             </ol>
 
             <ol id="selectable-well-rows" class="welllist">
-                {% for row in plates.0.row_iterator %}
-                    <li data-row="{{ forloop.counter }}"
-                    class="row">{{ row }}</li>
-                {% endfor %}
+                {% for row in plates.0.row_iterator %}<li data-row="{{ forloop.counter }}" class="row">{{ row }}</li>{% endfor %}
             </ol>
 
             <ol id="selectable-wells" class="welllist hts-overview">
-                {% for well in plates.0.well_list %}<li class="hts-well"></li>
-                {% endfor %}
+                {% for well in plates.0.well_list %}<li class="hts-well"></li>{% endfor %}
             </ol>
         </div>
     </div>
@@ -315,10 +309,7 @@ $.extend(pyHTS.state, {
     {% if not dataset %}plateMapperLocalOnly: true,{% endif %}
 
     plateMapTemplates: {
-        {% for plate_size in plate_sizes %}
-            '{{ plate_size.numCols }}x{{ plate_size.numRows }}':
-                    new PlateMap("MASTER",{{ plate_size.numRows}}, {{ plate_size.numCols }})
-            {% if not forloop.last %},{% endif %}
+        {% for plate_size in plate_sizes %}'{{ plate_size.numCols }}x{{ plate_size.numRows }}': new PlateMap("MASTER",{{ plate_size.numRows}}, {{ plate_size.numCols }}){% if not forloop.last %},{% endif %}
         {% endfor %}
     },
 

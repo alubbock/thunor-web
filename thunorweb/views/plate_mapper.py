@@ -6,15 +6,14 @@ from django.db.models import Q, Count
 from thunorweb.models import HTSDataset, Plate, CellLine, Drug, \
     Well, WellDrug, WellStatistic
 import json
-from thunor.io import PlateData
+from thunor.io import PlateData, STANDARD_PLATE_SIZES, PlateMap
 from thunorweb.tasks import precalculate_viability, \
     dataset_groupings, precalculate_dip_curves
 import numpy as np
 import math
 from django.utils import timezone
-from operator import itemgetter
 from django.conf import settings
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from thunorweb.helpers import AutoExtendList
 from thunorweb.views import login_required_unless_public, _assert_has_perm
 
@@ -22,21 +21,18 @@ from thunorweb.views import login_required_unless_public, _assert_has_perm
 @login_required_unless_public
 def plate_mapper(request, dataset_id, num_wells=None):
     editable = True
-    plate_sizes = []
+    plate_sizes = set()
+    plate_size = namedtuple('plate_size', 'numCols numRows numWells')
     if dataset_id is None:
         if num_wells is None:
             return render(request, 'plate_designer_choose_size.html')
         num_wells = int(num_wells)
-        if num_wells == 384:
-            plates = [Plate(id='MASTER', width=24, height=16)]
-        elif num_wells == 96:
-            plates = [Plate(id='MASTER', width=12, height=8)]
-        else:
+        if num_wells not in STANDARD_PLATE_SIZES:
             raise Http404()
+        width, height = PlateMap.plate_size_from_num_wells(num_wells)
+        plates = [Plate(id='MASTER', width=width, height=height)]
         dataset = None
-        plate_sizes.append({'numCols': plates[0].width,
-                            'numRows': plates[0].height,
-                            'numWells': num_wells})
+        plate_sizes.add(plate_size(width, height, num_wells))
     else:
         plates = list(Plate.objects.filter(dataset_id=dataset_id).order_by(
             'id').select_related('dataset'))
@@ -55,17 +51,10 @@ def plate_mapper(request, dataset_id, num_wells=None):
             _assert_has_perm(request, dataset, 'view_plate_layout')
 
         for plate in plates:
-            plate_size_exists = False
-            for pl in plate_sizes:
-                if pl['numCols'] == plate.width and pl['numRows'] == \
-                        plate.height and pl['numWells'] == plate.num_wells:
-                    plate_size_exists = True
-            if not plate_size_exists:
-                plate_sizes.append({'numCols': plate.width,
-                                    'numRows': plate.height,
-                                    'numWells': plate.num_wells})
+            plate_sizes.add(plate_size(plate.width, plate.height,
+                                       plate.num_wells))
 
-        plate_sizes = sorted(plate_sizes, key=itemgetter('numWells'))
+        plate_sizes = sorted(plate_sizes, key=lambda ps: ps.numWells)
 
     response = TemplateResponse(request, 'plate_designer.html', {
         'num_wells': num_wells,
