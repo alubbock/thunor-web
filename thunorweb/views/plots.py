@@ -28,10 +28,11 @@ def _process_aggreate(request, tag_type, tag_ids, aggregation):
         TagClass = DrugTag
         perm_filter = _get_drugtag_permfilter(request)
 
-    tag_base_query = TagClass.objects.filter(perm_filter).filter(id__in=tag_ids)
+    tag_base_query = TagClass.objects.filter(perm_filter).filter(
+        id__in=tag_ids).distinct()
     if not aggregation:
         return tag_base_query.values_list('{}__id'.format(tag_type),
-                                          flat=True).distinct(), aggregation
+                                          flat=True), aggregation
 
     tag_objs = tag_base_query.values_list(
         'tag_category', 'tag_name', '{}__id'.format(tag_type),
