@@ -165,7 +165,8 @@ def ajax_get_plot(request, file_type='json'):
         if qc_view == 'ctrldipbox':
             ctrl_dip_data = df_ctrl_dip_rates(dataset_id)
             if ctrl_dip_data is None:
-                return HttpResponse('No control wells were detected in this '
+                return HttpResponse('No control wells with DIP rates '
+                                    'available were detected in this '
                                     'dataset.', status=400)
             plot_fig = plot_ctrl_dip_by_plate(ctrl_dip_data)
         elif qc_view == 'dipplatemap':
