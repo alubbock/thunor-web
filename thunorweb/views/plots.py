@@ -12,7 +12,7 @@ from plotly.utils import PlotlyJSONEncoder
 from thunorweb.pandas import df_doses_assays_controls, df_dip_rates, \
     df_ctrl_dip_rates, NoDataException, df_curve_fits
 import warnings
-from collections import defaultdict
+import collections
 from thunorweb.views import login_required_unless_public, _assert_has_perm
 from thunorweb.views.plate_mapper import ajax_load_plate
 from thunorweb.views.datasets import _get_celllinetag_permfilter, \
@@ -175,15 +175,15 @@ def _process_aggreate(request, tag_type, tag_ids, aggregation):
     # if not use_cats:
     #     (aggregate_cell_lines_group, ) = cats
 
-    agg = defaultdict(list)
+    agg = collections.defaultdict(list)
     for tag in tag_objs:
         tag_name = '{} [{}]'.format(tag[1], tag[0]) if use_cats \
             else tag[1]
         agg[tag_name].append(tag[3])
-    # Add counts to names
+
     aggregation = {}
     for tag_name, vals in agg.items():
-        aggregation['{} ({})'.format(tag_name, len(vals))] = set(vals)
+        aggregation[tag_name] = set(vals)
 
     return entity_ids, aggregation
 
