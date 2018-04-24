@@ -30,9 +30,7 @@ var ajax = (function () {
     var ajax400Handler = function (jqXHR) {
         ui.okModal({
             title: "Invalid request",
-            text: "The request was invalid. The server" +
-            " returned the following extra information:<br><br>" +
-            jqXHR.responseText
+            text: "The request was not processed for the following reason:<br><br>" + jqXHR.responseText
         });
         return true;
     };

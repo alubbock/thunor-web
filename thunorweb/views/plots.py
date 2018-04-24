@@ -1,8 +1,7 @@
 from django.shortcuts import render, Http404
 from django.http import JsonResponse, HttpResponse
 from django.utils.html import strip_tags
-from django.db.models import Q
-from thunorweb.models import HTSDataset, CellLineTag, DrugTag
+from thunorweb.models import HTSDataset, CellLineTag, DrugTag, CellLine, Drug
 from thunor.plots import plot_time_course, plot_drc, plot_drc_params, \
     plot_ctrl_dip_by_plate, plot_plate_map, CannotPlotError, \
     IC_REGEX, EC_REGEX, E_REGEX, E_REL_REGEX
@@ -20,40 +19,7 @@ from thunorweb.views.datasets import _get_celllinetag_permfilter, \
     _get_drugtag_permfilter
 
 
-def _process_aggreate(request, tag_type, tag_ids, aggregation):
-    if tag_type == 'cell_lines':
-        TagClass = CellLineTag
-        perm_filter = _get_celllinetag_permfilter(request)
-    else:
-        TagClass = DrugTag
-        perm_filter = _get_drugtag_permfilter(request)
-
-    tag_base_query = TagClass.objects.filter(perm_filter).filter(
-        id__in=tag_ids).distinct()
-    if not aggregation:
-        return tag_base_query.values_list('{}__id'.format(tag_type),
-                                          flat=True), aggregation
-
-    tag_objs = tag_base_query.values_list(
-        'tag_category', 'tag_name', '{}__id'.format(tag_type),
-        '{}__name'.format(tag_type))
-    entity_ids = [tag[2] for tag in tag_objs]
-    cats = set(tag[0] for tag in tag_objs)
-    use_cats = len(cats) > 1
-    # if not use_cats:
-    #     (aggregate_cell_lines_group, ) = cats
-
-    agg = defaultdict(list)
-    for tag in tag_objs:
-        tag_name = '{} [{}]'.format(tag[1], tag[0]) if use_cats \
-            else tag[1]
-        agg[tag_name].append(tag[3])
-    # Add counts to names
-    aggregation = {}
-    for tag_name, vals in agg.items():
-        aggregation['{} ({})'.format(tag_name, len(vals))] = vals
-
-    return entity_ids, aggregation
+MAX_COLOR_GROUPS = 10
 
 
 @login_required_unless_public
@@ -73,31 +39,7 @@ def ajax_get_plot(request, file_type='json'):
         if dataset2_id is not None:
             dataset2_id = int(dataset2_id)
         cell_line_id = request.GET.getlist('c')
-        cell_line_tag_ids = [int(ct) for ct in request.GET.getlist('cT')]
-        aggregate_cell_lines = request.GET.get('aggregateCellLines', False) \
-                               == "true"
-
-        if not cell_line_id and cell_line_tag_ids:
-            cell_line_id, aggregate_cell_lines = _process_aggreate(
-                request, 'cell_lines', cell_line_tag_ids, aggregate_cell_lines
-            )
-
         drug_id = request.GET.getlist('d')
-        drug_tag_ids = [int(dt) for dt in request.GET.getlist('dT')]
-        aggregate_drugs = request.GET.get('aggregateDrugs', False) == "true"
-
-        if not drug_id and drug_tag_ids:
-            drug_id, aggregate_drugs = _process_aggreate(
-                request, 'drugs', drug_tag_ids, aggregate_drugs
-            )
-
-        if plot_type != 'qc':
-            if not cell_line_id:
-                return HttpResponse('Please enter at least one cell line',
-                                    status=400)
-            if not drug_id:
-                return HttpResponse('Please enter at least one drug',
-                                    status=400)
 
         cell_line_id = [int(cl) for cl in cell_line_id]
         drug_ids = []
@@ -122,7 +64,7 @@ def ajax_get_plot(request, file_type='json'):
     _assert_has_perm(request, dataset, permission_required)
 
     if plot_type == 'tc':
-        if len(drug_id) > 1 or len(cell_line_id) > 1:
+        if len(drug_id) != 1 or len(cell_line_id) != 1:
             return HttpResponse('Please select exactly one cell line and '
                                 'drug for time course plot', status=400)
 
@@ -156,8 +98,7 @@ def ajax_get_plot(request, file_type='json'):
     elif plot_type in ('drc', 'drpar'):
         plot_fig = _dose_response_plot(request, dataset, dataset2_id,
                                        permission_required, drug_id,
-                                       cell_line_id, plot_type,
-                                       aggregate_cell_lines, aggregate_drugs)
+                                       cell_line_id, plot_type)
         if isinstance(plot_fig, HttpResponse):
             return plot_fig
     elif plot_type == 'qc':
@@ -211,10 +152,121 @@ def ajax_get_plot(request, file_type='json'):
     return response
 
 
+def _process_aggreate(request, tag_type, tag_ids, aggregation):
+    if tag_type == 'cell_lines':
+        TagClass = CellLineTag
+        perm_filter = _get_celllinetag_permfilter(request)
+    else:
+        TagClass = DrugTag
+        perm_filter = _get_drugtag_permfilter(request)
+
+    tag_base_query = TagClass.objects.filter(perm_filter).filter(
+        id__in=tag_ids).distinct()
+    if not aggregation:
+        return tag_base_query.values_list('{}__id'.format(tag_type),
+                                          flat=True), aggregation
+
+    tag_objs = tag_base_query.values_list(
+        'tag_category', 'tag_name', '{}__id'.format(tag_type),
+        '{}__name'.format(tag_type))
+    entity_ids = [tag[2] for tag in tag_objs]
+    cats = set(tag[0] for tag in tag_objs)
+    use_cats = len(cats) > 1
+    # if not use_cats:
+    #     (aggregate_cell_lines_group, ) = cats
+
+    agg = defaultdict(list)
+    for tag in tag_objs:
+        tag_name = '{} [{}]'.format(tag[1], tag[0]) if use_cats \
+            else tag[1]
+        agg[tag_name].append(tag[3])
+    # Add counts to names
+    aggregation = {}
+    for tag_name, vals in agg.items():
+        aggregation['{} ({})'.format(tag_name, len(vals))] = set(vals)
+
+    return entity_ids, aggregation
+
+
+def _check_tags_unique(tags):
+    duplicates = {}
+    for tag_name, targets in tags.items():
+        for target in targets:
+            if target in duplicates:
+                # Duplicate found
+                raise CannotPlotError(
+                    'Some of the tags selected have overlapping entries, '
+                    'so they cannot be colored uniquely. '
+                    'To continue, either turn off coloring option or change '
+                    'the tags used. Example of overlap: {} is in tags {} and'
+                    ' {}.'.format(
+                        target, duplicates[target], tag_name)
+                )
+            else:
+                duplicates[target] = tag_name
+
+
 def _dose_response_plot(request, dataset, dataset2_id,
                         permission_required, drug_id, cell_line_id,
-                        plot_type, aggregate_cell_lines,
-                        aggregate_drugs):
+                        plot_type):
+    color_by = request.GET.get('colorBy', 'off')
+    if color_by == 'off':
+        color_by = None
+
+    drug_tag_ids = [int(dt) for dt in request.GET.getlist('dT')]
+    color_groups = None
+    aggregate_drugs = request.GET.get('aggregateDrugs', False) == "true"
+    if not drug_id and drug_tag_ids:
+        drug_id, drug_groups = _process_aggreate(
+            request, 'drugs', drug_tag_ids, aggregate_drugs or color_by == 'dr'
+        )
+        if aggregate_drugs:
+            aggregate_drugs = drug_groups
+        if color_by == 'dr':
+            color_groups = drug_groups
+
+    cell_line_tag_ids = [int(ct) for ct in request.GET.getlist('cT')]
+    aggregate_cell_lines = request.GET.get('aggregateCellLines', False) \
+                           == "true"
+    if not cell_line_id and cell_line_tag_ids:
+        cell_line_id, cell_line_groups = _process_aggreate(
+            request, 'cell_lines', cell_line_tag_ids, aggregate_cell_lines
+                                                      or color_by == 'cl'
+        )
+        if aggregate_cell_lines:
+            aggregate_cell_lines = cell_line_groups
+        if color_by == 'cl':
+            color_groups = cell_line_groups
+
+    if color_groups:
+        try:
+            _check_tags_unique(color_groups)
+        except CannotPlotError as e:
+            return HttpResponse(e, status=400)
+    elif color_by == 'cl':
+        # The tags will just be the cell lines themselves
+        color_groups = {cl.name: [cl.name] for cl in CellLine.objects.filter(
+            id__in=cell_line_id).order_by('name')}
+    elif color_by == 'dr':
+        # Ditto for drugs
+        color_groups = {dr.name: [dr.name] for dr in Drug.objects.filter(
+            id__in=drug_id).order_by('name')}
+
+    if color_groups and len(color_groups) > MAX_COLOR_GROUPS:
+        return HttpResponse(
+            'Cannot plot using more than {} unique colors. Please remove '
+            'some entries or turn off coloring to proceed.'.format(
+                MAX_COLOR_GROUPS),
+            status=400
+        )
+
+    if not cell_line_id:
+        return HttpResponse('Please enter at least one cell line',
+                            status=400)
+    if not drug_id:
+        return HttpResponse('Please enter at least one drug',
+                            status=400)
+
     dataset_id = dataset.id
     response_metric = request.GET.get('drMetric', 'dip')
     if response_metric not in ('dip', 'viability'):
@@ -379,6 +431,8 @@ def _dose_response_plot(request, dataset, dataset2_id,
                 fit_param_sort=dr_par_order,
                 aggregate_cell_lines=aggregate_cell_lines,
                 aggregate_drugs=aggregate_drugs,
+                color_by=color_by,
+                color_groups=color_groups,
                 multi_dataset=dataset2_id is not None
             )
         except CannotPlotError as e:
@@ -387,7 +441,9 @@ def _dose_response_plot(request, dataset, dataset2_id,
         dip_absolute = request.GET.get('drcType', 'rel') == 'abs'
         plot_fig = plot_drc(
             fit_params,
-            is_absolute=dip_absolute
+            is_absolute=dip_absolute,
+            color_by=color_by,
+            color_groups=color_groups
         )
 
     return plot_fig

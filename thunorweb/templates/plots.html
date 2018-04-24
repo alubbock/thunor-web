@@ -304,6 +304,25 @@
       </div>
       <div class="hidden-qc" style="height:15px">&nbsp;</div>
     </div>
+    <div class="hidden-tc hidden-qc">
+      <div class="hts-color-tag">
+      <label for="colorBy">Color Overlay</label>
+        <div class="btn-group btn-group-3 form-group" data-toggle="buttons">
+          <label class="btn btn-default active">
+            <input type="radio" name="colorBy" value="off"
+                   autocomplete="off" checked disabled> Off
+          </label>
+          <label class="btn btn-default">
+            <input type="radio" name="colorBy" value="cl"
+                   autocomplete="off" disabled> Cell Line
+          </label>
+          <label class="btn btn-default">
+            <input type="radio" name="colorBy" value="dr"
+                   autocomplete="off" disabled> Drug
+          </label>
+        </div>
+      </div>
+    </div>
     <div class="form-group hidden-drc hidden-drpar hidden-qc" style="display:none">
         <label for="hts-change-assay">Assay</label>
         <select name="assayId" class="hts-change-assay form-control"
