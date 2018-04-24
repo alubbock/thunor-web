@@ -674,6 +674,9 @@ user-select: none;}
 div.hts-change-cell-line .bs-actionsbox,div.hts-change-drug .bs-actionsbox {
     display: none;
 }
+.hts-aggregate {
+    margin-bottom: 0;
+}
 .btn-group-1 label { width: 100%; }
 .btn-group-2 label { width: 50%; }
 .btn-group-3 label { width: 33.333%; }
