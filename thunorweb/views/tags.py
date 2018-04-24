@@ -8,6 +8,7 @@ import pandas as pd
 from django.db.utils import IntegrityError
 from guardian.shortcuts import assign_perm, remove_perm, get_groups_with_perms
 from django.contrib.auth.models import Group
+import collections
 
 logger = logging.getLogger(__name__)
 
@@ -256,6 +257,7 @@ def ajax_upload_tagfile(request, tag_type):
                                 status=400)
 
         csv['ent_lower'] = csv[ent_col].str.lower()
+        orig_name_mapping = csv[['ent_lower', ent_col]]
 
         csv = csv[['tag_name', 'tag_category', 'ent_lower']]
         duplicates = csv.duplicated()
@@ -267,14 +269,43 @@ def ajax_upload_tagfile(request, tag_type):
                                           'e.g. {}'.format(dup_str)})
 
         missing_ents = set(csv['ent_lower']).difference(ent_mapping.keys())
+        ents_created = []
         if missing_ents:
-            return JsonResponse({
-                'error': '{} not found (shown in lower case): {}'.format(
-                    ent_name, missing_ents)})
+            create_ents = request.POST.get('createEntities', 'false') == 'true'
+            if create_ents:
+                orig_name_mapping = orig_name_mapping.set_index(
+                    'ent_lower').iloc[:, 0]
+                ents_to_add = [orig_name_mapping.loc[name] for name in
+                               missing_ents]
+                ents = [EntityClass(name=name) for name in ents_to_add]
+                EntityClass.objects.bulk_create(ents)
+                if ents[0].pk is None:
+                    ents = EntityClass.objects.filter(name__in=ents_to_add)
+
+                ent_mapping.update({ent.name.lower(): ent.id for ent in
+                                    ents})
+                ents_created = [{'id': ent.id, 'name': ent.name} for ent in
+                                ents]
+            else:
+                return JsonResponse({
+                    'error': '{} not found (shown in lower case): {}'.format(
+                        ent_name, missing_ents)})
+
+        # Get user's existing tags to check for conflicts
+        existing_tags = collections.defaultdict(set)
+        for tag in TagClass.objects.filter(owner=request.user):
+            existing_tags[tag.tag_category].add(tag.tag_name)
 
         grpby = csv.groupby(['tag_category', 'tag_name'])
         tags = []
         for grp, _ in grpby:
+            try:
+                if grp[1] in existing_tags[grp[0]]:
+                    return JsonResponse({'error': '"{}" in category "{}" '
+                                         'already exists'.format(
+                        grp[1], grp[0])}, status=400)
+            except KeyError:
+                pass
             tags.append(TagClass(
                 tag_category=grp[0],
                 tag_name=grp[1],
@@ -293,7 +324,7 @@ def ajax_upload_tagfile(request, tag_type):
             else:
                 tag.cell_lines.set(entity_ids)
 
-    return JsonResponse({'success': True})
+    return JsonResponse({'success': True, 'entitiesCreated': ents_created})
 
 
 def ajax_assign_tag(request):

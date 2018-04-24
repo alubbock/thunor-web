@@ -91,6 +91,10 @@ class="form-control" title="Select {{ entity_type }}s">
 
 <div class="upload-tags" style="display:none">
 <form action="{% url 'thunorweb:ajax_upload_tagfile' tag_type %}">
+  <div class="form-group">
+    <label for="createEntities">Create {{ entity_type }}s if required</label>
+    <input type="checkbox" name="createEntities">
+  </div>
   <input type="file" name="tagfiles[]" multiple>
 </form>
 </div>

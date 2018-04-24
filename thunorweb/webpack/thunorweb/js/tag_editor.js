@@ -241,15 +241,16 @@ var activate = function() {
     var ajaxSettings = {
         headers: {"X-CSRFToken": ajax.getCsrfToken()}
     };
-    var tagFileUploadComplete = function() {
-        $tagTable.ajax.reload();
-    };
     $('#btn-upload-tags').click(function() {
         var $uploaddiv = $('.upload-tags').first().clone().show();
+        var $createEntities = $uploaddiv.find("input[type=checkbox]").bootstrapSwitch();
         $uploaddiv.find('input[type=file]').fileinput({
             theme: "fa",
             uploadUrl: $uploaddiv.find("form").attr('action'),
             uploadAsync: false,
+            uploadExtraData: function() {
+                return {'createEntities': $createEntities.bootstrapSwitch('state')};
+            },
             allowedFileExtensions: ["txt", "csv"],
             maxFileSize: 5120,
             maxFileCount: 5,
@@ -261,10 +262,26 @@ var activate = function() {
             },
             allowedPreviewTypes: false,
             ajaxSettings: ajaxSettings
-        }).on("filebatchuploadsuccess", tagFileUploadComplete)
-            .on("filebatchselected", function () {
-                $(this).fileinput("upload");
-            });
+        }).on("filebatchuploadsuccess", function (event, data) {
+            if (data.response !== undefined && data.response.entitiesCreated !== undefined && data.response.entitiesCreated.length > 0) {
+                // Easier to just refresh the page, for now...
+                window.location.reload(true);
+
+                // for(var i=0;i<data.response.entitiesCreated.length;i++) {
+                //     // create cell line/drug in list of entities
+                //     var ent = data.response.entitiesCreated[i];
+                //     pyHTS.state.entNames[ent['id']] = ent['name'];
+                //     // add it to the select
+                //     var $lastOpt = $('option[name=EntityId]').last();
+                //     $lastOpt.clone().val(ent['id']).text(ent['name']).insertAfter($lastOpt);
+                // }
+            } else {
+                $tagTable.ajax.reload();
+                $(this).closest('.modal').modal('hide');
+            }
+        }).on("filebatchselected", function () {
+            $(this).fileinput("upload");
+        });
 
         ui.okCancelModal({
             text: $uploaddiv,
