@@ -27,13 +27,11 @@
 
 <div class="tag-container panel {% if public %}panel-primary{% else %}panel-default{% endif %}" {% if not tag_name %}style="display:none"{% endif %}>
 <div class="panel-heading">
-{% if not is_public or request.user.is_superuser %}
 <form class="pull-right form-inline delete-tag" {% if not tag_name %}style="display:none"{% endif %}>
     <input type="hidden" name="tagType" value="{{ entity_type_var }}">
     <input type="hidden" name="tagId" value="{{ tag_name.0 }}">
 <button type="submit" role="button" class="btn btn-danger">Delete</button>
 </form>
-{% endif %}
 
 <h4 class="tag-header"{% if not tag_name %} style="display:none"{% endif %}>
     <i class="fa fa-tag"></i>

@@ -79,10 +79,6 @@ class CellLineTag(models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL)
     cell_lines = models.ManyToManyField(CellLine, related_name='tags')
 
-    @property
-    def is_public(self):
-        return self.owner_id is None
-
 
 class CellLineTagGroupObjectPermission(GroupObjectPermissionBase):
     content_object = models.ForeignKey(CellLineTag)
@@ -106,10 +102,6 @@ class DrugTag(models.Model):
     tag_category = models.TextField()
     owner = models.ForeignKey(settings.AUTH_USER_MODEL)
     drugs = models.ManyToManyField(Drug, related_name='tags')
-
-    @property
-    def is_public(self):
-        return self.owner_id is None
 
 
 class DrugTagGroupObjectPermission(GroupObjectPermissionBase):
