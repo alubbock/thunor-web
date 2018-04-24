@@ -16,7 +16,8 @@ import collections
 from thunorweb.views import login_required_unless_public, _assert_has_perm
 from thunorweb.views.plate_mapper import ajax_load_plate
 from thunorweb.views.datasets import _get_celllinetag_permfilter, \
-    _get_drugtag_permfilter
+    _get_drugtag_permfilter, dataset_groupings
+from thunorweb.views.tags import TAG_EVERYTHING_ELSE
 
 
 MAX_COLOR_GROUPS = 10
@@ -152,7 +153,7 @@ def ajax_get_plot(request, file_type='json'):
     return response
 
 
-def _process_aggreate(request, tag_type, tag_ids, aggregation):
+def _process_aggreate(request, tag_type, tag_ids, aggregation, dataset_ids):
     if tag_type == 'cell_lines':
         TagClass = CellLineTag
         perm_filter = _get_celllinetag_permfilter(request)
@@ -162,7 +163,7 @@ def _process_aggreate(request, tag_type, tag_ids, aggregation):
 
     tag_base_query = TagClass.objects.filter(perm_filter).filter(
         id__in=tag_ids).distinct()
-    if not aggregation:
+    if not aggregation and TAG_EVERYTHING_ELSE not in tag_ids:
         return tag_base_query.values_list('{}__id'.format(tag_type),
                                           flat=True), aggregation
 
@@ -184,6 +185,17 @@ def _process_aggreate(request, tag_type, tag_ids, aggregation):
     aggregation = {}
     for tag_name, vals in agg.items():
         aggregation[tag_name] = set(vals)
+
+    if TAG_EVERYTHING_ELSE in tag_ids:
+        groupings = dataset_groupings(dataset_ids)
+        ent_dict = {e['id']: e['name'] for e in groupings[
+            'cellLines' if tag_type == 'cell_lines' else 'drugs']}
+        all_ent_ids = set(ent_dict.keys())
+        everything_else_ids = all_ent_ids.difference(entity_ids)
+        everything_else_names = [name for eid, name in ent_dict.items() if
+                                 eid in everything_else_ids]
+        aggregation['Everything else'] = everything_else_names
+        entity_ids = all_ent_ids
 
     return entity_ids, aggregation
 
@@ -209,6 +221,23 @@ def _check_tags_unique(tags):
 def _dose_response_plot(request, dataset, dataset2_id,
                         permission_required, drug_id, cell_line_id,
                         plot_type):
+    if dataset2_id is not None:
+        try:
+            dataset2 = HTSDataset.objects.get(pk=dataset2_id)
+        except HTSDataset.DoesNotExist:
+            raise Http404()
+
+        _assert_has_perm(request, dataset2, permission_required)
+
+        if dataset.name == dataset2.name:
+            return HttpResponse(
+                'Cannot compare two datasets with the same '
+                'name. Please rename one of the datasets.',
+                status=400)
+
+    datasets = dataset if not dataset2_id else [dataset,
+                                                dataset2]
+
     color_by = request.GET.get('colorBy', 'off')
     if color_by == 'off':
         color_by = None
@@ -218,7 +247,9 @@ def _dose_response_plot(request, dataset, dataset2_id,
     aggregate_drugs = request.GET.get('aggregateDrugs', False) == "true"
     if not drug_id and drug_tag_ids:
         drug_id, drug_groups = _process_aggreate(
-            request, 'drugs', drug_tag_ids, aggregate_drugs or color_by == 'dr'
+            request, 'drugs', drug_tag_ids,
+            aggregate_drugs or color_by == 'dr',
+            datasets
         )
         if aggregate_drugs:
             aggregate_drugs = drug_groups
@@ -230,8 +261,9 @@ def _dose_response_plot(request, dataset, dataset2_id,
                            == "true"
     if not cell_line_id and cell_line_tag_ids:
         cell_line_id, cell_line_groups = _process_aggreate(
-            request, 'cell_lines', cell_line_tag_ids, aggregate_cell_lines
-                                                      or color_by == 'cl'
+            request, 'cell_lines', cell_line_tag_ids,
+            aggregate_cell_lines or color_by == 'cl',
+            datasets
         )
         if aggregate_cell_lines:
             aggregate_cell_lines = cell_line_groups
@@ -267,24 +299,10 @@ def _dose_response_plot(request, dataset, dataset2_id,
         return HttpResponse('Please enter at least one drug',
                             status=400)
 
-    dataset_id = dataset.id
     response_metric = request.GET.get('drMetric', 'dip')
     if response_metric not in ('dip', 'viability'):
         return HttpResponse('Unknown metric. Supported values: dip or '
                             'viability.', status=400)
-    if dataset2_id is not None:
-        try:
-            dataset2 = HTSDataset.objects.get(pk=dataset2_id)
-        except HTSDataset.DoesNotExist:
-            raise Http404()
-
-        _assert_has_perm(request, dataset2, permission_required)
-
-        if dataset.name == dataset2.name:
-            return HttpResponse(
-                'Cannot compare two datasets with the same '
-                'name. Please rename one of the datasets.',
-                status=400)
 
     def _setup_dr_par(name, needs_toggle=False):
         if needs_toggle and \
@@ -330,6 +348,7 @@ def _dose_response_plot(request, dataset, dataset2_id,
     need_aa = False
     need_hill = False
     need_emax = False
+    need_einf = False
     for param in (dr_par, dr_par_two, dr_par_order):
         if param is None:
             continue
@@ -341,6 +360,9 @@ def _dose_response_plot(request, dataset, dataset2_id,
             continue
         if param.startswith('emax'):
             need_emax = True
+            continue
+        if param == 'einf':
+            need_einf = True
             continue
         for regex, value_list in regexes.items():
             match = regex.match(param)
@@ -356,7 +378,7 @@ def _dose_response_plot(request, dataset, dataset2_id,
                                     'an integer between 1 and 100',
                                     status=400)
 
-    dataset_ids = dataset_id if dataset2_id is None else [dataset_id,
+    dataset_ids = dataset.id if dataset2_id is None else [dataset.id,
                                                           dataset2_id]
 
     # Fit Hill curves and compute parameters
@@ -379,8 +401,6 @@ def _dose_response_plot(request, dataset, dataset2_id,
                     use_dataset_names=True
                 )
             else:
-                datasets = dataset if not dataset2_id else [dataset,
-                                                            dataset2]
                 expt_resp_data, ctrl_resp_data = _get_viability_scores(
                     datasets,
                     drug_id,
@@ -410,7 +430,8 @@ def _dose_response_plot(request, dataset, dataset2_id,
                 custom_e_values=e_values,
                 include_aa=need_aa,
                 include_hill=need_hill,
-                include_emax=need_emax
+                include_emax=need_emax,
+                include_einf=need_einf
             )
             # Currently only care about warnings if plotting AA
             if plot_type == 'drpar' and (dr_par == 'aa' or

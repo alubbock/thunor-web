@@ -11,6 +11,7 @@ from django.contrib.auth.models import Group
 import collections
 
 logger = logging.getLogger(__name__)
+TAG_EVERYTHING_ELSE = -1
 
 
 @login_required_unless_public

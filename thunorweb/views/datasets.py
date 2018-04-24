@@ -19,6 +19,7 @@ from guardian.shortcuts import get_objects_for_group, get_perms, \
 from django.contrib.contenttypes.models import ContentType
 from thunorweb.views import login_required_unless_public, _assert_has_perm
 import logging
+from thunorweb.views.tags import TAG_EVERYTHING_ELSE
 
 logger = logging.getLogger(__name__)
 
@@ -183,9 +184,13 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
             append_to = groupings_dict['drugTags'][-1]['options']
         append_to.append(
             {'id': tag.id,
-             'name': tag.tag_name,
-             'public': tag.is_public}
+             'name': tag.tag_name}
         )
+
+    special_tags = {'optgroup': 'Special Tags',
+                    'options': [{'id': TAG_EVERYTHING_ELSE,
+                                 'name': 'Everything else'}]}
+    groupings_dict['drugTags'].append(special_tags)
 
     last_cat = None
     append_to = groupings_dict['cellLineTags']
@@ -197,9 +202,10 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
             append_to = groupings_dict['cellLineTags'][-1]['options']
         append_to.append(
             {'id': tag.id,
-             'name': tag.tag_name,
-             'public': tag.is_public}
+             'name': tag.tag_name}
         )
+
+    groupings_dict['cellLineTags'].append(special_tags)
 
     if groupings_dict['singleTimepoint'] is False:
         groupings_dict['plates'] = [{'id': p.id, 'name': p.name}
