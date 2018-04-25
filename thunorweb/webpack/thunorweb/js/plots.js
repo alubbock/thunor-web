@@ -443,6 +443,7 @@ var plots = function() {
         var $plotPanelBody = $plotPanel.find(".panel-body");
         $plotPanelBody.loadingOverlay("show");
         var $submit = $form.find("button[type=submit]");
+        toggleDataPanel($plotPanel, false);
 
         $submit.prop("disabled", true).text("Loading...");
         $.ajax({
@@ -454,10 +455,12 @@ var plots = function() {
                     $plotPanelBody.find(".plotly-graph-div").addClass("loaded"),
                     data
                 );
-                toggleDataPanel($plotPanel, false);
                 updateURL();
             },
-            error: ajax.ajaxErrorCallback,
+            error: function(jqXHR, textStatus, thrownError) {
+                ajax.ajaxErrorCallback(jqXHR, textStatus, thrownError);
+                toggleDataPanel($plotPanel, true);
+            },
             complete: function () {
                 $submit.prop("disabled", false).text("Show Plot");
                 $plotPanelBody.loadingOverlay("hide");
@@ -490,10 +493,17 @@ var plots = function() {
         var $vaxis = $dataPanel.find('input[name=logTransform]');
         var $drMetric = $dataPanel.find('input[name=drMetric]');
 
-        $drMetric.filter('[value=viability]').add($vaxis.filter('[value=None]')).click();
-        $drMetric.filter('[value=dip]').add($vaxis.filter('[value=log2]'))
-            .add($dataPanel.find('input[name=qcView]')).prop('disabled', true)
+        $drMetric.filter('[value=viability]').prop('checked', true).closest('.form-group').hide();
+        $vaxis.filter('[value=None]').prop('checked', true).closest('.form-group').hide();
+
+        $dataPanel.find('input[name=qcView]').prop('disabled', true)
             .closest('label').addClass('disabled');
+
+        $dataPanel.find('.hts-drc-type').closest('.form-group').remove();
+        $dataPanel.find(".hts-show-dip-fit").closest('.form-group').remove();
+
+        $dataPanel.find(".dataset-badges").html('<span' +
+            ' class="badge">1x <i class="fa fa-clock-o"></i></span>');
     };
 
     var toggleDataPanel = function($panel, showIfTrue) {

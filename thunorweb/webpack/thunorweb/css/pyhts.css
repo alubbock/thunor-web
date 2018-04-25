@@ -455,6 +455,9 @@ user-select: none;}
 .modal {
     z-index: 6000;
 }
+.modal-backdrop {
+    z-index: 5999;
+}
 #loading-modal {
     padding-top:15%;
     overflow-y:visible;
