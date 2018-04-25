@@ -453,11 +453,12 @@ user-select: none;}
     height:100%;
 }
 .modal {
-    z-index: 10000;
+    z-index: 6000;
 }
 #loading-modal {
     padding-top:15%;
     overflow-y:visible;
+    z-index: 10000;
 }
 #loading-modal .loading-overlay {
     display: block;
@@ -600,9 +601,6 @@ user-select: none;}
     height:450px;
     /*overflow:visible;*/
 }
-.plot-panel .dropdown-menu {
-    z-index: 1024;
-}
 .panel-placeholder {
     border: 1px solid #999;
     border-radius: 3px;
@@ -623,7 +621,6 @@ user-select: none;}
     position: absolute;
     top: 0;
     left: -1px;
-    z-index: 1024;
     /*background: rgba(255, 255, 255, 0.9);*/
     background: #dee4ed;
     margin: 0;

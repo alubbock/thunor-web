@@ -162,6 +162,13 @@ var plots = function() {
         }
     });
 
+    var adjustZindexes = function() {
+        $('.sortable-panels').find('.hts-change-data').each(function(i, obj) {
+            obj.style.zIndex = 1999 - i;
+        });
+    };
+
+
     $(".sortable-panels").sortable({
         tolerance: "pointer",
         revert: "invalid",
@@ -172,7 +179,8 @@ var plots = function() {
         zIndex: 2000,
         activate: function( event, ui ) {
           $(ui.placeholder).height($(ui.helper).height());
-        }
+        },
+        update: adjustZindexes
     });
 
     var setColumns = function (numColsMd, numColsLg) {
@@ -330,24 +338,21 @@ var plots = function() {
             // Enable drug combinations
             $optgroupDrugCombos.prop("disabled", false);
 
-            $changeCLDrug
-                .selectpicker(selectPickerOptionsSingle)
-                .selectpicker("refresh");
+            $actionBtns.hide();
+
+            $changeCLDrug.selectpicker(selectPickerOptionsSingle);
 
             $dataPanel.find(".name-tag-switch").find('input[value=off]').click();
-            $actionBtns.hide();
         } else {
             // Disable drug combinations
             $optgroupDrugCombos.find("option:selected")
                 .prop("selected", false);
             $optgroupDrugCombos.prop("disabled", true);
-            $changeCLDrug
-                .selectpicker(selectPickerOptionsMultiple)
-                .selectpicker("refresh")
-                .selectpicker("render");
-
             $actionBtns.show();
+            $changeCLDrug.selectpicker(selectPickerOptionsMultiple);
         }
+        $changeCLDrug.selectpicker("refresh");
+        // $('select.tag-select').selectpicker(selectPickerTagOptions).selectpicker("render").selectpicker("refresh");
         // Only enable drug combos on timecourse plot for now
         var $toggleDRparTwoSwitch = $dataPanel.find("input[name=drParTwoToggle]");
         var $toggleDRparOrderSwitch = $dataPanel.find("input[name=drParOrderToggle]");
@@ -392,11 +397,11 @@ var plots = function() {
         var $this = $(this);
         var $formGroup = $this.closest(".cl-or-drug");
         if ($this.val() === "on") {
-            $formGroup.find(".tag-select").prop("disabled", false).selectpicker("refresh").selectpicker("show");
+            $formGroup.find(".tag-select").prop("disabled", false).selectpicker("show").selectpicker("refresh");
             $formGroup.find(".name-select").prop("disabled", true).selectpicker("hide");
         } else {
             $formGroup.find(".tag-select").prop("disabled", true).selectpicker("hide");
-            $formGroup.find(".name-select").prop("disabled", false).selectpicker("refresh").selectpicker("show");
+            $formGroup.find(".name-select").prop("disabled", false).selectpicker("show").selectpicker("refresh");
         }
     });
     $(".btn-group").on("click", ".disabled", function(e) {
@@ -503,6 +508,7 @@ var plots = function() {
             }
             $parentTgt.addClass("open");
             $dataPanel.show();
+            $dataPanel.find("select:enabled").selectpicker("refresh");
         }
     };
 
@@ -630,6 +636,8 @@ var plots = function() {
 
         var $cellLineSelect = $dataPanel.find("select[name=c]"),
             $drugSelect = $dataPanel.find("select[name=d]"),
+            $clTagSelect = $dataPanel.find("select[name=cT]"),
+            $drTagSelect = $dataPanel.find("select[name=dT]"),
             $assaySelect = $dataPanel.find("select[name=assayId]"),
             $plateSelect = $dataPanel.find("select[name=plateId]");
 
@@ -687,16 +695,14 @@ var plots = function() {
             if (!multiDataset && data.assays[0].length > 1) {
                 setSelectPicker($assaySelect, true);
             }
-            var $selectClTags = $dataPanel.find("select[name=cT]");
-            $selectClTags.prop("disabled", true).selectpicker(selectPickerTagOptions).selectpicker("hide");
+            $clTagSelect.prop("disabled", true).selectpicker(selectPickerTagOptions).selectpicker("hide");
             pushOptionsToSelect(
-                $selectClTags,
+                $clTagSelect,
                 data.cellLineTags
             );
-            var $selectDrTags = $dataPanel.find("select[name=dT]");
-            $selectDrTags.prop("disabled", true).selectpicker(selectPickerTagOptions).selectpicker("hide");
+            $drTagSelect.prop("disabled", true).selectpicker(selectPickerTagOptions).selectpicker("hide");
             pushOptionsToSelect(
-                $selectDrTags,
+                $drTagSelect,
                 data.drugTags
             );
 
@@ -817,6 +823,7 @@ var plots = function() {
         $("html, body").animate({
             scrollTop: $newPanel.offset().top
         }, 400);
+        adjustZindexes();
     });
 
     // Add new panel
@@ -861,6 +868,7 @@ var plots = function() {
         $plotPanel.prependTo(".sortable-panels").fadeIn(400, function () {
             $changeDataBtn.click();
         });
+        adjustZindexes();
     });
 
     function plotlyTouchHandler(event)
@@ -936,6 +944,7 @@ var plots = function() {
         $(".show-plot-delayed").not(":last").show().find("button").click(function() {
            $(this).closest(".plot-panel").find(".hts-change-data > form").submit();
         });
+        adjustZindexes();
     } else {
         $("#quickstart").show();
     }
