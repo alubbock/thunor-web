@@ -390,8 +390,11 @@ def _dose_response_plot(request, dataset, dataset2_id,
             'No data found for this request. This drug/cell '
             'line/assay combination may not exist.', status=400)
 
-    if plot_type == 'drc' and len(drug_id) == 1 and len(
-            cell_line_id) == 1:
+    single_drug = len(base_params.index.get_level_values('drug').unique()) == 1
+    single_cl = len(base_params.index.get_level_values('cell_line').unique()) \
+                == 1
+
+    if plot_type == 'drc' and single_cl and single_drug:
         try:
             if response_metric == 'dip':
                 ctrl_resp_data, expt_resp_data = df_dip_rates(
