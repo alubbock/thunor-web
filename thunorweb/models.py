@@ -178,10 +178,20 @@ class WellStatistic(models.Model):
     value = models.FloatField(null=True)
 
 
-class CurveFit(models.Model):
-    stat_type = models.CharField(max_length=10, db_index=True)
-    viability_time = models.DurationField(null=True, db_index=True)
+class CurveFitSet(models.Model):
+    class Meta:
+        unique_together = (('dataset', 'stat_type', 'viability_time'), )
+
     dataset = models.ForeignKey(HTSDataset)
+    stat_type = models.CharField(max_length=10)
+    viability_time = models.DurationField()
+    fit_protocol = models.IntegerField()
+    calculation_start = models.DateTimeField()
+    calculation_end = models.DateTimeField(null=True)
+
+
+class CurveFit(models.Model):
+    fit_set = models.ForeignKey(CurveFitSet)
     cell_line = models.ForeignKey(CellLine)
     drug = models.ForeignKey(Drug)
     curve_fit_class = models.CharField(max_length=20, null=True)

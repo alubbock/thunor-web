@@ -1,5 +1,5 @@
 from .models import HTSDataset, WellMeasurement, WellStatistic, CellLine, \
-    Drug, WellDrug, Well, CurveFit
+    Drug, WellDrug, Well, CurveFit, CurveFitSet
 from .pandas import df_doses_assays_controls, NoDataException, df_dip_rates
 from thunor.dip import dip_rates, _choose_dip_assay
 from thunor.curve_fit import fit_params_minimal
@@ -9,10 +9,16 @@ from django.db import transaction
 from django.db.models import Count, F
 from collections import defaultdict, Sequence
 from django.core.cache import cache
+from django.utils import timezone
 from datetime import timedelta
 import pickle
 from thunor.curve_fit import HillCurveLL3u, HillCurveLL4
 from thunor.viability import viability
+
+
+# Increment these versions to indicate a change in calculation protocols
+DIP_PROTOCOL_VER = 1
+VIABILITY_PROTOCOL_VER = 1
 
 
 def precalculate_dip_rates(dataset_or_id):
@@ -124,8 +130,13 @@ def precalculate_dip_curves(dataset_or_id, verbose=False):
     cell_lines = {cl.name: cl for cl in CellLine.objects.all()}
     drugs = {dr.name: dr for dr in Drug.objects.all()}
 
-    # Delete existing curve fits
-    CurveFit.objects.filter(dataset=dataset, stat_type='dip').delete()
+    cfs = CurveFitSet.objects.create(
+        dataset=dataset,
+        stat_type='dip',
+        fit_protocol=DIP_PROTOCOL_VER,
+        viability_time=timedelta(0),
+        calculation_start=timezone.now()
+    )
 
     for i, cl_id in enumerate(cell_line_ids):
         if verbose:
@@ -159,8 +170,7 @@ def precalculate_dip_curves(dataset_or_id, verbose=False):
 
         for fp in fp_data.itertuples():
             fits.append(CurveFit(
-                stat_type='dip',
-                dataset=dataset,
+                fit_set=cfs,
                 cell_line=cell_lines[fp.Index[1]],
                 drug=drugs[fp.Index[2]],
                 curve_fit_class=fp.fit_obj.__class__.__name__
@@ -173,6 +183,9 @@ def precalculate_dip_curves(dataset_or_id, verbose=False):
             ))
 
         CurveFit.objects.bulk_create(fits)
+
+    cfs.calculation_end = timezone.now()
+    cfs.save()
 
 
 @transaction.atomic
@@ -196,8 +209,13 @@ def precalculate_viability(dataset_or_id, time_hrs=72, assay_name=None,
     cell_lines = {cl.name: cl for cl in CellLine.objects.all()}
     drugs = {dr.name: dr for dr in Drug.objects.all()}
 
-    # Delete existing curve fits
-    CurveFit.objects.filter(dataset=dataset, stat_type='viability').delete()
+    cfs = CurveFitSet.objects.create(
+        dataset=dataset,
+        stat_type='viability',
+        viability_time=timedelta(hours=time_hrs),
+        fit_protocol=VIABILITY_PROTOCOL_VER,
+        calculation_start=timezone.now()
+    )
 
     for i, cl_id in enumerate(cell_line_ids):
         if verbose:
@@ -233,13 +251,9 @@ def precalculate_viability(dataset_or_id, time_hrs=72, assay_name=None,
             fit_cls=HillCurveLL3u
         )
 
-        via_time = timedelta(hours=fp_data._viability_time)
-
         for fp in fp_data.itertuples():
             fits.append(CurveFit(
-                stat_type='viability',
-                viability_time=via_time,
-                dataset=dataset,
+                fit_set=cfs,
                 cell_line=cell_lines[fp.Index[1]],
                 drug=drugs[fp.Index[2]],
                 curve_fit_class=fp.fit_obj.__class__.__name__
@@ -252,6 +266,9 @@ def precalculate_viability(dataset_or_id, time_hrs=72, assay_name=None,
             ))
 
         CurveFit.objects.bulk_create(fits)
+
+    cfs.calculation_end = timezone.now()
+    cfs.save()
 
 
 def _get_remapping(ids, names):

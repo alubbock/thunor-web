@@ -394,19 +394,19 @@ def _row_to_curve_fit(row):
 def df_curve_fits(dataset_ids, stat_type,
                   drug_ids, cell_line_ids, viability_time=None):
     cf = CurveFit.objects.filter(
-        stat_type=stat_type,
-        dataset_id__in=[dataset_ids] if isinstance(dataset_ids,
-                                                   int) else dataset_ids,
-    ).select_related('drug', 'cell_line').order_by('dataset_id',
+        fit_set__stat_type=stat_type,
+        fit_set__dataset_id__in=[dataset_ids] if isinstance(dataset_ids,
+                                                 int) else dataset_ids,
+    ).select_related('drug', 'cell_line').order_by('fit_set__dataset_id',
                                                    'cell_line__name',
                                                    'drug__name')
-    cols = ['dataset__name', 'cell_line__name', 'drug__name',
+    cols = ['fit_set__dataset__name', 'cell_line__name', 'drug__name',
             'curve_fit_class', 'fit_params', 'max_dose',
             'min_dose', 'emax_obs']
     if viability_time is None:
-        cols += ['viability_time']
+        cols += ['fit_set__viability_time']
     else:
-        cf = cf.filter(viability_time=timedelta(hours=viability_time))
+        cf = cf.filter(fit_set__viability_time=timedelta(hours=viability_time))
     if drug_ids is not None:
         cf = cf.filter(drug_id__in=drug_ids)
     if cell_line_ids is not None:
@@ -420,17 +420,17 @@ def df_curve_fits(dataset_ids, stat_type,
         raise NoDataException()
 
     if viability_time is None:
-        viability_times = base_params['viability_time'].unique()
+        viability_times = base_params['fit_set__viability_time'].unique()
         assert len(viability_times) == 1
         if viability_times[0] is not None:
             viability_time = viability_times[0].astype(
                 'timedelta64[h]').item().total_seconds() / SECONDS_IN_HOUR
-        base_params.drop(columns='viability_time', inplace=True)
+        base_params.drop(columns='fit_set__viability_time', inplace=True)
 
     base_params['fit_obj'] = base_params.apply(_row_to_curve_fit, axis=1)
     base_params.drop(columns=['curve_fit_class', 'fit_params'], inplace=True)
     base_params.rename(columns={
-        'dataset__name': 'dataset_id',
+        'fit_set__dataset__name': 'dataset_id',
         'cell_line__name': 'cell_line',
         'drug__name': 'drug',
         'min_dose': 'min_dose_measured',
