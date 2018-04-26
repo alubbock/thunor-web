@@ -74,17 +74,27 @@ class TestDatasetViews(TestCase):
         self.check_view_access_status(
                reverse('thunorweb:download_dataset_hdf5', args=[self.d.id]))
 
-    def test_download_params_csv(self):
+    def test_download_dip_params_tsv(self):
         self.client.force_login(self.user)
-        resp = self.client.get(reverse('thunorweb:download_dip_fit_params',
-                                  args=[self.d.id]))
+        resp = self.client.get(reverse('thunorweb:download_fit_params',
+                                       args=[self.d.id, 'dip']))
 
         self.assertEquals(resp.status_code, HTTP_OK)
-        self.assertEquals(resp['Content-Type'], 'text/csv')
+        self.assertEquals(resp['Content-Type'], 'text/tab-separated-values')
 
-    def test_download_params_csv_access(self):
-        self.check_view_access_status(
-               reverse('thunorweb:download_dip_fit_params', args=[self.d.id]))
+    def test_download_viability_params_tsv(self):
+        self.client.force_login(self.user)
+        resp = self.client.get(reverse('thunorweb:download_fit_params',
+                                       args=[self.d.id, 'viability']))
+
+        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEquals(resp['Content-Type'], 'text/tab-separated-values')
+
+    def test_download_params_tsv_access(self):
+        for stat_type in ('dip', 'viability'):
+            self.check_view_access_status(
+                   reverse('thunorweb:download_fit_params',
+                           args=[self.d.id, stat_type]))
 
     def test_view_dataset(self):
         self.check_view_access_status(

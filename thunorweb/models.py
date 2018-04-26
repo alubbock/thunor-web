@@ -17,6 +17,7 @@ class HTSDataset(models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL)
     name = models.TextField()
     creation_date = models.DateTimeField(auto_now_add=True)
+    modified_date = models.DateTimeField(auto_now=True)
     deleted_date = models.DateTimeField(null=True, default=None,
                                         editable=False)
 
@@ -189,8 +190,14 @@ class CurveFitSet(models.Model):
     calculation_start = models.DateTimeField()
     calculation_end = models.DateTimeField(null=True)
 
+    def __str__(self):
+        return '{} on dataset {}'.format(self.stat_type, self.dataset)
+
 
 class CurveFit(models.Model):
+    class Meta:
+        unique_together = (('fit_set', 'cell_line', 'drug'), )
+
     fit_set = models.ForeignKey(CurveFitSet)
     cell_line = models.ForeignKey(CellLine)
     drug = models.ForeignKey(Drug)
@@ -199,3 +206,14 @@ class CurveFit(models.Model):
     max_dose = models.FloatField()
     min_dose = models.FloatField()
     emax_obs = models.FloatField()
+
+
+class HTSDatasetFile(models.Model):
+    class Meta:
+        unique_together = (('dataset', 'file_type'), )
+
+    dataset = models.ForeignKey(HTSDataset)
+    file_type = models.TextField()
+    file_type_protocol = models.IntegerField()
+    file = models.FileField()
+    creation_date = models.DateTimeField(auto_now_add=True)

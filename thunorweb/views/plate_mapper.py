@@ -122,7 +122,8 @@ def ajax_save_plate(request):
     else:
         pl_objs = Plate.objects.filter(id__in=plate_ids)
     pl_objs = pl_objs.filter(dataset__owner_id=request.user.id,
-                             dataset__deleted_date=None)
+                             dataset__deleted_date=None
+                             ).select_related('dataset')
 
     pre_mod_savepoint = None
     if apply_mode != 'normal':
@@ -246,8 +247,11 @@ def ajax_save_plate(request):
                      len(v) > 1 else None) for k, v in
                      well_drugs_to_create.items()])
 
-    # TODO: Hand off for asynchronous processing with celery
     dataset = pl_objs[0].dataset
+    # Update modified_date
+    dataset.save()
+
+    # TODO: Hand off for asynchronous processing with celery
     dataset_groupings(dataset, regenerate_cache=True)
     precalculate_dip_curves(dataset)
     precalculate_viability(dataset)
@@ -262,8 +266,6 @@ def ajax_save_plate(request):
                                extra_return_args={'savedPlateId': plate_id})
     else:
         return JsonResponse({'success': True, 'savedPlateId': plate_id})
-
-    # TODO: Validate received PlateMap further?
 
 
 def ajax_load_plate(request, plate_id, extra_return_args=None,

@@ -336,6 +336,7 @@ class PlateFileParser(object):
             batch_size=settings.DB_MAX_BATCH_SIZE
         )
 
+        # Update modified_date
         self.dataset.save()
 
     @transaction.atomic
@@ -468,6 +469,9 @@ class PlateFileParser(object):
                                           'assay and time points has been '
                                           'uploaded to this dataset before')
 
+        # Update modified_date
+        self.dataset.save()
+
     @transaction.atomic
     def parse_platefile_imagexpress(self):
         self.file_format = 'ImageXpress'
@@ -553,6 +557,9 @@ class PlateFileParser(object):
             raise PlateFileParseException('A file with the same plate, '
                                           'assay and time points has been '
                                           'uploaded to this dataset before')
+
+        # Update modified_date
+        self.dataset.save()
 
     def _get_or_create_plate(self, plate_name, well_cols, well_rows):
         # TODO: Replace with sparse plate implementation

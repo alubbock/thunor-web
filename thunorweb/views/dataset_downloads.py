@@ -1,103 +1,160 @@
 from django.shortcuts import Http404
 from django.http import HttpResponse
-from thunorweb.models import HTSDataset
+from thunorweb.models import HTSDataset, HTSDatasetFile
 from thunor.plots import PARAM_NAMES
-from thunor.curve_fit import fit_params, DrugCombosNotImplementedError
+from thunor.curve_fit import fit_params_from_base
 from thunor.io import write_hdf
-from thunorweb.pandas import df_doses_assays_controls, df_dip_rates, \
+from thunorweb.pandas import df_doses_assays_controls, df_curve_fits, \
     NoDataException
 import numpy as np
 from django.conf import settings
-import tempfile
+import os
 from thunorweb.serve_file import serve_file
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 from thunorweb.views import login_required_unless_public, _assert_has_perm
 
 
-@login_required_unless_public
-@xframe_options_sameorigin
-def download_dip_fit_params(request, dataset_id):
-    dataset_name = 'dataset'
+def _cached_file(dataset, file_type):
     try:
-        dataset_id = int(dataset_id)
-        dataset = HTSDataset.objects.get(pk=dataset_id, deleted_date=None)
-        dataset_name = dataset.name
-
-        _assert_has_perm(request, dataset, 'download_data')
-
-        # Fetch the DIP rates from the DB
-        ctrl_dip_data, expt_dip_data = df_dip_rates(
-            dataset_id=dataset_id,
-            drug_id=None,
-            cell_line_id=None
+        file = HTSDatasetFile.objects.get(
+            dataset_id=dataset.id,
+            file_type=file_type
         )
+    except HTSDatasetFile.DoesNotExist:
+        return None
 
-        # Fit Hill curves and compute parameters
-        fp = fit_params(
-            ctrl_dip_data, expt_dip_data
-        )
-        fp.reset_index('dataset_id', drop=True, inplace=True)
-        # Remove -ve AA values
-        fp.loc[fp['aa'] < 0.0, 'aa'] = np.nan
+    if file.creation_date < dataset.modified_date:
+        # File needs updating
+        return None
 
-        # Filter for the default list of parameters only
-        fp = fp.filter(items=PARAM_NAMES.keys())
+    return file
 
-        response = HttpResponse(fp.to_csv(), content_type='text/csv')
-    except NoDataException:
-        response = HttpResponse('No data found for this request. This '
-                                'drug/cell line/assay combination may not '
-                                'exist.',
-                                content_type='text/plain')
-    except (HTSDataset.DoesNotExist, ValueError):
-        response = HttpResponse('This dataset does not exist, or you do not '
-                                'have permission to access it.',
-                                content_type='text/plain')
-    except DrugCombosNotImplementedError:
-        response = HttpResponse('Parameter calculations for datasets with '
-                                'drug combinations is not yet implemented.',
-                                content_type='text/plain')
 
+def _plain_response(response_text):
+    response = HttpResponse(response_text, content_type='text/plain')
     response['Content-Disposition'] = \
-        'attachment; filename="{}_params.csv"'.format(dataset_name)
+        'attachment; filename="download_failed.txt"'
     response['Set-Cookie'] = 'fileDownload=true; path=/'
     return response
 
 
 @login_required_unless_public
 @xframe_options_sameorigin
-def download_dataset_hdf5(request, dataset_id):
+def download_fit_params(request, dataset_id, stat_type):
+    file_type = 'fit_params_{}_tsv'.format(stat_type)
+    file_name = 'fit_params_{}_{}.tsv'.format(stat_type, dataset_id)
+    file_type_version = 1
+    param_names = {
+        'dip': ('aa', 'emax', 'emax_rel', 'emax_obs', 'emax_obs_rel',
+                'einf', 'ec50', 'ic50', 'hill'),
+        'viability': ('aa', 'emax', 'emax_obs', 'einf', 'ec50', 'ic50', 'hill')
+    }
+
     try:
         dataset = HTSDataset.objects.get(pk=dataset_id, deleted_date=None)
+    except (HTSDataset.DoesNotExist, ValueError):
+        return _plain_response('This dataset does not exist, or you do not '
+                               'have permission to access it.')
 
-        _assert_has_perm(request, dataset, 'download_data')
+    _assert_has_perm(request, dataset, 'download_data')
 
-        df_data = df_doses_assays_controls(
+    file = _cached_file(dataset, file_type)
+
+    if file:
+        full_path = file.file.name
+    else:
+        try:
+            # Fetch the DIP rates from the DB
+            base_params = df_curve_fits(dataset.id, stat_type,
+                                        drug_ids=None, cell_line_ids=None)
+        except NoDataException:
+            return _plain_response(
+                'The requested parameter set does not exist for the '
+                'specified dataset'
+            )
+
+        # Fit Hill curves and compute parameters
+        fp = fit_params_from_base(
+            base_params,
+            custom_ic_concentrations={50},
+            custom_ec_concentrations={50},
+            include_auc=False,
+            include_aa=True,
+            include_hill=True,
+            include_emax=True,
+            include_einf=True,
+            include_response_values=False
+        )
+        fp.reset_index('dataset_id', drop=True, inplace=True)
+        # Remove -ve AA values
+        fp.loc[fp['aa'] < 0.0, 'aa'] = np.nan
+
+        # Filter for the default list of parameters only
+        fp = fp.filter(items=param_names[stat_type])
+
+        full_path = os.path.join(settings.DOWNLOADS_ROOT, file_name)
+
+        fp.to_csv(full_path, sep='\t')
+
+        HTSDatasetFile.objects.create(
             dataset=dataset,
-            drug_id=None,
-            cell_line_id=None,
-            assay=None,
-            for_export=True
+            file_type=file_type,
+            file_type_protocol=file_type_version,
+            file=full_path
         )
 
-        with tempfile.NamedTemporaryFile('wb',
-                                         dir=settings.DOWNLOADS_ROOT,
-                                         prefix='h5dset',
-                                         suffix='.h5',
-                                         delete=False) as tf:
-            tf.close()
-            tmp_filename = tf.name
-            write_hdf(df_data, tmp_filename)
+    output_filename = '{}_{}_params.h5'.format(dataset.name, stat_type)
 
-        output_filename = '{}.h5'.format(dataset.name)
+    return serve_file(request, full_path, rename_to=output_filename,
+                      content_type='text/tab-separated-values')
 
-        return serve_file(request, tmp_filename, rename_to=output_filename,
-                          content_type='application/x-hdf5')
+
+@login_required_unless_public
+@xframe_options_sameorigin
+def download_dataset_hdf5(request, dataset_id):
+    file_type = 'dataset_hdf5'
+    file_name = 'dataset_{}.h5'.format(dataset_id)
+    file_type_version = 1
+
+    try:
+        dataset = HTSDataset.objects.get(pk=dataset_id, deleted_date=None)
     except HTSDataset.DoesNotExist:
         raise Http404()
-    except NoDataException:
-        response = HttpResponse('No data found for this request',
-                                content_type='text/plain')
-        response['Content-Disposition'] = 'attachment; filename=failed.txt'
-        response['Set-Cookie'] = 'fileDownload=true; path=/'
-        return response
+
+    _assert_has_perm(request, dataset, 'download_data')
+
+    file = _cached_file(dataset, file_type)
+
+    if file:
+        full_path = file.file.name
+    else:
+        try:
+            df_data = df_doses_assays_controls(
+                dataset=dataset,
+                drug_id=None,
+                cell_line_id=None,
+                assay=None,
+                for_export=True
+            )
+        except NoDataException:
+            response = HttpResponse('No data found for this request',
+                                    content_type='text/plain')
+            response['Content-Disposition'] = 'attachment; filename=failed.txt'
+            response['Set-Cookie'] = 'fileDownload=true; path=/'
+            return response
+
+        full_path = os.path.join(settings.DOWNLOADS_ROOT, file_name)
+        write_hdf(df_data, full_path)
+        HTSDatasetFile.objects.create(
+            dataset=dataset,
+            file_type=file_type,
+            file_type_protocol=file_type_version,
+            file=full_path
+        )
+
+    output_filename = '{}.h5'.format(dataset.name)
+
+    return serve_file(request, full_path, rename_to=output_filename,
+                      content_type='application/x-hdf5')
+
+

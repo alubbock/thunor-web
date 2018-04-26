@@ -46,6 +46,8 @@ def view_dataset(request, dataset_id):
         if not (set(perms_base) & set(perms)):
             raise Http404()
 
+    dataset.single_timepoint = dataset_groupings(dataset)['singleTimepoint']
+
     response = render(request, 'dataset.html',
                       {'dataset': dataset, 'perms': perms,
                        'back_link': ["home page", reverse('thunorweb:home')]})

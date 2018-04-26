@@ -1,5 +1,5 @@
 from .models import HTSDataset, WellMeasurement, WellStatistic, CellLine, \
-    Drug, WellDrug, Well, CurveFit, CurveFitSet
+    Drug, WellDrug, Well, CurveFit, CurveFitSet, CellLineTag, DrugTag
 from .pandas import df_doses_assays_controls, NoDataException, df_dip_rates
 from thunor.dip import dip_rates, _choose_dip_assay
 from thunor.curve_fit import fit_params_minimal
@@ -19,6 +19,12 @@ from thunor.viability import viability
 # Increment these versions to indicate a change in calculation protocols
 DIP_PROTOCOL_VER = 1
 VIABILITY_PROTOCOL_VER = 1
+
+DEFAULT_VIABILITY_TIME_HRS = 72
+SECONDS_IN_HOUR = 3600
+
+# Maximum number of cominbations to process at once
+MAX_COMBINATIONS_AT_ONCE = 10000
 
 
 def precalculate_dip_rates(dataset_or_id):
@@ -107,7 +113,8 @@ def precalculate_dip_rates(dataset_or_id):
 
 
 @transaction.atomic
-def precalculate_dip_curves(dataset_or_id, verbose=False):
+def precalculate_dip_curves(dataset_or_id, verbose=False,
+                            delete_previous=True):
     if isinstance(dataset_or_id, HTSDataset):
         dataset = dataset_or_id
     elif isinstance(dataset_or_id, int):
@@ -121,7 +128,8 @@ def precalculate_dip_curves(dataset_or_id, verbose=False):
         return
 
     cell_line_ids = Well.objects.filter(
-        plate__dataset=dataset
+        plate__dataset=dataset,
+        cell_line__isnull=False
     ).values_list('cell_line_id', flat=True).distinct()
 
     if not cell_line_ids:
@@ -129,6 +137,13 @@ def precalculate_dip_curves(dataset_or_id, verbose=False):
 
     cell_lines = {cl.name: cl for cl in CellLine.objects.all()}
     drugs = {dr.name: dr for dr in Drug.objects.all()}
+
+    if len(cell_lines) * len(drugs) < MAX_COMBINATIONS_AT_ONCE:
+        cell_line_ids = [None]
+
+    # Delete previous if required
+    if delete_previous:
+        CurveFitSet.objects.filter(dataset=dataset, stat_type='dip').delete()
 
     cfs = CurveFitSet.objects.create(
         dataset=dataset,
@@ -189,8 +204,8 @@ def precalculate_dip_curves(dataset_or_id, verbose=False):
 
 
 @transaction.atomic
-def precalculate_viability(dataset_or_id, time_hrs=72, assay_name=None,
-                           verbose=False):
+def precalculate_viability(dataset_or_id, time_hrs=None, assay_name=None,
+                           verbose=False, delete_previous=True):
     if isinstance(dataset_or_id, HTSDataset):
         dataset = dataset_or_id
     elif isinstance(dataset_or_id, int):
@@ -200,7 +215,8 @@ def precalculate_viability(dataset_or_id, time_hrs=72, assay_name=None,
                          'primary key')
 
     cell_line_ids = Well.objects.filter(
-        plate__dataset=dataset
+        plate__dataset=dataset,
+        cell_line__isnull=False
     ).values_list('cell_line_id', flat=True).distinct()
 
     if not cell_line_ids:
@@ -209,10 +225,29 @@ def precalculate_viability(dataset_or_id, time_hrs=72, assay_name=None,
     cell_lines = {cl.name: cl for cl in CellLine.objects.all()}
     drugs = {dr.name: dr for dr in Drug.objects.all()}
 
+    if len(cell_lines) * len(drugs) < MAX_COMBINATIONS_AT_ONCE:
+        cell_line_ids = [None]
+
+    if time_hrs is None:
+        groupings = dataset_groupings(dataset)
+        if groupings['singleTimepoint'] is not False:
+            viability_time = groupings['singleTimepoint']
+        else:
+            viability_time = timedelta(hours=DEFAULT_VIABILITY_TIME_HRS)
+    else:
+        viability_time = timedelta(hours=time_hrs)
+
+    time_hrs = viability_time.total_seconds() / SECONDS_IN_HOUR
+
+    # Delete previous if required
+    if delete_previous:
+        CurveFitSet.objects.filter(dataset=dataset,
+                                   stat_type='viability').delete()
+
     cfs = CurveFitSet.objects.create(
         dataset=dataset,
         stat_type='viability',
-        viability_time=timedelta(hours=time_hrs),
+        viability_time=viability_time,
         fit_protocol=VIABILITY_PROTOCOL_VER,
         calculation_start=timezone.now()
     )

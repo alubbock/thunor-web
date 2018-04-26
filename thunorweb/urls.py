@@ -52,8 +52,9 @@ urlpatterns = [
 
     url(r'^dataset/(?P<dataset_id>\d+)/download/hdf5$',
         downloads.download_dataset_hdf5, name='download_dataset_hdf5'),
-    url(r'^dataset/(?P<dataset_id>\d+)/download/fit_params$',
-        downloads.download_dip_fit_params, name='download_dip_fit_params'),
+    url(r'^dataset/(?P<dataset_id>\d+)/download/fit_params_'
+        r'(?P<stat_type>viability|dip)$',
+        downloads.download_fit_params, name='download_fit_params'),
 
     url(r'^plots$', plots.plots, name='plots'),
 
