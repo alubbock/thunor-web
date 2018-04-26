@@ -15,6 +15,9 @@ import sys
 import thunorweb
 from django.contrib import messages
 import errno
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -122,7 +125,7 @@ try:
     DEFAULT_FROM_EMAIL = os.environ.get('DJANGO_EMAIL_FROM', EMAIL_HOST_USER)
 except KeyError:
     if DEBUG:
-        print('Email configuration missing; email sending disabled')
+        logger.warning('Email configuration missing; email sending disabled')
         _email_enabled = False
     else:
         raise
@@ -296,6 +299,8 @@ DOWNLOADS_ROOT = os.path.join(MEDIA_ROOT, 'downloads')
 DOWNLOADS_URL = '/_thunor_downloads/'
 # Delete ephemeral download files after this amount of time
 DOWNLOAD_EPHEMERAL_PURGE_DAYS = 7
+# Time to retain datasets after they've been marked for deletion
+DATASET_RETENTION_DAYS = 30
 
 try:
     os.makedirs(DOWNLOADS_ROOT)
