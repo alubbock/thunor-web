@@ -97,7 +97,7 @@ def ajax_save_plate(request):
     if not request.user.is_authenticated():
         return JsonResponse({}, status=401)
 
-    plate_data = json.loads(request.body.decode(request.encoding))
+    plate_data = json.loads(request.body.decode(request.encoding or 'utf-8'))
 
     plate_id = None
     apply_mode = 'normal'

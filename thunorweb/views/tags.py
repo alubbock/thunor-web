@@ -53,7 +53,7 @@ def ajax_get_tags(request, tag_type, group=None):
             return JsonResponse({'error', 'Authentication required'},
                                 status=401)
         perm_filter = Q(owner=request.user)
-    elif group == 'Public':
+    elif group == 'public':
         if tag_type == 'drugs':
             perm_filter = Q(drugtaggroupobjectpermission__group__name='Public')
         else:

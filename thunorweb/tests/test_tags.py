@@ -1,6 +1,7 @@
 from django.test import TestCase
 from thunorweb.models import CellLine, Drug, CellLineTag, DrugTag
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.urls import reverse
 import json
 import io
@@ -60,6 +61,36 @@ class TestTags(TestCase):
             [cl]
         )
 
+        # Share
+        public = Group.objects.get(name='Public')
+        resp = self.client.post(
+            reverse('thunorweb:ajax_set_tag_group_permission'),
+            {'tag_id': tag_id,
+             'tag_type': 'cell_lines',
+             'group_id': public.id,
+             'state': True
+             }
+        )
+        self.assertEquals(resp.status_code, HTTP_OK)
+
+        # Get
+        resp = self.client.get(
+            reverse('thunorweb:ajax_get_tags',
+                    args=['cell_lines', 'public'])
+        )
+        self.assertEquals(resp.status_code, HTTP_OK)
+        resp_data = json.loads(resp.content)
+        self.assertEquals(len(resp_data['data']), 1)
+
+        # Get targets
+        resp = self.client.get(
+            reverse('thunorweb:ajax_get_tag_targets',
+                    args=['cell_lines', tag_id])
+        )
+        self.assertEquals(resp.status_code, HTTP_OK)
+        resp_data = json.loads(resp.content)
+        self.assertEquals(len(resp_data['targets']), 1)
+
         # Rename
         resp = self.client.post(reverse('thunorweb:ajax_rename_tag'),
                                 {'tagId': tag_id,
@@ -103,6 +134,36 @@ class TestTags(TestCase):
             list(DrugTag.objects.get(id=tag_id).drugs.all()),
             [dr]
         )
+
+        # Share
+        public = Group.objects.get(name='Public')
+        resp = self.client.post(
+            reverse('thunorweb:ajax_set_tag_group_permission'),
+            {'tag_id': tag_id,
+             'tag_type': 'drugs',
+             'group_id': public.id,
+             'state': True
+             }
+        )
+        self.assertEquals(resp.status_code, HTTP_OK)
+
+        # Get
+        resp = self.client.get(
+            reverse('thunorweb:ajax_get_tags',
+                    args=['drugs', 'public'])
+        )
+        self.assertEquals(resp.status_code, HTTP_OK)
+        resp_data = json.loads(resp.content)
+        self.assertEquals(len(resp_data['data']), 1)
+
+        # Get targets
+        resp = self.client.get(
+            reverse('thunorweb:ajax_get_tag_targets',
+                    args=['drugs', tag_id])
+        )
+        self.assertEquals(resp.status_code, HTTP_OK)
+        resp_data = json.loads(resp.content)
+        self.assertEquals(len(resp_data['targets']), 1)
 
         # Rename
         resp = self.client.post(reverse('thunorweb:ajax_rename_tag'),
@@ -148,3 +209,25 @@ class TestTags(TestCase):
         self.assertEquals(response.status_code, HTTP_OK)
         self.assertEquals(DrugTag.objects.filter(
             tag_category='tagcat').count(), 1)
+
+    def test_get_own_tags(self):
+        self.client.force_login(self.user)
+
+        resp = self.client.get(reverse('thunorweb:ajax_get_tags',
+                                       args=['cell_lines']))
+        self.assertEquals(resp.status_code, HTTP_OK)
+
+        resp = self.client.get(reverse('thunorweb:ajax_get_tags',
+                                       args=['drugs']))
+        self.assertEquals(resp.status_code, HTTP_OK)
+
+    def test_get_public_tags(self):
+        self.client.force_login(self.user)
+
+        resp = self.client.get(reverse('thunorweb:ajax_get_tags',
+                                       args=['cell_lines', 'public']))
+        self.assertEquals(resp.status_code, HTTP_OK)
+
+        resp = self.client.get(reverse('thunorweb:ajax_get_tags',
+                                       args=['drugs', 'public']))
+        self.assertEquals(resp.status_code, HTTP_OK)

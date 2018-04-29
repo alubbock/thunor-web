@@ -1,7 +1,6 @@
 from django.shortcuts import Http404
 from django.http import HttpResponse
 from thunorweb.models import HTSDataset, HTSDatasetFile
-from thunor.plots import PARAM_NAMES
 from thunor.curve_fit import fit_params_from_base
 from thunor.io import write_hdf
 from thunorweb.pandas import df_doses_assays_controls, df_curve_fits, \

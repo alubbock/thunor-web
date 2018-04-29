@@ -5,6 +5,7 @@ from thunorweb.plate_parsers import PlateFileParser
 from thunorweb.models import HTSDataset, CellLine, Drug
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+import json
 
 
 HTTP_OK = 200
@@ -30,16 +31,26 @@ class TestPlateMapper(TestCase):
         assert results[0]['success']
         assert results[0]['file_format'] == 'HDF5'
 
-    def test_load_plate(self):
+    def test_load_save_plate(self):
         plate_id = self.d.plate_set.first().id
         self.client.force_login(self.user)
         resp = self.client.get(reverse('thunorweb:ajax_load_plate',
                                        args=[plate_id]))
         self.assertEquals(resp.status_code, HTTP_OK)
 
-    def test_save_plate(self):
-        # TODO: Implement
-        pass
+        content = json.loads(resp.content)
+
+        plate_data = {
+            'plateId': content['plateMap']['plateId'],
+            'wells': content['plateMap']['wells']
+        }
+
+        resp = self.client.post(
+            reverse('thunorweb:ajax_save_plate'),
+            json.dumps(plate_data),
+            content_type='application/json'
+        )
+        self.assertEquals(resp.status_code, HTTP_OK)
 
     def test_create_cell_line(self):
         self.client.force_login(self.user)
