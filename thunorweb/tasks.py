@@ -350,7 +350,7 @@ def _combine_id_name_dicts(dicts):
         # Dataset contains single drugs and combinations, sort them separately
         return sorted((e for e in combined.values()
                        if not isinstance(e['name'], tuple)),
-                      key=lambda e: e['name']) + \
+                      key=lambda e: e['name'].lower()) + \
                sorted((e for e in combined.values()
                        if isinstance(e['name'], tuple)),
                       key=lambda e: e['name'])
@@ -372,7 +372,8 @@ def _dataset_groupings(dataset, regenerate_cache=False):
 
     cell_line_dict = sorted(({'id': cl['cell_line_id'],
                              'name': cl['cell_line__name']}
-                            for cl in cell_lines), key=lambda cl: cl['name'])
+                            for cl in cell_lines),
+                            key=lambda cl: cl['name'].lower())
 
     assays_query = WellMeasurement.objects.filter(
         well__plate__dataset_id=dataset.id
@@ -394,7 +395,7 @@ def _dataset_groupings(dataset, regenerate_cache=False):
     has_drug_combos = any(dr['num_drugs'] > 1 for dr in drug_objs)
     drug_list = [{'id': dr['drug_id'], 'name': dr['drug__name']} for dr in
                  drug_objs if dr['num_drugs'] == 1]
-    drug_list = sorted(drug_list, key=lambda d: d['name'])
+    drug_list = sorted(drug_list, key=lambda d: d['name'].lower())
 
     if has_drug_combos:
         # Get drugs with combinations... this is inefficient but works
