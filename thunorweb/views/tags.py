@@ -226,7 +226,7 @@ def ajax_upload_tagfile(request, tag_type):
                    EntityClass.objects.all()}
 
     for file in files:
-        if file.name.endswith('.txt'):
+        if file.name.endswith('.txt') or file.name.endswith('.tsv'):
             sep = '\t'
         elif file.name.endswith('.csv'):
             sep = ','
@@ -241,7 +241,7 @@ def ajax_upload_tagfile(request, tag_type):
             return JsonResponse({
                 'error': 'Could not read file. Please ensure file is comma '
                          'separated (with extension .csv) or tab separated ('
-                         'with extension .txt)'
+                         'with extension .txt or .tsv)'
              }, status=400)
 
         if 'tag_name' not in csv.columns:
