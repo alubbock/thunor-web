@@ -9,7 +9,6 @@ var activateSelect = function($select) {
 };
 
 var set_tag_group_permission = function(tag_id, group_id, state, $caller) {
-    ui.loadingModal.show();
     $.ajax({type: 'POST',
             url: ajax.url("set_tag_group_permission"),
             headers: { 'X-CSRFToken': ajax.getCsrfToken() },
@@ -24,9 +23,6 @@ var set_tag_group_permission = function(tag_id, group_id, state, $caller) {
                     $caller.bootstrapSwitch('state', !state, true);
                 }
                 ajax.ajaxErrorCallback(jqXHR, textStatus, errorThrown);
-            },
-            complete: function() {
-                ui.loadingModal.hide();
             },
             dataType: 'json'});
 };
@@ -91,7 +87,15 @@ var activate = function() {
     });
 
     var editTag = function(tagId) {
-        ui.loadingModal.show();
+        var $modal = ui.okModal({
+            title: 'Edit tag',
+            text: 'Loading...',
+            okLabel: 'Close',
+            onHide: function() {
+                $tagTable.ajax.reload();
+            }
+        });
+
          $.ajax({
             type: "GET",
             url: ajax.url("get_tag_targets", $('#entity-type').val()) + tagId,
@@ -138,21 +142,11 @@ var activate = function() {
                         );
                     }
                 });
-                ui.okModal({
-                    title: 'Edit tag',
-                    text: $container,
-                    okLabel: 'Close',
-                    onHide: function() {
-                        $tagTable.ajax.reload();
-                    },
-                    onShow: function() {
-                        $container.find("input[name=tagName]").focus();
-                    }
-                });
+                $modal.find(".modal-body").html($container);
             },
-            error: ajax.ajaxErrorCallback,
-            complete: function() {
-                ui.loadingModal.hide();
+            error: function(jqXHR, textStatus, errorThrown) {
+                $modal.modal('hide');
+                ajax.ajaxErrorCallback(jqXHR, textStatus, errorThrown);
             }
         });
     };

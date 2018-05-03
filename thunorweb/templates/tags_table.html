@@ -11,7 +11,7 @@
                 <a href="#">{{ group }}</a></li>
         {% endfor %}
         {% else %}
-        <li role="presentation" data-url="{% url 'thunorweb:ajax_get_tags' tag_type 'Public' %}" class="active"><a
+        <li role="presentation" data-url="{% url 'thunorweb:ajax_get_tags' tag_type 'public' %}" class="active"><a
             href="#">Public</a></li>
         {% endif %}
     </ul>
