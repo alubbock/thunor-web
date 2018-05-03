@@ -3,14 +3,16 @@
 {% block title %}Dataset: {{ dataset.name }}{% endblock %}
 {% block bodytitle %}Dataset: <span class="dataset-name">{{ dataset.name }}</span>{% endblock %}
 
-{% if request.user.id == dataset.owner_id %}
 {% block titlerow %}<div class="row">
   <div class="col-lg-12">
     <h1 class="page-header ellipsis">Dataset:
       <span id="dataset-name"><span class="dataset-name">{{ dataset.name }}</span>
+      {% if request.user.id == dataset.owner_id %}
         <button
           id="dataset-name-edit" class="fa fa-pencil btn
-          btn-default"></button></span>
+          btn-default"></button>
+      {% endif %}
+      </span>
       <span id="dataset-rename" style="display:none"><form
           style="display:inline" class="form-inline" id="dataset-rename-form">
         <input name="datasetId" type="hidden" value="{{ dataset.id }}">
@@ -25,7 +27,6 @@
     </h1>
   </div>
 </div>{% endblock %}
-{% endif %}
 
 {% block content %}
     <div class="row">
