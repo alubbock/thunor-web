@@ -132,6 +132,7 @@ var ajax = (function () {
 
     var urls = {
         "get_datasets": "/ajax/dataset/all",
+        "rename_dataset": "/ajax/dataset/rename",
         "delete_dataset": "/ajax/dataset/delete",
         "page_view_dataset": "/dataset/{ARG}",
         "create_cellline": "/ajax/cellline/create",

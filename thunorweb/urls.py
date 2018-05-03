@@ -66,8 +66,10 @@ urlpatterns = [
     url(r'^ajax/dataset/set-permission$',
         datasets.ajax_set_dataset_group_permission,
         name='ajax_set_dataset_group_permission'),
-    url(r'^ajax/dataset/delete', datasets.ajax_delete_dataset,
+    url(r'^ajax/dataset/delete$', datasets.ajax_delete_dataset,
         name='ajax_delete_dataset'),
+    url(r'^ajax/dataset/rename$', datasets.ajax_rename_dataset,
+        name='ajax_rename_dataset'),
 
     url(r'^ajax/platefile/upload', datasets.ajax_upload_platefiles,
         name='ajax_upload_platefiles'),

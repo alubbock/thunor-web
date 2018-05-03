@@ -432,3 +432,14 @@ def _dataset_groupings(dataset, regenerate_cache=False):
     cache.set(cache_key, groupings_dict, timeout=None)
 
     return groupings_dict
+
+
+def rename_dataset_in_cache(dataset_id, dataset_name):
+    cache_key = 'dataset_{}_groupings'.format(dataset_id)
+    groupings_dict = cache.get(cache_key)
+    if groupings_dict is None:
+        return
+
+    groupings_dict['datasets'][0]['name'] = dataset_name
+
+    cache.set(cache_key, groupings_dict, timeout=None)

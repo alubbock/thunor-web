@@ -10,7 +10,7 @@ from thunorweb.models import HTSDataset, PlateFile, Plate, \
     CellLineTag, DrugTag
 from django.urls import reverse
 from thunorweb.tasks import precalculate_dip_rates, precalculate_viability, \
-    dataset_groupings, precalculate_dip_curves
+    dataset_groupings, precalculate_dip_curves, rename_dataset_in_cache
 from thunorweb.plate_parsers import PlateFileParser
 from django.utils import timezone
 from django.conf import settings
@@ -261,6 +261,36 @@ def ajax_create_dataset(request):
         return HttpResponseBadRequest()
     dset = HTSDataset.objects.create(owner=request.user, name=name)
     return JsonResponse({'name': dset.name, 'id': dset.id})
+
+
+def ajax_rename_dataset(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({}, status=401)
+
+    try:
+        dataset_id = request.POST['datasetId']
+    except KeyError:
+        return JsonResponse({'error': 'datasetId is a required field'},
+                            status=400)
+    try:
+        dataset_name = request.POST['datasetName']
+    except KeyError:
+        return JsonResponse({'error': 'datasetName is a required field'},
+                            status=400)
+
+    n_updated = HTSDataset.objects.filter(
+        id=dataset_id, owner_id=request.user.id).update(
+        name=dataset_name
+    )
+
+    if n_updated < 1:
+        raise Http404()
+
+    rename_dataset_in_cache(dataset_id, dataset_name)
+
+    return JsonResponse({'success': True,
+                         'datasetId': dataset_id,
+                         'datasetName': dataset_name})
 
 
 def ajax_delete_dataset(request):

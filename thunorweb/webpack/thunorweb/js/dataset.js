@@ -20,6 +20,37 @@ var delete_dataset = function() {
 };
 
 var dataset = function() {
+    $('#dataset-name-edit').click(function() {
+        var datasetName = $('.dataset-name').first().text();
+        $('#dataset-name').hide();
+        $('#dataset-rename').show().find("input[name=datasetName]").val(datasetName).select();
+    });
+
+    $('#dataset-rename-cancel').click(function() {
+       $('#dataset-rename').hide();
+       $('#dataset-name').show();
+    });
+
+    $('#dataset-rename-form').submit(function(e) {
+       e.preventDefault();
+       ui.loadingModal.show();
+
+       $.ajax({type: 'POST',
+        url: ajax.url("rename_dataset"),
+        headers: { 'X-CSRFToken': ajax.getCsrfToken() },
+        data: $(this).serialize(),
+        success: function(data) {
+            $('#dataset-rename').hide();
+            $('.dataset-name').text(data.datasetName);
+            $('#dataset-name').show();
+        },
+        error: ajax.ajaxErrorCallback,
+        complete: function() {
+            ui.loadingModal.hide();
+        },
+        dataType: 'json'});
+    });
+
 
     $("a.attachment-download").click(function(e) {
         e.preventDefault();

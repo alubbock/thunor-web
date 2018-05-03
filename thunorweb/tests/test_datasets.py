@@ -39,6 +39,17 @@ class TestDatasetViews(TestCase):
         assert response.status_code == HTTP_OK
         assert cls.d.plate_set.count() == 16
 
+    def test_rename_dataset(self):
+        self.client.force_login(self.user)
+        d = HTSDataset.objects.create(owner=self.user, name='test123')
+
+        resp = self.client.post(reverse('thunorweb:ajax_rename_dataset'),
+                                {'datasetId': d.id, 'datasetName': 'test456'})
+        self.assertEquals(resp.status_code, HTTP_OK)
+
+        d.refresh_from_db()
+        self.assertEquals(d.name, 'test456')
+
     def test_delete_dataset(self):
         self.client.force_login(self.user)
         d = HTSDataset.objects.create(owner=self.user, name='test2')
