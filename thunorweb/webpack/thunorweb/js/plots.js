@@ -387,10 +387,10 @@ var plots = function() {
         var $drcTypeBox = $dataPanel.find("input[name=drcType]").closest(".form-group");
         if($target.val() === "viability") {
             $drcTypeBox.slideUp();
-            $dataPanel.find("option.rel-metric").prop("disabled", true).closest("select").selectpicker("refresh");
+            $dataPanel.find("option.dip-metric").prop("disabled", true).closest("select").selectpicker("refresh");
         } else {
             $drcTypeBox.slideDown();
-            $dataPanel.find("option.rel-metric").prop("disabled", false).closest("select").selectpicker("refresh");
+            $dataPanel.find("option.dip-metric").prop("disabled", false).closest("select").selectpicker("refresh");
         }
     });
     $(".name-tag-switch").find("input[type=radio]").change(function() {
@@ -493,7 +493,7 @@ var plots = function() {
         var $vaxis = $dataPanel.find('input[name=logTransform]');
         var $drMetric = $dataPanel.find('input[name=drMetric]');
 
-        $drMetric.filter('[value=viability]').prop('checked', true).closest('.form-group').hide();
+        $drMetric.filter('[value=viability]').prop('checked', true).trigger('change').closest('.form-group').hide();
         $vaxis.filter('[value=None]').prop('checked', true).closest('.form-group').hide();
 
         $dataPanel.find('input[name=qcView]').prop('disabled', true)
