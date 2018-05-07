@@ -152,8 +152,8 @@ def ajax_rename_tag(request):
         return JsonResponse({}, status=401)
 
     try:
-        tag_id = request.POST.get('tagId')
-        tag_name = request.POST.get('tagsName')
+        tag_id = request.POST['tagId']
+        tag_name = request.POST['tagsName']
         tag_category = request.POST.get('tagCategory', '')
         tag_type = request.POST.get('tagType')
         if tag_type not in ('cl', 'drug'):

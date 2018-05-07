@@ -41,7 +41,7 @@ class TestTags(TestCase):
 
         # Create
         resp = self.client.post(reverse('thunorweb:ajax_create_tag'),
-                                {'tagName': 'testTag',
+                                {'tagsName': 'testTag',
                                  'tagCategory': '',
                                  'tagType': 'cl'})
         self.assertEquals(resp.status_code, HTTP_OK)
@@ -96,7 +96,7 @@ class TestTags(TestCase):
                                 {'tagId': tag_id,
                                  'tagType': 'cl',
                                  'tagCategory': '',
-                                 'tagName': 'testTagNew'})
+                                 'tagsName': 'testTagNew'})
         self.assertEquals(resp.status_code, HTTP_OK)
         self.assertTrue(CellLineTag.objects.filter(
             tag_name='testTagNew', tag_category='', id=tag_id).exists())
@@ -115,7 +115,7 @@ class TestTags(TestCase):
 
         # Create
         resp = self.client.post(reverse('thunorweb:ajax_create_tag'),
-                                {'tagName': 'testTag',
+                                {'tagsName': 'testTag',
                                  'tagCategory': '',
                                  'tagType': 'drug'})
         self.assertEquals(resp.status_code, HTTP_OK)
@@ -170,7 +170,7 @@ class TestTags(TestCase):
                                 {'tagId': tag_id,
                                  'tagType': 'drug',
                                  'tagCategory': '',
-                                 'tagName': 'testTagNew'})
+                                 'tagsName': 'testTagNew'})
         self.assertEquals(resp.status_code, HTTP_OK)
         self.assertTrue(DrugTag.objects.filter(
             tag_name='testTagNew', tag_category='', id=tag_id).exists())
