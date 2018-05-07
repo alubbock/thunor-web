@@ -161,7 +161,7 @@ var activate = function() {
                 $tagTable.ajax.reload();
             },
             onShow: function() {
-                $container.find("input[name=tagName]").focus();
+                $container.find("input[name=tagsName]").focus();
             }
         });
     });
@@ -169,7 +169,7 @@ var activate = function() {
     $("form.set-tag-name").submit(function (e) {
         e.preventDefault();
         var $form = $(this);
-        var tagName = $form.find("input[name=tagName]").val();
+        var tagName = $form.find("input[name=tagsName]").val();
         if (tagName === "") {
             ui.okModal({
                 title: "Tag name empty",
