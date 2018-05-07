@@ -183,8 +183,6 @@ def _process_aggreate(request, tag_type, tag_ids, aggregation, dataset_ids):
         agg[tag_name].append(tag[3])
 
     aggregation = {}
-    for tag_name, vals in agg.items():
-        aggregation[tag_name] = set(vals)
 
     if TAG_EVERYTHING_ELSE in tag_ids:
         groupings = dataset_groupings(dataset_ids)
@@ -196,6 +194,9 @@ def _process_aggreate(request, tag_type, tag_ids, aggregation, dataset_ids):
                                  eid in everything_else_ids]
         aggregation['Everything else'] = everything_else_names
         entity_ids = all_ent_ids
+
+    for tag_name, vals in agg.items():
+        aggregation[tag_name] = set(vals)
 
     return entity_ids, aggregation
 
