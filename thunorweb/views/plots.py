@@ -200,24 +200,6 @@ def _process_aggreate(request, tag_type, tag_ids, aggregation, dataset_ids):
     return entity_ids, aggregation
 
 
-def _check_tags_unique(tags):
-    duplicates = {}
-    for tag_name, targets in tags.items():
-        for target in targets:
-            if target in duplicates:
-                # Duplicate found
-                raise CannotPlotError(
-                    'Some of the tags selected have overlapping entries, '
-                    'so they cannot be colored uniquely. '
-                    'To continue, either turn off coloring option or change '
-                    'the tags used. Example of overlap: {} is in tags {} and'
-                    ' {}.'.format(
-                        target, duplicates[target], tag_name)
-                )
-            else:
-                duplicates[target] = tag_name
-
-
 def _make_tags_unique(tags):
     duplicates = collections.defaultdict(int)
     for tag_name, targets in tags.items():
@@ -225,12 +207,15 @@ def _make_tags_unique(tags):
             duplicates[target] += 1
 
     duplicates = {d: v for d, v in duplicates.items() if v > 1}
+    if not duplicates:
+        return tags
 
     new_tags = {}
     for tag_name in tags:
         new_tags[tag_name] = tags[tag_name].difference(duplicates)
 
-    new_tags['Multiple tags'] = duplicates.keys()
+    new_tags['{} tags'.format(
+        'Multiple' if len(tags) > 2 else 'Both')] = duplicates.keys()
 
     return new_tags
 
@@ -288,10 +273,7 @@ def _dose_response_plot(request, dataset, dataset2_id,
             color_groups = cell_line_groups
 
     if color_groups:
-        try:
-            color_groups = _make_tags_unique(color_groups)
-        except CannotPlotError as e:
-            return HttpResponse(e, status=400)
+        color_groups = _make_tags_unique(color_groups)
     elif color_by == 'cl':
         # The tags will just be the cell lines themselves
         color_groups = {cl.name: [cl.name] for cl in CellLine.objects.filter(
