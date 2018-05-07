@@ -218,6 +218,23 @@ def _check_tags_unique(tags):
                 duplicates[target] = tag_name
 
 
+def _make_tags_unique(tags):
+    duplicates = collections.defaultdict(int)
+    for tag_name, targets in tags.items():
+        for target in targets:
+            duplicates[target] += 1
+
+    duplicates = {d: v for d, v in duplicates.items() if v > 1}
+
+    new_tags = {}
+    for tag_name in tags:
+        new_tags[tag_name] = tags[tag_name].difference(duplicates)
+
+    new_tags['Multiple tags'] = duplicates.keys()
+
+    return new_tags
+
+
 def _dose_response_plot(request, dataset, dataset2_id,
                         permission_required, drug_id, cell_line_id,
                         plot_type):
@@ -272,7 +289,7 @@ def _dose_response_plot(request, dataset, dataset2_id,
 
     if color_groups:
         try:
-            _check_tags_unique(color_groups)
+            color_groups = _make_tags_unique(color_groups)
         except CannotPlotError as e:
             return HttpResponse(e, status=400)
     elif color_by == 'cl':

@@ -108,7 +108,7 @@ def ajax_create_tag(request):
         return JsonResponse({}, status=401)
 
     try:
-        tag_name = request.POST['tagName']
+        tag_name = request.POST['tagsName']
         tag_category = request.POST['tagCategory']
         tag_type = request.POST['tagType']
     except KeyError:
@@ -153,7 +153,7 @@ def ajax_rename_tag(request):
 
     try:
         tag_id = request.POST.get('tagId')
-        tag_name = request.POST.get('tagName')
+        tag_name = request.POST.get('tagsName')
         tag_category = request.POST.get('tagCategory', '')
         tag_type = request.POST.get('tagType')
         if tag_type not in ('cl', 'drug'):
