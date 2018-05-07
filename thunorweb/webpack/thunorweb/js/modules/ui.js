@@ -86,10 +86,11 @@ var ui = (function() {
             }
             $(e.currentTarget).remove();
         }).appendTo("body").modal();
+        return $mok;
     };
 
     var okModal = function (modalSettings) {
-        okCancelModal($.extend(modalSettings, {cancelLabel: null}));
+        return okCancelModal($.extend(modalSettings, {cancelLabel: null}));
     };
 
     var loadingAnim = '<div class="loading-overlay">' +
