@@ -213,7 +213,7 @@ def _make_tags_unique(tags):
 
     new_tags = {}
     for tag_name in tags:
-        new_tags[tag_name] = tags[tag_name].difference(duplicates)
+        new_tags[tag_name] = set(tags[tag_name]).difference(duplicates)
 
     new_tags['{} tags'.format(
         'Multiple' if len(tags) > 2 else 'Both')] = duplicates.keys()
