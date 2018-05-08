@@ -298,7 +298,7 @@
 {% endif %}
 {% endblock %}
 
-{% block tailscript %}
+{% block tailscript %}{% if plates %}
 <script>
 var PlateMap = pyHTS.views.plate_designer.PlateMap;
 $.extend(pyHTS.state, {
@@ -331,4 +331,4 @@ $(function () {
     pyHTS.views.plate_designer.activate();
 });
 </script>
-{% endblock %}
+{% endif %}{% endblock %}
