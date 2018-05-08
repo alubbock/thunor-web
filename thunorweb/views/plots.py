@@ -525,9 +525,12 @@ def plots(request):
         if not datasets:
             raise Http404()
 
-        dataset = datasets[dataset_id]
-        if dataset2_id in datasets:
-            dataset2 = datasets[dataset2_id]
+        try:
+            dataset = datasets[dataset_id]
+            if dataset2_id in datasets:
+                dataset2 = datasets[dataset2_id]
+        except KeyError:
+            raise Http404()
 
         _assert_has_perm(request, dataset, 'view_plots')
 
