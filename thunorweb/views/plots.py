@@ -346,6 +346,8 @@ def _dose_response_plot(request, dataset, dataset2_id,
                E_REL_REGEX: e_rel_values
                }
     need_aa = False
+    need_aa_obs = False
+    need_aa_numerical = False
     need_hill = False
     need_emax = False
     need_einf = False
@@ -354,6 +356,12 @@ def _dose_response_plot(request, dataset, dataset2_id,
             continue
         if param == 'aa':
             need_aa = True
+            continue
+        if param == 'aa_obs':
+            need_aa_obs = True
+            continue
+        if param == 'aa_num':
+            need_aa_numerical = True
             continue
         if param == 'hill':
             need_hill = True
@@ -373,10 +381,14 @@ def _dose_response_plot(request, dataset, dataset2_id,
                 if value < 0 or value > 100:
                     raise ValueError()
                 value_list.add(value)
+                break
             except ValueError:
                 return HttpResponse('Invalid custom value - must be '
                                     'an integer between 1 and 100',
                                     status=400)
+        else:
+            return HttpResponse('Unknown parameter: {}'.format(param),
+                                status=400)
 
     dataset_ids = dataset.id if dataset2_id is None else [dataset.id,
                                                           dataset2_id]
@@ -394,7 +406,9 @@ def _dose_response_plot(request, dataset, dataset2_id,
     single_cl = len(base_params.index.get_level_values('cell_line').unique()) \
                 == 1
 
-    if plot_type == 'drc' and single_cl and single_drug:
+    include_response_values = False
+
+    if (plot_type == 'drc' and single_cl and single_drug) or need_aa_obs:
         try:
             if response_metric == 'dip':
                 ctrl_resp_data, expt_resp_data = df_dip_rates(
@@ -414,34 +428,41 @@ def _dose_response_plot(request, dataset, dataset2_id,
             return HttpResponse(
                 'No data found for this request. This '
                 'drug/cell line/assay combination may not exist.', status=400)
+    else:
+        ctrl_resp_data = None
+        expt_resp_data = None
+
+    if plot_type == 'drc' and single_cl and single_drug:
+        include_response_values = True
+        need_emax = True
+        ic_concentrations = {50}
+        ec_concentrations = {50}
+    else:
+        # Don't need control values for need_aa_obs
+        ctrl_resp_data = None
+
+    with warnings.catch_warnings(record=True) as w:
         fit_params = fit_params_from_base(
             base_params,
             ctrl_resp_data=ctrl_resp_data,
             expt_resp_data=expt_resp_data,
-            custom_ic_concentrations={50},
-            custom_ec_concentrations={50},
-            include_emax=True,
-            include_response_values=True
+            include_response_values=include_response_values,
+            custom_ic_concentrations=ic_concentrations,
+            custom_ec_concentrations=ec_concentrations,
+            custom_e_values=e_values,
+            include_aa=need_aa,
+            include_aa_obs=need_aa_obs,
+            include_aa_numerical=need_aa_numerical,
+            include_hill=need_hill,
+            include_emax=need_emax,
+            include_einf=need_einf
         )
-    else:
-        with warnings.catch_warnings(record=True) as w:
-            fit_params = fit_params_from_base(
-                base_params,
-                include_response_values=False,
-                custom_ic_concentrations=ic_concentrations,
-                custom_ec_concentrations=ec_concentrations,
-                custom_e_values=e_values,
-                include_aa=need_aa,
-                include_hill=need_hill,
-                include_emax=need_emax,
-                include_einf=need_einf
-            )
-            # Currently only care about warnings if plotting AA
-            if plot_type == 'drpar' and (dr_par == 'aa' or
-                                         dr_par_two == 'aa'):
-                w = [i for i in w if issubclass(i.category, AAFitWarning)]
-                if w:
-                    return HttpResponse(w[0].message, status=400)
+        # Currently only care about warnings if plotting AA
+        if plot_type == 'drpar' and (dr_par == 'aa' or
+                                     dr_par_two == 'aa'):
+            w = [i for i in w if issubclass(i.category, AAFitWarning)]
+            if w:
+                return HttpResponse(w[0].message, status=400)
 
     if plot_type == 'drpar':
         if dr_par is None:
