@@ -438,8 +438,9 @@ def _dose_response_plot(request, dataset, dataset2_id,
         ic_concentrations = {50}
         ec_concentrations = {50}
     else:
-        # Don't need control values for need_aa_obs
-        ctrl_resp_data = None
+        # Don't need control values for need_aa_obs if viability
+        if response_metric == 'viability':
+            ctrl_resp_data = None
 
     with warnings.catch_warnings(record=True) as w:
         fit_params = fit_params_from_base(
