@@ -347,7 +347,6 @@ def _dose_response_plot(request, dataset, dataset2_id,
                }
     need_aa = False
     need_aa_obs = False
-    need_aa_numerical = False
     need_hill = False
     need_emax = False
     need_einf = False
@@ -359,9 +358,6 @@ def _dose_response_plot(request, dataset, dataset2_id,
             continue
         if param == 'aa_obs':
             need_aa_obs = True
-            continue
-        if param == 'aa_num':
-            need_aa_numerical = True
             continue
         if param == 'hill':
             need_hill = True
@@ -453,7 +449,6 @@ def _dose_response_plot(request, dataset, dataset2_id,
             custom_e_values=e_values,
             include_aa=need_aa,
             include_aa_obs=need_aa_obs,
-            include_aa_numerical=need_aa_numerical,
             include_hill=need_hill,
             include_emax=need_emax,
             include_einf=need_einf
