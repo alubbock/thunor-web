@@ -402,7 +402,7 @@ def df_curve_fits(dataset_ids, stat_type,
                                                    'drug__name')
     cols = ['fit_set__dataset__name', 'cell_line__name', 'drug__name',
             'curve_fit_class', 'fit_params', 'max_dose',
-            'min_dose', 'emax_obs']
+            'min_dose', 'emax_obs', 'aa_obs']
     if viability_time is None:
         cols += ['fit_set__viability_time']
     else:

@@ -193,7 +193,8 @@ def precalculate_dip_curves(dataset_or_id, verbose=False,
                                         None),
                 min_dose=fp.min_dose_measured,
                 max_dose=fp.max_dose_measured,
-                emax_obs=fp.emax_obs
+                emax_obs=fp.emax_obs,
+                aa_obs=fp.aa_obs
             ))
 
         CurveFit.objects.bulk_create(fits)
@@ -296,7 +297,8 @@ def precalculate_viability(dataset_or_id, time_hrs=None, assay_name=None,
                                         None),
                 min_dose=fp.min_dose_measured,
                 max_dose=fp.max_dose_measured,
-                emax_obs=fp.emax_obs
+                emax_obs=fp.emax_obs,
+                aa_obs=fp.aa_obs
             ))
 
         CurveFit.objects.bulk_create(fits)

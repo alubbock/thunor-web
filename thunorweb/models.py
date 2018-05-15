@@ -206,6 +206,7 @@ class CurveFit(models.Model):
     max_dose = models.FloatField()
     min_dose = models.FloatField()
     emax_obs = models.FloatField()
+    aa_obs = models.FloatField(null=True)
 
 
 class HTSDatasetFile(models.Model):

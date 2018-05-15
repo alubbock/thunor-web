@@ -354,18 +354,16 @@ def _dose_response_plot(request, dataset, dataset2_id,
                E_REL_REGEX: e_rel_values
                }
     need_aa = False
-    need_aa_obs = False
     need_hill = False
     need_emax = False
     need_einf = False
     for param in (dr_par, dr_par_two, dr_par_order):
         if param is None:
             continue
+        if param == 'aa_obs':
+            continue
         if param == 'aa':
             need_aa = True
-            continue
-        if param == 'aa_obs':
-            need_aa_obs = True
             continue
         if param == 'hill':
             need_hill = True
@@ -412,7 +410,7 @@ def _dose_response_plot(request, dataset, dataset2_id,
 
     include_response_values = False
 
-    if (plot_type == 'drc' and single_cl and single_drug) or need_aa_obs:
+    if plot_type == 'drc' and single_cl and single_drug:
         try:
             if response_metric == 'dip':
                 ctrl_resp_data, expt_resp_data = df_dip_rates(
@@ -432,19 +430,13 @@ def _dose_response_plot(request, dataset, dataset2_id,
             return HttpResponse(
                 'No data found for this request. This '
                 'drug/cell line/assay combination may not exist.', status=400)
-    else:
-        ctrl_resp_data = None
-        expt_resp_data = None
-
-    if plot_type == 'drc' and single_cl and single_drug:
         include_response_values = True
         need_emax = True
         ic_concentrations = {50}
         ec_concentrations = {50}
     else:
-        # Don't need control values for need_aa_obs if viability
-        if response_metric == 'viability':
-            ctrl_resp_data = None
+        ctrl_resp_data = None
+        expt_resp_data = None
 
     with warnings.catch_warnings(record=True) as w:
         fit_params = fit_params_from_base(
@@ -456,7 +448,6 @@ def _dose_response_plot(request, dataset, dataset2_id,
             custom_ec_concentrations=ec_concentrations,
             custom_e_values=e_values,
             include_aa=need_aa,
-            include_aa_obs=need_aa_obs,
             include_hill=need_hill,
             include_emax=need_emax,
             include_einf=need_einf
