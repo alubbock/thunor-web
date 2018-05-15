@@ -21,6 +21,7 @@ from thunorweb.views.tags import TAG_EVERYTHING_ELSE
 
 
 MAX_COLOR_GROUPS = 10
+TAG_EVERYTHING_ELSE_LABEL = 'Everything else'
 
 
 @login_required_unless_public
@@ -192,7 +193,7 @@ def _process_aggreate(request, tag_type, tag_ids, aggregation, dataset_ids):
         everything_else_ids = all_ent_ids.difference(entity_ids)
         everything_else_names = [name for eid, name in ent_dict.items() if
                                  eid in everything_else_ids]
-        aggregation['Everything else'] = everything_else_names
+        aggregation[TAG_EVERYTHING_ELSE_LABEL] = everything_else_names
         entity_ids = all_ent_ids
 
     for tag_name, vals in agg.items():
@@ -202,6 +203,9 @@ def _process_aggreate(request, tag_type, tag_ids, aggregation, dataset_ids):
 
 
 def _make_tags_unique(tags):
+    if len(tags) <= 1:
+        return tags
+
     duplicates = collections.defaultdict(int)
     for tag_name, targets in tags.items():
         for target in targets:
@@ -215,8 +219,12 @@ def _make_tags_unique(tags):
     for tag_name in tags:
         new_tags[tag_name] = set(tags[tag_name]).difference(duplicates)
 
-    new_tags['{} tags'.format(
-        'Multiple' if len(tags) > 2 else 'Both')] = duplicates.keys()
+    label = 'Multiple'
+    if len(tags) == 2 or (TAG_EVERYTHING_ELSE_LABEL in tags and
+                          len(tags) == 3):
+        label = 'Both'
+
+    new_tags['{} tags'.format(label)] = duplicates.keys()
 
     return new_tags
 
