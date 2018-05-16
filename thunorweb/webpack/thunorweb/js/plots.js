@@ -556,6 +556,10 @@ var plots = function() {
                 window.location = ajax.url("get_plot_csv") + "?" +
                     $panel.find("form").serialize() + "&download=1";
                 return;
+            case "html":
+                window.location = ajax.url("get_plot_html") + "?" +
+                    $panel.find("form").serialize() + "&download=1";
+                return;
         }
     });
 

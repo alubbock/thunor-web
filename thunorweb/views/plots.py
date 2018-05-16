@@ -9,6 +9,7 @@ from thunor.curve_fit import AAFitWarning, fit_params_from_base
 from thunor.viability import viability
 from thunor.helpers import plotly_to_dataframe
 from plotly.utils import PlotlyJSONEncoder
+from plotly.offline.offline import get_plotlyjs
 from thunorweb.pandas import df_doses_assays_controls, df_dip_rates, \
     df_ctrl_dip_rates, NoDataException, df_curve_fits
 import warnings
@@ -137,9 +138,15 @@ def ajax_get_plot(request, file_type='json'):
         response = HttpResponse(plotly_to_dataframe(plot_fig).to_csv(),
                                 content_type='text/csv')
     elif file_type == 'html':
-        response = render(request, 'plotly_plot.html',
-            {'data': JsonResponse(plot_fig,
-                                  encoder=PlotlyJSONEncoder).content})
+        template = 'plotly_plot{}.html'.format('_standalone' if
+                                               as_attachment else '')
+        context = {
+            'data': JsonResponse(plot_fig, encoder=PlotlyJSONEncoder).content,
+            'page_title': strip_tags(plot_fig['layout']['title'])
+        }
+        if as_attachment:
+            context['plotlyjs'] = get_plotlyjs()
+        response = render(request, template, context)
     else:
         return HttpResponse('Unknown file type: %s' % file_type, status=400)
 
