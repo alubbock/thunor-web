@@ -1,5 +1,9 @@
 var ajax = require("./ajax");
 
+var formatISODate = function(data) {
+    return data.replace('T', ' ').slice(0, -5) + ' UTC';
+};
+
 var initDatasetTable = function(tableRowCallbackFn, loadingCompleteCallbackFn) {
     var $tabContent = $(".tab-content");
     $tabContent.loadingOverlay("show");
@@ -24,7 +28,7 @@ var initDatasetTable = function(tableRowCallbackFn, loadingCompleteCallbackFn) {
                     "display": tableRowCallbackFn
                 }
             },
-            {"targets": 1, "data": "creation_date"}
+            {"targets": 1, "data": "creation_date", "render": {"display": formatISODate}}
         ],
         "order": [[1, "desc"]],
         "drawCallback": function () {
