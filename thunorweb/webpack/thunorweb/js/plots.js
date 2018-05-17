@@ -343,6 +343,7 @@ var plots = function() {
             $changeCLDrug.selectpicker(selectPickerOptionsSingle);
 
             $dataPanel.find(".name-tag-switch").find('input[value=off]').click();
+            $changeCLDrug.trigger("hide.bs.select");
         } else {
             // Disable drug combinations
             $optgroupDrugCombos.find("option:selected")
