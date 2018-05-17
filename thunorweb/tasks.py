@@ -9,6 +9,7 @@ from django.db.models import Count, F
 from collections import defaultdict, Sequence
 from django.core.cache import cache
 from django.utils import timezone
+from django.conf import settings
 from datetime import timedelta
 import pickle
 from thunor.curve_fit import HillCurveLL3u, HillCurveLL4
@@ -323,6 +324,10 @@ def dataset_groupings(datasets, regenerate_cache=False):
     cell_lines = _combine_id_name_dicts(groups[i]['cellLines'] for i in grp_it)
     drugs = _combine_id_name_dicts(groups[i]['drugs'] for i in grp_it)
 
+    missing_combinations = set().union(*(groups[i]['missingCombinations'] for
+                                       i in grp_it))
+    missing_combinations = list(missing_combinations)
+
     single_timepoint = False
     timepoints = list(set(groups[i]['singleTimepoint'] for i in grp_it))
     if len(timepoints) == 1 and timepoints[0] is not False:
@@ -334,7 +339,8 @@ def dataset_groupings(datasets, regenerate_cache=False):
         'drugs': drugs,
         'assays': [groups[i]['assays'][0] for i in grp_it],
         'dipAssay': [groups[i]['dipAssay'] for i in grp_it],
-        'singleTimepoint': single_timepoint
+        'singleTimepoint': single_timepoint,
+        'missingCombinations': missing_combinations
     }
 
 
@@ -366,16 +372,7 @@ def _dataset_groupings(dataset, regenerate_cache=False):
         if cache_val is not None:
             return cache_val
 
-    cell_lines = Well.objects.filter(
-        cell_line__isnull=False,
-        plate__dataset_id=dataset.id).values(
-        'cell_line_id', 'cell_line__name'
-    ).distinct()
-
-    cell_line_dict = sorted(({'id': cl['cell_line_id'],
-                             'name': cl['cell_line__name']}
-                            for cl in cell_lines),
-                            key=lambda cl: cl['name'].lower())
+    cell_line_names = {cl.pk: cl.name for cl in CellLine.objects.all()}
 
     assays_query = WellMeasurement.objects.filter(
         well__plate__dataset_id=dataset.id
@@ -386,18 +383,40 @@ def _dataset_groupings(dataset, regenerate_cache=False):
 
     timepoints = list(set(a['timepoint'] for a in assays_query))
 
+    has_drug_combos = WellDrug.objects.filter(
+        well__plate__dataset_id=dataset.id).annotate(
+        drug2=F('well__welldrug__drug')).exclude(drug=F('drug2')).exists()
+
     # Get drug without combinations
     drug_objs = WellDrug.objects.filter(
         drug__isnull=False,
         dose__gt=0,
         well__plate__dataset_id=dataset.id,
-    ).annotate(num_drugs=Count('well__welldrug')). \
-        values('drug_id', 'drug__name', 'num_drugs').distinct()
+    ).values('well__cell_line', 'drug_id', 'drug__name')
 
-    has_drug_combos = any(dr['num_drugs'] > 1 for dr in drug_objs)
-    drug_list = [{'id': dr['drug_id'], 'name': dr['drug__name']} for dr in
-                 drug_objs if dr['num_drugs'] == 1]
-    drug_list = sorted(drug_list, key=lambda d: d['name'].lower())
+    if settings.DATABASE_SETTING == 'postgres' and not has_drug_combos:
+        drug_objs = drug_objs.distinct('well__cell_line', 'drug_id')
+    else:
+        drug_objs = drug_objs.distinct()
+
+    if has_drug_combos:
+        drug_objs = drug_objs.annotate(
+            num_drugs=Count('well__welldrug')).filter(num_drugs=1)
+
+    drug_list = set((dr['drug_id'], dr['drug__name']) for dr in
+                    drug_objs)
+    drug_list = sorted(drug_list, key=lambda d: d[1].lower())
+    drug_list = [{'id': d[0], 'name': d[1]} for d in drug_list]
+
+    combos = set((dr['well__cell_line'], dr['drug_id']) for dr in drug_objs)
+    cell_line_ids = set(c[0] for c in combos)
+    drug_ids = set(c[1] for c in combos)
+
+    missing_combos = []
+    for cl in cell_line_ids:
+        for dr in drug_ids:
+            if not (cl, dr) in combos:
+                missing_combos.append((str(cl), (str(dr), )))
 
     if has_drug_combos:
         # Get drugs with combinations... this is inefficient but works
@@ -408,13 +427,16 @@ def _dataset_groupings(dataset, regenerate_cache=False):
             well__plate__dataset_id=dataset.id
         ).annotate(drug2_id=F('well__welldrug__drug_id')
                    ).exclude(drug_id=F('drug2_id')).values(
-            'well_id', 'drug_id', 'drug__name') \
+            'well_id', 'well__cell_line', 'drug_id', 'drug__name') \
             .distinct()
 
         drug_well_combos = defaultdict(set)
         for d in drug_objs_combos:
+            cell_line_ids.add(d['well__cell_line'])
             drug_well_combos[d['well_id']].add((d['drug_id'],
                                                 d['drug__name']))
+
+        # TODO: Add missing_combos for drug combinations
 
         drug_combos = set(frozenset(d) for d in drug_well_combos.values())
 
@@ -422,13 +444,18 @@ def _dataset_groupings(dataset, regenerate_cache=False):
             drug_ids, drug_names = zip(*sorted(dc, key=lambda d: d[1]))
             drug_list.append({'id': drug_ids, 'name': drug_names})
 
+    cell_line_dict = [{'id': cl, 'name': cell_line_names[cl]} for cl in
+                      cell_line_ids]
+    cell_line_dict = sorted(cell_line_dict, key=lambda cl: cl['name'].lower())
+
     groupings_dict = {
         'datasets': [{'id': dataset.id, 'name': dataset.name}],
         'cellLines': cell_line_dict,
         'drugs': drug_list,
         'assays': [assays],
         'dipAssay': _choose_dip_assay(assays),
-        'singleTimepoint': timepoints[0] if len(timepoints) == 1 else False
+        'singleTimepoint': timepoints[0] if len(timepoints) == 1 else False,
+        'missingCombinations': missing_combos
     }
 
     cache.set(cache_key, groupings_dict, timeout=None)

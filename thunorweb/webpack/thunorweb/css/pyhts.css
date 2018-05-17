@@ -908,3 +908,10 @@ form.set-tag-targets button[type=submit] {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+.option-unavailable {
+    color: #ccc !important;
+}
+.option-limited {
+    color: #c9970b !important;
+    font-style: italic;
+}

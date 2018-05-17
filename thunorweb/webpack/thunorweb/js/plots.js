@@ -395,11 +395,20 @@ var plots = function() {
     });
     $(".name-tag-switch").find("input[type=radio]").change(function() {
         var $this = $(this);
+        var selectName;
         var $formGroup = $this.closest(".cl-or-drug");
         if ($this.val() === "on") {
+            selectName = $this.attr('name') === 'useCellLineTags' ? 'd' : 'c';
+            var $select = $formGroup.closest(".hts-change-data").find("select[name="+selectName+"]");
+            var $options = $select.find("option");
+            $options.filter(".option-limited").removeClass("option-limited");
+            $options.filter(".option-unavailable").removeClass("option-unavailable");
+            $select.selectpicker('refresh');
             $formGroup.find(".tag-select").prop("disabled", false).selectpicker("show").selectpicker("refresh");
             $formGroup.find(".name-select").prop("disabled", true).selectpicker("hide");
         } else {
+            selectName = $this.attr('name') === 'useCellLineTags' ? 'c' : 'd';
+            $formGroup.closest(".hts-change-data").find("select[name="+selectName+"]").trigger("hide.bs.select");
             $formGroup.find(".tag-select").prop("disabled", true).selectpicker("hide");
             $formGroup.find(".name-select").prop("disabled", false).selectpicker("show").selectpicker("refresh");
         }
@@ -681,7 +690,9 @@ var plots = function() {
 
         var populatePlotPanelOptions = function(data) {
             $dataPanel.find("span[class=dataset-name]").text(data.datasets[0]['name']);
+            var dualDataset = false;
             if(dataset2Id !== undefined && dataset2Id !== null && dataset2Id !== "") {
+                dualDataset = true;
                 $dataPanel.find("span[class=dataset2-name]").text(data.datasets[1]['name']);
                 $dataPanel.find("span[class=dataset2-name-container]").show();
             }
@@ -719,6 +730,95 @@ var plots = function() {
                 $drTagSelect,
                 data.drugTags
             );
+            // grey out drugs not available for current cell line
+            if (data.hasOwnProperty('missingCombinations')) {
+                if(!data.hasOwnProperty('missingCombinationsCL')) {
+                    data.missingCombinationsCL = {};
+                    data.missingCombinationsDR = {};
+                    for (var i = 0, len = data.missingCombinations.length; i < len; i++) {
+                        var cl = data.missingCombinations[i][0];
+                        var dr = data.missingCombinations[i][1].join(',');
+                        if (!data.missingCombinationsCL.hasOwnProperty(cl)) {
+                            data.missingCombinationsCL[cl] = [];
+                        }
+                        data.missingCombinationsCL[cl].push(dr);
+                        if (!data.missingCombinationsDR.hasOwnProperty(dr)) {
+                            data.missingCombinationsDR[dr] = [];
+                        }
+                        data.missingCombinationsDR[dr].push(cl);
+                    }
+                }
+
+                $cellLineSelect.on('hide.bs.select', function (e) {
+                    var $target = $(e.target);
+                    var cellLines = $target.selectpicker('val');
+                    var drugsMissing = {};
+                    var clLen = cellLines.length;
+                    for (var c=0;c<clLen;c++) {
+                        var cellLine = cellLines[c];
+                        if(data.missingCombinationsCL.hasOwnProperty(cellLine)) {
+                            var drugList = data.missingCombinationsCL[cellLine];
+                            for(var d=0,dLen=drugList.length;d<dLen;d++) {
+                                var drugStr = drugList[d];
+                                if (drugsMissing.hasOwnProperty(drugStr)) {
+                                    drugsMissing[drugStr]++;
+                                } else {
+                                    drugsMissing[drugStr] = 1;
+                                }
+                            }
+                        }
+                    }
+                    var $options = $drugSelect.find("option");
+                    $options.filter(".option-unavailable").removeClass("option-unavailable");
+                    $options.filter(".option-limited").removeClass("option-limited");
+                    for (var dm in drugsMissing) {
+                        if (drugsMissing.hasOwnProperty(dm)) {
+                            var $thisOptions = $options.filter("[value=" + dm + "]");
+                            if (!dualDataset && drugsMissing[dm] === clLen) {
+                                $thisOptions.addClass("option-unavailable");
+                            } else {
+                                $thisOptions.addClass("option-limited")
+                            }
+                        }
+                    }
+                    $drugSelect.selectpicker("refresh");
+                });
+
+                $drugSelect.on('hide.bs.select', function (e) {
+                    var $target = $(e.target);
+                    var drugs = $target.selectpicker('val');
+                    var cellLinesMissing = {};
+                    var drLen = drugs.length;
+                    for (var d=0;d<drLen;d++) {
+                        var drug = drugs[d];
+                        if(data.missingCombinationsDR.hasOwnProperty(drug)) {
+                            var cellLineList = data.missingCombinationsDR[drug];
+                            for(var c=0,clLen=cellLineList.length;c<clLen;c++) {
+                                var clStr = cellLineList[c];
+                                if (cellLinesMissing.hasOwnProperty(clStr)) {
+                                    cellLinesMissing[clStr]++;
+                                } else {
+                                    cellLinesMissing[clStr] = 1;
+                                }
+                            }
+                        }
+                    }
+                    var $options = $cellLineSelect.find("option");
+                    $options.filter(".option-unavailable").removeClass("option-unavailable");
+                    $options.filter(".option-limited").removeClass("option-limited");
+                    for (var cm in cellLinesMissing) {
+                        if (cellLinesMissing.hasOwnProperty(cm)) {
+                            var $thisOptions = $options.filter("[value=" + cm + "]");
+                            if (!dualDataset && cellLinesMissing[cm] === drLen) {
+                                $thisOptions.addClass("option-unavailable");
+                            } else {
+                                $thisOptions.addClass("option-limited")
+                            }
+                        }
+                    }
+                    $cellLineSelect.selectpicker("refresh");
+                });
+            }
 
             if(plotOptionsCache[datasetGroupingsIds] === 'PENDING') {
                 plotOptionsCache[datasetGroupingsIds] = data;
@@ -747,6 +847,8 @@ var plots = function() {
             if (autoSubmit === true) {
                 $dataPanel.find("form").submit();
             }
+
+            $cellLineSelect.add($drugSelect).trigger('hide.bs.select');
         };
 
         var waitForAjaxQuery = function() {
