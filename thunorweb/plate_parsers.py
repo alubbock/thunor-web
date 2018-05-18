@@ -42,12 +42,13 @@ class PlateFileParser(object):
         '.h5': 'hdf',
         '.hdf': 'hdf',
         '.hdf5': 'hdf',
-        '.xlsx': 'excel'
+        # '.xlsx': 'excel'
     }
 
-    supported_mimetypes = {'application/vnd.openxmlformats-officedocument'
-                           '.spreadsheetml.sheet': 'excel',
-                           'application/zip': 'excel',
+    supported_mimetypes = {
+                           # 'application/vnd.openxmlformats-officedocument'
+                           # '.spreadsheetml.sheet': 'excel',
+                           # 'application/zip': 'excel',
                            'text/plain': 'text',
                            'text/x-fortran': 'text',
                            'application/x-hdf': 'hdf'
@@ -631,9 +632,9 @@ class PlateFileParser(object):
             self.plate_file.file.seek(0)
             file_type = self.supported_mimetypes.get(mimetype, None)
 
-        if file_type == 'excel':
-            self.parse_platefile_imagexpress()
-        elif file_type == 'text':
+        # if file_type == 'excel':
+        #     self.parse_platefile_imagexpress()
+        if file_type == 'text':
             if file_first_kb is None:
                 file_first_kb = self.plate_file.read(1024)
             if not isinstance(file_first_kb, str):
@@ -644,13 +645,14 @@ class PlateFileParser(object):
                                                  'UTF-8 encoding (does file '
                                                  'contain non-standard '
                                                  'characters?)')
-            if file_first_kb.find('cell.count') != -1 and file_first_kb.find(
-                    'drug1.conc') != -1:
-                parsers = (self.parser_thunor_vanderbilt_hts,
-                           self.parse_platefile_synergy_neo)
-            else:
-                parsers = (self.parse_platefile_synergy_neo,
-                           self.parser_thunor_vanderbilt_hts)
+            parsers = (self.parser_thunor_vanderbilt_hts, )
+            # if file_first_kb.find('cell.count') != -1 and file_first_kb.find(
+            #         'drug1.conc') != -1:
+            #     parsers = (self.parser_thunor_vanderbilt_hts,
+            #                self.parse_platefile_synergy_neo)
+            # else:
+            #     parsers = (self.parse_platefile_synergy_neo,
+            #                self.parser_thunor_vanderbilt_hts)
 
             sep = '\t'
             first_line = file_first_kb.split('\n')[0]
