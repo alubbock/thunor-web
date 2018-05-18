@@ -136,14 +136,15 @@ class PlateFileParser(object):
         well_sets_to_create = collections.defaultdict(list)
 
         # Expt wells
-        for row in df_wells.itertuples():
-            plate_id = self._plate_objects[row.plate].id
-            if row.well_num not in self._well_sets.get(plate_id, {}):
-                well_sets_to_create[plate_id].append(Well(
-                    plate_id=plate_id,
-                    well_num=row.well_num,
-                    cell_line_id=cell_lines[row.cell_line]
-                ))
+        if df_wells is not None:
+            for row in df_wells.itertuples():
+                plate_id = self._plate_objects[row.plate].id
+                if row.well_num not in self._well_sets.get(plate_id, {}):
+                    well_sets_to_create[plate_id].append(Well(
+                        plate_id=plate_id,
+                        well_num=row.well_num,
+                        cell_line_id=cell_lines[row.cell_line]
+                    ))
 
         # Add any control wells
         if df_data.controls is not None:
@@ -157,7 +158,8 @@ class PlateFileParser(object):
                     well_sets_to_create[plate_id].append(Well(
                         plate_id=plate_id,
                         well_num=well_num,
-                        cell_line_id=cell_lines[w.cell_line]
+                        cell_line_id=(None if pd.isnull(w.cell_line)
+                                      else cell_lines[w.cell_line])
                     ))
 
         # Flatten the well sets (n.b. bulk_create evaluates generators)
@@ -215,25 +217,27 @@ class PlateFileParser(object):
                     'This dataset has no controls wells. Please add controls '
                     'wells (containing cells with no drug) to your data.')
 
-            # Check that controls are available for all cell lines and plates
-            grps_expt = set(grp for grp, _ in df_data.doses.groupby(
-                ['plate', 'cell_line'], sort=False))
-            grps_ctrl = set(grp for grp, _ in df_data.controls.groupby(
-                ['plate', 'cell_line'], sort=False))
+            if df_data.doses is not None:
+                # Check controls are available for all cell lines and plates
+                grps_expt = set(grp for grp, _ in df_data.doses.groupby(
+                    ['plate', 'cell_line'], sort=False))
+                grps_ctrl = set(grp for grp, _ in df_data.controls.groupby(
+                    ['plate', 'cell_line'], sort=False))
 
-            missing_ctrls = grps_expt.difference(grps_ctrl)
-            if missing_ctrls:
-                raise PlateFileParseException(
-                    'There are no control wells defined for the following '
-                    '(plate, cell line) pairs: {}'.format(missing_ctrls)
-                )
+                missing_ctrls = grps_expt.difference(grps_ctrl)
+                if missing_ctrls:
+                    raise PlateFileParseException(
+                        'There are no control wells defined for the following '
+                        '(plate, cell line) pairs: {}'.format(missing_ctrls)
+                    )
 
         # Work out the max number of drugs in a combination
         drug_no = 1
         drug_nums = []
-        while ('drug%d' % drug_no) in doses_unstacked.index.names:
-            drug_nums.append(drug_no)
-            drug_no += 1
+        if doses_unstacked is not None:
+            while ('drug%d' % drug_no) in doses_unstacked.index.names:
+                drug_nums.append(drug_no)
+                drug_no += 1
 
         # Add drugs
         drugs = {}
@@ -250,26 +254,33 @@ class PlateFileParser(object):
 
         # Add cell lines
         cell_lines = {}
-        for cl in df_data.cell_lines:
-            cl_obj, _ = CellLine.objects.get_or_create(
-                name__iexact=cl,
-                defaults={'name': cl}
-            )
-            cell_lines[cl] = cl_obj.pk
+        if doses_unstacked is not None:
+            for cl in df_data.cell_lines:
+                cl_obj, _ = CellLine.objects.get_or_create(
+                    name__iexact=cl,
+                    defaults={'name': cl}
+                )
+                cell_lines[cl] = cl_obj.pk
 
-        # Create plates
-        doses_unstacked.reset_index(inplace=True)
-        df_wells = doses_unstacked
-        df_wells.set_index('well_id', inplace=True)
         plates_to_create = {}
+        # Create plates
+        df_wells = None
+        if doses_unstacked is not None:
+            doses_unstacked.reset_index(inplace=True)
+            df_wells = doses_unstacked
+            df_wells.set_index('well_id', inplace=True)
 
-        # Get the plate sizes by the largest well number on each plate
-        plate_sizes = df_wells.groupby('plate')['well_num'].max()
+            # Get the plate sizes by the largest well number on each plate
+            plate_sizes = df_wells.groupby('plate')['well_num'].max()
+
         if df_data.controls is not None:
             ctrl_plate_sizes = df_data.controls.groupby(
                 'plate')['well_num'].max()
-            plate_sizes = plate_sizes.to_frame().join(
-                ctrl_plate_sizes, rsuffix='ctrl', how='outer').max(axis=1)
+            if doses_unstacked is None:
+                plate_sizes = ctrl_plate_sizes
+            else:
+                plate_sizes = plate_sizes.to_frame().join(
+                    ctrl_plate_sizes, rsuffix='ctrl', how='outer').max(axis=1)
 
         # Convert the plate sizes to one of (96, 384, 1536)
         plate_sizes = plate_sizes.apply(_plate_size_selector)
@@ -311,8 +322,9 @@ class PlateFileParser(object):
         # Create wells
         self._create_wells(df_data, df_wells, cell_lines)
 
-        # Create welldrugs
-        self._create_welldrugs(df_wells, drug_nums, drugs)
+        if df_wells is not None:
+            # Create welldrugs
+            self._create_welldrugs(df_wells, drug_nums, drugs)
 
         well_measurements_to_create = []
 
@@ -337,8 +349,9 @@ class PlateFileParser(object):
         # Create wellmeasurements from non-controls
         assays = df_data.assays.reset_index()
         assays.set_index('well_id', inplace=True)
-        assays = pd.merge(assays, df_wells[['plate', 'well_num']],
-                          how='left', left_index=True, right_index=True)
+        if df_wells is not None:
+            assays = pd.merge(assays, df_wells[['plate', 'well_num']],
+                              how='left', left_index=True, right_index=True)
         for row in assays.itertuples():
             pl_name = row.plate
             plate = self._plate_objects[pl_name]
