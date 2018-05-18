@@ -355,11 +355,8 @@ class PlateFileParser(object):
 
         from thunor.io import read_vanderbilt_hts
         self.plate_file.file.seek(0)
-        try:
-            df_data = read_vanderbilt_hts(self.plate_file.file, sep=sep,
-                                          _unstacked=True)
-        except KeyError as e:
-            raise PlateFileUnknownFormat(e)
+        df_data = read_vanderbilt_hts(self.plate_file.file, sep=sep,
+                                      _unstacked=True)
 
         self._create_db_platefile()
         self.plate_file.close()
