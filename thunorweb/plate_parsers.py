@@ -249,7 +249,7 @@ class PlateFileParser(object):
             ctrl_plate_sizes = df_data.controls.groupby(
                 'plate')['well_num'].max()
             plate_sizes = plate_sizes.to_frame().join(
-                ctrl_plate_sizes, rsuffix='ctrl').max(axis=1)
+                ctrl_plate_sizes, rsuffix='ctrl', how='outer').max(axis=1)
 
         # Convert the plate sizes to one of (96, 384, 1536)
         plate_sizes = plate_sizes.apply(_plate_size_selector)
