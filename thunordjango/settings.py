@@ -360,3 +360,6 @@ LOGGING = {
         },
     },
 }
+
+# Quality control settings
+THUNOR_REQUIRE_CONTROLS = True

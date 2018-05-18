@@ -208,6 +208,25 @@ class PlateFileParser(object):
 
         doses_unstacked = df_data.doses
 
+        if settings.THUNOR_REQUIRE_CONTROLS:
+            if df_data.controls is None:
+                raise PlateFileParseException(
+                    'This dataset has no controls wells. Please add controls '
+                    'wells (containing cells with no drug) to your data.')
+
+            # Check that controls are available for all cell lines and plates
+            grps_expt = set(grp for grp, _ in df_data.doses.groupby(
+                ['plate', 'cell_line'], sort=False))
+            grps_ctrl = set(grp for grp, _ in df_data.controls.groupby(
+                ['plate', 'cell_line'], sort=False))
+
+            missing_ctrls = grps_expt.difference(grps_ctrl)
+            if missing_ctrls:
+                raise PlateFileParseException(
+                    'There are no control wells defined for the following '
+                    '(plate, cell line) pairs: {}'.format(missing_ctrls)
+                )
+
         # Work out the max number of drugs in a combination
         drug_no = 1
         drug_nums = []
