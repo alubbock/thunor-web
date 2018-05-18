@@ -207,14 +207,16 @@ PlateMap.prototype = {
     toCSV: function(sep) {
         var i;
         var numDrugColumns = this.maxDrugsDosesUsed();
-        var header = ['WellID', 'WellName', 'CellLine'];
+        var header = ['well', 'cell.line'];
         for(i=0; i < numDrugColumns; i++) {
-            header.push('Drug'+(i+1));
-            header.push('Dose'+(i+1));
+            var drugName = 'drug'+(i+1);
+            header.push(drugName);
+            header.push(drugName+'.conc');
+            header.push(drugName+'.units')
         }
         var wells = [header.join(sep)];
         for (var w=0, len=this.wells.length; w < len; w++) {
-            var elements = [w, this.wellNumToName(w)];
+            var elements = [this.wellNumToName(w, true)];
             var well = this.wells[w];
             if (well.cellLine === null) {
                 elements.push('');
@@ -232,6 +234,8 @@ PlateMap.prototype = {
                 } else {
                     elements.push('');
                 }
+                // Units are always molar
+                elements.push('M');
             }
             wells.push(elements.join(sep))
         }
