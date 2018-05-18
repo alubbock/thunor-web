@@ -2,7 +2,7 @@ from django.shortcuts import render, Http404
 from django.template.loader import get_template
 from django.contrib.auth.models import Group
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, HttpResponseBadRequest
+from django.http import JsonResponse, HttpResponseBadRequest, HttpResponse
 from django.contrib import messages
 from django.db import transaction
 from django.db.models import Q, Max
@@ -157,11 +157,21 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
 
     datasets = set([p.dataset for p in plates])
 
-    if len(datasets) != len(dataset_ids):
+    if len(datasets) == 0:
+        # Maybe we just have no plates, get datasets to check permissions
+        datasets = HTSDataset.objects.filter(id__in=dataset_ids)
+        if len(datasets) == 0:
+            raise Http404()
+    elif len(datasets) != len(dataset_ids):
         raise Http404()
 
     for dataset in datasets:
         _assert_has_perm(request, dataset, 'view_plots')
+
+    if len(plates) == 0:
+        return HttpResponse(
+            'This dataset has no plate files. Data will need to be added '
+            'before plots can be used on this dataset.', status=400)
 
     groupings_dict = dataset_groupings(list(datasets))
 

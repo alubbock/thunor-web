@@ -873,7 +873,7 @@ var plots = function() {
                 success: populatePlotPanelOptions,
                 error: function(jqXHR, textStatus, errorThrown) {
                     delete plotOptionsCache[datasetGroupingsIds];
-                    $plotPanel.find(".panel-body").loadingOverlay("hide");
+                    $plotPanel.find(".panel-close-btn").trigger("click");
                     if(jqXHR.status === 404) {
                         ui.okModal({title: "Dataset not found",
                                     text: "The requested dataset does not " +
