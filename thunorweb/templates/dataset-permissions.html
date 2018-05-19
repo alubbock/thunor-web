@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %}Permissions: {{ dataset.name }}{% endblock %}
+{% block helppage %}dataset-permissions{% endblock %}
 
 {% block content %}
 <input type="hidden" name="dataset-id" id="dataset-id" value="{{ dataset.id }}">
