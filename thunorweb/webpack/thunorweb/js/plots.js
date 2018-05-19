@@ -1026,6 +1026,7 @@ var plots = function() {
     if (plotStrings.length) {
         var $panelTemplate = $(".panel-container").last();
         var $showPlotDelayedMsg = $(".show-plot-delayed");
+        var showWarning = false;
         for (var i = 0; i < plotStrings.length; i++) {
             var formData = {};
             try {
@@ -1044,24 +1045,39 @@ var plots = function() {
             } catch(e) {
                 // Ignore
                 console.log(e);
+                showWarning = true;
             }
             if(!$.isEmptyObject(formData)) {
-                var $plotPanel = $panelTemplate.clone(true, true);
-                var showByDefault = i < 4;
-                if(!showByDefault) {
-                    $showPlotDelayedMsg.clone().appendTo($plotPanel.find(".plotly-graph-div"));
-                }
-                $plotPanel.appendTo(".sortable-panels").show();
-                prepareDataPanel($plotPanel, formData, showByDefault);
-                if(showByDefault) {
-                    $plotPanel.find(".panel-body").loadingOverlay("show");
+                if(!formData.hasOwnProperty('datasetId') || formData['datasetId'] === '') {
+                    showWarning = true;
+                } else {
+                    var $plotPanel = $panelTemplate.clone(true, true);
+                    var showByDefault = i < 4;
+                    if (!showByDefault) {
+                        $showPlotDelayedMsg.clone().appendTo($plotPanel.find(".plotly-graph-div"));
+                    }
+                    $plotPanel.appendTo(".sortable-panels").show();
+                    prepareDataPanel($plotPanel, formData, showByDefault);
+                    if (showByDefault) {
+                        $plotPanel.find(".panel-body").loadingOverlay("show");
+                    }
                 }
             }
         }
-        $(".show-plot-delayed").not(":last").show().find("button").click(function() {
-           $(this).closest(".plot-panel").find(".hts-change-data > form").submit();
-        });
-        adjustZindexes();
+        if(showWarning) {
+            ui.okModal({
+                'title': 'Error decoding URL',
+                'text': 'There was an error decoding the URL, which means' +
+                ' the plots cannot be loaded. If you clicked on a link to' +
+                ' load this page, try copying and pasting the URL instead.'
+            });
+            $('#quickstart').show();
+        } else {
+            $(".show-plot-delayed").not(":last").show().find("button").click(function () {
+                $(this).closest(".plot-panel").find(".hts-change-data > form").submit();
+            });
+            adjustZindexes();
+        }
     } else {
         $("#quickstart").show();
     }
