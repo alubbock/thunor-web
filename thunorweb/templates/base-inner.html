@@ -57,7 +57,7 @@
                 <span class="visible-xs-inline">Help</span></a></li>
               <li class="dropdown">
                   <a class="dropdown-toggle" data-toggle="dropdown" href="#">
-                      <i class="fa fa-user fa-fw"></i> {{ user.email }}
+                      <i class="fa fa-user fa-fw"></i> {{ user.email|truncatechars:30 }}
                       <i class="fa fa-caret-down"></i>
                   </a>
                   <ul class="dropdown-menu">
