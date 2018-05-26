@@ -1,18 +1,30 @@
-Thunor
-======
+# Thunor Web
 
-Deployment
-----------
+**Thunor** (pronounced THOO-nor) is a free software platform for managing,
+visualizing, and analyzing high throughput screen (HTS) data, which measure
+the dose-dependent response of cells to one or more
+drug(s). Thunor has a web interface for drag-and-drop upload of cell count
+data, automatic calculation of dose response curves, and an interactive
+multi-panelled plot system.
 
-First, set up the site-specific configuration:
+This repository, Thunor Web, is the web interface. Thunor Web builds on
+[Thunor Core](https://github.com/alubbock/thunor), which is a Python package
+that can be used for standalone analysis or integration into computational
+pipelines.
 
-_conf/thunor.env - Environment variable configuration
-_conf/nginx.conf - nginx configuration
+## Demo
 
-Symbolic link the nginx.conf:
+An online, read-only demo is available at
+[demo.thunor.net](https://demo.thunor.net).
 
-    ln -s /etc/nginx/sites-enabled/thunor `pwd`/_conf/nginx.conf
+## Documentation
 
-Then, just bring up the Docker containers:
+Further documentation and installation instructions are available at
+[docs.thunor.net](https://docs.thunor.net).
 
-    docker-compose up
+## Reporting issues and getting help
+
+If you have a question or suggestions for Thunor, please use our
+[online chat](https://gitter.im/thunorweb/Lobby).
+
+If you've found a bug, please use Github issues to report it.
