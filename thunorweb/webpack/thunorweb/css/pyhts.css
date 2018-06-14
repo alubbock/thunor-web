@@ -429,6 +429,11 @@ user-select: none;}
 }
 #hts-add-drug {
     margin-top:5px;
+    margin-bottom:5px;
+}
+#hts-remove-drug {
+    display: none;
+    margin-bottom:5px;
 }
 #hts-apply-template-multiple select, #apply-template-multiple-btn, .hts-drug-num {
     display: none;

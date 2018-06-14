@@ -149,6 +149,16 @@ PlateMap.prototype = {
         }
         return maxUsed;
     },
+    wellsWithNumDrugsDosesUsed: function(numDrugsDoses) {
+        var wells = [];
+        for(var i=0, len=this.wells.length; i<len; i++) {
+            if((this.wells[i].drugs != null && this.wells[i].drugs.length >= numDrugsDoses)
+                || (this.wells[i].doses != null && this.wells[i].doses.length >= numDrugsDoses)) {
+                wells.push(i);
+            }
+        }
+        return wells;
+    },
     wellNumToName: function(wellNum, padded) {
         return this.rowNumToName(Math.floor(wellNum / this.numCols)) +
                this.colNumToName(wellNum % this.numCols, padded);
@@ -858,6 +868,7 @@ var plate_designer = function () {
         // Deselect wells or apply auto-stepper
         if (pyHTS.state.stepperMode === 'off') {
             $selectedWells.removeClass('ui-selected');
+            $(caller).blur();
         } else {
             var multiple = pyHTS.state.stepperMode.search('^down|^right') !== -1 ? 1 : -1;
             var baseNum = 1;
@@ -953,7 +964,7 @@ var plate_designer = function () {
             return +val + 1;
         });
         new_el.insertAfter(orig_el);
-        $('.hts-drug-num').show();
+        $('.hts-drug-num,#hts-remove-drug').show();
         activateDrugInputs();
         $drugTypeaheads = $('.hts-drug-typeahead').not('.tt-hint');
         $doseInputs = $('.hts-dose-input');
@@ -967,7 +978,7 @@ var plate_designer = function () {
             $drugEntries.filter(':last').remove();
         }
         if(numEntries == 2) {
-            $('.hts-drug-num').hide();
+            $('.hts-drug-num,#hts-remove-drug').hide();
         }
         $drugTypeaheads = $('.hts-drug-typeahead').not('.tt-hint');
         $doseInputs = $('.hts-dose-input');
@@ -987,6 +998,18 @@ var plate_designer = function () {
 
     $('#hts-add-drug').click(function (e) {
         addDrugInput();
+    });
+
+    $('#hts-remove-drug').click(function() {
+        var numDrugsInUse = pyHTS.state.plateMap.maxDrugsDosesUsed();
+        if(numDrugsInUse >= $('.hts-drug-entry').length) {
+            return ui.okModal({title: 'Cannot remove while drug has entries', text:
+                'Some wells have data for drug/dose ' + numDrugsInUse + ': ' +
+                pyHTS.state.plateMap.readableWells(pyHTS.state.plateMap.wellsWithNumDrugsDosesUsed(numDrugsInUse))
+                });
+        } else {
+            removeDrugInput();
+        }
     });
 
     var refreshDataTable = function() {
