@@ -102,7 +102,7 @@ def download_fit_params(request, dataset_id, stat_type):
             file=full_path
         )
 
-    output_filename = '{}_{}_params.h5'.format(dataset.name, stat_type)
+    output_filename = '{}_{}_params'.format(dataset.name, stat_type)
 
     return serve_file(request, full_path, rename_to=output_filename,
                       content_type='text/tab-separated-values')
