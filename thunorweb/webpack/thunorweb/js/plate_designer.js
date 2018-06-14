@@ -55,7 +55,8 @@ Well.prototype = {
         if(well.drugs !== null) {
             var numDrugs = well.drugs.length;
             for(var drIdx = 0; drIdx < numDrugs; drIdx++) {
-                well.drugs[drIdx] = util.filterObjectsAttr(well.drugs[drIdx], pyHTS.state.drugs, "id", "name");
+                well.drugs[drIdx] = well.drugs[drIdx] == null ? null :
+                    util.filterObjectsAttr(well.drugs[drIdx], pyHTS.state.drugs, "id", "name");
             }
         }
         return well;
@@ -106,12 +107,6 @@ PlateMap.prototype = {
             newWellIds.push(newId);
         }
         return newWellIds;
-    },
-    moveSelectionDownBy: function(wellIds, moveStep) {
-        return this.moveSelectionBy(wellIds, moveStep, true);
-    },
-    moveSelectionRightBy: function(wellIds, moveStep) {
-        return this.moveSelectionBy(wellIds, moveStep, false);
     },
     getUsedEntries: function(entry_list) {
         var usedEntries = [];
@@ -224,7 +219,7 @@ PlateMap.prototype = {
                 elements.push(util.filterObjectsAttr(well.cellLine, pyHTS.state.cell_lines, 'id', 'name'));
             }
             for (i = 0; i < numDrugColumns; i++) {
-                if (well.drugs !== null && well.drugs.length > i) {
+                if (well.drugs !== null && well.drugs.length > i && well.drugs[i] != null) {
                     elements.push(util.filterObjectsAttr(well.drugs[i], pyHTS.state.drugs, 'id', 'name'));
                 } else {
                     elements.push('');
@@ -835,6 +830,7 @@ var plate_designer = function () {
             }
             for(var j=0; j<drugIdsLen; j++) {
                 if(drugIds[j] != -1) {
+                    console.log('setting '+drugIds[j]);
                     pyHTS.state.plateMap.wells[wellId].setDrug(drugIds[j], j);
                 }
                 if(doses[j] != null) {
@@ -860,7 +856,6 @@ var plate_designer = function () {
         $doseInputs.val('');
 
         // Deselect wells or apply auto-stepper
-        var newWellIds;
         if (pyHTS.state.stepperMode === 'off') {
             $selectedWells.removeClass('ui-selected');
         } else {
@@ -872,17 +867,29 @@ var plate_designer = function () {
                     pyHTS.state.plateMap.selectionWidth(wellIds);
             }
             try {
-                newWellIds = pyHTS.state.plateMap.moveSelectionBy(wellIds, multiple * baseNum, inRowDirection);
+                var newWellIds = pyHTS.state.plateMap.moveSelectionBy(wellIds, multiple * baseNum, inRowDirection);
+                selectWells(newWellIds);
+                var autoDilutionStep = parseFloat($('input[name=auto-dilution]').val());
+                if(!isNaN(autoDilutionStep) && autoDilutionStep > 0) {
+                    for (var i = 0; i < doses.length; i++) {
+                        if (doses[i] === null || $doseInputs.eq(i).val() !== '') {
+                            continue;
+                        }
+                        var newDose = doses[i] / autoDilutionStep;
+                        setDoseInput(i, newDose);
+                    }
+                }
             } catch(e) {
+                $(caller).blur();
                 autoStepperOutOfBounds();
             }
         }
+    };
 
-        if(newWellIds === undefined) {
-            $(caller).blur();
-        } else {
-            selectWells(newWellIds);
-        }
+    var setDoseInput = function(i, doseVal) {
+        var doseSplit = util.doseSplitter(doseVal);
+        $doseInputs.eq(i).val(doseSplit[0]);
+        $('.hts-active-dose-unit').eq(i).data('dose', doseSplit[1]).text(doseSplit[2]);
     };
 
     var clearAllInputs = function() {
@@ -890,6 +897,27 @@ var plate_designer = function () {
             .typeahead('val', '');
         $('.hts-dose-input').val('');
     };
+
+    $('input[name=auto-dilution]').focusout(function(e) {
+       var floatVal = $(this).val(), validated = true;
+       if(isNaN(floatVal)) {
+            ui.okModal({title: 'Validation error', text: 'Auto dilution should be a numerical step (multiple)'});
+            validated = false;
+       } else if (floatVal < 0) {
+           ui.okModal({title: 'Validation error', text: 'Auto dilution step should be a positive number'});
+           validated = false;
+       }
+       if(validated === false) {
+           $(this).val('').focus();
+           e.preventDefault();
+       }
+       return validated;
+    }).keyup(function (e) {
+        // Drop focus on pressing enter
+        if (e.which === 13) {
+            $(this).blur();
+        }
+    });
 
     var autoStepperOutOfBounds = function() {
         ui.okModal({
@@ -1198,9 +1226,7 @@ var plate_designer = function () {
         $doseInputs.val('');
         for(i=0; i<numDoses; i++) {
             if(doses[i].length === 1 && doses[i][0] != null) {
-                var doseSplit = util.doseSplitter(doses[i][0]);
-                $doseInputs.eq(i).val(doseSplit[0]);
-                $doseUnits.eq(i).data('dose', doseSplit[1]).text(doseSplit[2]);
+                setDoseInput(i, doses[i][0]);
             } else if(doses[i].length > 1) {
                 $doseInputs.eq(i).attr('placeholder', '[Multiple]');
             }
@@ -1421,6 +1447,7 @@ var plate_designer = function () {
     $('#hts-autostepper-div').find('li').click(function(e) {
         e.preventDefault();
         pyHTS.state.stepperMode = $(this).data('mode');
+        $('#auto-dilution-div').toggle(pyHTS.state.stepperMode !== 'off');
         $('#hts-autostepper-mode').text($(this).text());
     });
 

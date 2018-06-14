@@ -5,7 +5,6 @@
            {% if not editable %}disabled{% endif %}
            name="doseBase{{ repeatN }}" value="{{ default_dose_base }}" />
     <div class="input-group-btn">
-        <input type="hidden" name="doseMultiplier{{ repeatN }}" value="{{ default_dose_multiplier }}" />
         <button type="button" class="btn btn-default dropdown-toggle"
                 data-toggle="dropdown"
                 aria-haspopup="true"
@@ -16,8 +15,7 @@
                 {% if editable %}{{ default_dose_multiplier_label }}{% endif %}
                 </span>
             <span class="caret"></span></button>
-        <ul class="hts-dose-select dropdown-menu
-        dropdown-menu-right">
+        <ul class="hts-dose-select dropdown-menu dropdown-menu-right">
           <li data-dose="1e-12"><a href="#">pM</a></li>
           <li data-dose="1e-9"><a href="#">nM</a></li>
           <li data-dose="1e-6"><a href="#">&mu;M</a></li>

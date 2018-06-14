@@ -436,6 +436,10 @@ user-select: none;}
 #hts-well-table-view, #hts-dip-display {
     display: none;
 }
+#auto-dilution-div {
+    display: none;
+    margin-bottom: 10px;
+}
 #hts-well-table-view table { width:100%; }
 #hts-apply-template-multiple { display: inline-block; }
 .modal-header {
