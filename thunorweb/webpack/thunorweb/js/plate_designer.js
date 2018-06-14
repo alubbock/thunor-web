@@ -49,6 +49,7 @@ Well.prototype = {
     },
     toStringFormat: function() {
         var well = $.extend(true, {}, this);
+        delete well.dipRate;
         if(well.cellLine !== null) {
             well.cellLine = util.filterObjectsAttr(well.cellLine, pyHTS.state.cell_lines, "id", "name");
         }
