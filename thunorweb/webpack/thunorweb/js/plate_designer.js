@@ -861,40 +861,21 @@ var plate_designer = function () {
 
         // Deselect wells or apply auto-stepper
         var newWellIds;
-        switch (pyHTS.state.stepperMode) {
-            case 'off':
-                $selectedWells.removeClass('ui-selected');
-                break;
-            case 'down-sel':
-                try {
-                    newWellIds = pyHTS.state.plateMap.moveSelectionDownBy(wellIds,
-                            pyHTS.state.plateMap.selectionHeight(wellIds));
-                } catch(e) {
-                    autoStepperOutOfBounds();
-                }
-                break;
-            case 'down-1':
-                try {
-                    newWellIds = pyHTS.state.plateMap.moveSelectionDownBy(wellIds, 1);
-                } catch(e) {
-                    autoStepperOutOfBounds();
-                }
-                break;
-            case 'right-sel':
-                try {
-                    newWellIds = pyHTS.state.plateMap.moveSelectionRightBy(wellIds,
-                            pyHTS.state.plateMap.selectionWidth(wellIds));
-                } catch(e) {
-                    autoStepperOutOfBounds();
-                }
-                break;
-            case 'right-1':
-                try {
-                    newWellIds = pyHTS.state.plateMap.moveSelectionRightBy(wellIds, 1);
-                } catch(e) {
-                    autoStepperOutOfBounds();
-                }
-                break;
+        if (pyHTS.state.stepperMode === 'off') {
+            $selectedWells.removeClass('ui-selected');
+        } else {
+            var multiple = pyHTS.state.stepperMode.search('^down|^right') !== -1 ? 1 : -1;
+            var baseNum = 1;
+            var inRowDirection = pyHTS.state.stepperMode.search('^down|^up') !== -1;
+            if (pyHTS.state.stepperMode.endsWith('-sel')) {
+                baseNum = inRowDirection ? pyHTS.state.plateMap.selectionHeight(wellIds) :
+                    pyHTS.state.plateMap.selectionWidth(wellIds);
+            }
+            try {
+                newWellIds = pyHTS.state.plateMap.moveSelectionBy(wellIds, multiple * baseNum, inRowDirection);
+            } catch(e) {
+                autoStepperOutOfBounds();
+            }
         }
 
         if(newWellIds === undefined) {
