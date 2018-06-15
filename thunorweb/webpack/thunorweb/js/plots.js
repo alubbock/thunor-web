@@ -642,7 +642,7 @@ var plots = function() {
             .selectpicker(selectPickerOptionsSingle);
         $dataPanel.find("select.drpar-select")
             .on("changed.bs.select", function(e) {
-                var $target = $(e.target);
+                var $target = $(e.currentTarget);
                 var $customBox = $target.closest(".hts-drpar-group").find(".hts-drpar-custom");
                 if($target.val().indexOf("_custom") !== -1) {
                     $customBox.slideDown().find("input[type=text]").focus();
