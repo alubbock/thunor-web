@@ -204,6 +204,7 @@
 
                 <label>Export</label><br>
                 <div class="btn-group btn-sidebar btn-sidebar-nomgn">
+                    <input type="text" class="form-control" name="export-prefix" placeholder="File prefix (optional)">
                     <button style="width:50%" role="button" class="btn {% if dataset %}btn-default{% else %}btn-success{% endif %}" id="hts-download-json"><i class="fa fa-download"></i> JSON</button>
                     <button style="width:50%" role="button" class="btn {% if dataset %}btn-default{% else %}btn-success{% endif %}" id="hts-download-tsv"><i class="fa fa-download"></i> TSV</button>
                 </div>
@@ -303,7 +304,7 @@
 
 {% block tailscript %}{% if plates %}
 <script>
-var PlateMap = pyHTS.views.plate_designer.PlateMap;
+var PlateMap = pyHTS.views.plate_mapper.PlateMap;
 $.extend(pyHTS.state, {
     {% if plates.0 %}plateMap: new PlateMap('{{ plates.0.id }}', {{ plates.0.height }}, {{ plates.0.width }}),{% endif %}
 
@@ -329,9 +330,9 @@ $.extend(pyHTS.state, {
     plates: [{% for p in plates %}'{{ p.id }}'{% if not forloop.last %},{% endif %}{% endfor %}],
     savedPlates: [{% for p in plates %}{% if p.last_annotated %}{{ p.id }},{% endif %}{% endfor %}]
 });
-pyHTS.views.plate_designer.checkLoading();
+pyHTS.views.plate_mapper.checkLoading();
 $(function () {
-    pyHTS.views.plate_designer.activate();
+    pyHTS.views.plate_mapper.activate();
 });
 </script>
 {% endif %}{% endblock %}

@@ -378,7 +378,7 @@ var check_loading = function() {
     }
 };
 
-var plate_designer = function () {
+var plate_mapper = function () {
     var setWellSizes = function() {
         var numWells = pyHTS.state.plateMap.wells.length;
         var $plate = $('#hts-well-plate-inner');
@@ -1741,11 +1741,11 @@ var plate_designer = function () {
             }
             blob = new Blob([JSON.stringify({wells: wells})], {type: "application/json"});
         } else {
-            ui.okModal({title: 'Unknown format', text: 'Unknown download' +
-                ' format'});
+            ui.okModal({title: 'Unknown format', text: 'Unknown download format'});
             return;
         }
-        FileSaver.saveAs(blob, "platemap." + format);
+        var prefix = $('input[name=export-prefix]').val();
+        FileSaver.saveAs(blob, (prefix === "" ? "platemap" : prefix) + "." + format);
         if(pyHTS.state.plates[0] === "MASTER") {
             pyHTS.state.plateMap.unsaved_changes = false;
         }
@@ -1767,7 +1767,7 @@ var plate_designer = function () {
     }
 };
 module.exports = {
-    activate: plate_designer,
+    activate: plate_mapper,
     checkLoading: check_loading,
     PlateMap: PlateMap
 };

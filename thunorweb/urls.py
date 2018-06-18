@@ -48,7 +48,7 @@ urlpatterns = [
     url(r'^dataset/(?P<dataset_id>\d+)/upload$', datasets.dataset_upload,
         name='plate_upload'),
     url(r'^dataset/(?P<dataset_id>\d+)/annotate$', plate_mapper.plate_mapper,
-        name='plate_designer'),
+        name='plate_mapper_dataset'),
 
     url(r'^dataset/(?P<dataset_id>\d+)/download/hdf5$',
         downloads.download_dataset_hdf5, name='download_dataset_hdf5'),

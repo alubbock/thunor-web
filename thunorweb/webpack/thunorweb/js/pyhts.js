@@ -10,7 +10,7 @@ var pyHTS = {
         dataset_permissions: require("./dataset_permissions"),
         plots: require("./plots"),
         plate_upload: require("./plate_upload"),
-        plate_designer: require("./plate_designer"),
+        plate_mapper: require("./plate_mapper"),
         tag_editor: require("./tag_editor")
     },
     state: {}

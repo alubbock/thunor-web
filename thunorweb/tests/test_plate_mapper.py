@@ -71,7 +71,7 @@ class TestPlateMapper(TestCase):
 
     def test_plate_mapper(self):
         self.client.force_login(self.user)
-        resp = self.client.get(reverse('thunorweb:plate_designer',
+        resp = self.client.get(reverse('thunorweb:plate_mapper_dataset',
                                        args=[self.d.id]))
         self.assertEquals(resp.status_code, HTTP_OK)
 

@@ -47,7 +47,7 @@
                         <i class="fa fa-3x fa-arrow-left"></i><br>
                         {% if dataset %}Back{% else %}Exit
                         {% endif %} to<br>Dataset Page</button></a>
-                    <a id="hts-next-2" href="{% if dataset %}{% url 'thunorweb:plate_designer' dataset.id %}{% else %}#{% endif %}">
+                    <a id="hts-next-2" href="{% if dataset %}{% url 'thunorweb:plate_mapper_dataset' dataset.id %}{% else %}#{% endif %}">
                       <button type="button"
                               class="btn btn-success btn-lg"
                               {% if not dataset %}disabled{% endif %}>

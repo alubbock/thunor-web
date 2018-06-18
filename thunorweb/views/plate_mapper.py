@@ -25,7 +25,7 @@ def plate_mapper(request, dataset_id, num_wells=None):
     plate_size = namedtuple('plate_size', 'numCols numRows numWells')
     if dataset_id is None:
         if num_wells is None:
-            return render(request, 'plate_designer_choose_size.html')
+            return render(request, 'plate_mapper_choose_size.html')
         num_wells = int(num_wells)
         if num_wells not in STANDARD_PLATE_SIZES:
             raise Http404()
@@ -56,7 +56,7 @@ def plate_mapper(request, dataset_id, num_wells=None):
 
         plate_sizes = sorted(plate_sizes, key=lambda ps: ps.numWells)
 
-    response = TemplateResponse(request, 'plate_designer.html', {
+    response = TemplateResponse(request, 'plate_mapper.html', {
         'num_wells': num_wells,
         'dataset': dataset,
         'editable': editable,
