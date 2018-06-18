@@ -1663,7 +1663,7 @@ var plate_mapper = function () {
         if(plateId == 'MASTER') {
             $plateEl = $plateEl.filter('[data-template='+templateId+']');
         }
-        var plateName = $plateEl.find('a').text();
+        var plateName = $plateEl.find('a').text().trim();
         $currentPlate.data('id', plateId.toString()).text(plateName);
         $plateList.find('li').removeClass('active');
         $plateEl.addClass('active');
@@ -1745,6 +1745,10 @@ var plate_mapper = function () {
             return;
         }
         var prefix = $('input[name=export-prefix]').val();
+        var $currentPlate = $('#hts-current-plate');
+        if($currentPlate.length) {
+            prefix += ' ' + $currentPlate.text();
+        }
         FileSaver.saveAs(blob, (prefix === "" ? "platemap" : prefix) + "." + format);
         if(pyHTS.state.plates[0] === "MASTER") {
             pyHTS.state.plateMap.unsaved_changes = false;

@@ -203,8 +203,8 @@
                 {% endif %}
 
                 <label>Export</label><br>
+                {% if dataset %}<input type="hidden" name="export-prefix" value="{{ dataset.name }}">{% else %}<input type="text" class="form-control" name="export-prefix" placeholder="File prefix (optional)">{% endif %}
                 <div class="btn-group btn-sidebar btn-sidebar-nomgn">
-                    <input type="text" class="form-control" name="export-prefix" placeholder="File prefix (optional)">
                     <button style="width:50%" role="button" class="btn {% if dataset %}btn-default{% else %}btn-success{% endif %}" id="hts-download-json"><i class="fa fa-download"></i> JSON</button>
                     <button style="width:50%" role="button" class="btn {% if dataset %}btn-default{% else %}btn-success{% endif %}" id="hts-download-tsv"><i class="fa fa-download"></i> TSV</button>
                 </div>
