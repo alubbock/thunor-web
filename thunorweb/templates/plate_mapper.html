@@ -202,6 +202,10 @@
                 </div>
                 {% endif %}
 
+                <label>Import</label><br>
+                <form>    <label class="btn btn-default btn-file btn-sidebar">
+                Select file... <input type="file" style="display: none;" id="hts-plate-upload"></label></form>
+
                 <label>Export</label><br>
                 {% if dataset %}<input type="hidden" name="export-prefix" value="{{ dataset.name }}">{% else %}<input type="text" class="form-control" name="export-prefix" placeholder="File prefix (optional)">{% endif %}
                 <div class="btn-group btn-sidebar btn-sidebar-nomgn">

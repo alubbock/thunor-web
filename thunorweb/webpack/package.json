@@ -23,7 +23,8 @@
     "jquery-ui-touch-punch": "^0.2.3",
     "plotly.js": "^1.31.2",
     "raven-js": "^3.9.0",
-    "typeahead.js": "^0.11.1"
+    "typeahead.js": "^0.11.1",
+    "d3-dsv": "^1.0.8"
   },
   "devDependencies": {
     "bootstrap-loader": "^2.1.0",

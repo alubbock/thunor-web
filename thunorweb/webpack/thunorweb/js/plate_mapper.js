@@ -480,6 +480,7 @@ var plate_mapper = function () {
                                 pyHTS.state.cell_lines, 'name'
                             ));
             successCallback();
+            return newId;
         } else {
             $.ajax({
                 type: 'POST',
@@ -1724,6 +1725,158 @@ var plate_mapper = function () {
         }
     });
 
+    var tsvToJson = function(tsv) {
+        var d3 = require("d3-dsv");
+        var rows = d3.tsvParse(tsv);
+        var rLen = rows.length;
+        if(rLen !== pyHTS.state.plateMap.wells.length) {
+            return upErr('File has '+rLen+' wells, but current plate map has '+pyHTS.state.plateMap.wells.length+' wells');
+        }
+        var wells = [];
+        for(var r=0; r<rLen; r++) {
+            var w = rows[r];
+            var well = {};
+            if(!w.hasOwnProperty("well")) {
+                return upErr('No "well" column found');
+            }
+            var wellNamePad = pyHTS.state.plateMap.wellNumToName(r, true);
+            if(w.well !== wellNamePad) {
+                if(w.well !== pyHTS.state.plateMap.wellNumToName(r)) {
+                    return upErr("Row " + (r + 2) + ' well name is "' + w.well + '", expected "' + wellNamePad + '" (rows must be in well order)');
+                }
+            }
+            if(!w.hasOwnProperty("cell.line")) {
+                return upErr('No "cell.line" column found');
+            }
+            well.cellLine = w["cell.line"] === '' ? null : w["cell.line"];
+            // Parse drugs
+            var d = 1;
+            well.drugs = [];
+            well.doses = [];
+            while(w.hasOwnProperty("drug"+d)) {
+                well.drugs.push(w['drug'+d] === '' ? null : w['drug'+d]);
+                if(w.hasOwnProperty("drug"+d+".units")) {
+                    if(w["drug"+d+".units"] !== "M") {
+                        return upErr('Well '+w.well+': drug'+d+'.units is "'+w["drug"+d+".units"]+'", expected "M"');
+                    }
+                }
+                if(!w.hasOwnProperty("drug"+d+".conc")) {
+                    return upErr("drug"+d+".conc is missing");
+                }
+                if(w['drug'+d+'.conc'] === '') {
+                    well.doses.push(null);
+                } else {
+                    var dose = parseFloat(w['drug' + d + '.conc']);
+                    if (isNaN(dose)) {
+                        return upErr('Well ' + w.well + ': drug' + d + '.conc is not numeric or blank')
+                    }
+                    well.doses.push(dose);
+                }
+                d++;
+            }
+            if(d === 1) {
+                return upErr('No "drug1" column found');
+            }
+            wells.push(well);
+        }
+        return {'wells': wells};
+    };
+
+    var upErr = function(errmsg) {
+        ui.okModal({'title': 'Error importing file', 'text': errmsg});
+        return false;
+    };
+
+    var loadPlateMapFromJson = function(json) {
+        if(!json.hasOwnProperty('wells') || !(json.wells instanceof Array)) {
+            return upErr('JSON has no "wells" property or is not array');
+        }
+        var numWells = pyHTS.state.plateMap.wells.length;
+        if(json.wells.length !== numWells) {
+            return upErr('File has '+json.wells.length+' wells, but current plate map has '+numWells+' wells');
+        }
+        var wells = [];
+        var cellLinesToCreate = [];
+        var drugsToCreate = [];
+        for(var i=0; i<numWells; i++) {
+            var well = {};
+            wells.dipRate = pyHTS.state.plateMap.wells[i].dipRate;
+            // Check cellLine
+            var srcWell = json.wells[i];
+            if(!srcWell.hasOwnProperty("cellLine") || (srcWell.cellLine !== null && !(typeof srcWell.cellLine === "string"))) {
+                return upErr('Well '+i+' does not have "cellLine" property, or cellLine is not a string or null');
+            }
+            if(srcWell.cellLine !== null) {
+                var cl_id = util.filterObjectsAttr(srcWell.cellLine, pyHTS.state.cell_lines,
+                    'name', 'id');
+                if (cl_id === -1) {
+                    // cell line does not exist in DB
+                    if(pyHTS.state.plateMapperLocalOnly === true) {
+                        cl_id = createCellLine(srcWell.cellLine, function(){});
+                    } else {
+                        cellLinesToCreate.push(srcWell.cellLine);
+                    }
+                }
+                srcWell.cellLine = cl_id;
+            }
+            well.cellLine = srcWell.cellLine;
+            if(!srcWell.hasOwnProperty("drugs") || !(srcWell.drugs instanceof Array)) {
+                return upErr('Well '+i+' does not have "drugs" property, or is not an array');
+            }
+            if(!srcWell.hasOwnProperty("doses") || !(srcWell.doses instanceof Array)) {
+                return upErr('Well '+i+' does not have "doses" property, or is not an array');
+            }
+            var drugs = [], doses = [], d;
+            for(d=0; d<srcWell.drugs.length; d++) {
+                var currDrug = srcWell.drugs[d];
+                // process drug
+                if(currDrug !== null) {
+                    if(typeof currDrug !== "string") {
+                        return upErr('Well '+i+', drug '+d+' is not a string or null');
+                    }
+                    var dr_id = util.filterObjectsAttr(currDrug, pyHTS.state.drugs, 'name', 'id');
+                    if (dr_id === -1) {
+                        // cell line does not exist in DB
+                        if(pyHTS.state.plateMapperLocalOnly === true) {
+                            dr_id = createCellLine(currDrug, function(){});
+                        } else {
+                            drugsToCreate.push(currDrug);
+                        }
+                    }
+                    currDrug = dr_id;
+                }
+                drugs.push(currDrug);
+            }
+            for(d=0; d<srcWell.doses.length; d++) {
+                var currDose = srcWell.doses[d];
+                // process dose
+                if(currDose !== null) {
+                    if(typeof currDose !== "number") {
+                        return upErr('Well '+i+', dose '+d+' is not a number or null');
+                    }
+                }
+                doses.push(currDose);
+            }
+            well.drugs = drugs;
+            well.doses = doses;
+            wells.push(well);
+        }
+        if(cellLinesToCreate.length > 0) {
+            return upErr('The following cell line(s) do not exist in the database, please create them first by manually annotating the plate:<br><br>' + util.escapeHTML(cellLinesToCreate.join(", ")));
+        }
+        if(drugsToCreate.length > 0) {
+            return upErr('The following drug(s) do not exist in the database, please create them first by manually annotating the plate:<br><br>' + util.escapeHTML(drugsToCreate.join(", ")));
+        }
+
+        pyHTS.state.plateMap = new PlateMap(
+            pyHTS.state.plateMap.plateId,
+            pyHTS.state.plateMap.numRows,
+            pyHTS.state.plateMap.numCols,
+            wells
+        );
+        refreshViewAll();
+    };
+
     var downloadPlate = function(ignoreErrors, format) {
         if(!ignoreErrors) {
             if(!validatePlate(function() { downloadPlate(true, format); } )) {
@@ -1760,6 +1913,39 @@ var plate_mapper = function () {
     });
     $('#hts-download-tsv').click(function() {
         downloadPlate(!pyHTS.state.plateMap.unsaved_changes, 'tsv');
+    });
+
+    $('#hts-plate-upload').on('change', function(e) {
+        if (!window.File || !window.FileReader || !window.FileList || !window.Blob) {
+            return upErr('Sorry, your browser is too old to support this' +
+            'feature. Please upgrade - we recommend a recent version of Chrome or Firefox.');
+        }
+
+        var file = e.target.files[0];
+        var reader = new FileReader();
+        if(file.name.endsWith('.json')) {
+            reader.onload = function(e) {
+                try {
+                    var json = JSON.parse(e.target.result);
+                } catch (e) {
+                    if (e instanceof SyntaxError) {
+                        return upErr('Syntax error parsing JSON file');
+                    } else {
+                        throw e;
+                    }
+                }
+                loadPlateMapFromJson(json);
+            }
+        } else if (file.name.endsWith('.tsv')) {
+            reader.onload = function(e) {
+                var json = tsvToJson(e.target.result);
+                if(json === false) return;
+                loadPlateMapFromJson(json);
+            }
+        } else {
+            return upErr('The uploaded file\'s name must end in .tsv or .json');
+        }
+        reader.readAsText(file);
     });
 
     if(pyHTS.state.plates.length > 0) {

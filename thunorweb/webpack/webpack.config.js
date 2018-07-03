@@ -30,6 +30,9 @@ var config = {
                  // file downloads
                  "expose-loader?FileSaver!file-saver",
 
+                // TSV parser
+                "d3-dsv",
+
                  "bootstrap-fileinput",//uploader
                  "bootstrap-fileinput/themes/fa/theme",
                  "bootstrap-fileinput/css/fileinput.css",//uploader

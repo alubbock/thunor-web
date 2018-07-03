@@ -166,7 +166,15 @@ var util = (function() {
             var s = num + "";
             while (s.length < size) s = "0" + s;
             return s;
-        }
+        },
+        escapeHTML: function(unsafe) {
+            return unsafe
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+         }
     }
 })();
 module.exports = util;
