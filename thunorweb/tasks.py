@@ -353,7 +353,8 @@ def _combine_id_name_dicts(dicts):
             del combined[k]
 
     try:
-        return sorted(combined.values(), key=lambda e: e['name'])
+        return sorted(combined.values(), key=lambda e: e['name'].lower() if not isinstance(e['name'], tuple)
+                                             else e['name'])
     except TypeError:
         # Dataset contains single drugs and combinations, sort them separately
         return sorted((e for e in combined.values()
