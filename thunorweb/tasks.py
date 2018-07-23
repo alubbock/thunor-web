@@ -27,7 +27,7 @@ SECONDS_IN_HOUR = 3600
 MAX_COMBINATIONS_AT_ONCE = 10000
 
 
-def precalculate_dip_rates(dataset_or_id):
+def precalculate_dip_rates(dataset_or_id, plate_ids=None):
     if isinstance(dataset_or_id, HTSDataset):
         dataset = dataset_or_id
     elif isinstance(dataset_or_id, int):
@@ -40,6 +40,9 @@ def precalculate_dip_rates(dataset_or_id):
     assays_times = WellMeasurement.objects.filter(
         well__plate__dataset_id=dataset.id
     ).values_list('assay', 'timepoint').distinct()
+
+    if plate_ids:
+        assays_times = assays_times.filter(well__plate_id__in=plate_ids)
 
     assays = set(at[0] for at in assays_times)
 
@@ -61,6 +64,11 @@ def precalculate_dip_rates(dataset_or_id):
         )
     except NoDataException:
         return
+
+    if plate_ids:
+        print(df_data)
+        # TODO: Only fetch relevant plates from DB
+        df_data = df_data.filter(plate=plate_ids)
 
     ctrl_dip_data, expt_dip_data = dip_rates(df_data)
 
@@ -102,10 +110,12 @@ def precalculate_dip_rates(dataset_or_id):
         ])
 
     # Delete any existing WellStatistics
-    WellStatistic.objects.filter(
-        well__plate__dataset=dataset.id,
-        stat_name__in=['dip_rate', 'dip_fit_std_err']
-    ).delete()
+    if plate_ids:
+        well_stats = WellStatistic.objects.filter(well__plate_id__in=plate_ids)
+    else:
+        well_stats = WellStatistic.objects.filter(well__plate__dataset=dataset)
+
+    well_stats.filter(stat_name__in=['dip_rate', 'dip_fit_std_err']).delete()
 
     WellStatistic.objects.bulk_create(
         itertools.chain.from_iterable(well_stats_to_create)

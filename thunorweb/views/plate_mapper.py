@@ -8,7 +8,7 @@ from thunorweb.models import HTSDataset, Plate, CellLine, Drug, \
 import json
 from thunor.io import PlateData, STANDARD_PLATE_SIZES, PlateMap
 from thunorweb.tasks import precalculate_viability, \
-    dataset_groupings, precalculate_dip_curves
+    dataset_groupings, precalculate_dip_curves, precalculate_dip_rates
 import numpy as np
 import math
 from django.utils import timezone
@@ -253,6 +253,9 @@ def ajax_save_plate(request):
 
     # TODO: Hand off for asynchronous processing with celery
     dataset_groupings(dataset, regenerate_cache=True)
+    # Need to recalculate DIP rate in case wells have changed from control to
+    # expt or vice versa
+    precalculate_dip_rates(dataset, plate_ids=plate_ids)
     precalculate_dip_curves(dataset)
     precalculate_viability(dataset)
 
