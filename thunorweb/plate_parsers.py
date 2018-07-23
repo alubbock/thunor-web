@@ -9,7 +9,7 @@ from django.db import IntegrityError, transaction
 import xlrd
 import magic
 import collections
-from thunor.io import _read_hdf_unstacked, \
+from thunor.io import _read_hdf_unstacked, read_vanderbilt_hts, read_incucyte, \
     PlateMap, STANDARD_PLATE_SIZES, PlateFileParseException
 import pandas as pd
 import itertools
@@ -383,13 +383,31 @@ class PlateFileParser(object):
         self._import_thunor(df_data)
 
     @transaction.atomic
-    def parser_thunor_vanderbilt_hts(self, sep='\t'):
+    def parse_thunor_vanderbilt_hts(self, sep='\t'):
         self.file_format = 'Vanderbilt HTS Core'
 
-        from thunor.io import read_vanderbilt_hts
         self.plate_file.file.seek(0)
         df_data = read_vanderbilt_hts(self.plate_file.file, sep=sep,
                                       _unstacked=True)
+
+        self._create_db_platefile()
+        self.plate_file.close()
+
+        self._import_thunor(df_data)
+
+    @transaction.atomic
+    def parse_incucyte(self, sep='\t'):
+        self.file_format = 'IncuCyte Zoom'
+
+        self.plate_file.file.seek(0)
+        # Attach the file name, as a backup plate name if label not supplied
+        if not hasattr(self.plate_file.file, 'name'):
+            self.plate_file.file.name = self.plate_file.name
+            if self.plate_file.file.name.endswith('.txt'):
+                self.plate_file.file.name = self.plate_file.file.name[:-4]
+
+        # Read the file
+        df_data = read_incucyte(self.plate_file.file)
 
         self._create_db_platefile()
         self.plate_file.close()
@@ -658,19 +676,14 @@ class PlateFileParser(object):
                                                  'UTF-8 encoding (does file '
                                                  'contain non-standard '
                                                  'characters?)')
-            parsers = (self.parser_thunor_vanderbilt_hts, )
-            # if file_first_kb.find('cell.count') != -1 and file_first_kb.find(
-            #         'drug1.conc') != -1:
-            #     parsers = (self.parser_thunor_vanderbilt_hts,
-            #                self.parse_platefile_synergy_neo)
-            # else:
-            #     parsers = (self.parse_platefile_synergy_neo,
-            #                self.parser_thunor_vanderbilt_hts)
-
+            parsers = (self.parse_thunor_vanderbilt_hts, )
             sep = '\t'
-            first_line = file_first_kb.split('\n')[0]
-            if ',' in first_line:
-                sep = ','
+            if file_first_kb.find('Date Time\tElapsed\t') != -1:
+                parsers = (self.parse_incucyte, )
+            else:
+                first_line = file_first_kb.split('\n')[0]
+                if ',' in first_line:
+                    sep = ','
 
             for parser in parsers:
                 try:

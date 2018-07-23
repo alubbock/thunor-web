@@ -37,3 +37,17 @@ class TestPlateParsers(TestCase):
         assert len(results) == 1
         assert results[0]['success']
         assert results[0]['file_format'] == 'Vanderbilt HTS Core'
+
+    def test_parse_incucyte(self):
+        filename = pkg_resources.resource_filename(
+            'thunor', 'testdata/test_incucyte_minimal.txt')
+
+        with open(filename, 'rb') as f:
+            filedata = io.BytesIO(f.read())
+            pfp = PlateFileParser(File(filedata, name='test.txt'),
+                                  dataset=self.d)
+            results = pfp.parse_all()
+
+        assert len(results) == 1
+        assert results[0]['success']
+        assert results[0]['file_format'] == 'IncuCyte Zoom'
