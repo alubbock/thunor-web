@@ -35,7 +35,7 @@ var ajax = (function () {
         return true;
     };
 
-    var ajax401Handler = function () {
+    var ajax401Handler = function (jqXHR) {
         ui.okModal({
             title: "Authentication required",
             text: "The request to the server was not authenticated. Please" +
@@ -44,7 +44,7 @@ var ajax = (function () {
         return true;
     };
 
-    var ajax404Handler = function () {
+    var ajax404Handler = function (jqXHR) {
         ui.okModal({
             title: "Requested resource not found",
             text: "The requested resource was not found, or you do not do" +
@@ -80,7 +80,7 @@ var ajax = (function () {
         return false;
     };
 
-    var ajax502Handler = function () {
+    var ajax502Handler = function (jqXHR) {
         ui.okModal({
             title: "Server unavailable",
             text: "The server is currently unavailable. Please try your" +
@@ -90,11 +90,11 @@ var ajax = (function () {
     };
 
     var ajaxErrorCallback = function (jqXHR, textStatus, thrownError) {
-        var message = "Communication with the server timed " +
+        if (textStatus === "error" ||
+            textStatus === "parsererror") {
+            var message = "Communication with the server timed " +
             "out. Please check your internet connection and try again.",
             subject = "Error communicating with server";
-        if (textStatus == "error" ||
-            textStatus == "parsererror") {
             if (jqXHR != null) {
                 if (jqXHR.status === 0) {
                     ui.okModal({title: subject, text: message});
@@ -123,11 +123,8 @@ var ajax = (function () {
                 "server and has been logged. Please bear" +
                 " with us while we look into it.<br><br>"
                 + "Reference number: " + Raven.lastEventId();
-        } else if (textStatus == "abort") {
-            // Ignore communication aborted (usually at user's request)
-            return;
+            ui.okModal({title: subject, text: message});
         }
-        ui.okModal({title: subject, text: message});
     };
 
     var urls = {
