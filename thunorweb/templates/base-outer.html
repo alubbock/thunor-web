@@ -5,8 +5,15 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="High Throughput Screening">
+    <meta name="description" content="{% block metadesc %}Thunor is free software for high throughput cell proliferation data management, analysis and visualization.{% endblock %}">
     <meta name="author" content="Alex Lubbock">
+
+    <meta property="og:title" content="{{ SITE_NAME }}">
+    <meta property="og:type" content="website">
+    {% if dataset %}
+    <meta property="twitter:label1" content="Dataset">
+    <meta property="twitter:data1" content="{{ dataset.name }}">
+    {% endif %}
 
     <title>{% block title %}{% endblock %} | {{ SITE_NAME }}</title>
 
