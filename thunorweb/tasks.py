@@ -23,7 +23,7 @@ VIABILITY_PROTOCOL_VER = 1
 DEFAULT_VIABILITY_TIME_HRS = 72
 SECONDS_IN_HOUR = 3600
 
-# Maximum number of cominbations to process at once
+# Maximum number of combinations to process at once
 MAX_COMBINATIONS_AT_ONCE = 10000
 
 
