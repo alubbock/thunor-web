@@ -335,9 +335,6 @@ var plots = function() {
             $changeCL.selectpicker("val", clVal);
             $changeDrug.selectpicker("val", drVal);
 
-            // Enable drug combinations
-            $optgroupDrugCombos.prop("disabled", false);
-
             $actionBtns.hide();
 
             $changeCLDrug.selectpicker(selectPickerOptionsSingle);
@@ -345,12 +342,17 @@ var plots = function() {
             $dataPanel.find(".name-tag-switch").find('input[value=off]').click();
             $changeCLDrug.trigger("hide.bs.select");
         } else {
+            $actionBtns.show();
+            $changeCLDrug.selectpicker(selectPickerOptionsMultiple);
+        }
+        if (plotType === "tc" || plotType === "drc") {
+            // Enable drug combinations
+            $optgroupDrugCombos.prop("disabled", false);
+        } else {
             // Disable drug combinations
             $optgroupDrugCombos.find("option:selected")
                 .prop("selected", false);
             $optgroupDrugCombos.prop("disabled", true);
-            $actionBtns.show();
-            $changeCLDrug.selectpicker(selectPickerOptionsMultiple);
         }
         $changeCLDrug.selectpicker("refresh");
         // $('select.tag-select').selectpicker(selectPickerTagOptions).selectpicker("render").selectpicker("refresh");

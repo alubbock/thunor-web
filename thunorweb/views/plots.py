@@ -2,7 +2,8 @@ from django.shortcuts import render, Http404
 from django.http import JsonResponse, HttpResponse
 from django.utils.html import strip_tags
 from thunorweb.models import HTSDataset, CellLineTag, DrugTag, CellLine, Drug
-from thunor.plots import plot_time_course, plot_drc, plot_drc_params, \
+from thunor.plots import plot_time_course, plot_drc, \
+    plot_drug_combination_heatmap, plot_drc_params, \
     plot_ctrl_dip_by_plate, plot_plate_map, CannotPlotError, \
     IC_REGEX, EC_REGEX, E_REGEX, E_REL_REGEX
 from thunor.curve_fit import AAFitWarning, fit_params_from_base
@@ -99,9 +100,19 @@ def ajax_get_plot(request, file_type='json'):
             subtitle=dataset.name
         )
     elif plot_type in ('drc', 'drpar'):
-        plot_fig = _dose_response_plot(request, dataset, dataset2_id,
-                                       permission_required, drug_id,
-                                       cell_line_id, plot_type)
+        if all(isinstance(d, int) for d in drug_id):
+            plot_fig = _dose_response_plot(request, dataset, dataset2_id,
+                                           permission_required, drug_id,
+                                           cell_line_id, plot_type)
+        else:
+            if dataset2_id is not None:
+                return HttpResponse(
+                    'Please select a single dataset at a time to view drug '
+                    'combination heat plots', status=400)
+
+            plot_fig = _drug_combination_heatmap(request, dataset,
+                                                 drug_id, cell_line_id)
+
         if isinstance(plot_fig, HttpResponse):
             return plot_fig
     elif plot_type == 'qc':
@@ -234,6 +245,48 @@ def _make_tags_unique(tags):
     new_tags['{} tags'.format(label)] = duplicates.keys()
 
     return new_tags
+
+
+def _drug_combination_heatmap(request, dataset, drug_id, cell_line_id):
+    if not all(isinstance(d, collections.Sequence) for d in drug_id):
+        return HttpResponse(
+            'Please select either one or more individual drugs, or a '
+            'single drug combination', status=400)
+
+    if len(drug_id) != 1:
+        return HttpResponse('Please select only one drug combination '
+                            'at a time', status=400)
+
+    color_by = request.GET.get('colorBy', 'off')
+    if color_by != 'off':
+        return HttpResponse('Color overlay must be set to default for drug '
+                            'combination heat plots', status=400)
+
+    response_metric = request.GET.get('drMetric', 'dip')
+    if response_metric != 'dip':
+        return HttpResponse('Viability drug combination plots are not '
+                            'supported', status=400)
+
+    dip_absolute = request.GET.get('drcType', 'rel') == 'abs'
+    if dip_absolute:
+        return HttpResponse('Must use relative DIP rate for drug combination '
+                            'heat plots', status=400)
+
+    try:
+        ctrl_resp_data, expt_resp_data = df_dip_rates(
+            dataset_id=dataset.id,
+            drug_id=drug_id,
+            cell_line_id=cell_line_id,
+            use_dataset_names=True
+        )
+    except NoDataException:
+        return HttpResponse(
+            'No data found for this request. This '
+            'drug/cell line/assay combination may not exist.', status=400)
+
+    return plot_drug_combination_heatmap(
+        ctrl_resp_data, expt_resp_data
+    )
 
 
 def _dose_response_plot(request, dataset, dataset2_id,
