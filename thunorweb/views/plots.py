@@ -417,8 +417,10 @@ def _dose_response_plot(request, dataset, dataset2_id,
     need_hill = False
     need_emax = False
     need_einf = False
-    for param in (dr_par, dr_par_two, dr_par_order):
+    for param_idx, param in enumerate((dr_par, dr_par_two, dr_par_order)):
         if param is None:
+            continue
+        if param == 'label' and param_idx == 2:
             continue
         if param == 'aa_obs':
             continue
