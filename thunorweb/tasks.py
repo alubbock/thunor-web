@@ -66,7 +66,6 @@ def precalculate_dip_rates(dataset_or_id, plate_ids=None):
         return
 
     if plate_ids:
-        print(df_data)
         # TODO: Only fetch relevant plates from DB
         df_data = df_data.filter(plate=plate_ids)
 
