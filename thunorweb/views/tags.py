@@ -50,8 +50,8 @@ def ajax_get_tags(request, tag_type, group=None):
 
     if group is None:
         if not request.user.is_authenticated():
-            return JsonResponse({'error', 'Authentication required'},
-                                status=401)
+            return JsonResponse({'error': 'Authentication required. Please log '
+                                          'in.'}, status=401)
         perm_filter = Q(owner=request.user)
     elif group == 'public':
         if tag_type == 'drugs':
@@ -231,7 +231,7 @@ def ajax_upload_tagfile(request, tag_type):
         elif file.name.endswith('.csv'):
             sep = ','
         else:
-            return JsonResponse({'error', 'File name must end with .txt'
+            return JsonResponse({'error': 'File name must end with .txt'
                                           '(Tab separated) or .csv '
                                           '(Comma separated)'}, status=400)
 
