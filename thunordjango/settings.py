@@ -300,10 +300,11 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = int(os.environ.get(
 # These DOWNLOADS_* settings need to match nginx config
 DOWNLOADS_ROOT = os.path.join(MEDIA_ROOT, 'downloads')
 DOWNLOADS_URL = '/_thunor_downloads/'
-# Delete ephemeral download files after this amount of time
-DOWNLOAD_EPHEMERAL_PURGE_DAYS = 7
 # Time to retain datasets after they've been marked for deletion
 DATASET_RETENTION_DAYS = 30
+# Time to retain uploaded datasets if they're not attached to a dataset
+# (i.e. for debugging purposes)
+NON_DATASET_UPLOAD_RETENTION_DAYS = 7
 
 try:
     os.makedirs(DOWNLOADS_ROOT)
