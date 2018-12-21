@@ -144,6 +144,9 @@ a[aria-expanded=false] .fa-chevron-down {
     .navbar-top-links .dropdown:hover .dropdown-menu {
         display: block;
     }
+    .navbar-top-links .dropdown:hover {
+        background-color: #337ab7;
+    }
 }
 .ellipsis {
     overflow:hidden;
