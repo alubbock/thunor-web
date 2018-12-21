@@ -189,7 +189,7 @@ var util = (function() {
           return colour;
         },
         userIcon: function(email) {
-            return '<i class="fa fa-user" style="color:' + util.stringToColour(email) +
+            return '<i class="fa fa-user tt" data-placement="top" data-toggle="tooltip" style="color:' + util.stringToColour(email) +
                    '" title="' + email + '"></i>';
         }
     }

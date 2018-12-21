@@ -25,6 +25,7 @@ var initDatasetTable = function(tableRowCallbackFn, loadingCompleteCallbackFn) {
             {
                 "targets": 0,
                 "data": "ownerEmail",
+                "className": "text-center",
                 "width": "0",
                 "render": {"display": util.userIcon}
             },
@@ -39,6 +40,7 @@ var initDatasetTable = function(tableRowCallbackFn, loadingCompleteCallbackFn) {
         ],
         "order": [[2, "desc"]],
         "drawCallback": function () {
+            $('.tt').tooltip();
             if (loadingCompleteCallbackFn !== undefined) {
                 loadingCompleteCallbackFn();
             }

@@ -45,7 +45,7 @@ var activate = function() {
             }
         },
         "columnDefs": [
-            {"targets": 0, "data": "tag", "width": "0", "render": {"display":
+            {"targets": 0, "data": "tag", "width": "0", "className": "text-center", "render": {"display":
                 function(data) {return util.userIcon(data.ownerEmail);}}
             },
             {"targets": 1, "data": "tag", "width": "25%", "render":
@@ -67,6 +67,7 @@ var activate = function() {
         ],
         "order": [[2, "asc"], [1, "asc"]],
         "drawCallback": function () {
+            $('.tt').tooltip();
             $("#tag-table").find("a").unbind('click').click(function(e){
                e.preventDefault();
                editTag($(this).data('id'));

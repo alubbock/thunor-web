@@ -16,12 +16,14 @@
             <ul class="nav navbar-top-links navbar-nav navbar-right">
               {% if user.is_authenticated %}
               <li><a href="{% url 'thunorweb:plate_upload' %}"
+                     class="tt"
                      data-toggle="tooltip"
                      data-placement="bottom" title="Create Dataset">
                 <i class="fa fa-upload fa-fw"></i>
                 <span class="visible-xs-inline">Create Dataset</span></a></li>
               {% endif %}
               <li><a href="{% url 'thunorweb:plots' %}"
+                     class="tt"
                      data-toggle="tooltip"
                      data-placement="bottom" title="Interactive Plots">
                 <i class="fa fa-line-chart fa-fw"></i>
@@ -52,7 +54,7 @@
                   <li><a href="{% url 'thunorweb:plate_mapper' 1536 %}">1536 Well Plate Map</a></li>
                 </ul>
               </li>
-              <li><a href="https://docs.thunor.net/{% block helppage %}{% endblock %}" id="help-link" target="_blank" data-toggle="tooltip" data-placement="bottom" title="Pop-up Help">
+              <li><a href="https://docs.thunor.net/{% block helppage %}{% endblock %}" id="help-link" target="_blank" class="tt" data-toggle="tooltip" data-placement="bottom" title="Pop-up Help">
                 <i class="fa fa-question-circle fa-fw"></i>
                 <span class="visible-xs-inline">Help</span></a></li>
               <li class="dropdown">
@@ -120,7 +122,7 @@
     id: '{{ user.id }}'});{% endif %}</script>
 
 {% render_bundle 'vendor' 'js' %}
-<script>$('.navbar-top-links').find('a').tooltip();
+<script>$('.tt').tooltip();
 $('#help-link').click(function(e) {
     var $target = $(e.currentTarget);
     window.open($target.attr('href'), '_blank', 'location=yes,' +
