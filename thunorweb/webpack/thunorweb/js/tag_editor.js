@@ -68,7 +68,7 @@ var activate = function() {
                 }
             }
         ],
-        "order": [[2, "asc"], [1, "asc  "]],
+        "order": [[2, "asc"], [1, "asc"]],
         "drawCallback": function () {
             $("#tag-table").find("a").unbind('click').click(function(e){
                e.preventDefault();
