@@ -9,3 +9,4 @@ docker-compose*
 !docker-compose.certbot.yml
 /thunor-app.env
 /thunor-db.env
+.DS_Store
