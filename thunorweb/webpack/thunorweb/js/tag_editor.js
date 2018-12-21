@@ -1,5 +1,6 @@
 var ui = require("./modules/ui"),
-    ajax = require("./modules/ajax");
+    ajax = require("./modules/ajax"),
+    util = require("./modules/util");
 
 var activateSelect = function($select) {
   $select.selectpicker({actionsBox: true, iconBase: "fa", tickIcon: "fa-check"});
@@ -44,14 +45,20 @@ var activate = function() {
             }
         },
         "columnDefs": [
-            {"targets": 0, "data": "tag", "width": "25%", "render":
+            {"targets": 0, "data": "tag", "width": "0", "render":
+                function(data) {
+                    return '<i class="fa fa-user" style="color:' + util.stringToColour(data.ownerEmail) +
+                        '" title="' + data.ownerEmail + '"></i>';
+                }
+            },
+            {"targets": 1, "data": "tag", "width": "25%", "render":
                 function(data) {
                     if (!data.editable) return data.name;
                     return '<a href="#" data-id="' + data.id + '">' + data.name + '</a>';
                 }
             },
-            {"targets": 1, "data": "cat", "width": "25%"},
-            {"targets": 2, "data": "targets", "width": "50%", "render":
+            {"targets": 2, "data": "cat", "width": "25%"},
+            {"targets": 3, "data": "targets", "render":
                 function(data) {
                     var str = '';
                     for (var t=0,len=data.length; t<len; t++) {
@@ -61,7 +68,7 @@ var activate = function() {
                 }
             }
         ],
-        "order": [[0, "asc"]],
+        "order": [[2, "asc"], [1, "asc  "]],
         "drawCallback": function () {
             $("#tag-table").find("a").unbind('click').click(function(e){
                e.preventDefault();

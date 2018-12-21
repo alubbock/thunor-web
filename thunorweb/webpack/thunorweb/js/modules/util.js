@@ -174,7 +174,20 @@ var util = (function() {
                  .replace(/>/g, "&gt;")
                  .replace(/"/g, "&quot;")
                  .replace(/'/g, "&#039;");
-         }
+         },
+        stringToColour: function(str) {
+          var hash = 0;
+          var i;
+          for (i = 0; i < str.length; i++) {
+            hash = str.charCodeAt(i) + ((hash << 5) - hash);
+          }
+          var colour = '#';
+          for (i = 0; i < 3; i++) {
+            var value = (hash >> (i * 8)) & 0xFF;
+            colour += ('00' + value.toString(16)).substr(-2);
+          }
+          return colour;
+        }
     }
 })();
 module.exports = util;

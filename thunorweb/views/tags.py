@@ -65,11 +65,14 @@ def ajax_get_tags(request, tag_type, group=None):
         else:
             perm_filter = Q(celllinetaggroupobjectpermission__group_id=group)
 
-    tags = tag_cls.objects.filter(perm_filter).prefetch_related(tag_type)
+    tags = tag_cls.objects.filter(perm_filter).prefetch_related(
+        tag_type).prefetch_related('owner')
 
     return JsonResponse({
         'data': [{'tag': {'id': tag.id, 'name': tag.tag_name, 'editable':
-                          tag.owner_id == request.user.id},
+                          tag.owner_id == request.user.id,
+                          'ownerEmail': tag.owner.email
+                          },
                   'cat': tag.tag_category,
                   'targets': [t.name for t in (tag.drugs if tag_type ==
                                                'drugs' else
