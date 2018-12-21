@@ -45,11 +45,8 @@ var activate = function() {
             }
         },
         "columnDefs": [
-            {"targets": 0, "data": "tag", "width": "0", "render":
-                function(data) {
-                    return '<i class="fa fa-user" style="color:' + util.stringToColour(data.ownerEmail) +
-                        '" title="' + data.ownerEmail + '"></i>';
-                }
+            {"targets": 0, "data": "tag", "width": "0", "render": {"display":
+                function(data) {return util.userIcon(data.ownerEmail);}}
             },
             {"targets": 1, "data": "tag", "width": "25%", "render":
                 function(data) {

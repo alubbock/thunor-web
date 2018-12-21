@@ -187,6 +187,10 @@ var util = (function() {
             colour += ('00' + value.toString(16)).substr(-2);
           }
           return colour;
+        },
+        userIcon: function(email) {
+            return '<i class="fa fa-user" style="color:' + util.stringToColour(email) +
+                   '" title="' + email + '"></i>';
         }
     }
 })();

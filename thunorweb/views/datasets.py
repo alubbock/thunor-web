@@ -236,7 +236,14 @@ def ajax_get_datasets(request):
                                          deleted_date=None).values(
         'id', 'name', 'creation_date')
 
-    return JsonResponse({'data': list(datasets)})
+    datasets = [{
+        'id': d['id'],
+        'name': d['name'],
+        'ownerEmail': request.user.email,
+        'creationDate': d['creation_date']}
+        for d in datasets]
+
+    return JsonResponse({'data': datasets})
 
 
 def ajax_get_datasets_group(request, group_id):
@@ -255,11 +262,19 @@ def ajax_get_datasets_group(request, group_id):
             HTSDataset.view_dataset_permission_names(),
             klass=HTSDataset,
             any_perm=True
-        ).filter(deleted_date=None).values('id', 'name', 'creation_date')
+        ).filter(deleted_date=None).values('id', 'name', 'creation_date',
+                                           'owner__email')
     except ContentType.DoesNotExist:
         return JsonResponse({'data': list()})
 
-    return JsonResponse({'data': list(datasets)})
+    datasets = [{
+        'id': d['id'],
+        'name': d['name'],
+        'ownerEmail': d['owner__email'],
+        'creationDate': d['creation_date']}
+        for d in datasets]
+
+    return JsonResponse({'data': datasets})
 
 
 def ajax_create_dataset(request):

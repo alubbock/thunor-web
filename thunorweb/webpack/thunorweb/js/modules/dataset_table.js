@@ -1,4 +1,5 @@
-var ajax = require("./ajax");
+var ajax = require("./ajax"),
+    util = require("./util");
 
 var formatISODate = function(data) {
     return data.replace('T', ' ').slice(0, -5) + ' UTC';
@@ -23,14 +24,20 @@ var initDatasetTable = function(tableRowCallbackFn, loadingCompleteCallbackFn) {
         "columnDefs": [
             {
                 "targets": 0,
+                "data": "ownerEmail",
+                "width": "0",
+                "render": {"display": util.userIcon}
+            },
+            {
+                "targets": 1,
                 "data": "name",
                 "render": {
                     "display": tableRowCallbackFn
                 }
             },
-            {"targets": 1, "data": "creation_date", "render": {"display": formatISODate}}
+            {"targets": 2, "data": "creationDate", "render": {"display": formatISODate}}
         ],
-        "order": [[1, "desc"]],
+        "order": [[2, "desc"]],
         "drawCallback": function () {
             if (loadingCompleteCallbackFn !== undefined) {
                 loadingCompleteCallbackFn();

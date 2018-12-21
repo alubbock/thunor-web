@@ -117,28 +117,30 @@ var plots = function() {
         var $target = $(e.target);
         $target.data("datasetTarget", $(e.relatedTarget).data("dataset"));
         $target.data("datasetChanged", false);
-        if(!$target.data("initialised")) {
+        if (!$target.data("initialised")) {
             $target.data("initialised", true);
             datasetTable.initDatasetTable(function (data, type, full, meta) {
-                return "<a class=\"select-dataset\" data-dataset-id=\""
+                    return "<a class=\"select-dataset\" data-dataset-id=\""
                         + full.id + "\" data-dataset-name=\"" + full.name +
                         "\" href=\"\">" + full.name + "</a>";
-            },
-            function() {
-                $("a[class=select-dataset]").click(function(e2) {
-                    e2.preventDefault();
-                    var $this = $(e2.target);
-                    var dataset = $target.data("datasetTarget");
-                    $(".new-plot-btn").data(dataset + "Id",
-                        $this.data("datasetId")
-                    );
-                    $("#" + dataset + "-name").text(truncateDatasetName($this.data("datasetName")));
-                    $target.data("datasetChanged", true);
-                    updateURL();
-                    $("#change-dataset-modal").modal("hide");
+                },
+                function () {
+                    $("a[class=select-dataset]").click(function (e2) {
+                        e2.preventDefault();
+                        var $this = $(e2.target);
+                        var dataset = $target.data("datasetTarget");
+                        $(".new-plot-btn").data(dataset + "Id",
+                            $this.data("datasetId")
+                        );
+                        $("#" + dataset + "-name").text(truncateDatasetName($this.data("datasetName")));
+                        $target.data("datasetChanged", true);
+                        updateURL();
+                        $("#change-dataset-modal").modal("hide");
+                    });
                 });
-            });
         }
+    }).on("shown.bs.modal", function() {
+        $("#dataset-table").DataTable().columns.adjust().draw();
     }).on("hide.bs.modal", function(e) {
        var $target = $(e.target);
        if($target.data("datasetChanged") === true && $target.data("addPlot") === true) {
