@@ -26,42 +26,45 @@
 
 {% include "tags_table.html" %}
 
-<div class="tag-container panel {% if public %}panel-primary{% else %}panel-default{% endif %}" {% if not tag_name %}style="display:none"{% endif %}>
-<div class="panel-heading">
-<form class="pull-right form-inline delete-tag" {% if not tag_name %}style="display:none"{% endif %}>
+<div class="tag-container panel" {% if not tag_name %}style="display:none"{% endif %}>
+
+<form class="set-tag-name" {% if tag_name %}style="display:none"{% endif %}>
+<div class="form">
+    <input type="hidden" name="tagType" value="{{ entity_type_var }}">
+    <input type="hidden" name="tagId" value="{{ tag_name.0 }}">
+    <div class="input-group" style="margin-bottom:5px">
+        <span class="input-group-addon"><i class="fa fa-tag"></i></span>
+        <input type="text" class="form-control" name="tagsName"
+        placeholder="Tag name">
+    </div>
+    <div class="input-group" style="margin-bottom:10px">
+        <span class="input-group-addon"><i class="fa fa-folder-o"></i></span>
+        <input type="text" class="form-control" name="tagCategory"
+        placeholder="Tag category (optional)">
+    </div>
+    <button type="submit" role="button" class="btn btn-primary btn-block">Create Tag</button>
+</div>
+</form>
+
+<div class="panel-heading" {% if not tag_name %}style="display:none
+"{% endif %}>
+<form class="pull-right form-inline delete-tag">
     <input type="hidden" name="tagType" value="{{ entity_type_var }}">
     <input type="hidden" name="tagId" value="{{ tag_name.0 }}">
 <button type="submit" role="button" class="btn btn-danger">Delete</button>
 </form>
 
-<h4 class="tag-header"{% if not tag_name %} style="display:none"{% endif %}>
+<h4 class="tag-header">
     <i class="fa fa-tag"></i>
     <span class="label label-default tag-category">{{ category|default:"" }}</span>
     <span class="tag-name">{{ tag_name.1 }}</span>
     <span class="label label-success" style="display:none">Changes saved</span>
 </h4>
-<form class="set-tag-name" {% if tag_name %}style="display:none"{% endif %}>
-<div class="form">
-    <input type="hidden" name="tagType" value="{{ entity_type_var }}">
-    <input type="hidden" name="tagId" value="{{ tag_name.0 }}">
-    <div class="input-group">
-        <span class="input-group-addon"><i class="fa fa-tag"></i></span>
-        <input type="text" class="form-control" name="tagsName"
-        placeholder="Tag name">
-    </div>
-      <div class="input-group">
-        <span class="input-group-addon"><i class="fa fa-folder-o"></i></span>
-        <input type="text" class="form-control" name="tagCategory"
-        placeholder="Tag category (optional)">
-    </div>
-    <button type="submit" role="button" class="btn btn-primary btn-block">Create</button>
-</div>
-</form>
 
-</div><div class="panel-body">
-
-<form class="set-tag-targets" {% if not tag_name %}style="display:none
+</div><div class="panel-body" {% if not tag_name %}style="display:none
 "{% endif %}>
+
+<form class="set-tag-targets">
   <input type="hidden" name="tagType" value="{{ entity_type_var }}">
   <input type="hidden" name="tagId" value="{{ tag_name.0 }}">
 <div class="form-group entity-change">

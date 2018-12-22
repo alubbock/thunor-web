@@ -20,6 +20,7 @@ var ui = (function() {
         title: "Information",
         okLabel: "OK",
         cancelLabel: "Cancel",
+        focusButton: true,
         onCancelHide: undefined,
         onCancelHidden: undefined,
         onOKHide: undefined,
@@ -57,7 +58,9 @@ var ui = (function() {
             if(settings.onShow !== undefined) {
                 settings.onShow(e);
             }
-            $mok.find(settings.cancelByDefault ? ".btn-cancel" : ".btn-ok").focus();
+            if(settings.focusButton !== false) {
+                $mok.find(settings.cancelByDefault ? ".btn-cancel" : ".btn-ok").focus();
+            }
         }).on("hide.bs.modal", function (e) {
             if($mok.data("success")) {
                 if(settings.onOKHide !== undefined) {

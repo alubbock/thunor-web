@@ -2,10 +2,17 @@ var ui = require("./modules/ui"),
     ajax = require("./modules/ajax"),
     util = require("./modules/util");
 
-var activateSelect = function($select) {
+var activateSelect = function($select, $modal) {
   $select.selectpicker({actionsBox: true, iconBase: "fa", tickIcon: "fa-check"});
-  $select.on("changed.bs.select", function() {
-    $(this).closest("form").find("button[type=submit]").show();
+  $select.on("show.bs.select", function() {
+      // disable automatic modal closing when pressing ESC/clicking on background
+      var modalData = $modal.data("bs.modal");
+      $modal.off("keydown.dismiss.bs.modal");
+      modalData.options.backdrop = "static";
+      // disable modal buttons during edit
+      $modal.find(".btn-danger,.btn-ok").prop("disabled", true);
+  }).on("hide.bs.select", function() {
+    $(this).closest("form").submit();
   });
 };
 
@@ -110,7 +117,7 @@ var activate = function() {
                 for (var i=0, len=data.targets.length; i<len; i++) {
                     $container.find('option').filter('[value='+data.targets[i]+']').prop('selected', true);
                 }
-                activateSelect($container.find("select"));
+                activateSelect($container.find("select"), $modal);
                 // prepopulate form data
                 $container.find(".tag-name").text(data.tagName);
                 if (data.tagCategory !== null) {
@@ -132,10 +139,9 @@ var activate = function() {
                 if(data.groups.length) {
                     $groupPerms.show();
                 }
-                $container.find(".tag-header").show();
+                $container.addClass("panel-default");
+                $container.find(".panel-heading,.panel-body").show();
                 $container.find("form.set-tag-name").hide();
-                $container.find("form.set-tag-targets").show();
-                $container.find("form.delete-tag").show();
                 $container.find("input[type=checkbox]").bootstrapSwitch({
                     'onSwitchChange': function(event, state) {
                         var $target = $(event.currentTarget);
@@ -162,6 +168,7 @@ var activate = function() {
             title: 'Add tag',
             text: $container,
             okLabel: 'Close',
+            focusButton: false,
             onHide: function() {
                 $tagTable.ajax.reload();
             },
@@ -209,12 +216,16 @@ var activate = function() {
             headers: {"X-CSRFToken": ajax.getCsrfToken()},
             url: ajax.url("assign_tag"),
             data: $form.serialize(),
-            success: function () {
-                $container.closest('.modal').modal('hide');
-            },
             error: ajax.ajaxErrorCallback,
             complete: function() {
                 $container.loadingOverlay("hide");
+                // re-enable ESC/click on background to close modal
+                var $modal = $container.closest(".modal");
+                var modalData = $modal.data("bs.modal");
+                modalData.escape();
+                modalData.options.backdrop = true;
+                // re-enable modal close button, delete button
+                $modal.find(".btn-danger,.btn-ok").prop("disabled", false);
             }
         });
     });
