@@ -112,6 +112,25 @@ def thunorweb_upgrade(args):
     migrate(args)
 
 
+def thunor_purge(args):
+    cmd = ['python', 'manage.py', 'thunor_purge']
+    if args.verbosity > 0:
+        cmd += ['--verbosity={}'.format(args.verbosity)]
+    if args.dry_run:
+        cmd += ['--dry-run']
+
+    if not args.dev:
+        thunorhome = _get_thunorhome(args)
+        cmd = ['docker-compose',
+               'run',
+               '--rm',
+               '-v', _volume_webpack_bundles(thunorhome),
+               '-v', _volume_webpack_static(thunorhome),
+               'app'] + cmd
+
+    return _run_cmd(cmd)
+
+
 def _certbot_cmd():
     return ['docker-compose',
             '-f', os.path.join(cwd, 'docker-compose.certbot.yml'),
@@ -177,7 +196,7 @@ def quickstart(args):
 
 
 def _parser():
-    parser = argparse.ArgumentParser(prog='Thunor Web')
+    parser = argparse.ArgumentParser(prog='thunorctl.py')
     parser.add_argument('--dev', action='store_true',
                         help='Developer mode (don\'t use Docker)')
     parser.add_argument('--thunorhome', help='Path to Thunor Web on the '
@@ -210,8 +229,19 @@ def _parser():
         'generatecerts', help='Generate TLS certificates. Additional '
                               'arguments are passed onto letsencrypt.'
     )
-    parser.add_argument('letsencrypt_args', nargs=argparse.REMAINDER)
+    parser_generate_certs.add_argument('letsencrypt_args',
+                                       nargs=argparse.REMAINDER)
     parser_generate_certs.set_defaults(func=generate_certificates)
+
+    parser_thunor_purge = subparsers.add_parser(
+        'purge', help='Purge Thunor Web of temporary files to reclaim disk '
+                      'space.'
+    )
+    parser_thunor_purge.add_argument('--dry-run', action='store_true',
+                                     default=False)
+    parser_thunor_purge.add_argument('--verbosity', type=int,
+                                     default=0)
+    parser_thunor_purge.set_defaults(func=thunor_purge)
 
     parser_upgrade = subparsers.add_parser(
         'upgrade', help='Upgrade Thunor Web. Equivalent to makestatic and '
