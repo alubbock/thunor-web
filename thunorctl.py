@@ -75,6 +75,11 @@ def _volume_webpack_static(thunorhome):
         ':/thunor/_state/thunor-static'
 
 
+def _volume_thunor_files(thunorhome):
+    return os.path.join(thunorhome, '_state/thunor-files') + \
+        ':/thunor/_state/thunor-files'
+
+
 def generate_static(args):
     _build_webpack()
     cmd = ['docker', 'run', '--rm']
@@ -126,6 +131,7 @@ def thunor_purge(args):
                '--rm',
                '-v', _volume_webpack_bundles(thunorhome),
                '-v', _volume_webpack_static(thunorhome),
+               '-v', _volume_thunor_files(thunorhome),
                'app'] + cmd
 
     return _run_cmd(cmd)
