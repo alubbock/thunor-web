@@ -52,8 +52,9 @@ var activate = function() {
             }
         },
         "columnDefs": [
-            {"targets": 0, "data": "tag", "width": "0", "className": "text-center", "render": {"display":
-                function(data) {return util.userIcon(data.ownerEmail);}}
+            {"targets": 0, "data": "tag", "width": "1px", "className": "text-center", "render": {
+                "display": function(data) {return util.userIcon(data.ownerEmail);},
+                "sort": function(data) {return data.ownerEmail;}}
             },
             {"targets": 1, "data": "tag", "width": "25%", "render":
                 function(data) {

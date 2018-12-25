@@ -26,7 +26,7 @@ var initDatasetTable = function(tableRowCallbackFn, loadingCompleteCallbackFn) {
                 "targets": 0,
                 "data": "ownerEmail",
                 "className": "text-center",
-                "width": "0",
+                "width": "1px",
                 "render": {"display": util.userIcon}
             },
             {
