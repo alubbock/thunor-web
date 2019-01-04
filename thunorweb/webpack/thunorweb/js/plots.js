@@ -367,6 +367,15 @@ var plots = function() {
         } else {
             setRadio($dataPanel.find(".hts-aggregate"), false);
         }
+        // Only enable "compare" metric on parameter plots
+        if (plotType === "drpar" || plotType === "drc") {
+            var disable = plotType === "drc";
+            var $btn = $dataPanel.find("input[name=drMetric][value=compare]");
+            if (disable && $btn.is(":checked")) {
+                $dataPanel.find("input[name=drMetric][value=viability]").click();
+            }
+            $btn.prop("disabled", disable).closest("label").toggleClass("disabled", disable);
+        }
     };
 
     // Data panel events
@@ -390,12 +399,22 @@ var plots = function() {
         var $target = $(e.target);
         var $dataPanel = $target.closest(".hts-change-data");
         var $drcTypeBox = $dataPanel.find("input[name=drcType]").closest(".form-group");
-        if($target.val() === "viability") {
+        var val = $target.val();
+        if(val === "viability") {
             $drcTypeBox.slideUp();
             $dataPanel.find("option.dip-metric").prop("disabled", true).closest("select").selectpicker("refresh");
         } else {
             $drcTypeBox.slideDown();
             $dataPanel.find("option.dip-metric").prop("disabled", false).closest("select").selectpicker("refresh");
+        }
+        var $drParTwo = $dataPanel.find("select[name=drParTwo]").closest(".form-group");
+        var $drParOrder = $dataPanel.find("select[name=drParOrder]").closest(".form-group");
+        if(val === "compare") {
+            $drParTwo.slideUp();
+            $drParOrder.slideUp();
+        } else {
+            $drParTwo.slideDown();
+            $drParOrder.slideDown();
         }
     });
     $(".name-tag-switch").find("input[type=radio]").change(function() {
@@ -980,6 +999,10 @@ var plots = function() {
         var $dataset2Id = $plotPanel.find("input[name=dataset2Id]");
         if (dataset2active) {
             $dataset2Id.val(dataset2Id);
+            // remove "compare" option from response metric
+            var $lbl = $plotPanel.find("input[name=drMetric][value=compare]").closest("label");
+            $lbl.closest("div").removeClass("btn-group-3").addClass("btn-group-2");
+            $lbl.remove();
         } else {
             $dataset2Id.prop("disabled", true);
         }

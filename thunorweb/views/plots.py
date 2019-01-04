@@ -368,9 +368,9 @@ def _dose_response_plot(request, dataset, dataset2_id,
                             status=400)
 
     response_metric = request.GET.get('drMetric', 'dip')
-    if response_metric not in ('dip', 'viability'):
-        return HttpResponse('Unknown metric. Supported values: dip or '
-                            'viability.', status=400)
+    if response_metric not in ('dip', 'viability', 'compare'):
+        return HttpResponse('Unknown metric. Supported values: dip, '
+                            'viability, compare.', status=400)
 
     def _setup_dr_par(name, needs_toggle=False):
         if needs_toggle and \
@@ -401,6 +401,21 @@ def _dose_response_plot(request, dataset, dataset2_id,
     except ValueError:
         return HttpResponse('Parameter order custom value '
                             'needs to be a positive integer', status=400)
+
+    # 'compare' plots are only available for one dataset and metric
+    if response_metric == 'compare':
+        if dataset2_id is not None:
+            return HttpResponse('"compare" metric not compatible with two '
+                                'datasets', status=400)
+        if dr_par_two is not None:
+            return HttpResponse('Parameter two not available with "compare" '
+                                'metric', status=400)
+        if dr_par_order is not None:
+            return HttpResponse('Parameter order not available with "compare" '
+                                'metric', status=400)
+        if plot_type == 'drc':
+            return HttpResponse('Dose response curves not available with '
+                                '"compare" metric', status=400)
 
     # Work out any non-standard parameters we need to calculate
     # e.g. non-standard IC concentrations
@@ -458,51 +473,58 @@ def _dose_response_plot(request, dataset, dataset2_id,
                                                           dataset2_id]
 
     # Fit Hill curves and compute parameters
+    if response_metric == 'compare':
+        all_metrics = ('dip', 'viability')
+    else:
+        all_metrics = (response_metric, )
+
     try:
-        base_params = df_curve_fits(dataset_ids, response_metric,
-                                    drug_id, cell_line_id)
+        base_params = [df_curve_fits(
+            dataset_ids, metric, drug_id, cell_line_id)
+            for metric in all_metrics]
     except NoDataException:
         return HttpResponse(
             'No data found for this request. This drug/cell '
             'line/assay combination may not exist.', status=400)
 
-    single_drug = len(base_params.index.get_level_values('drug').unique()) == 1
-    single_cl = len(base_params.index.get_level_values('cell_line').unique()) \
-                == 1
-
     include_response_values = False
 
-    if plot_type == 'drc' and single_cl and single_drug:
-        try:
-            if response_metric == 'dip':
-                ctrl_resp_data, expt_resp_data = df_dip_rates(
-                    dataset_id=dataset_ids,
-                    drug_id=drug_id,
-                    cell_line_id=cell_line_id,
-                    use_dataset_names=True
-                )
-            else:
-                expt_resp_data, ctrl_resp_data = _get_viability_scores(
-                    datasets,
-                    drug_id,
-                    cell_line_id,
-                    viability_time=base_params._viability_time
-                )
-        except NoDataException:
-            return HttpResponse(
-                'No data found for this request. This '
-                'drug/cell line/assay combination may not exist.', status=400)
-        include_response_values = True
-        need_emax = True
-        ic_concentrations = {50}
-        ec_concentrations = {50}
-    else:
-        ctrl_resp_data = None
-        expt_resp_data = None
+    ctrl_resp_data = None
+    expt_resp_data = None
+    if plot_type == 'drc':
+        single_drug = len(
+            base_params[0].index.get_level_values('drug').unique()) == 1
+        single_cl = len(
+            base_params[0].index.get_level_values('cell_line').unique()) \
+                    == 1
+        if single_cl and single_drug:
+            try:
+                if response_metric == 'dip':
+                    ctrl_resp_data, expt_resp_data = df_dip_rates(
+                        dataset_id=dataset_ids,
+                        drug_id=drug_id,
+                        cell_line_id=cell_line_id,
+                        use_dataset_names=True
+                    )
+                else:
+                    expt_resp_data, ctrl_resp_data = _get_viability_scores(
+                        datasets,
+                        drug_id,
+                        cell_line_id,
+                        viability_time=base_params[0]._viability_time
+                    )
+            except NoDataException:
+                return HttpResponse(
+                    'No data found for this request. This drug/'
+                    'cell line/assay combination may not exist.', status=400)
+            include_response_values = True
+            need_emax = True
+            ic_concentrations = {50}
+            ec_concentrations = {50}
 
     with warnings.catch_warnings(record=True) as w:
-        fit_params = fit_params_from_base(
-            base_params,
+        fit_params = [fit_params_from_base(
+            base_param_set,
             ctrl_resp_data=ctrl_resp_data,
             expt_resp_data=expt_resp_data,
             include_response_values=include_response_values,
@@ -513,7 +535,7 @@ def _dose_response_plot(request, dataset, dataset2_id,
             include_hill=need_hill,
             include_emax=need_emax,
             include_einf=need_einf
-        )
+        ) for base_param_set in base_params]
         # Currently only care about warnings if plotting AA
         if plot_type == 'drpar' and (dr_par == 'aa' or
                                      dr_par_two == 'aa'):
@@ -521,10 +543,29 @@ def _dose_response_plot(request, dataset, dataset2_id,
             if w:
                 return HttpResponse(w[0].message, status=400)
 
+    if response_metric == 'compare':
+        # Create new dataframe
+        import pandas as pd
+        fit_params = pd.concat(
+            [fit_params[0]['label'],
+             fit_params[0][dr_par], fit_params[1][dr_par]],
+            join='inner',
+            axis=1
+        )
+        fit_params.columns = ['label',
+                              'dip__{}'.format(dr_par),
+                              'viability__{}'.format(dr_par)]
+        fit_params._viability_time = base_params[1]._viability_time
+        fit_params._drmetric = 'compare'
+        dr_par, dr_par_two = fit_params.columns[1:]
+    else:
+        fit_params = fit_params[0]
+
     if plot_type == 'drpar':
         if dr_par is None:
             return HttpResponse('Dose response parameter is a required field',
                                 status=400)
+
         try:
             plot_fig = plot_drc_params(
                 fit_params,
