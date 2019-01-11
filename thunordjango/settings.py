@@ -271,7 +271,7 @@ USE_TZ = True
 
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
-SHORT_DATETIME_FORMAT = 'Y-d-m H:i:s T'
+SHORT_DATETIME_FORMAT = 'Y-m-d H:i:s T'
 DATETIME_FORMAT = SHORT_DATETIME_FORMAT
 
 # Static files (CSS, JavaScript, Images)
