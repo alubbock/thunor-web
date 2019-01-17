@@ -405,17 +405,21 @@ def _dose_response_plot(request, dataset, dataset2_id,
     # 'compare' plots are only available for one dataset and metric
     if response_metric == 'compare':
         if dataset2_id is not None:
-            return HttpResponse('"compare" metric not compatible with two '
+            return HttpResponse('"compare" mode not compatible with two '
                                 'datasets', status=400)
         if dr_par_two is not None:
             return HttpResponse('Parameter two not available with "compare" '
-                                'metric', status=400)
+                                'mode', status=400)
         if dr_par_order is not None:
             return HttpResponse('Parameter order not available with "compare" '
-                                'metric', status=400)
+                                'mode', status=400)
         if plot_type == 'drc':
             return HttpResponse('Dose response curves not available with '
-                                '"compare" metric', status=400)
+                                '"compare" mode', status=400)
+
+        if dr_par.endswith('_rel'):
+            return HttpResponse('Relative metrics are not available with '
+                                '"compare" mode', status=400)
 
     # Work out any non-standard parameters we need to calculate
     # e.g. non-standard IC concentrations
