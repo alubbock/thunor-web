@@ -86,6 +86,11 @@ def precalculate_dip_rates(dataset_or_id, plate_ids=None):
              well_id=well_stat.well_id,
              stat_name='dip_fit_std_err',
              value=well_stat.dip_fit_std_err
+         ),
+         WellStatistic(
+             well_id=well_stat.well_id,
+             stat_name='dip_first_timepoint',
+             value=well_stat.dip_first_timepoint
          ))
         for well_stat in
         expt_dip_data.itertuples(index=False)
@@ -114,7 +119,8 @@ def precalculate_dip_rates(dataset_or_id, plate_ids=None):
     else:
         well_stats = WellStatistic.objects.filter(well__plate__dataset=dataset)
 
-    well_stats.filter(stat_name__in=['dip_rate', 'dip_fit_std_err']).delete()
+    well_stats.filter(stat_name__in=[
+        'dip_rate', 'dip_fit_std_err', 'dip_first_timepoint']).delete()
 
     WellStatistic.objects.bulk_create(
         itertools.chain.from_iterable(well_stats_to_create)
