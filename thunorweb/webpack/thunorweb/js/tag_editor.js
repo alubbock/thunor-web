@@ -36,6 +36,7 @@ var set_tag_group_permission = function(tag_id, group_id, state, $caller) {
 };
 
 var activate = function() {
+    var entityType = $('#entity-type').val();
     var $tabContent = $(".tab-content");
     $tabContent.loadingOverlay("show");
 
@@ -51,19 +52,45 @@ var activate = function() {
                 $tabContent.loadingOverlay("hide");
             }
         },
+        select: {style: 'multi+shift'},
+        dom: 'lBfrtip',
+        buttons: [
+            'selectAll',
+            'selectNone',
+            {
+                text: 'Download',
+                extend: 'selected',
+                action: function ( e, dt, node, config ) {
+                    var sep = '\t';
+                    var rowDat = dt.rows({selected: true}).data();
+                    var entLabel = (entityType === 'drugs') ? 'drug' : 'cell_line';
+                    var txt = 'tag_name' + sep + 'tag_category' + sep + entLabel + '\n';
+                    for (var i=0, imax=rowDat.length; i < imax; i++) {
+                        var row = rowDat[i];
+                        for(var j=0, jmax=row.targets.length; j<jmax; j++) {
+                            txt += row.tag.name + sep + row.cat + sep + row.targets[j] + '\n';
+                        }
+                    }
+                    FileSaver.saveAs(new Blob([txt], {type: "text/tab-separated-values"}),
+                        'tags.txt'
+                    );
+                }
+        }
+        ],
         "columnDefs": [
-            {"targets": 0, "data": "tag", "width": "1px", "className": "text-center", "render": {
+            {"targets": 0, className: "select-checkbox", width: "20px", orderable: false, defaultContent: '', data: null},
+            {"targets": 1, "data": "tag", "width": "1px", "className": "text-center", "render": {
                 "display": function(data) {return util.userIcon(data.ownerEmail);},
                 "sort": function(data) {return data.ownerEmail;}}
             },
-            {"targets": 1, "data": "tag", "width": "25%", "render":
+            {"targets": 2, "data": "tag", "width": "25%", "render":
                 function(data) {
                     if (!data.editable) return data.name;
                     return '<a href="#" data-id="' + data.id + '">' + data.name + '</a>';
                 }
             },
-            {"targets": 2, "data": "cat", "width": "25%"},
-            {"targets": 3, "data": "targets", "render":
+            {"targets": 3, "data": "cat", "width": "25%"},
+            {"targets": 4, "data": "targets", "render":
                 function(data) {
                     var str = '';
                     for (var t=0,len=data.length; t<len; t++) {
@@ -73,7 +100,7 @@ var activate = function() {
                 }
             }
         ],
-        "order": [[2, "asc"], [1, "asc"]],
+        "order": [[3, "asc"], [2, "asc"]],
         "drawCallback": function () {
             $('.tt').tooltip();
             $("#tag-table").find("a").unbind('click').click(function(e){
@@ -111,7 +138,7 @@ var activate = function() {
 
          $.ajax({
             type: "GET",
-            url: ajax.url("get_tag_targets", $('#entity-type').val()) + tagId,
+            url: ajax.url("get_tag_targets", entityType) + tagId,
             success: function (data) {
                 var $container = $(".tag-container").last().clone(true).show();
                 // set up select box with current entries preselected

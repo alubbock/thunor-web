@@ -94,6 +94,9 @@ table.dataTable thead .sorting:after {
   font-family: fontawesome;
   color: rgba(50, 50, 50, 0.5);
 }
+/** Tag editor datatable **/
+#tag-table_length { float: left; }
+.dt-buttons { float: left; margin-left: 10px;}
 @media (min-width: 768px) {
     .jumbotron {
         border-radius: 6px;
@@ -884,6 +887,10 @@ form.set-tag-targets button[type=submit] {
 .plot-type-tc .hidden-tc, .plot-type-drc .hidden-drc, .plot-type-drpar .hidden-drpar,
 .plot-type-qc .hidden-qc {
     display: none;
+}
+/** Tags in selected rows **/
+.selected .label-primary {
+    background-color: #022559;
 }
 .square-btns .btn-lg {
     width: 100%;
