@@ -307,8 +307,19 @@ class PlateFileParser(object):
                 )
 
         if plates_to_create:
-            Plate.objects.bulk_create(plates_to_create.values(),
-                                      batch_size=settings.DB_MAX_BATCH_SIZE)
+            try:
+                Plate.objects.bulk_create(plates_to_create.values(),
+                                          batch_size=settings.DB_MAX_BATCH_SIZE)
+            except IntegrityError as e:
+                e_msg = str(e)
+                try:
+                    msg = e_msg[e_msg.index('DETAIL: '):]
+                except ValueError:
+                    msg = ''
+                raise PlateFileParseException(
+                    'Uploaded file contains plate(s) already present in this '
+                    'dataset. ' + msg
+                )
 
             # Depending on DB backend, we may need to refetch to get the PKs
             # (Thankfully not PostgreSQL)
