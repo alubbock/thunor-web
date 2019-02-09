@@ -10,8 +10,7 @@ useCustomIconFontPath: false
 
 # Webpack loaders, order matters
 styleLoaders:
-  - style-loader
-  - css-loader?minimize=true
+  - css-loader
   - sass-loader?precision=8
 
 # Extract styles to stand-alone css file
