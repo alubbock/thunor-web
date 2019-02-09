@@ -1074,7 +1074,7 @@ var plots = function() {
                 console.log(e);
                 showWarning = true;
             }
-            if(!$.isEmptyObject(formData)) {
+            if(!showWarning && !$.isEmptyObject(formData)) {
                 if(!formData.hasOwnProperty('datasetId') || formData['datasetId'] === '') {
                     showWarning = true;
                 } else {
@@ -1092,6 +1092,7 @@ var plots = function() {
             }
         }
         if(showWarning) {
+            $(".panel-close-btn").trigger("click");
             ui.okModal({
                 'title': 'Error decoding URL',
                 'text': 'There was an error decoding the URL, which means' +
