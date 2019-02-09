@@ -15,7 +15,7 @@ var getQueryStrings = function() {
         sParameterName = sURLVariables[i].split('=');
 
         if (sParameterName[0] === "plotdata" && sParameterName[1] !== undefined && plotStrings.length < 20) {
-            plotStrings.push(decodeURIComponent(sParameterName[1]));
+            plotStrings.push(sParameterName[1]);
         }
         if (sParameterName[0] === "colsLg" && sParameterName[1] !== undefined) {
             colsLg = parseInt(sParameterName[1]);
@@ -1057,7 +1057,7 @@ var plots = function() {
         for (var i = 0; i < plotStrings.length; i++) {
             var formData = {};
             try {
-                var plotStringData = plotStrings[i].split("&");
+                var plotStringData = decodeURIComponent(plotStrings[i]).split("&");
                 for (var j = 0; j < plotStringData.length; j++) {
                     var keyValuePair = plotStringData[j].split("=");
                     if(typeof formData[keyValuePair[0]] === 'undefined') {
