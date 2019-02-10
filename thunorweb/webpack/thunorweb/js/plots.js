@@ -229,10 +229,13 @@ var plots = function() {
         updateURL();
     });
 
-    var parseOption = function(option) {
+    var parseOption = function(option, optGroup) {
         var $newOption = $("<option></option>");
         $newOption.val(option.id);
         $newOption.text(option.name);
+        if (optGroup !== undefined) {
+            $newOption.data('tokens', optGroup);
+        }
         if (option.hasOwnProperty("public") && option.public) {
             $newOption.prepend("<i class=\"fa fa-users\"></i> ");
         }
@@ -243,7 +246,7 @@ var plots = function() {
         var $newOptgroup = $("<optgroup></optgroup>");
         $newOptgroup.attr('label', optGroup.optgroup);
         for (var i=0,len=optGroup.options.length; i < len; i++) {
-            $newOptgroup.append(parseOption(optGroup.options[i]));
+            $newOptgroup.append(parseOption(optGroup.options[i], optGroup.optgroup));
         }
         return $newOptgroup;
     };
