@@ -51,7 +51,17 @@
 <form class="pull-right form-inline delete-tag">
     <input type="hidden" name="tagType" value="{{ entity_type_var }}">
     <input type="hidden" name="tagId" value="{{ tag_name.0 }}">
-<button type="submit" role="button" class="btn btn-danger">Delete</button>
+    <button type="submit" role="button" class="btn btn-danger">Delete</button>
+</form>
+<form class="form-inline rename-tag-form">
+    <button role="button" class="rename-tag-btn btn btn-default pull-right">Rename</button>
+    <div class="rename-tag-div hidden">
+        <button type="submit" class="btn btn-success pull-right">Save name</button>
+        <input type="hidden" name="tagId">
+        <input type="hidden" name="tagType" value="{{ entity_type_var }}">
+        <input type="text" name="tagCategory" class="form-control" placeholder="Tag Category (optional)">
+        <input type="text" name="tagsName" class="form-control" placeholder="Tag Name">
+    </div>
 </form>
 
 <h4 class="tag-header">

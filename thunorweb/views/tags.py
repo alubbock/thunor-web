@@ -200,16 +200,19 @@ def ajax_rename_tag(request):
 
     perm_query = Q(owner=request.user)
 
-    if request.user.is_superuser:
-        perm_query |= Q(owner=None)
-
     n_updated = tag_cls.objects.filter(perm_query).filter(
         id=tag_id).update(tag_name=tag_name, tag_category=tag_category)
 
     if n_updated == 0:
         return JsonResponse({'error': 'Tag not found'}, status=404)
 
-    return JsonResponse({'success': True})
+    return JsonResponse({
+        'success': True,
+        'tagId': tag_id,
+        'tagName': tag_name,
+        'tagCategory': tag_category,
+        'tagType': tag_type
+    })
 
 
 def ajax_delete_tag(request):
@@ -228,9 +231,6 @@ def ajax_delete_tag(request):
     tag_cls = DrugTag if tag_type == 'drug' else CellLineTag
 
     perm_query = Q(owner=request.user)
-
-    if request.user.is_superuser:
-        perm_query |= Q(owner=None)
 
     n_deleted, _ = tag_cls.objects.filter(perm_query).filter(
         id=tag_id).delete()
@@ -379,9 +379,6 @@ def ajax_assign_tag(request):
     tag_cls = DrugTag if tag_type == 'drug' else CellLineTag
 
     perm_query = Q(owner=request.user)
-
-    if request.user.is_superuser:
-        perm_query |= Q(owner=None)
 
     try:
         tag = tag_cls.objects.filter(perm_query).get(id=tag_id)

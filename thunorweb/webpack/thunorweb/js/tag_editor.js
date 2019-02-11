@@ -35,6 +35,13 @@ var set_tag_group_permission = function(tag_id, group_id, state, $caller) {
             dataType: 'json'});
 };
 
+var clearTagNameChange = function() {
+    $(".rename-tag-btn").show();
+    $(".rename-tag-div").addClass("hidden");
+    $(".tag-header").show();
+    $("form.delete-tag").show();
+};
+
 var activate = function() {
     var entityType = $('#entity-type').val();
     var $tabContent = $(".tab-content");
@@ -132,6 +139,7 @@ var activate = function() {
             text: 'Loading...',
             okLabel: 'Close',
             onHide: function() {
+                clearTagNameChange();
                 $tagTable.ajax.reload();
             }
         });
@@ -148,6 +156,7 @@ var activate = function() {
                 activateSelect($container.find("select"), $modal);
                 // prepopulate form data
                 $container.find(".tag-name").text(data.tagName);
+                $container.find("input[name=tagsName]").val(data.tagName);
                 if (data.tagCategory !== null) {
                     $container.find(".tag-category").text(data.tagCategory);
                     $container.find("input[name=tagCategory]").val(data.tagCategory);
@@ -233,6 +242,43 @@ var activate = function() {
                 $container.loadingOverlay("hide");
             }
         });
+    });
+    $("form.rename-tag-form").submit(function(e) {
+       e.preventDefault();
+       var $form = $(this);
+       var tagName = $form.find("input[name=tagsName]").val();
+        if (tagName === "") {
+            ui.okModal({
+                title: "Tag name empty",
+                text: "Please enter a tag name"
+            });
+            return;
+        }
+        var $container = $form.closest(".tag-container");
+        $container.loadingOverlay("show");
+        $.ajax({
+            type: "POST",
+            headers: {"X-CSRFToken": ajax.getCsrfToken()},
+            url: ajax.url("rename_tag"),
+            data: $form.serialize(),
+            success: function (data) {
+                clearTagNameChange();
+                $tagTable.ajax.reload();
+                $container.find(".tag-name").text(data.tagName);
+                $container.find(".tag-category").text(data.tagCategory === null ? '' : data.tagCategory);
+            },
+            error: ajax.ajaxErrorCallback,
+            complete: function() {
+                $container.loadingOverlay("hide");
+            }
+        });
+    });
+    $(".rename-tag-btn").click(function(e) {
+       e.preventDefault();
+       $(".rename-tag-btn").hide();
+       $(".rename-tag-div").removeClass("hidden");
+       $(".tag-header").hide();
+       $("form.delete-tag").hide();
     });
     $("form.set-tag-targets").submit(function (e) {
         e.preventDefault();

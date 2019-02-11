@@ -151,6 +151,7 @@ var ajax = (function () {
         "assign_tag": "/ajax/tags/assign",
         "create_tag": "/ajax/tags/create",
         "delete_tag": "/ajax/tags/delete",
+        "rename_tag": "/ajax/tags/rename",
         "get_tag_targets": "/ajax/tags/{ARG}/targets/",
         "set_tag_group_permission": "/ajax/tags/set-permission"
     };
