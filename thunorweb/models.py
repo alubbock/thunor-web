@@ -14,7 +14,8 @@ class HTSDataset(models.Model):
             ('download_data', 'Download data')
         )
 
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL)
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL,
+                              on_delete=models.CASCADE)
     name = models.TextField()
     creation_date = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
@@ -44,15 +45,15 @@ class HTSDataset(models.Model):
 
 
 class HTSDatasetUserObjectPermission(UserObjectPermissionBase):
-    content_object = models.ForeignKey(HTSDataset)
+    content_object = models.ForeignKey(HTSDataset, on_delete=models.CASCADE)
 
 
 class HTSDatasetGroupObjectPermission(GroupObjectPermissionBase):
-    content_object = models.ForeignKey(HTSDataset)
+    content_object = models.ForeignKey(HTSDataset, on_delete=models.CASCADE)
 
 
 class PlateFile(models.Model):
-    dataset = models.ForeignKey(HTSDataset)
+    dataset = models.ForeignKey(HTSDataset, on_delete=models.CASCADE)
     upload_date = models.DateTimeField(auto_now_add=True)
     file = models.FileField(upload_to='plate-files')
     file_format = models.TextField(null=True)
@@ -77,12 +78,13 @@ class CellLineTag(models.Model):
 
     tag_name = models.TextField()
     tag_category = models.TextField()
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL)
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL,
+                              on_delete=models.CASCADE)
     cell_lines = models.ManyToManyField(CellLine, related_name='tags')
 
 
 class CellLineTagGroupObjectPermission(GroupObjectPermissionBase):
-    content_object = models.ForeignKey(CellLineTag)
+    content_object = models.ForeignKey(CellLineTag, on_delete=models.CASCADE)
 
 
 class Drug(models.Model):
@@ -101,19 +103,20 @@ class DrugTag(models.Model):
 
     tag_name = models.TextField()
     tag_category = models.TextField()
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL)
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL,
+                              on_delete=models.CASCADE)
     drugs = models.ManyToManyField(Drug, related_name='tags')
 
 
 class DrugTagGroupObjectPermission(GroupObjectPermissionBase):
-    content_object = models.ForeignKey(DrugTag)
+    content_object = models.ForeignKey(DrugTag, on_delete=models.CASCADE)
 
 
 class Plate(models.Model, PlateMap):
     class Meta:
         unique_together = (("dataset", "name"), )
 
-    dataset = models.ForeignKey(HTSDataset)
+    dataset = models.ForeignKey(HTSDataset, on_delete=models.CASCADE)
     name = models.TextField()
     last_annotated = models.DateTimeField(null=True)
     width = models.IntegerField()
@@ -138,16 +141,16 @@ class Well(models.Model):
     class Meta:
         unique_together = (('plate', 'well_num'), )
 
-    plate = models.ForeignKey(Plate, db_index=False)
+    plate = models.ForeignKey(Plate, db_index=False, on_delete=models.CASCADE)
     well_num = models.IntegerField()
-    cell_line = models.ForeignKey(CellLine, null=True)
+    cell_line = models.ForeignKey(CellLine, null=True, on_delete=models.CASCADE)
 
 
 class WellMeasurement(models.Model):
     class Meta:
         unique_together = (("well", "assay", "timepoint"), )
 
-    well = models.ForeignKey(Well, db_index=False)
+    well = models.ForeignKey(Well, db_index=False, on_delete=models.CASCADE)
     assay = models.TextField()
     timepoint = models.DurationField()
     value = models.FloatField(null=True)
@@ -157,8 +160,8 @@ class WellDrug(models.Model):
     class Meta:
         unique_together = (("well", "drug"), ("well", "order"))
 
-    well = models.ForeignKey(Well, db_index=False)
-    drug = models.ForeignKey(Drug, null=True)
+    well = models.ForeignKey(Well, db_index=False, on_delete=models.CASCADE)
+    drug = models.ForeignKey(Drug, null=True, on_delete=models.CASCADE)
     order = models.PositiveSmallIntegerField()
     dose = models.FloatField(null=True)
 
@@ -173,7 +176,7 @@ class WellStatistic(models.Model):
     class Meta:
         unique_together = (('well', 'stat_name'), )
 
-    well = models.ForeignKey(Well)
+    well = models.ForeignKey(Well, on_delete=models.CASCADE)
     stat_name = models.TextField()
     stat_date = models.DateTimeField(auto_now=True)
     value = models.FloatField(null=True)
@@ -183,7 +186,7 @@ class CurveFitSet(models.Model):
     class Meta:
         unique_together = (('dataset', 'stat_type', 'viability_time'), )
 
-    dataset = models.ForeignKey(HTSDataset)
+    dataset = models.ForeignKey(HTSDataset, on_delete=models.CASCADE)
     stat_type = models.CharField(max_length=10)
     viability_time = models.DurationField()
     fit_protocol = models.IntegerField()
@@ -198,9 +201,9 @@ class CurveFit(models.Model):
     class Meta:
         unique_together = (('fit_set', 'cell_line', 'drug'), )
 
-    fit_set = models.ForeignKey(CurveFitSet)
-    cell_line = models.ForeignKey(CellLine)
-    drug = models.ForeignKey(Drug)
+    fit_set = models.ForeignKey(CurveFitSet, on_delete=models.CASCADE)
+    cell_line = models.ForeignKey(CellLine, on_delete=models.CASCADE)
+    drug = models.ForeignKey(Drug, on_delete=models.CASCADE)
     curve_fit_class = models.CharField(max_length=20, null=True)
     fit_params = models.BinaryField()
     max_dose = models.FloatField()
@@ -213,7 +216,7 @@ class HTSDatasetFile(models.Model):
     class Meta:
         unique_together = (('dataset', 'file_type'), )
 
-    dataset = models.ForeignKey(HTSDataset)
+    dataset = models.ForeignKey(HTSDataset, on_delete=models.CASCADE)
     file_type = models.TextField()
     file_type_protocol = models.IntegerField()
     file = models.FileField()
