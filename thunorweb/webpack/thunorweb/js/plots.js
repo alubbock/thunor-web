@@ -523,6 +523,38 @@ var plots = function() {
         $element[0].addEventListener('touchstart', plotlyTouchHandler);
         $element[0].addEventListener('touchmove', plotlyTouchHandler);
         $element[0].addEventListener('touchend', plotlyTouchHandler);
+        var $plotSelection = $element.closest('.panel-container').find('.hts-plot-selection');
+        $plotSelection.hide();
+        $element[0].on('plotly_selected', function(eventData) {
+            if(eventData === undefined || eventData.points.length === 0) {
+                $plotSelection.hide();
+                return;
+            }
+            $plotSelection.show();
+            $plotSelection.find('.hts-selection-count').text('(' + eventData.points.length + ')');
+            var cellLines = {}, drugs={};
+            for(var i=0;i<eventData.points.length;i++) {
+                var p = eventData.points[i];
+                if(p.hasOwnProperty('customdata')) {
+                    if(p.customdata.hasOwnProperty('c')) {
+                        cellLines[p.customdata.c] = null;
+                    }
+                    if(p.customdata.hasOwnProperty('d')) {
+                        drugs[p.customdata.d] = null;
+                    }
+                }
+            }
+            if($.isEmptyObject(cellLines) || $.isEmptyObject(drugs)) {
+                $plotSelection.hide();
+                return;
+            }
+            cellLines = Object.keys(cellLines);
+            cellLines.sort();
+            drugs = Object.keys(drugs);
+            drugs.sort();
+            $plotSelection.data('cellLines', cellLines);
+            $plotSelection.data('drugs', drugs);
+        });
     };
 
     var setViabilityOnly = function($dataPanel) {
@@ -563,7 +595,7 @@ var plots = function() {
         toggleDataPanel($(e.currentTarget).closest(".plot-panel"));
     });
 
-    $(".hts-download-btn").parent().on("show.bs.dropdown", function(e) {
+    $(".hts-download-btn").parent().add('.hts-plot-selection').on("show.bs.dropdown", function(e) {
         toggleDataPanel($(e.currentTarget).closest(".plot-panel"), false);
     });
     $("a[data-download]").click(function(e) {
@@ -914,6 +946,71 @@ var plots = function() {
             });
         }
     };
+
+    /* Needed when user creates a new tag */
+    var refreshAllDataPanels = function() {
+        plotOptionsCache = {};
+        var $templateDataPanel = $('.hts-change-data:last');
+        $('.panel-container:not(:last)').each(function(i, obj) {
+            var $panel = $(obj);
+            var formData = objectifyForm($panel.find("form").serializeArray());
+            toggleDataPanel($panel, false);
+            $panel.find(".hts-change-data").replaceWith($templateDataPanel.clone(true, true));
+            prepareDataPanel($panel, formData);
+        });
+    };
+
+    var createTagDialog = function(entities, type, type_short) {
+        var $form = $('.hts-create-tag:last').clone().removeClass('hidden');
+        var $entityTemplate = $('.hts-create-tag-entity:last');
+        $form.find('input[name=tagType]').val(type_short);
+        var $innerForm = $form.find('form');
+        for(var i=0;i<entities.length;i++) {
+            var $entity = $entityTemplate.clone().removeClass('hidden');
+            $entity.find('input').val(entities[i]);
+            $entity.find('label').append(entities[i]);
+            $innerForm.prepend($entity);
+        }
+       ui.okCancelModal({
+           title: type + " Selection",
+           text: $form,
+           okLabel: 'Save as Tag',
+           cancelByDefault: true,
+           onOKHide: function(e2) {
+               var $target = $(e2.target);
+               if($target.find('input[name=tagName]').val() === '') {
+                   ui.okModal({title: 'Error', text: 'Please enter a tag name'});
+                   e2.preventDefault();
+                   e2.stopImmediatePropagation();
+                   return false;
+               }
+                $.ajax({
+                   type: "POST",
+                   url: ajax.url('create_tag'),
+                   headers: {'X-CSRFToken': ajax.getCsrfToken()},
+                   data: $target.find('form').serialize(),
+                   success: function() {
+                       refreshAllDataPanels();
+                   },
+                    error: ajax.ajaxErrorCallback
+                 });
+           }
+       });
+    };
+
+    $(".hts-selection-show-cl").click(function(e) {
+       e.preventDefault();
+       var $plotSelection = $(e.target).closest(".hts-plot-selection");
+       var entities = $plotSelection.data('cellLines');
+       createTagDialog(entities, 'Cell Line', 'cl')
+    });
+
+    $(".hts-selection-show-dr").click(function(e) {
+       e.preventDefault();
+       var $plotSelection = $(e.target).closest(".hts-plot-selection");
+       var entities = $plotSelection.data('drugs');
+       createTagDialog(entities, 'Drug', 'drug');
+    });
 
     $(".panel-close-btn").on("click", function () {
         var $this = $(this);

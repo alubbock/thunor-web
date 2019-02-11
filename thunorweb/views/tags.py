@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from django.http import JsonResponse
+from django.db import transaction
 from django.db.models import Q
 from thunorweb.models import CellLine, Drug, CellLineTag, DrugTag
 from thunorweb.views import login_required_unless_public, login_required
@@ -106,6 +107,7 @@ def ajax_get_tag_targets(request, tag_type, tag_id):
     })
 
 
+@transaction.atomic
 def ajax_create_tag(request):
     if not request.user.is_authenticated():
         return JsonResponse({}, status=401)
@@ -119,7 +121,7 @@ def ajax_create_tag(request):
                             status=400)
 
     if tag_type not in ('cl', 'drug'):
-        return JsonResponse({'error': 'Tag type not recongised'}, stauts=400)
+        return JsonResponse({'error': 'Tag type not recognised'}, stauts=400)
 
     tag_name = tag_name.strip()
     if tag_name == '':
@@ -141,12 +143,41 @@ def ajax_create_tag(request):
             'error': 'A tag with this name and category already exists'
         }, status=409)
 
+    # Assign tag targets, if any supplied
+    try:
+        entity_ids = [int(e_id) for e_id in request.POST.getlist('entityId')]
+    except KeyError:
+        entity_ids = []
+
+    if 'entityName' in request.POST:
+        if entity_ids:
+            return JsonResponse({'error': 'Supply either entityId or '
+                                          'entityName, not both'},
+                                status=400)
+
+        entity_names = request.POST.getlist('entityName')
+        entity_cls = Drug if tag_type == 'drug' else CellLine
+        entities = entity_cls.objects.filter(name__in=entity_names)
+        if len(entities) < len(entity_names):
+            entity_names_db = set(e.name for e in entities)
+            missing_names = set(entity_names).difference(entity_names_db)
+            return JsonResponse({'error': 'Entity names not found in database: '
+                                 + ','.join(missing_names)}, status=400)
+        entity_ids = [e.id for e in entities]
+
+    if entity_ids:
+        if tag_type == 'drug':
+            tag.drugs.set(entity_ids)
+        else:
+            tag.cell_lines.set(entity_ids)
+
     return JsonResponse({
         'success': True,
         'tagId': tag.id,
         'tagName': tag.tag_name,
         'tagCategory': tag.tag_category,
-        'tagType': tag_type
+        'tagType': tag_type,
+        'entityIds': entity_ids
     })
 
 

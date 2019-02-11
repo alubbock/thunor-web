@@ -888,6 +888,9 @@ form.set-tag-targets button[type=submit] {
 .plot-type-qc .hidden-qc {
     display: none;
 }
+.hts-plot-selection {
+    display: none;
+}
 /** Tags in selected rows **/
 .selected .label-primary {
     background-color: #022559;

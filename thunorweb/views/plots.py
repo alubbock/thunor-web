@@ -20,6 +20,7 @@ from thunorweb.views.plate_mapper import ajax_load_plate
 from thunorweb.views.datasets import _get_celllinetag_permfilter, \
     _get_drugtag_permfilter, dataset_groupings
 from thunorweb.views.tags import TAG_EVERYTHING_ELSE
+import json
 
 
 MAX_COLOR_GROUPS = 10
@@ -144,7 +145,8 @@ def ajax_get_plot(request, file_type='json'):
     as_attachment = request.GET.get('download', '0') == '1'
 
     if file_type == 'json':
-        response = JsonResponse(plot_fig, encoder=PlotlyJSONEncoder)
+        j = json.dumps(plot_fig, cls=PlotlyJSONEncoder)
+        response = HttpResponse(j, content_type='application/json')
     elif file_type == 'csv':
         response = HttpResponse(plotly_to_dataframe(plot_fig).to_csv(),
                                 content_type='text/csv')
@@ -152,8 +154,8 @@ def ajax_get_plot(request, file_type='json'):
         template = 'plotly_plot{}.html'.format('_standalone' if
                                                as_attachment else '')
         context = {
-            'data': JsonResponse(plot_fig, encoder=PlotlyJSONEncoder).content,
-            'page_title': strip_tags(plot_fig['layout']['title'])
+            'data': json.dumps(plot_fig, cls=PlotlyJSONEncoder),
+            'page_title': strip_tags(plot_fig['layout']['title']['text'])
         }
         if as_attachment:
             context['plotlyjs'] = get_plotlyjs()
@@ -163,7 +165,7 @@ def ajax_get_plot(request, file_type='json'):
 
     if as_attachment:
         try:
-            title = plot_fig['layout']['title']
+            title = plot_fig['layout']['title']['text']
         except KeyError:
             title = 'Plot'
         response['Content-Disposition'] = \

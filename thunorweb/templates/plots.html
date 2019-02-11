@@ -183,6 +183,18 @@
                         fa-code"></i> HTML</a></li>
                     </ul>
                 </div>
+
+                <div class="btn-group hts-plot-selection" role="group">
+                    <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
+                        <i class="fa fa-mouse-pointer"></i>
+                        <span class="hts-selection-count"></span>
+                        <span class="caret"></span>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a href="#" class="hts-selection-show-cl">Cell Line Tag...</a></li>
+                        <li><a href="#" class="hts-selection-show-dr">Drug Tag...</a></li>
+                    </ul>
+                </div>
             </div>
 
         </div>
@@ -481,6 +493,21 @@
 <div class="show-plot-delayed">
   <p class="lead">Plot not shown to avoid loading too many plots at once.</p>
   <button class="btn btn-primary">Show Plot</button>
+</div>
+
+
+<div class="hts-create-tag hidden">
+<form class="form-inline"><input type="hidden" name="tagType">
+
+<hr>
+<h4>Create tag from selection</h4>
+  <input class="form-control" name="tagsName" placeholder="Tag Name">
+  <input class="form-control" name="tagCategory" placeholder="Tag Category (Optional)">
+</form>
+</div>
+
+<div class="hts-create-tag-entity hidden">
+    <label><input type="checkbox" name="entityName" checked="checked"> </label>
 </div>
 
 

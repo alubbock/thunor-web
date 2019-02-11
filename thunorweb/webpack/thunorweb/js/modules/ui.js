@@ -64,7 +64,7 @@ var ui = (function() {
         }).on("hide.bs.modal", function (e) {
             if($mok.data("success")) {
                 if(settings.onOKHide !== undefined) {
-                    settings.onOKHide(e);
+                    return settings.onOKHide(e);
                 }
             } else {
                 if(settings.onCancelHide !== undefined) {
