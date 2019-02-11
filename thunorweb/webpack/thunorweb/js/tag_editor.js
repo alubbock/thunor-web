@@ -59,6 +59,7 @@ var activate = function() {
                 $tabContent.loadingOverlay("hide");
             }
         },
+        rowId: function(row) {return row.tag.id;},
         select: {style: 'multi+shift'},
         dom: 'lBfrtip',
         buttons: [
@@ -82,7 +83,72 @@ var activate = function() {
                         'tags.txt'
                     );
                 }
-        }
+            },
+            {
+                text: 'Permissions',
+                extend: 'selected',
+                action: function( e, dt, node, config ) {
+                    var tagIds = dt.rows({selected: true}).ids();
+                    var numTags = tagIds.length;
+                    if (numTags === 0) {
+                        return;
+                    }
+                    var ajaxUrl = ajax.url('get_tag_groups', entityType) + '?';
+                    for (var t=0;t<numTags;t++) {
+                        ajaxUrl += 'tagId=' + tagIds[t] + '&';
+                    }
+                   var $modal = ui.okModal({
+                        title: 'Set tag permissions',
+                        text: 'Loading...',
+                        okLabel: 'Close'
+                    });
+
+                     $.ajax({
+                        type: "GET",
+                        url: ajaxUrl,
+                        success: function (data) {
+                            var $container = $(".tag-container").last().clone(true).show();
+                            // prepopulate groups
+                            var $groupPerms = $container.find(".group-permissions");
+                            for (var g=0; g<data.groups.length; g++) {
+                                var $groupInputDiv = $('.group-perm').last().clone().show();
+                                var group = data.groups[g];
+                                var numTagsGroup = group.tagIds.length;
+                                $groupInputDiv.find("input")
+                                    .data('tag-id', tagIds)
+                                    .data('group-id', group.groupId)
+                                    .prop('checked', numTagsGroup === numTags)
+                                    .data('indeterminate', numTagsGroup > 0 && numTagsGroup < numTags);
+                                $groupInputDiv.find('.group-name').text(group.groupName);
+                                $groupPerms.append($groupInputDiv);
+                            }
+                            if(data.groups.length) {
+                                $groupPerms.show();
+                            }
+                            $container.addClass("panel-default");
+                            $container.find(".panel-body").show();
+                            $container.find(".entity-change").hide();
+                            $container.find("form.set-tag-name").hide();
+                            $container.find("input[type=checkbox]").bootstrapSwitch({
+                                'onSwitchChange': function(event, state) {
+                                    var $target = $(event.currentTarget);
+                                    set_tag_group_permission(
+                                        $.makeArray($target.data('tag-id')),
+                                        $target.data('group-id'),
+                                        state,
+                                        $target
+                                    );
+                                }
+                            });
+                            $modal.find(".modal-body").html($container);
+                        },
+                        error: function(jqXHR, textStatus, errorThrown) {
+                            $modal.modal('hide');
+                            ajax.ajaxErrorCallback(jqXHR, textStatus, errorThrown);
+                        }
+                    });
+                }
+            }
         ],
         "columnDefs": [
             {"targets": 0, className: "select-checkbox", width: "20px", orderable: false, defaultContent: '', data: null},

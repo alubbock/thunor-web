@@ -30,6 +30,8 @@ urlpatterns = [
         tags.ajax_get_tags, name='ajax_get_tags'),
     url(r'^ajax/tags/(?P<tag_type>cell_lines|drugs)/targets/(?P<tag_id>\d+)$',
         tags.ajax_get_tag_targets, name='ajax_get_tag_targets'),
+    url(r'^ajax/tags/(?P<tag_type>cell_lines|drugs)/groups$',
+        tags.ajax_get_tag_groups, name='ajax_get_tag_targets'),
     url(r'^ajax/tags/set-permission$',
         tags.ajax_set_tag_group_permission,
         name='ajax_set_tag_group_permission'),

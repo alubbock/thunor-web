@@ -89,7 +89,7 @@ def ajax_get_tag_targets(request, tag_type, tag_id):
     try:
         tag = tag_cls.objects.filter(owner=request.user).get(id=tag_id)
     except tag_cls.DoesNotExist:
-        raise JsonResponse({'error': 'Tag not found'}, status=404)
+        return JsonResponse({'error': 'Tag not found'}, status=404)
 
     groups = request.user.groups.all()
 
@@ -105,6 +105,34 @@ def ajax_get_tag_targets(request, tag_type, tag_id):
         'groups': [{'groupId': g.id, 'groupName': g.name,
                     'canView': g in groups_with_perms} for g in groups]
     })
+
+
+@login_required
+def ajax_get_tag_groups(request, tag_type):
+    tag_cls = DrugTag if tag_type == 'drugs' else CellLineTag
+    try:
+        tag_ids = request.GET.getlist('tagId')
+    except KeyError:
+        return JsonResponse({'error': 'Malformed request'}, status=400)
+
+    tags = tag_cls.objects.filter(owner=request.user, pk__in=tag_ids)
+    if len(tags) < len(tag_ids):
+        return JsonResponse({'error': 'Some tags are not owned by you or '
+                                      'have not been found'}, status=400)
+
+    user_groups = request.user.groups.all()
+    tag_groups = {tag.id: get_groups_with_perms(tag) for tag in tags}
+    # Invert tag_groups to get group_tags
+    group_tags = {g.id: set() for g in user_groups}
+    for tag_id, groups in tag_groups.items():
+        for group in groups:
+            group_tags[group.id].add(tag_id)
+
+    return JsonResponse({'groups': [{
+        'groupId': g.id,
+        'groupName': g.name,
+        'tagIds': list(group_tags[g.id])
+    } for g in user_groups]})
 
 
 @transaction.atomic
@@ -403,19 +431,26 @@ def ajax_assign_tag(request):
 @login_required
 def ajax_set_tag_group_permission(request):
     try:
-        tag_id = int(request.POST['tag_id'])
+        tag_ids = [int(t) for t in request.POST.getlist('tag_id')]
+        if not tag_ids:
+            tag_ids = [int(t) for t in request.POST.getlist('tag_id[]')]
         tag_type = request.POST['tag_type']
         group_id = int(request.POST['group_id'])
         state = request.POST['state'].lower() == 'true'
     except (KeyError, ValueError):
         return JsonResponse({'error': 'Malformed request'}, status=400)
 
+    if not tag_ids:
+        return JsonResponse({'error': 'No tag IDs supplied'}, status=400)
+
     tag_cls = DrugTag if tag_type == 'drugs' else CellLineTag
 
-    try:
-        tag = tag_cls.objects.get(pk=tag_id, owner=request.user)
-    except tag_cls.DoesNotExist:
-        return JsonResponse({}, status=404)
+    tags = tag_cls.objects.filter(pk__in=tag_ids, owner=request.user)
+
+    if len(tags) < len(tag_ids):
+        return JsonResponse({'error': 'You do not own all of the selected tags,'
+                                      ' or they are no longer available.'},
+                            status=400)
 
     # Is user a member of the requested group?
     try:
@@ -425,6 +460,6 @@ def ajax_set_tag_group_permission(request):
 
     # Assign or remove the permission as requested
     permission_fn = assign_perm if state else remove_perm
-    permission_fn('view', group, tag)
+    permission_fn('view', group, tags)
 
     return JsonResponse({'success': True})

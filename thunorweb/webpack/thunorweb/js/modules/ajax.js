@@ -153,6 +153,7 @@ var ajax = (function () {
         "delete_tag": "/ajax/tags/delete",
         "rename_tag": "/ajax/tags/rename",
         "get_tag_targets": "/ajax/tags/{ARG}/targets/",
+        "get_tag_groups": "/ajax/tags/{ARG}/groups",
         "set_tag_group_permission": "/ajax/tags/set-permission"
     };
 
