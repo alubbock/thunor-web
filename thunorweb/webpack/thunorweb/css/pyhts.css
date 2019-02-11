@@ -634,6 +634,9 @@ user-select: none;}
 #plot-toolbar .dropdown-menu {
     z-index: 2000;
 }
+.plot-panel .dropdown-menu {
+    z-index: 1002;
+}
 .hts-change-data {
     display: none;
     position: absolute;
