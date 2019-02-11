@@ -69,7 +69,7 @@ def plate_mapper(request, dataset_id, num_wells=None):
 
 
 def ajax_create_cellline(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({}, status=401)
 
     name = request.POST.get('name')
@@ -81,7 +81,7 @@ def ajax_create_cellline(request):
 
 
 def ajax_create_drug(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({}, status=401)
 
     name = request.POST.get('name')
@@ -94,7 +94,7 @@ def ajax_create_drug(request):
 
 @transaction.atomic
 def ajax_save_plate(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({}, status=401)
 
     plate_data = json.loads(request.body.decode(request.encoding or 'utf-8'))
@@ -273,7 +273,7 @@ def ajax_save_plate(request):
 
 def ajax_load_plate(request, plate_id, extra_return_args=None,
                     return_as_platedata=False, use_names=False):
-    if not request.user.is_authenticated() and settings.LOGIN_REQUIRED:
+    if not request.user.is_authenticated and settings.LOGIN_REQUIRED:
         return JsonResponse({}, status=401)
 
     try:

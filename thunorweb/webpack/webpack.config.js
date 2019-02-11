@@ -80,7 +80,7 @@ var config = {
                 // required by plotly
                 test: /node_modules/,
                 include: [/node_modules\/(plotly|glsl-|gl-|cwise)/],
-                loader: "ify-loader"
+                use: ["ify-loader", "transform-loader?plotly.js/tasks/compress_attributes.js"]
             },
             {
                 test: /\.css$/,

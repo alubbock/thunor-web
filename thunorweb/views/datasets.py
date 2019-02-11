@@ -39,7 +39,7 @@ def view_dataset(request, dataset_id):
     if dataset.owner_id == request.user.id:
         perms = perms_base
     else:
-        if not settings.LOGIN_REQUIRED and not request.user.is_authenticated():
+        if not settings.LOGIN_REQUIRED and not request.user.is_authenticated:
             perms = get_perms(Group.objects.get(name='Public'), dataset)
         else:
             perms = get_perms(request.user, dataset)
@@ -112,7 +112,7 @@ def ajax_set_dataset_group_permission(request):
 
 
 def _get_drugtag_permfilter(request):
-    if request.user.is_authenticated():
+    if request.user.is_authenticated:
         # These queries assume we only have one permission (view) for tags
         return Q(owner=request.user) | Q(
             drugtaggroupobjectpermission__group__user=request.user
@@ -122,7 +122,7 @@ def _get_drugtag_permfilter(request):
 
 
 def _get_celllinetag_permfilter(request):
-    if request.user.is_authenticated():
+    if request.user.is_authenticated:
         # These queries assume we only have one permission (view) for tags
         return Q(owner=request.user) | Q(
             celllinetaggroupobjectpermission__group__user=request.user
@@ -229,7 +229,7 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
 
 
 def ajax_get_datasets(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({}, status=401)
 
     datasets = HTSDataset.objects.filter(owner_id=request.user.id,
@@ -247,7 +247,7 @@ def ajax_get_datasets(request):
 
 
 def ajax_get_datasets_group(request, group_id):
-    if group_id == 'Public' and (request.user.is_authenticated() or
+    if group_id == 'Public' and (request.user.is_authenticated or
                                  not settings.LOGIN_REQUIRED):
         group = Group.objects.get(name='Public')
     else:
@@ -278,7 +278,7 @@ def ajax_get_datasets_group(request, group_id):
 
 
 def ajax_create_dataset(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({}, status=401)
 
     name = request.POST.get('name')
@@ -289,7 +289,7 @@ def ajax_create_dataset(request):
 
 
 def ajax_rename_dataset(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({}, status=401)
 
     try:
@@ -319,7 +319,7 @@ def ajax_rename_dataset(request):
 
 
 def ajax_delete_dataset(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({}, status=401)
 
     dataset_id = request.POST.get('dataset_id')
@@ -341,7 +341,7 @@ def ajax_delete_dataset(request):
 
 
 def ajax_delete_platefile(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({}, status=401)
 
     platefile_id = request.POST.get('key', None)
@@ -385,7 +385,7 @@ def dataset_upload(request, dataset_id=None):
 
 @transaction.atomic
 def ajax_upload_platefiles(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({}, status=401)
 
     dataset_id = request.POST.get('dataset_id')

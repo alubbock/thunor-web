@@ -12,7 +12,7 @@ def _assert_has_perm(request, dataset, perm_required):
     if dataset.deleted_date is not None:
         raise Http404()
     if not settings.LOGIN_REQUIRED and not \
-            request.user.is_authenticated():
+            request.user.is_authenticated:
         anon_group = Group.objects.get(name='Public')
         anon_perm_checker = ObjectPermissionChecker(anon_group)
         if not anon_perm_checker.has_perm(perm_required, dataset):

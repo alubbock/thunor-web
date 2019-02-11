@@ -22,13 +22,13 @@ def tag_editor(request, tag_type=None):
     if tag_type == 'cell_lines':
         entity_type = 'Cell Line'
         entity_type_var = 'cl'
-        if request.user.is_authenticated():
+        if request.user.is_authenticated:
             entity_options = {c.id: c for c in CellLine.objects.all().order_by(
                 'name')}
     elif tag_type == 'drugs':
         entity_type = 'Drug'
         entity_type_var = 'drug'
-        if request.user.is_authenticated():
+        if request.user.is_authenticated:
             entity_options = {d.id: d for d in Drug.objects.all().order_by(
                 'name')}
     else:
@@ -50,7 +50,7 @@ def ajax_get_tags(request, tag_type, group=None):
     tag_cls = DrugTag if tag_type == 'drugs' else CellLineTag
 
     if group is None:
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             return JsonResponse({'error': 'Authentication required. Please log '
                                           'in.'}, status=401)
         perm_filter = Q(owner=request.user)
@@ -109,7 +109,7 @@ def ajax_get_tag_targets(request, tag_type, tag_id):
 
 @transaction.atomic
 def ajax_create_tag(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({}, status=401)
 
     try:
@@ -182,7 +182,7 @@ def ajax_create_tag(request):
 
 
 def ajax_rename_tag(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({}, status=401)
 
     try:
@@ -213,7 +213,7 @@ def ajax_rename_tag(request):
 
 
 def ajax_delete_tag(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({}, status=401)
 
     try:
@@ -244,7 +244,7 @@ def ajax_delete_tag(request):
 def ajax_upload_tagfile(request, tag_type):
     assert tag_type in ('cell_lines', 'drugs')
 
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({'error': 'Not logged in'}, status=401)
 
     files = request.FILES.getlist('tagfiles[]')
@@ -363,7 +363,7 @@ def ajax_upload_tagfile(request, tag_type):
 
 
 def ajax_assign_tag(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({}, status=401)
 
     try:
