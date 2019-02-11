@@ -1,6 +1,7 @@
 from django.shortcuts import render, Http404
 from django.http import JsonResponse, HttpResponse
 from django.utils.html import strip_tags
+from django.views.decorators.csrf import ensure_csrf_cookie
 from thunorweb.models import HTSDataset, CellLineTag, DrugTag, CellLine, Drug
 from thunor.plots import plot_time_course, plot_drc, \
     plot_drug_combination_heatmap, plot_drc_params, \
@@ -631,6 +632,7 @@ def _get_viability_scores(datasets, drug_id, cell_line_id, viability_time):
 
 
 @login_required_unless_public
+@ensure_csrf_cookie
 def plots(request):
     # Check the dataset exists
     dataset_id = request.GET.get('dataset', None)
