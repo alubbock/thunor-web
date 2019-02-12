@@ -35,6 +35,7 @@ urlpatterns = [
     url(r'^ajax/tags/set-permission$',
         tags.ajax_set_tag_group_permission,
         name='ajax_set_tag_group_permission'),
+    url(r'^ajax/tags/copy$', tags.ajax_copy_tags, name='ajax_copy_tags'),
 
     url(r'platemap$', plate_mapper.plate_mapper,
         kwargs={'dataset_id': None}, name='plate_mapper'),

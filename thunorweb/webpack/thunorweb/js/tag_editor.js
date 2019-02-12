@@ -148,6 +148,45 @@ var activate = function() {
                         }
                     });
                 }
+            },
+            {
+                text: 'Copy',
+                extend: 'selected',
+                action: function(e, dt) {
+                    var tagIds = dt.rows({selected: true}).ids();
+                    var $container = $(".tag-copy-container").last().clone().show();
+                    var $form = $container.find("form");
+                    var $tagId = $form.find("input[name=tagId]").val(tagIds[0]);
+                    for(var t=1;t<tagIds.length;t++) {
+                        $tagId.clone().val(tagIds[t]).insertAfter($tagId);
+                    }
+                    $form.find('input[name=copyMode]').change(function(e) {
+                        var showTagName = $(e.target).val() === 'separate';
+                        $form.find(".hts-tag-name").toggle(!showTagName);
+                        $form.find("input[name=tagName]").prop("disabled", showTagName);
+                    });
+                    ui.okCancelModal({
+                        title: 'Copy tags',
+                        text: $container,
+                        okLabel: 'Copy tags',
+                        onHide: function() {
+                            $container.loadingOverlay("show");
+                            $.ajax({
+                                type: "POST",
+                                headers: {"X-CSRFToken": ajax.getCsrfToken()},
+                                url: ajax.url("copy_tags"),
+                                data: $form.serialize(),
+                                success: function () {
+                                    $tagTable.ajax.reload();
+                                },
+                                error: ajax.ajaxErrorCallback,
+                                complete: function() {
+                                    $container.loadingOverlay("hide");
+                                }
+                            });
+                        }
+                    });
+                }
             }
         ],
         "columnDefs": [

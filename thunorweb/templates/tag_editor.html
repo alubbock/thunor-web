@@ -111,6 +111,36 @@ class="form-control" title="Select {{ entity_type }}s">
 </form>
 </div>
 
+<div class="tag-copy-container" style="display:none">
+<form action="{% url 'thunorweb:ajax_copy_tags' %}">
+    <input type="hidden" name="tagType" value="{{ entity_type_var }}">
+    <input type="hidden" name="tagId">
+    <div class="form-group">
+        <label>Copy Type</label><br>
+        <div class="btn-group" data-toggle="buttons">
+          <label class="btn btn-default active">
+            <input type="radio" name="copyMode" value="separate"
+                   autocomplete="off" checked> Separate
+          </label>
+          <label class="btn btn-default">
+            <input type="radio" name="copyMode" value="union"
+                   autocomplete="off"> Merge (union)
+          </label>
+          <label class="btn btn-default">
+            <input type="radio" name="copyMode" value="intersection"
+                   autocomplete="off"> Intersection
+          </label>
+        </div>
+    </div>
+    <div class="form-group">
+        <label>Tag Category <input type="text" class="form-control" name="tagCategory" placeholder="Tag Category"></label>
+    </div>
+    <div class="form-group hts-tag-name" style="display:none">
+        <label>Tag Name <input type="text" class="form-control" name="tagName" placeholder="Tag Name" disabled="disabled"></label>
+    </div>
+</form>
+</div>
+
 <span class="label label-primary" style="display:none" id="ent-name-tplt"></span>
 
 {% endblock %}

@@ -7,7 +7,8 @@ from thunorweb.views import login_required_unless_public, login_required
 import logging
 import pandas as pd
 from django.db.utils import IntegrityError
-from guardian.shortcuts import assign_perm, remove_perm, get_groups_with_perms
+from guardian.shortcuts import assign_perm, remove_perm, \
+    get_groups_with_perms, get_objects_for_user
 from django.contrib.auth.models import Group
 import collections
 
@@ -461,5 +462,85 @@ def ajax_set_tag_group_permission(request):
     # Assign or remove the permission as requested
     permission_fn = assign_perm if state else remove_perm
     permission_fn('view', group, tags)
+
+    return JsonResponse({'success': True})
+
+
+@login_required
+@transaction.atomic
+def ajax_copy_tags(request):
+    try:
+        tag_ids = [int(t) for t in request.POST.getlist('tagId')]
+        tag_type = request.POST['tagType']
+        copy_mode = request.POST['copyMode']
+        tag_category = request.POST['tagCategory']
+        tag_name = request.POST.get('tagName')
+    except (KeyError, ValueError):
+        return JsonResponse({'error': 'Malformed request'}, status=400)
+
+    if copy_mode not in ('separate', 'union', 'intersection'):
+        return JsonResponse({'error': 'Invalid copyMode'}, status=400)
+
+    if tag_type not in ('cl', 'drug'):
+        return JsonResponse({'error': 'Tag type not recognised'}, status=400)
+
+    tag_cls = CellLineTag if tag_type == 'cl' else DrugTag
+
+    # Get the tags which the user has permission to access
+    tags = tag_cls.objects.filter(pk__in=tag_ids).intersection(
+        get_objects_for_user(request.user, perms='view', klass=tag_cls)
+    ).union(
+        tag_cls.objects.filter(pk__in=tag_ids, owner=request.user)
+    ).prefetch_related('cell_lines' if tag_type == 'cl' else 'drugs')
+
+    if len(tags) < len(tag_ids):
+        return JsonResponse({'error': 'You do not have permission to access at '
+                                      'least some of the requested tags'},
+                            status=400)
+
+    # Create the tag(s) and assign the entries
+    if copy_mode == 'separate':
+        if tag_name is not None:
+            return JsonResponse({'error': 'Cannot set tag_name when copyMode="'
+                                          'separate"'}, status=400)
+        for tag in tags:
+            try:
+                new_tag = tag_cls.objects.create(
+                    owner=request.user,
+                    tag_name=tag.tag_name,
+                    tag_category=tag_category
+                )
+            except IntegrityError:
+                return JsonResponse({
+                    'error': 'A tag called "{}" in category "{}" already '
+                             'exists'.format(tag.name, tag_category)
+                }, status=409)
+            if tag_type == 'cl':
+                new_tag.cell_lines.set(tag.cell_lines.all())
+            else:
+                new_tag.drugs.set(tag.drugs.all())
+    else:
+        # Merge or intersection mode
+        entity_lbl = 'cell_lines' if tag_type == 'cl' else 'drugs'
+        if copy_mode == 'intersection':
+            entity_ids = set.intersection(
+                *[set(getattr(tag, entity_lbl).all()) for tag in tags]
+            )
+        else:
+            entity_ids = set.union(
+                *[set(getattr(tag, entity_lbl).all()) for tag in tags]
+            )
+        try:
+            new_tag = tag_cls.objects.create(
+                owner=request.user,
+                tag_name=tag_name,
+                tag_category=tag_category
+            )
+        except IntegrityError:
+            return JsonResponse({
+                'error': 'A tag called "{}" in category "{}" already '
+                         'exists'.format(tag_name, tag_category)
+            }, status=409)
+        getattr(new_tag, entity_lbl).set(entity_ids)
 
     return JsonResponse({'success': True})
