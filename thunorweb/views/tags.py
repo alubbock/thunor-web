@@ -84,8 +84,10 @@ def ajax_get_tags(request, tag_type, group=None):
     })
 
 
-@login_required
 def ajax_get_tag_targets(request, tag_type, tag_id):
+    if not request.user.is_authenticated:
+        return JsonResponse({}, status=401)
+
     tag_cls = DrugTag if tag_type == 'drugs' else CellLineTag
     try:
         tag = tag_cls.objects.filter(owner=request.user).get(id=tag_id)
@@ -108,8 +110,10 @@ def ajax_get_tag_targets(request, tag_type, tag_id):
     })
 
 
-@login_required
 def ajax_get_tag_groups(request, tag_type):
+    if not request.user.is_authenticated:
+        return JsonResponse({}, status=401)
+
     tag_cls = DrugTag if tag_type == 'drugs' else CellLineTag
     try:
         tag_ids = request.GET.getlist('tagId')
@@ -452,7 +456,6 @@ def ajax_assign_tag(request):
     })
 
 
-@login_required
 def ajax_set_tag_group_permission(request):
     if not request.user.is_authenticated:
         return JsonResponse({}, status=401)
@@ -492,7 +495,6 @@ def ajax_set_tag_group_permission(request):
     return JsonResponse({'success': True})
 
 
-@login_required
 @transaction.atomic
 def ajax_copy_tags(request):
     if not request.user.is_authenticated:
