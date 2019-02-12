@@ -161,15 +161,19 @@ var activate = function() {
                         $tagId.clone().val(tagIds[t]).insertAfter($tagId);
                     }
                     $form.find('input[name=copyMode]').change(function(e) {
-                        var showTagName = $(e.target).val() === 'separate';
-                        $form.find(".hts-tag-name").toggle(!showTagName);
-                        $form.find("input[name=tagName]").prop("disabled", showTagName);
+                        var showTagName = $(e.target).val() !== 'separate' || tagIds.length === 1;
+                        $form.find(".hts-tag-name").toggle(showTagName);
+                        $form.find("input[name=tagName]").prop("disabled", !showTagName);
                     });
+                    if(tagIds.length === 1) {
+                        $form.find(".hts-tag-name").show();
+                        $form.find("input[name=tagName]").prop("disabled", false);
+                    }
                     ui.okCancelModal({
                         title: 'Copy tags',
                         text: $container,
                         okLabel: 'Copy tags',
-                        onHide: function() {
+                        onOKHide: function() {
                             $container.loadingOverlay("show");
                             $.ajax({
                                 type: "POST",
@@ -182,6 +186,41 @@ var activate = function() {
                                 error: ajax.ajaxErrorCallback,
                                 complete: function() {
                                     $container.loadingOverlay("hide");
+                                }
+                            });
+                        }
+                    });
+                }
+            },
+            {
+                text: 'Delete',
+                extend: 'selected',
+                action: function(e, dt) {
+                    var tagIds = dt.rows({selected: true}).ids();
+                    var tagStr = tagIds.length === 1 ? 'tag' : 'tags';
+                    var tagType = $('input[name=tagType]').val();
+                    ui.okCancelModal({
+                        title: 'Delete tags',
+                        text: 'Delete '+tagIds.length+' '+tagStr + '? This action is irreversible.',
+                        okLabel: 'Delete tags',
+                        okButtonClass: "btn-danger",
+                        onOKHide: function() {
+                            ui.loadingModal.show();
+                            $.ajax({
+                                type: "POST",
+                                headers: {"X-CSRFToken": ajax.getCsrfToken()},
+                                url: ajax.url("delete_tag"),
+                                data: {
+                                    tagId: $.makeArray(tagIds),
+                                    tagType: tagType
+                                },
+                                success: function () {
+                                    $tagTable.ajax.reload();
+                                    ui.okModal({title: 'Tags deleted', text: 'Tags deleted successfully'});
+                                },
+                                error: ajax.ajaxErrorCallback,
+                                complete: function() {
+                                    ui.loadingModal.hide();
                                 }
                             });
                         }

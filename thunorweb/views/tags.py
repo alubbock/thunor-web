@@ -180,6 +180,7 @@ def ajax_create_tag(request):
 
     if 'entityName' in request.POST:
         if entity_ids:
+            transaction.set_rollback(True)
             return JsonResponse({'error': 'Supply either entityId or '
                                           'entityName, not both'},
                                 status=400)
@@ -188,6 +189,7 @@ def ajax_create_tag(request):
         entity_cls = Drug if tag_type == 'drug' else CellLine
         entities = entity_cls.objects.filter(name__in=entity_names)
         if len(entities) < len(entity_names):
+            transaction.set_rollback(True)
             entity_names_db = set(e.name for e in entities)
             missing_names = set(entity_names).difference(entity_names_db)
             return JsonResponse({'error': 'Entity names not found in database: '
@@ -244,12 +246,16 @@ def ajax_rename_tag(request):
     })
 
 
+@transaction.atomic
 def ajax_delete_tag(request):
     if not request.user.is_authenticated:
         return JsonResponse({}, status=401)
 
     try:
-        tag_id = request.POST['tagId']
+        tag_id = request.POST.getlist('tagId')
+        if not tag_id:
+            tag_id = request.POST.getlist('tagId[]')
+        tag_id = [int(t) for t in tag_id]
         tag_type = request.POST.get('tagType')
         if tag_type not in ('cl', 'drug'):
             raise ValueError
@@ -257,19 +263,27 @@ def ajax_delete_tag(request):
         return JsonResponse({'error': 'Form not properly formatted'},
                             status=400)
 
+    if not tag_id:
+        return JsonResponse({'error': 'No tagId specified'}, status=400)
+
     tag_cls = DrugTag if tag_type == 'drug' else CellLineTag
 
-    perm_query = Q(owner=request.user)
+    _, deletions = tag_cls.objects.filter(
+        owner=request.user, id__in=tag_id).delete()
 
-    n_deleted, _ = tag_cls.objects.filter(perm_query).filter(
-        id=tag_id).delete()
+    deleted_cls = '{}.{}'.format(tag_cls._meta.app_label,
+                                 tag_cls._meta.object_name)
 
-    if n_deleted == 0:
-        return JsonResponse({'error': 'Tag requested not found'}, status=404)
+    if deletions.get(deleted_cls) != len(tag_id):
+        transaction.set_rollback(True)
+        return JsonResponse({'error': 'Tag(s) requested not found, or you '
+                                      'don\'t have permission to delete (some '
+                                      'of) them'}, status=400)
 
     return JsonResponse({'success': True, 'tagId': tag_id})
 
 
+@transaction.atomic
 def ajax_upload_tagfile(request, tag_type):
     assert tag_type in ('cell_lines', 'drugs')
 
@@ -301,6 +315,7 @@ def ajax_upload_tagfile(request, tag_type):
         try:
             csv = pd.read_csv(file, sep=sep)
         except:
+            transaction.set_rollback(True)
             return JsonResponse({
                 'error': 'Could not read file. Please ensure file is comma '
                          'separated (with extension .csv) or tab separated ('
@@ -308,15 +323,19 @@ def ajax_upload_tagfile(request, tag_type):
              }, status=400)
 
         if 'tag_name' not in csv.columns:
+            transaction.set_rollback(True)
             return JsonResponse({'error': 'Column tag_name not found'},
                                 status=400)
         if 'tag_category' not in csv.columns:
+            transaction.set_rollback(True)
             return JsonResponse({'error': 'Column tag_category not found'},
                                 status=400)
         if tag_type == 'drugs' and 'drug' not in csv.columns:
+            transaction.set_rollback(True)
             return JsonResponse({'error': 'Column drug not found'},
                                 status=400)
         if tag_type == 'cell_lines' and 'cell_line' not in csv.columns:
+            transaction.set_rollback(True)
             return JsonResponse({'error': 'Column cell_line not found'},
                                 status=400)
 
@@ -326,11 +345,13 @@ def ajax_upload_tagfile(request, tag_type):
         csv = csv[['tag_name', 'tag_category', 'ent_lower']]
         duplicates = csv.duplicated()
         if duplicates.any():
+            transaction.set_rollback(True)
             duplicates = csv[duplicates].iloc[0, :]
             dup_str = ','.join([duplicates['tag_category'], duplicates[
                 'tag_name'], duplicates['ent_lower']])
             return JsonResponse({'error': 'File contains duplicates, '
-                                          'e.g. {}'.format(dup_str)})
+                                          'e.g. {}'.format(dup_str)},
+                                status=400)
 
         missing_ents = set(csv['ent_lower']).difference(ent_mapping.keys())
         ents_created = []
@@ -351,9 +372,10 @@ def ajax_upload_tagfile(request, tag_type):
                 ents_created = [{'id': ent.id, 'name': ent.name} for ent in
                                 ents]
             else:
+                transaction.set_rollback(True)
                 return JsonResponse({
                     'error': '{} not found (shown in lower case): {}'.format(
-                        ent_name, missing_ents)})
+                        ent_name, missing_ents)}, status=400)
 
         # Get user's existing tags to check for conflicts
         existing_tags = collections.defaultdict(set)
@@ -365,6 +387,7 @@ def ajax_upload_tagfile(request, tag_type):
         for grp, _ in grpby:
             try:
                 if grp[1] in existing_tags[grp[0]]:
+                    transaction.set_rollback(True)
                     return JsonResponse({'error': '"{}" in category "{}" '
                                          'already exists'.format(
                         grp[1], grp[0])}, status=400)
@@ -500,20 +523,22 @@ def ajax_copy_tags(request):
 
     # Create the tag(s) and assign the entries
     if copy_mode == 'separate':
-        if tag_name is not None:
+        if tag_name is not None and len(tags) > 1:
             return JsonResponse({'error': 'Cannot set tag_name when copyMode="'
                                           'separate"'}, status=400)
         for tag in tags:
+            new_tag_name = tag_name if tag_name is not None else tag.tag_name
             try:
                 new_tag = tag_cls.objects.create(
                     owner=request.user,
-                    tag_name=tag.tag_name,
+                    tag_name=new_tag_name,
                     tag_category=tag_category
                 )
             except IntegrityError:
+                transaction.set_rollback(True)
                 return JsonResponse({
                     'error': 'A tag called "{}" in category "{}" already '
-                             'exists'.format(tag.name, tag_category)
+                             'exists'.format(new_tag_name, tag_category)
                 }, status=409)
             if tag_type == 'cl':
                 new_tag.cell_lines.set(tag.cell_lines.all())
@@ -537,6 +562,7 @@ def ajax_copy_tags(request):
                 tag_category=tag_category
             )
         except IntegrityError:
+            transaction.set_rollback(True)
             return JsonResponse({
                 'error': 'A tag called "{}" in category "{}" already '
                          'exists'.format(tag_name, tag_category)
