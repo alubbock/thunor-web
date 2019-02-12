@@ -454,6 +454,9 @@ def ajax_assign_tag(request):
 
 @login_required
 def ajax_set_tag_group_permission(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({}, status=401)
+
     try:
         tag_ids = [int(t) for t in request.POST.getlist('tag_id')]
         if not tag_ids:
@@ -492,6 +495,9 @@ def ajax_set_tag_group_permission(request):
 @login_required
 @transaction.atomic
 def ajax_copy_tags(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({}, status=401)
+
     try:
         tag_ids = [int(t) for t in request.POST.getlist('tagId')]
         tag_type = request.POST['tagType']
