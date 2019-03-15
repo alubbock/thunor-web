@@ -26,7 +26,7 @@ services:
   postgres:
     extends:
       file: docker-compose.services.yml
-      service: postgres
+      service: postgres10
     volumes:
       - $THUNORHOME/_state/postgres-data:/var/lib/postgresql/data
     env_file:
