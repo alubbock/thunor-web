@@ -29,20 +29,34 @@ STATE_DIR = os.path.join(BASE_DIR, '_state')
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.10/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ['DJANGO_DEBUG'].lower() == 'true'
+
+if DEBUG:
+    # Add the thunor submodule to the path
+    sys.path.insert(0, os.path.join(BASE_DIR, 'thunor'))
+
+    # Load environment variables for .env file, if present
+    env_file = os.path.join(BASE_DIR, 'thunor-dev.env')
+    try:
+        with open(env_file, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith('#'):
+                    continue
+                var_name, var_val = line.split('=', 1)
+                print('Setting {} from thunor-dev.env'.format(var_name))
+                os.environ[var_name] = var_val
+    except FileNotFoundError:
+        pass
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
 
 HOSTNAME = os.environ.get('DJANGO_HOSTNAME', 'localhost')
 ALLOWED_HOSTS = [HOSTNAME, ]
 
 INTERNAL_IPS = '127.0.0.1'
-
-# Add the thunor submodule to the path
-if DEBUG:
-    sys.path.insert(0, os.path.join(BASE_DIR, 'thunor'))
 
 # Application definition
 
@@ -77,8 +91,13 @@ if not DEBUG:
 MIDDLEWARE = []
 
 if DEBUG:
-    INSTALLED_APPS += ['debug_toolbar']
-    MIDDLEWARE += ['debug_toolbar.middleware.DebugToolbarMiddleware']
+    try:
+        import debug_toolbar
+        INSTALLED_APPS += ['debug_toolbar']
+        MIDDLEWARE += ['debug_toolbar.middleware.DebugToolbarMiddleware']
+    except ImportError:
+        pass
+
     MIDDLEWARE += ['thunorweb.debug.NonHtmlDebugToolbarMiddleware']
     # INSTALLED_APPS += ['debug_panel', 'django_extensions']
     # MIDDLEWARE += ['debug_panel.middleware.DebugPanelMiddleware']
@@ -133,7 +152,7 @@ except KeyError:
 # Database
 # https://docs.djangoproject.com/en/1.10/ref/settings/#databases
 
-DATABASE_SETTING = os.environ.get('DJANGO_DATABASE', None)
+DATABASE_SETTING = os.environ.get('DJANGO_DATABASE', 'postgres')
 
 DB_MAX_BATCH_SIZE = None
 
@@ -152,12 +171,7 @@ if DATABASE_SETTING == 'postgres':
         }
     }
 else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': os.path.join(STATE_DIR, 'thunor.sqlite3'),
-        }
-    }
+    raise ValueError('Only DJANGO_DATABASE=postgres is currently supported')
 
 CACHES = {}
 if 'DJANGO_REDIS_URL' in os.environ:

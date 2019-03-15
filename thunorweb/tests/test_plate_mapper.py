@@ -1,8 +1,8 @@
 from django.test import TestCase
-import pkg_resources
 from django.core.files import File
 from thunorweb.plate_parsers import PlateFileParser
 from thunorweb.models import HTSDataset, CellLine, Drug
+from thunorweb.tests import get_thunor_test_file
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 import json
@@ -14,18 +14,18 @@ HTTP_OK = 200
 class TestPlateMapper(TestCase):
     @classmethod
     def setUpTestData(cls):
-        filename = pkg_resources.resource_filename(
-            'thunor', 'testdata/hts007.h5')
-
         UserModel = get_user_model()
         cls.user = UserModel.objects.create_user(
             email='test@example.com', password='test')
 
         cls.d = HTSDataset.objects.create(owner=cls.user, name='test')
-        with open(filename, 'rb') as src:
-            f = File(src, name='hts007.h5')
+        hts007 = get_thunor_test_file('testdata/hts007.h5')
+        try:
+            f = File(hts007, name='hts007.h5')
             pfp = PlateFileParser(f, dataset=cls.d)
             results = pfp.parse_all()
+        finally:
+            hts007.close()
 
         assert len(results) == 1
         assert results[0]['success']

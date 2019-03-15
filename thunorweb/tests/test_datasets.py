@@ -3,8 +3,8 @@ from django.test import Client, TestCase
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from thunorweb.models import HTSDataset
-import pkg_resources
 import json
+from thunorweb.tests import get_thunor_test_file
 
 HTTP_OK = 200
 HTTP_NOT_FOUND = 404
@@ -20,8 +20,6 @@ class TestDatasetViews(TestCase):
             email='test@example.com', password='test')
         cls.other_user = UserModel.objects.create_user(
             email='test2@example.com', password='test')
-        filename = pkg_resources.resource_filename(
-            'thunor', 'testdata/hts007.h5')
         c = Client()
         c.force_login(cls.user)
 
@@ -31,10 +29,13 @@ class TestDatasetViews(TestCase):
         dataset_id = resp_json['id']
         cls.d = HTSDataset.objects.get(pk=dataset_id)
 
-        with open(filename, 'rb') as src:
+        hts007 = get_thunor_test_file('testdata/hts007.h5')
+        try:
             response = c.post(reverse('thunorweb:ajax_upload_platefiles'),
-                                  {'file_field[]': src, 'dataset_id':
+                                  {'file_field[]': hts007, 'dataset_id':
                                       cls.d.id})
+        finally:
+            hts007.close()
 
         assert response.status_code == HTTP_OK
         assert cls.d.plate_set.count() == 16

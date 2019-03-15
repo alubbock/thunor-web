@@ -1,6 +1,6 @@
 from django.test import TestCase, Client
-import pkg_resources
 from thunorweb.models import HTSDataset, CellLine, CellLineTag, Drug, DrugTag
+from thunorweb.tests import get_thunor_test_file
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 import json
@@ -17,8 +17,6 @@ class TestPlateMapper(TestCase):
             email='test@example.com', password='test')
         cls.other_user = UserModel.objects.create_user(
             email='test2@example.com', password='test')
-        filename = pkg_resources.resource_filename(
-            'thunor', 'testdata/hts007.h5')
         c = Client()
         c.force_login(cls.user)
 
@@ -28,10 +26,13 @@ class TestPlateMapper(TestCase):
         dataset_id = resp_json['id']
         cls.d = HTSDataset.objects.get(pk=dataset_id)
 
-        with open(filename, 'rb') as src:
+        hts007 = get_thunor_test_file('testdata/hts007.h5')
+        try:
             response = c.post(reverse('thunorweb:ajax_upload_platefiles'),
-                                  {'file_field[]': src, 'dataset_id':
+                                  {'file_field[]': hts007, 'dataset_id':
                                       cls.d.id})
+        finally:
+            hts007.close()
 
         assert response.status_code == HTTP_OK
 

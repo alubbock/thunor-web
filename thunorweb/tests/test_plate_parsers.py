@@ -1,10 +1,10 @@
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.core.files import File
-import pkg_resources
 import thunor.io
 from thunorweb.models import HTSDataset
 from thunorweb.plate_parsers import PlateFileParser
+from thunorweb.tests import get_thunor_test_file
 import io
 
 
@@ -17,16 +17,18 @@ class TestPlateParsers(TestCase):
     # HDF parsing is tested elsewhere
 
     def test_parse_vanderbilt_csv(self):
-        filename = pkg_resources.resource_filename(
-            'thunor', 'testdata/hts007.h5')
+        hts007 = get_thunor_test_file('testdata/hts007.h5')
 
         with io.StringIO() as csv_buffer:
             # convert HDF to CSV in memory
-            thunor.io.write_vanderbilt_hts(
-                df_data=thunor.io.read_hdf(filename),
-                filename=csv_buffer,
-                sep=','
-            )
+            try:
+                thunor.io.write_vanderbilt_hts(
+                    df_data=thunor.io.read_hdf(hts007),
+                    filename=csv_buffer,
+                    sep=','
+                )
+            finally:
+                hts007.close()
 
             csv_buffer.seek(0)
 
@@ -39,14 +41,15 @@ class TestPlateParsers(TestCase):
         assert results[0]['file_format'] == 'Vanderbilt HTS Core'
 
     def test_parse_incucyte(self):
-        filename = pkg_resources.resource_filename(
-            'thunor', 'testdata/test_incucyte_minimal.txt')
+        testfile = get_thunor_test_file('testdata/test_incucyte_minimal.txt')
 
-        with open(filename, 'rb') as f:
-            filedata = io.BytesIO(f.read())
-            pfp = PlateFileParser(File(filedata, name='test.txt'),
-                                  dataset=self.d)
-            results = pfp.parse_all()
+        try:
+            filedata = io.BytesIO(testfile.read())
+        finally:
+            testfile.close()
+        pfp = PlateFileParser(File(filedata, name='test.txt'),
+                              dataset=self.d)
+        results = pfp.parse_all()
 
         assert len(results) == 1
         assert results[0]['success']

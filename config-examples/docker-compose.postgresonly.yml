@@ -4,9 +4,8 @@ services:
     extends:
       file: docker-compose.services.yml
       service: postgres10
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=Ahdae5ie
+    env_file:
+      - thunor-db.env
     volumes:
       - ./_state/postgres-data:/var/lib/postgresql/data
     ports:

@@ -10,8 +10,6 @@ import thunor.io
 
 class Migration(migrations.Migration):
 
-    replaces = [('thunorweb', '0001_initial'), ('thunorweb', '0002_add_drug_order'), ('thunorweb', '0003_allow_null_drugs_doses'), ('thunorweb', '0004_dataset_permissions'), ('thunorweb', '0005_base_dataset_permissions'), ('thunorweb', '0006_expt_id_date'), ('thunorweb', '0007_control_handling'), ('thunorweb', '0008_well_statistics'), ('thunorweb', '0009_allow_null_well_statistic'), ('thunorweb', '0010_cell_line_and_drug_tags'), ('thunorweb', '0011_automatic_controls')]
-
     initial = True
 
     dependencies = [
