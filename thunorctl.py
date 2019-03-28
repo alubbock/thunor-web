@@ -20,7 +20,8 @@ class ThunorCtl(object):
             try:
                 self.thunorhome = os.environ['THUNORHOME']
             except KeyError:
-                if 'use_docker_machine' in self.args:
+                if 'use_docker_machine' in self.args and \
+                        self.args.use_docker_machine:
                     raise ValueError(
                         'Cannot use Docker Machine without specifying value '
                         'for THUNORHOME. Specify the *remote* location to '

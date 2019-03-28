@@ -108,39 +108,23 @@ def download_fit_params(request, dataset_id, stat_type):
                       content_type='text/tab-separated-values')
 
 
-@login_required_unless_public
-@xframe_options_sameorigin
-def download_dataset_hdf5(request, dataset_id):
+def _generate_dataset_hdf5(dataset, regenerate_cache=False):
+    file_name = 'dataset_{}.h5'.format(dataset.id)
     file_type = 'dataset_hdf5'
-    file_name = 'dataset_{}.h5'.format(dataset_id)
     file_type_version = 1
-
-    try:
-        dataset = HTSDataset.objects.get(pk=dataset_id, deleted_date=None)
-    except HTSDataset.DoesNotExist:
-        raise Http404()
-
-    _assert_has_perm(request, dataset, 'download_data')
 
     file = _cached_file(dataset, file_type)
 
-    if file:
+    if file and not regenerate_cache:
         full_path = file.file.name
     else:
-        try:
-            df_data = df_doses_assays_controls(
-                dataset=dataset,
-                drug_id=None,
-                cell_line_id=None,
-                assay=None,
-                for_export=True
-            )
-        except NoDataException:
-            response = HttpResponse('No data found for this request',
-                                    content_type='text/plain')
-            response['Content-Disposition'] = 'attachment; filename=failed.txt'
-            response['Set-Cookie'] = 'fileDownload=true; path=/'
-            return response
+        df_data = df_doses_assays_controls(
+            dataset=dataset,
+            drug_id=None,
+            cell_line_id=None,
+            assay=None,
+            for_export=True
+        )
 
         full_path = os.path.join(settings.DOWNLOADS_ROOT, file_name)
         write_hdf(df_data, full_path)
@@ -150,6 +134,27 @@ def download_dataset_hdf5(request, dataset_id):
             file_type_protocol=file_type_version,
             file=full_path
         )
+    return full_path
+
+
+@login_required_unless_public
+@xframe_options_sameorigin
+def download_dataset_hdf5(request, dataset_id):
+    try:
+        dataset = HTSDataset.objects.get(pk=dataset_id, deleted_date=None)
+    except HTSDataset.DoesNotExist:
+        raise Http404()
+
+    _assert_has_perm(request, dataset, 'download_data')
+
+    try:
+        full_path = _generate_dataset_hdf5(dataset)
+    except NoDataException:
+        response = HttpResponse('No data found for this request',
+                                content_type='text/plain')
+        response['Content-Disposition'] = 'attachment; filename=failed.txt'
+        response['Set-Cookie'] = 'fileDownload=true; path=/'
+        return response
 
     output_filename = '{}.h5'.format(dataset.name)
 

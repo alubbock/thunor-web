@@ -345,7 +345,7 @@ var plots = function() {
             $changeCLDrug.selectpicker(selectPickerOptionsSingle);
 
             $dataPanel.find(".name-tag-switch").find('input[value=off]').click();
-            $changeCLDrug.trigger("hide.bs.select");
+            // $changeCLDrug.trigger("hide.bs.select");
         } else {
             $actionBtns.show();
             $changeCLDrug.selectpicker(selectPickerOptionsMultiple);
