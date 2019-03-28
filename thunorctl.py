@@ -20,10 +20,14 @@ class ThunorCtl(object):
             try:
                 self.thunorhome = os.environ['THUNORHOME']
             except KeyError:
-                if 'dm_thunorhome' in self.args and self.args.dm_thunorhome:
-                    self.thunorhome = self.args.dm_thunorhome
-                else:
-                    self.thunorhome = self.cwd
+                if 'use_docker_machine' in self.args:
+                    raise ValueError(
+                        'Cannot use Docker Machine without specifying value '
+                        'for THUNORHOME. Specify the *remote* location to '
+                        'install Thunor using --thunorhome argument or the '
+                        'THUNORHOME environment variable.')
+
+                self.thunorhome = self.cwd
 
         if self.args.dry_run:
             print('Thunorctl: DRY RUN (no commands will be executed)')
@@ -183,7 +187,7 @@ class ThunorCtl(object):
 
     def _certbot_cmd(self):
         return ['docker-compose', '-f',
-                os.path.join(self.thunorhome, 'docker-compose.certbot.yml'),
+                os.path.join(self.cwd, 'docker-compose.certbot.yml'),
                 'run', '--rm', 'certbot']
 
     def _generate_dhparams(self):
@@ -261,21 +265,24 @@ class ThunorCtl(object):
             if self.args.dev:
                 raise ValueError('Cannot use --dev when Docker Machine is '
                                  'active')
-            if not self.args.dm_thunorhome:
-                raise ValueError('Docker Machine is active but --dm-thunorhome '
-                                 'not set. Either set --dm-thunorhome or unset '
-                                 'Docker Machine.')
+            if not self.args.use_docker_machine:
+                raise ValueError('Docker Machine is active but '
+                                 '--use-docker-machine not set. '
+                                 'Either set --use-docker-machine or unset '
+                                 'Docker Machine environment variables '
+                                 '(docker-machine env --unset).')
             docker_machine = os.environ['DOCKER_MACHINE_NAME']
 
             docker_ip = subprocess.check_output(['docker-machine', 'ip',
-                                                 docker_machine]).strip()
+                                                 docker_machine]).strip().\
+                decode('utf8')
             print('Thunorctl: Docker Machine IP is ' + docker_ip)
 
             self._run_cmd(['docker-machine', 'ssh', docker_machine,
-                           'mkdir', '"' + self.args.dm_thunorhome + '"'])
-        elif self.args.dm_thunorhome:
-            raise ValueError('--dm-thunorhome set, but Docker Machine is not '
-                             'active. Have you activated the machine\'s '
+                           'mkdir', '"' + self.thunorhome + '"'])
+        elif self.args.use_docker_machine:
+            raise ValueError('--use-docker-machine set, but Docker Machine is '
+                             'not active. Have you activated the machine\'s '
                              'environment?')
 
         self._check_docker_compose()
@@ -287,6 +294,13 @@ class ThunorCtl(object):
             self._run_cmd(['pip', 'install', '-r', 'requirements-dev.txt'])
         self.generate_skeleton()
         if docker_machine:
+            print('Thunorctl: remove read-only flag from thunor-static '
+                  'directory')
+            self._replace_in_file(
+                os.path.join(self.cwd, 'docker-compose.yml'),
+                '/thunor/_state/thunor-static:ro',
+                '/thunor/_state/thunor-static'
+            )
             if docker_ip:
                 print('Thunorctl: set DJANGO_HOSTNAME in thunor-app.env '
                       'to {}'.format(docker_ip))
@@ -294,12 +308,11 @@ class ThunorCtl(object):
                     self._replace_in_file(
                         os.path.join(self.cwd, 'thunor-app.env'),
                         'DJANGO_HOSTNAME=localhost',
-                        'DJANGO_HOSTNAME=localhost',
                         'DJANGO_HOSTNAME=' + docker_ip
                     )
             self._run_cmd(['docker-machine', 'scp', '-r', '_state',
                            '{}:"{}"'.format(
-                               docker_machine, self.args.dm_thunorhome)])
+                               docker_machine, self.thunorhome)])
         self._run_cmd(['docker-compose', 'up', '-d', 'postgres'])
 
         if not self.args.dry_run:
@@ -337,9 +350,10 @@ class ThunorCtl(object):
                 '* You may wish to set the value of DJANGO_HOSTNAME to a\n'
                 '  different domain name in thunor-app.env. The server can\n'
                 '  only be accessed by the specified hostname.')
-            if docker_machine:
+            if docker_machine and os.environ.get('THUNORHOME', '') != \
+                    self.thunorhome:
                 print('* Set THUNORHOME in your environment to ' +
-                      self.args.dm_thunorhome)
+                      self.thunorhome)
             print('* Start the server with "docker-compose up -d"')
         print('* Create an admin account with '
               '"python thunorctl.py createsuperuser"')
@@ -435,8 +449,10 @@ class ThunorCtl(object):
             'quickstart', help='Generate example config and start Thunor Web'
         )
         parser_quickstart.add_argument(
-            '--dm-thunorhome', help='(docker-machine only) Location of Thunor '
-                                    'on *remote* machine.'
+            '--use-docker-machine', action='store_true',
+            help='Use Docker Machine. Be sure to set installation location on '
+                 '*remote* machine using --thunorhome or THUNORHOME '
+                 'environment variable.'
         )
         parser_quickstart.set_defaults(func=self.quickstart)
 
