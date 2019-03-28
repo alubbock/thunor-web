@@ -450,7 +450,7 @@ class ThunorCtl(object):
             'quickstart', help='Generate example config and start Thunor Web'
         )
         parser_quickstart.add_argument(
-            '--use-docker-machine', action='store_true',
+            '--use-docker-machine', action='store_true', default=False,
             help='Use Docker Machine. Be sure to set installation location on '
                  '*remote* machine using --thunorhome or THUNORHOME '
                  'environment variable.'
