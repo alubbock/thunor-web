@@ -1,7 +1,6 @@
 FROM python:3.6
 ENV PYTHONUNBUFFERED 1
 ENV THUNOR_HOME=/thunor
-ARG THUNOR_VERSION=unknown
 
 RUN mkdir $THUNOR_HOME
 WORKDIR $THUNOR_HOME
@@ -14,4 +13,5 @@ ADD thunordjango $THUNOR_HOME/thunordjango
 ADD thunor $THUNOR_HOME/thunor
 RUN cd $THUNOR_HOME/thunor && python setup.py install
 ADD thunorweb $THUNOR_HOME/thunorweb
-RUN printf "def get_versions():\n    return {'version': '$THUNOR_VERSION'}\n" > $THUNOR_HOME/thunorweb/_version.py
+ARG THUNORWEB_VERSION=unknown
+RUN printf "def get_versions():\n    return {'version': '$THUNORWEB_VERSION'}\n" > $THUNOR_HOME/thunorweb/_version.py
