@@ -5,7 +5,7 @@ import sys
 import shutil
 import random
 import time
-import socket
+from thunorweb import __version__ as thunorweb_version
 
 
 class ThunorCtl(object):
@@ -13,6 +13,7 @@ class ThunorCtl(object):
         self.cwd = os.path.abspath(os.path.dirname(__file__))
 
     def _set_args(self, args):
+        print('Thunorctl: Thunor Web {}'.format(thunorweb_version))
         self.args = args
         if args.thunorhome:
             self.thunorhome = args.thunorhome
@@ -466,6 +467,9 @@ class ThunorCtl(object):
             'test', help='Run Thunor Web test suite'
         )
         parser_test.set_defaults(func=self.run_tests)
+
+        parser.add_argument('--version', action='version',
+                            version=thunorweb_version)
 
         return parser
 
