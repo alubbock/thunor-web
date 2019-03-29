@@ -148,6 +148,7 @@ class ThunorCtl(ThunorCmdHelper):
 
         return self._run_cmd(cmd)
 
+    @property
     def _certbot_cmd(self):
         return ['docker-compose', '-f',
                 os.path.join(self.cwd, 'docker-compose.certbot.yml'),
@@ -156,7 +157,7 @@ class ThunorCtl(ThunorCmdHelper):
     def _generate_dhparams(self):
         # Does dhparams.pem file already exist?
         file_exists = self._run_cmd(
-            self._certbot_cmd() +
+            self._certbot_cmd +
             ['test', '-f', '/etc/letsencrypt/dhparams.pem'],
             exit_on_error=False
         ) == 0
@@ -165,14 +166,13 @@ class ThunorCtl(ThunorCmdHelper):
             return
 
         self._run_cmd(
-            self._certbot_cmd() + ['openssl', 'dhparam', '-out',
-                                   '/etc/letsencrypt/dhparams.pem', '2048']
+            self._certbot_cmd + ['openssl', 'dhparam', '-out',
+                                 '/etc/letsencrypt/dhparams.pem', '2048']
         )
 
     def _generate_certificate(self):
-        cmd = self._certbot_cmd() + [
-            'certbot', 'certonly', '--webroot', '--webroot-path',
-            '/thunor-static'] + self.args.letsencrypt_args
+        cmd = self._certbot_cmd + \
+            ['certbot', '--nginx'] + self.args.letsencrypt_args
         return self._run_cmd(cmd)
 
     def generate_certificates(self):
@@ -180,7 +180,7 @@ class ThunorCtl(ThunorCmdHelper):
         self._generate_certificate()
 
     def renew_certificates(self):
-        self._run_cmd(self._certbot_cmd() +
+        self._run_cmd(self._certbot_cmd +
                       ['certbot', 'renew', '--non-interactive'])
 
         self._run_cmd(['docker-compose', 'exec', 'nginx', 'nginx',
