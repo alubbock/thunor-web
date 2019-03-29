@@ -67,6 +67,13 @@ class ThunorCtl(object):
             return
         os.makedirs(dirname)
 
+    def _rmdir(self, dirname):
+        dirname = os.path.join(self.cwd, dirname)
+        print('Thunorctl delete: ' + dirname)
+        if self.args.dry_run:
+            return
+        shutil.rmtree(dirname)
+
     def _check_docker_compose(self):
         try:
             self._run_cmd(['docker-compose', '--version'])
@@ -130,7 +137,7 @@ class ThunorCtl(object):
 
     @property
     def _volume_webpack_static(self):
-        return os.path.join(self.thunorhome, '_state/thunor-static') + \
+        return os.path.join(self.thunorhome, '_state/thunor-static-build') + \
                             ':/thunor/_state/thunor-static'
 
     @property
@@ -146,16 +153,36 @@ class ThunorCtl(object):
         cmd += ['-v', self._volume_webpack_bundles, 'thunorweb_webpack']
         return self._run_cmd(cmd)
 
+    def _build_base_image(self):
+        return self._run_cmd(['docker', 'build', '-t', 'thunorweb_base',
+                              '--build-arg',
+                              'THUNORWEB_VERSION={}'.format(
+                                  thunorweb_version),
+                              '-f',
+                              os.path.join(self.cwd, 'Dockerfile.base'),
+                              self.cwd])
+
     def collect_static(self):
         cmd = ['python', 'manage.py', 'collectstatic', '--no-input']
 
         if not self.args.dev:
-            cmd = ['docker-compose',
+            self._build_base_image()
+            self._mkdir('_state/thunor-static-build')
+            self._copy('config-examples/502.html',
+                       '_state/thunor-static-build/502.html')
+            cmd = ['docker',
                    'run',
                    '--rm',
                    '-v', self._volume_webpack_bundles,
                    '-v', self._volume_webpack_static,
-                   'app'] + cmd
+                   '-e', 'DJANGO_DEBUG=False',
+                   '-e', 'DJANGO_SECRET_KEY=not_needed',
+                   '-e', 'DJANGO_EMAIL_HOST=',
+                   '-e', 'DJANGO_EMAIL_PORT=',
+                   '-e', 'DJANGO_EMAIL_USER=',
+                   '-e', 'DJANGO_EMAIL_PASSWORD=',
+                   '-e', 'POSTGRES_PASSWORD=',
+                   'thunorweb_base'] + cmd
 
         return self._run_cmd(cmd)
 
@@ -163,11 +190,24 @@ class ThunorCtl(object):
         self.generate_static()
         self.collect_static()
 
-    def thunorweb_upgrade(self):
+    def thunorweb_build(self):
+        if self.args.dev:
+            raise ValueError('Cannot build Docker container in dev mode')
+
         self.make_static()
+        self._run_cmd(['docker',
+                       'build',
+                       '-t', 'alubbock/thunorweb:dev',
+                       self.cwd])
+        if 'cleanup' in self.args and self.args.cleanup:
+            self._rmdir('_state/thunor-static-build')
+
+    def thunorweb_upgrade(self):
         self.migrate()
-        if not self.args.dev:
-            self._run_cmd(['docker-compose', 'build', 'app'])
+        if self.args.dev:
+            self.make_static()
+        else:
+            self.thunorweb_build()
 
     def thunor_purge(self):
         cmd = ['python', 'manage.py', 'thunor_purge']
@@ -180,8 +220,8 @@ class ThunorCtl(object):
             cmd = ['docker-compose',
                    'run',
                    '--rm',
-                   '-v', self._volume_webpack_bundles,
-                   '-v', self._volume_webpack_static,
+                   # '-v', self._volume_webpack_bundles,
+                   # '-v', self._volume_webpack_static,
                    '-v', self._volume_thunor_files,
                    'app'] + cmd
 
@@ -246,9 +286,6 @@ class ThunorCtl(object):
             self._copy('config-examples/thunor-app.env',
                        'thunor-app.env')
             self._generate_random_key('thunor-app.env', '{{DJANGO_SECRET_KEY}}')
-            self._mkdir('_state/thunor-static')
-            self._copy('config-examples/502.html',
-                       '_state/thunor-static/502.html')
             self._mkdir('_state/nginx-config')
             self._copy('config-examples/nginx.base.conf',
                        '_state/nginx-config/nginx.base.conf')
@@ -296,13 +333,6 @@ class ThunorCtl(object):
             self._run_cmd(['pip', 'install', '-r', 'requirements-dev.txt'])
         self.generate_skeleton()
         if docker_machine:
-            print('Thunorctl: remove read-only flag from thunor-static '
-                  'directory')
-            self._replace_in_file(
-                os.path.join(self.cwd, 'docker-compose.yml'),
-                '/thunor/_state/thunor-static:ro',
-                '/thunor/_state/thunor-static'
-            )
             if docker_ip:
                 print('Thunorctl: set DJANGO_HOSTNAME in thunor-app.env '
                       'to {}'.format(docker_ip))
@@ -315,6 +345,13 @@ class ThunorCtl(object):
             self._run_cmd(['docker-machine', 'scp', '-r', '_state',
                            '{}:"{}"'.format(
                                docker_machine, self.thunorhome)])
+
+        # Build container, if not running in dev mode
+        if self.args.dev:
+            self.make_static()
+        else:
+            self.thunorweb_build()
+
         self._run_cmd(['docker-compose', 'up', '-d', 'postgres'])
 
         if not self.args.dry_run:
@@ -336,7 +373,6 @@ class ThunorCtl(object):
                 sys.exit(1)
 
         self.migrate()
-        self.make_static()
 
         if self.args.dev:
             self._run_cmd(['python', 'manage.py', 'createcachetable'])
@@ -432,10 +468,19 @@ class ThunorCtl(object):
 
         parser_upgrade = subparsers.add_parser(
             'upgrade', help='Upgrade Thunor Web. Equivalent to makestatic, '
-                            'migrate, and docker-compose build called '
+                            'migrate, and build called '
                             'sequentially.'
         )
         parser_upgrade.set_defaults(func=self.thunorweb_upgrade)
+
+        parser_build = subparsers.add_parser(
+            'build', help='Build Thunor Web Docker container'
+        )
+        parser_build.add_argument(
+            '--cleanup', action='store_true', default=False,
+            help='Cleanup intermediate build files'
+        )
+        parser_build.set_defaults(func=self.thunorweb_build)
 
         parser_renew_certs = subparsers.add_parser(
             'renewcerts', help='Renew TLS certificates'

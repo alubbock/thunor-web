@@ -2,6 +2,7 @@
 **/*.pyc
 thunorweb/static
 _state/
+!_state/thunor-static-build
 _conf/
 *.yml
 *.env
