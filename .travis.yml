@@ -3,7 +3,7 @@ python:
 - '3.6'
 env:
   matrix:
-  - DEVFLAG=--dev DJANGO_DEBUG=True
+  - DEVFLAG=--dev
   - DEVFLAG=
 services:
 - docker
