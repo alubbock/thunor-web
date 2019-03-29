@@ -4,7 +4,7 @@ services:
     extends:
       file: docker-compose.services.yml
       service: app
-    image: alubbock/thunorweb:dev
+    image: alubbock/thunorweb:latest
     env_file:
       - thunor-db.env
       - thunor-app.env

@@ -5,71 +5,55 @@ import sys
 import shutil
 import random
 import time
-from thunorweb import __version__ as thunorweb_version
+import logging
 
 
-class ThunorCtl(object):
+class ThunorCmdHelper(object):
     def __init__(self):
+        self._log = logging.getLogger(self.__class__.__name__)
+        self._log.setLevel(logging.INFO)
         self.cwd = os.path.abspath(os.path.dirname(__file__))
 
     def _set_args(self, args):
-        print('Thunorctl: Thunor Web {}'.format(thunorweb_version))
         self.args = args
-        if args.thunorhome:
-            self.thunorhome = args.thunorhome
-        else:
-            try:
-                self.thunorhome = os.environ['THUNORHOME']
-            except KeyError:
-                if 'use_docker_machine' in self.args and \
-                        self.args.use_docker_machine:
-                    raise ValueError(
-                        'Cannot use Docker Machine without specifying value '
-                        'for THUNORHOME. Specify the *remote* location to '
-                        'install Thunor using --thunorhome argument or the '
-                        'THUNORHOME environment variable.')
-
-                self.thunorhome = self.cwd
 
         if self.args.dry_run:
-            print('Thunorctl: DRY RUN (no commands will be executed)')
-
-        print('Thunorctl: THUNORHOME set to {}'.format(self.thunorhome))
+            self._log.warning('DRY RUN (no commands will be executed)')
 
     def _run_cmd(self, cmd, exit_on_error=True):
-        print('Thunorctl command: ' + (' '.join(cmd)))
+        self._log.info('Command: ' + (' '.join(cmd)))
         if self.args.dry_run:
             return 0
-        env = os.environ.copy()
-        env['THUNORHOME'] = self.thunorhome
-        result = subprocess.call(cmd, cwd=self.cwd, env=env)
+        result = subprocess.call(cmd, cwd=self.cwd)
         if exit_on_error and result != 0:
-            print('Thunorctl: Process exited with status {},'
-                  'aborting...'.format(result))
+            self._log.error(
+                'Process exited with status {},'
+                'aborting...'.format(result)
+            )
             sys.exit(result)
         return result
 
     def _copy(self, fromfile, tofile):
         fromfile = os.path.join(self.cwd, fromfile)
         tofile = os.path.join(self.cwd, tofile)
-        print('Thunorctl copy: ' + fromfile + ' to ' + tofile)
+        self._log.info('Copy: ' + fromfile + ' to ' + tofile)
         if self.args.dry_run:
             return
         if os.path.exists(tofile):
-            print('Thunorctl: Destination file exists, aborting...')
+            self._log.error('Destination file exists, aborting...')
             sys.exit(1)
         shutil.copy2(fromfile, tofile)
 
     def _mkdir(self, dirname):
         dirname = os.path.join(self.cwd, dirname)
-        print('Thunorctl mkdir: ' + dirname)
+        self._log.info('Mkdir: ' + dirname)
         if self.args.dry_run:
             return
         os.makedirs(dirname)
 
     def _rmdir(self, dirname):
         dirname = os.path.join(self.cwd, dirname)
-        print('Thunorctl delete: ' + dirname)
+        self._log.info('Delete: ' + dirname)
         if self.args.dry_run:
             return
         shutil.rmtree(dirname)
@@ -88,7 +72,7 @@ class ThunorCtl(object):
                        'Docker%20for%20Windows%20Installer.exe'
             else:
                 msg += 'See https://docs.docker.com/compose/install/'
-            print(msg)
+            self._log.error(msg)
             sys.exit(1)
 
     @staticmethod
@@ -112,13 +96,25 @@ class ThunorCtl(object):
 
     def _generate_random_key(self, filename, keyname):
         """ Replace a config file placeholder with a random key """
-        print('Thunorctl keygen: {} in {}'.format(keyname, filename))
+        self._log.info('Keygen: {} in {}'.format(keyname, filename))
         key = self._random_string()
         if not self.args.dry_run:
             self._replace_in_file(os.path.join(self.cwd, filename),
                                   keyname,
                                   key)
 
+    def _prepare_deployment_common(self):
+        self._copy('config-examples/thunor-db.env', 'thunor-db.env')
+        self._generate_random_key('thunor-db.env', '{{POSTGRES_PASSWORD}}')
+        self._copy('config-examples/thunor-app.env',
+                   'thunor-app.env')
+        self._generate_random_key('thunor-app.env', '{{DJANGO_SECRET_KEY}}')
+        self._mkdir('_state/nginx-config')
+        self._copy('config-examples/nginx.base.conf',
+                   '_state/nginx-config/nginx.base.conf')
+
+
+class ThunorCtl(ThunorCmdHelper):
     def migrate(self):
         if self.args.dev:
             return self._run_cmd(['python', 'manage.py', 'migrate'])
@@ -126,90 +122,18 @@ class ThunorCtl(object):
             return self._run_cmd(['docker-compose', 'run', '--rm', 'app',
                                   'python', 'manage.py', 'migrate'])
 
-    def _build_webpack(self):
-        return self._run_cmd(['docker', 'build', '-t', 'thunorweb_webpack',
-                              'thunorweb/webpack'])
-
-    @property
-    def _volume_webpack_bundles(self):
-        return os.path.join(self.thunorhome, '_state/webpack-bundles') + \
-                            ':/thunor/_state/webpack-bundles'
-
-    @property
-    def _volume_webpack_static(self):
-        return os.path.join(self.thunorhome, '_state/thunor-static-build') + \
-                            ':/thunor/_state/thunor-static'
-
-    @property
-    def _volume_thunor_files(self):
-        return os.path.join(self.thunorhome, '_state/thunor-files') + \
-                            ':/thunor/_state/thunor-files'
-
-    def generate_static(self):
-        self._build_webpack()
-        cmd = ['docker', 'run', '--rm']
-        if self.args.dev:
-            cmd += ['-e', 'DJANGO_DEBUG=True']
-        cmd += ['-v', self._volume_webpack_bundles, 'thunorweb_webpack']
-        return self._run_cmd(cmd)
-
-    def _build_base_image(self):
-        return self._run_cmd(['docker', 'build', '-t', 'thunorweb_base',
-                              '--build-arg',
-                              'THUNORWEB_VERSION={}'.format(
-                                  thunorweb_version),
-                              '-f',
-                              os.path.join(self.cwd, 'Dockerfile.base'),
-                              self.cwd])
-
-    def collect_static(self):
-        cmd = ['python', 'manage.py', 'collectstatic', '--no-input']
-
-        if not self.args.dev:
-            self._build_base_image()
-            self._mkdir('_state/thunor-static-build')
-            self._copy('config-examples/502.html',
-                       '_state/thunor-static-build/502.html')
-            cmd = ['docker',
-                   'run',
-                   '--rm',
-                   '-v', self._volume_webpack_bundles,
-                   '-v', self._volume_webpack_static,
-                   '-e', 'DJANGO_DEBUG=False',
-                   '-e', 'DJANGO_SECRET_KEY=not_needed',
-                   '-e', 'DJANGO_EMAIL_HOST=',
-                   '-e', 'DJANGO_EMAIL_PORT=',
-                   '-e', 'DJANGO_EMAIL_USER=',
-                   '-e', 'DJANGO_EMAIL_PASSWORD=',
-                   '-e', 'POSTGRES_PASSWORD=',
-                   'thunorweb_base'] + cmd
-
-        return self._run_cmd(cmd)
-
-    def make_static(self):
-        self.generate_static()
-        self.collect_static()
-
-    def thunorweb_build(self):
-        if self.args.dev:
-            raise ValueError('Cannot build Docker container in dev mode')
-
-        self.make_static()
-        self._run_cmd(['docker',
-                       'build',
-                       '-t', 'alubbock/thunorweb:dev',
-                       self.cwd])
-        if 'cleanup' in self.args and self.args.cleanup:
-            self._rmdir('_state/thunor-static-build')
-
     def thunorweb_upgrade(self):
-        self.migrate()
         if self.args.dev:
-            self.make_static()
+            from thunorbld import ThunorBld
+            bld = ThunorBld()
+            bld._set_args(self.args)
+            bld.make_static()
         else:
-            self.thunorweb_build()
+            self._run_cmd(['docker-compose', 'pull', 'app'])
+            self._run_cmd(['docker-compose', 'up', '-d'])
+        self.migrate()
 
-    def thunor_purge(self):
+    def thunorweb_purge(self):
         cmd = ['python', 'manage.py', 'thunor_purge']
         if self.args.verbosity > 0:
             cmd += ['--verbosity={}'.format(self.args.verbosity)]
@@ -220,9 +144,6 @@ class ThunorCtl(object):
             cmd = ['docker-compose',
                    'run',
                    '--rm',
-                   # '-v', self._volume_webpack_bundles,
-                   # '-v', self._volume_webpack_static,
-                   '-v', self._volume_thunor_files,
                    'app'] + cmd
 
         return self._run_cmd(cmd)
@@ -265,49 +186,32 @@ class ThunorCtl(object):
         self._run_cmd(['docker-compose', 'exec', 'nginx', 'nginx',
                        '-s', 'reload'])
 
-    def generate_skeleton(self):
+    def deploy(self):
         if self.args.dev:
-            self._copy('config-examples/thunor-dev.env', 'thunor-dev.env')
-            self._generate_random_key('thunor-dev.env', '{{DJANGO_SECRET_KEY}}')
-            self._generate_random_key('thunor-dev.env', '{{POSTGRES_PASSWORD}}')
-            self._copy('config-examples/docker-compose.postgresonly.yml',
-                       'docker-compose.yml')
-            if not self.args.dry_run:
-                self._replace_in_file(
-                    os.path.join(self.cwd, 'docker-compose.yml'),
-                    '- thunor-db.env',
-                    '- thunor-dev.env'
-                )
-        else:
-            self._copy('config-examples/docker-compose.complete.yml',
-                       'docker-compose.yml')
-            self._copy('config-examples/thunor-db.env', 'thunor-db.env')
-            self._generate_random_key('thunor-db.env', '{{POSTGRES_PASSWORD}}')
-            self._copy('config-examples/thunor-app.env',
-                       'thunor-app.env')
-            self._generate_random_key('thunor-app.env', '{{DJANGO_SECRET_KEY}}')
-            self._mkdir('_state/nginx-config')
-            self._copy('config-examples/nginx.base.conf',
-                       '_state/nginx-config/nginx.base.conf')
-            self._copy('config-examples/nginx.site-basic.conf',
-                       '_state/nginx-config/nginx.site.conf')
+            raise ValueError('Deployment not available/needed in dev mode')
+
+        if os.path.exists(os.path.join(self.cwd, '_state')):
+            raise ValueError('_state directory already exists. Is Thunor Web '
+                             'already installed?')
+
+        self._check_docker_compose()
+
+        self._prepare_deployment_common()
+        self._copy('config-examples/docker-compose.complete.yml',
+                   'docker-compose.yml')
+
+        self._copy('config-examples/nginx.site-basic.conf',
+                   '_state/nginx-config/nginx.site.conf')
 
         self._mkdir('_state/postgres-data')
 
-    def quickstart(self):
-        if os.path.exists(os.path.join(self.cwd, '_state')):
-            raise ValueError('_state directory already exists. Is Thunor '
-                             'already installed?')
         docker_machine = False
         docker_ip = None
         if 'DOCKER_MACHINE_NAME' in os.environ:
-            if self.args.dev:
-                raise ValueError('Cannot use --dev when Docker Machine is '
-                                 'active')
-            if not self.args.use_docker_machine:
+            if not self.args.thunorhome:
                 raise ValueError('Docker Machine is active but '
-                                 '--use-docker-machine not set. '
-                                 'Either set --use-docker-machine or unset '
+                                 '--thunorhome not set. '
+                                 'Either set --thunorhome option, or unset '
                                  'Docker Machine environment variables '
                                  '(docker-machine env --unset).')
             docker_machine = os.environ['DOCKER_MACHINE_NAME']
@@ -315,44 +219,43 @@ class ThunorCtl(object):
             docker_ip = subprocess.check_output(['docker-machine', 'ip',
                                                  docker_machine]).strip().\
                 decode('utf8')
-            print('Thunorctl: Docker Machine IP is ' + docker_ip)
+            self._log.info('Docker Machine IP is ' + docker_ip)
 
             self._run_cmd(['docker-machine', 'ssh', docker_machine,
-                           'mkdir', '"' + self.thunorhome + '"'])
-        elif self.args.use_docker_machine:
-            raise ValueError('--use-docker-machine set, but Docker Machine is '
+                           'mkdir', '"' + self.args.thunorhome + '"'])
+        elif self.args.thunorhome:
+            raise ValueError('--thunorhome set, but Docker Machine is '
                              'not active. Have you activated the machine\'s '
-                             'environment?')
+                             'environment? If you\'re attempting a local '
+                             'installation, this option is not needed.')
 
-        self._check_docker_compose()
-        if self.args.dev:
-            if os.environ.get('DJANGO_DEBUG', 'False').lower() != 'true':
-                raise ValueError(
-                    'Please make sure that the DJANGO_DEBUG environment '
-                    'variable is set to True before installing in dev mode')
-            self._run_cmd(['pip', 'install', '-r', 'requirements-dev.txt'])
-        self.generate_skeleton()
-        if docker_machine:
+        if not self.args.hostname:
             if docker_ip:
-                print('Thunorctl: set DJANGO_HOSTNAME in thunor-app.env '
-                      'to {}'.format(docker_ip))
-                if not self.args.dry_run:
-                    self._replace_in_file(
-                        os.path.join(self.cwd, 'thunor-app.env'),
-                        'DJANGO_HOSTNAME=localhost',
-                        'DJANGO_HOSTNAME=' + docker_ip
-                    )
+                self.args.hostname = docker_ip
+            else:
+                self.args.hostname = 'localhost'
+
+            new_hostname = input('Enter a hostname (default: {}) : '.format(
+                self.args.hostname
+            ))
+            if new_hostname.strip():
+                self.args.hostname = new_hostname
+
+        self._log.info('Set DJANGO_HOSTNAME in thunor-app.env to {}'.format(
+            self.args.hostname))
+        if not self.args.dry_run:
+            self._replace_in_file(
+                os.path.join(self.cwd, 'thunor-app.env'),
+                'DJANGO_HOSTNAME=localhost',
+                'DJANGO_HOSTNAME=' + self.args.hostname
+            )
+
+        if docker_machine:
             self._run_cmd(['docker-machine', 'scp', '-r', '_state',
                            '{}:"{}"'.format(
-                               docker_machine, self.thunorhome)])
+                               docker_machine, self.args.thunorhome)])
 
-        # Build container, if not running in dev mode
-        if self.args.dev:
-            self.make_static()
-        else:
-            self.thunorweb_build()
-
-        self._run_cmd(['docker-compose', 'up', '-d', 'postgres'])
+        self._run_cmd(['docker-compose', 'up', '-d'])
 
         if not self.args.dry_run:
             # Wait for postgres to start
@@ -374,30 +277,10 @@ class ThunorCtl(object):
 
         self.migrate()
 
-        if self.args.dev:
-            self._run_cmd(['python', 'manage.py', 'createcachetable'])
+        print('\nDeploy complete! Next steps:')
 
-        print('\nQuickstart complete! Next steps:')
-
-        if not self.args.dev:
-            print(
-                '* You\'ll need to set up a working email server '
-                'configuration \n'
-                '  OR set DJANGO_DEBUG=False in thunor-app.env (the latter \n'
-                '  should not be set in production!) before you can log in.\n'
-                '* You may wish to set the value of DJANGO_HOSTNAME to a\n'
-                '  different domain name in thunor-app.env. The server can\n'
-                '  only be accessed by the specified hostname.')
-            if docker_machine and os.environ.get('THUNORHOME', '') != \
-                    self.thunorhome:
-                print('* Set THUNORHOME in your environment to ' +
-                      self.thunorhome)
-            print('* Start the server with "docker-compose up -d"')
         print('* Create an admin account with '
               '"python thunorctl.py createsuperuser"')
-        if self.args.dev:
-            print('* Run "python manage.py runserver" to start the development '
-                  'server')
 
     def createsuperuser(self):
         if self.args.dev:
@@ -410,9 +293,19 @@ class ThunorCtl(object):
         if self.args.dev:
             self._run_cmd(['python', 'manage.py', 'test'])
         else:
-            self._run_cmd(['docker-compose', 'run', '--rm', '-e',
-                           'THUNORHOME=/thunor', 'app',
+            self._run_cmd(['docker-compose', 'run', '--rm', 'app',
                            'python', 'manage.py', 'test'])
+
+    def thunorweb_version(self):
+        cmd = ['python', '-c',
+               'from thunorweb import __version__;print(__version__)']
+        if self.args.dev:
+            return self._run_cmd(cmd)
+
+        cmd = ['docker-compose', 'exec', 'app'] + cmd
+        if self._run_cmd(cmd, exit_on_error=False) != 0:
+            raise RuntimeError('Command failed. Please check you\'ve started '
+                               'Thunor Web with "docker-compose up -d".')
 
     def _parser(self):
         parser = argparse.ArgumentParser(prog='thunorctl.py')
@@ -431,23 +324,6 @@ class ThunorCtl(object):
             'migrate', help='Initialise or migrate the database')
         parser_migrate.set_defaults(func=self.migrate)
 
-        parser_make_static = subparsers.add_parser(
-            'makestatic', help='Generate static files and collect them in '
-                               'Django. Equivalent to generatestatic and '
-                               'collectstatic called sequentially.'
-        )
-        parser_make_static.set_defaults(func=self.make_static)
-
-        parser_generate_static = subparsers.add_parser(
-            'generatestatic', help='Generate static files'
-        )
-        parser_generate_static.set_defaults(func=self.generate_static)
-
-        parser_collect_static = subparsers.add_parser(
-            'collectstatic', help='Collect static files in Django'
-        )
-        parser_collect_static.set_defaults(func=self.collect_static)
-
         parser_generate_certs = subparsers.add_parser(
             'generatecerts', help='Generate TLS certificates. Additional '
                                   'arguments are passed onto letsencrypt.'
@@ -460,11 +336,9 @@ class ThunorCtl(object):
             'purge', help='Purge Thunor Web of temporary files to reclaim disk '
                           'space.'
         )
-        parser_thunor_purge.add_argument('--dry-run', action='store_true',
-                                         default=False)
         parser_thunor_purge.add_argument('--verbosity', type=int,
                                          default=0)
-        parser_thunor_purge.set_defaults(func=self.thunor_purge)
+        parser_thunor_purge.set_defaults(func=self.thunorweb_purge)
 
         parser_upgrade = subparsers.add_parser(
             'upgrade', help='Upgrade Thunor Web. Equivalent to makestatic, '
@@ -473,35 +347,20 @@ class ThunorCtl(object):
         )
         parser_upgrade.set_defaults(func=self.thunorweb_upgrade)
 
-        parser_build = subparsers.add_parser(
-            'build', help='Build Thunor Web Docker container'
-        )
-        parser_build.add_argument(
-            '--cleanup', action='store_true', default=False,
-            help='Cleanup intermediate build files'
-        )
-        parser_build.set_defaults(func=self.thunorweb_build)
-
         parser_renew_certs = subparsers.add_parser(
             'renewcerts', help='Renew TLS certificates'
         )
         parser_renew_certs.set_defaults(func=self.renew_certificates)
 
-        parser_skeleton = subparsers.add_parser(
-            'skeleton', help='Create quickstart skeleton configuration files'
+        parser_deploy = subparsers.add_parser(
+            'deploy', help='Generate example configuration and start Thunor Web'
         )
-        parser_skeleton.set_defaults(func=self.generate_skeleton)
-
-        parser_quickstart = subparsers.add_parser(
-            'quickstart', help='Generate example config and start Thunor Web'
+        parser_deploy.add_argument(
+            '--thunorhome',
+            help='(Docker Machine installs only) Installation directory for '
+                 'Thunor Web on the *remote* machine.'
         )
-        parser_quickstart.add_argument(
-            '--use-docker-machine', action='store_true', default=False,
-            help='Use Docker Machine. Be sure to set installation location on '
-                 '*remote* machine using --thunorhome or THUNORHOME '
-                 'environment variable.'
-        )
-        parser_quickstart.set_defaults(func=self.quickstart)
+        parser_deploy.set_defaults(func=self.deploy)
 
         parser_superuser = subparsers.add_parser(
             'createsuperuser', help='Create a Thunor Web admin account'
@@ -513,8 +372,10 @@ class ThunorCtl(object):
         )
         parser_test.set_defaults(func=self.run_tests)
 
-        parser.add_argument('--version', action='version',
-                            version=thunorweb_version)
+        parser_version = subparsers.add_parser(
+            'version', help='Print the Thunor Web version and exit'
+        )
+        parser_version.set_defaults(func=self.thunorweb_version)
 
         return parser
 
