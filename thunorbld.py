@@ -98,8 +98,8 @@ class ThunorBld(ThunorCmdHelper):
                    'docker-compose.test-deploy.yml')
 
         self._replace_in_file('docker-compose.test-deploy.yml',
-                              'alubbock/thunorweb:latest',
-                              'alubbock/thunorweb:dev')
+                              'image: alubbock/thunorweb:latest',
+                              'build: .')
         self._replace_in_file(
             'docker-compose.test-deploy.yml',
             '_state/postgres-data',
@@ -123,10 +123,12 @@ class ThunorBld(ThunorCmdHelper):
             self._run_cmd(base_cmd + ['up', '-d', 'postgres', 'redis'])
             self._wait_postgres(compose_file=compose_file)
             try:
-                self._run_cmd(base_cmd + ['run', '--rm', 'app',
+                self._run_cmd(base_cmd + ['run', '--rm',
+                                          '-e', 'THUNORHOME=/thunor',
+                                          'app',
                                           'python', 'manage.py', 'test'])
             finally:
-                self._run_cmd(base_cmd + ['down'])
+                self._run_cmd(base_cmd + ['down', '-v'])
 
     def init_dev(self):
         """ Initialise development environment """

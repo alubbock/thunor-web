@@ -1,4 +1,5 @@
 FROM python:3.6
+MAINTAINER Alex Lubbock <code@alexlubbock.com>
 ENV PYTHONUNBUFFERED 1
 ENV THUNOR_HOME=/thunor
 

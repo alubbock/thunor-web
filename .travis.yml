@@ -15,7 +15,7 @@ install:
 - if [[ $DEVFLAG == "--dev" ]]; then python thunorbld.py init; fi
 - if [[ $DEVFLAG == "" ]]; then python thunorbld.py testinit; fi
 script:
-- python thunorctl.py $DEVFLAG test
+- python thunorbld.py $DEVFLAG test
 after_success:
 - if [[ $DEVFLAG == "--dev" ]]; then pip install coveralls; fi
 - if [[ $DEVFLAG == "--dev" ]]; then coveralls; fi

@@ -162,6 +162,7 @@ class ThunorCtl(ThunorCmdHelper):
             bld.make_static()
         else:
             self._run_cmd(['docker-compose', 'pull', 'app'])
+            self._run_cmd(['docker-compose', 'down', '-v'])
             self._run_cmd(['docker-compose', 'up', '-d'])
         self.migrate()
 
@@ -311,7 +312,9 @@ class ThunorCtl(ThunorCmdHelper):
             raise ValueError('For development environment tests, use '
                              '"python thunorbld.py test"')
         else:
-            self._run_cmd(['docker-compose', 'run', '--rm', 'app',
+            self._run_cmd(['docker-compose', 'run', '--rm',
+                           '-e', 'THUNORHOME=/thunor',
+                           'app',
                            'python', 'manage.py', 'test'])
 
     def thunorweb_version(self):
