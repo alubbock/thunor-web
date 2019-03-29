@@ -13,7 +13,7 @@ before_install:
 - docker-compose --version
 install:
 - if [[ $DEVFLAG == "--dev" ]]; then python thunorbld.py init; fi
-- if [[ $DEVFLAG == "" ]]; then python thunorctl.py deploy; fi
+- if [[ $DEVFLAG == "" ]]; then python thunorbld.py testinit; fi
 script:
 - python thunorctl.py $DEVFLAG test
 after_success:

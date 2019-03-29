@@ -12,6 +12,14 @@ class ThunorCmdHelper(object):
     def __init__(self):
         self._log = logging.getLogger(self.__class__.__name__)
         self._log.setLevel(logging.INFO)
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.INFO)
+        fmt = logging.Formatter(
+            '%(name)s [%(levelname)s] %(message)s'
+        )
+        ch.setFormatter(fmt)
+        self._log.addHandler(ch)
+
         self.cwd = os.path.abspath(os.path.dirname(__file__))
 
     def _set_args(self, args):
@@ -33,13 +41,13 @@ class ThunorCmdHelper(object):
             sys.exit(result)
         return result
 
-    def _copy(self, fromfile, tofile):
+    def _copy(self, fromfile, tofile, overwrite=False):
         fromfile = os.path.join(self.cwd, fromfile)
         tofile = os.path.join(self.cwd, tofile)
         self._log.info('Copy: ' + fromfile + ' to ' + tofile)
         if self.args.dry_run:
             return
-        if os.path.exists(tofile):
+        if not overwrite and os.path.exists(tofile):
             self._log.error('Destination file exists, aborting...')
             sys.exit(1)
         shutil.copy2(fromfile, tofile)
@@ -82,9 +90,15 @@ class ThunorCmdHelper(object):
         rand = random.SystemRandom()
         return ''.join(rand.choice(SECURE_KEY_CHARS) for _ in range(length))
 
-    @staticmethod
-    def _replace_in_file(filename, from_str, to_str):
+    def _replace_in_file(self, filename, from_str, to_str, log=True):
         """ In-place replacement of string in file, for config generation """
+
+        if log:
+            self._log.debug('Replace: "{}" with "{}" in {}'.format(
+                from_str, to_str, filename))
+
+        if self.args.dry_run:
+            return
 
         with open(filename, 'r') as file:
             filedata = file.read()
@@ -98,10 +112,9 @@ class ThunorCmdHelper(object):
         """ Replace a config file placeholder with a random key """
         self._log.info('Keygen: {} in {}'.format(keyname, filename))
         key = self._random_string()
-        if not self.args.dry_run:
-            self._replace_in_file(os.path.join(self.cwd, filename),
-                                  keyname,
-                                  key)
+
+        self._replace_in_file(os.path.join(self.cwd, filename),
+                              keyname, key, log=False)
 
     def _prepare_deployment_common(self):
         self._copy('config-examples/thunor-db.env', 'thunor-db.env')
@@ -112,6 +125,25 @@ class ThunorCmdHelper(object):
         self._mkdir('_state/nginx-config')
         self._copy('config-examples/nginx.base.conf',
                    '_state/nginx-config/nginx.base.conf')
+
+    def _wait_postgres(self, compose_file='docker-compose.yml'):
+        # Wait for postgres to start
+        pg_retry = 0
+        pg_max_retry = 40
+        pg_retry_delay = 5
+        while self._run_cmd(
+                ['docker-compose', '-f', compose_file,
+                 'exec', 'postgres', 'pg_isready'],
+                exit_on_error=False) != 0 and pg_retry < pg_max_retry:
+            print('Postgres not yet ready, sleeping {} seconds...'.format(
+                pg_retry_delay
+            ))
+            pg_retry += 1
+            time.sleep(pg_retry_delay)
+
+        if pg_retry == pg_max_retry:
+            print('Postgres not responding, exiting...')
+            sys.exit(1)
 
 
 class ThunorCtl(ThunorCmdHelper):
@@ -243,12 +275,12 @@ class ThunorCtl(ThunorCmdHelper):
 
         self._log.info('Set DJANGO_HOSTNAME in thunor-app.env to {}'.format(
             self.args.hostname))
-        if not self.args.dry_run:
-            self._replace_in_file(
-                os.path.join(self.cwd, 'thunor-app.env'),
-                'DJANGO_HOSTNAME=localhost',
-                'DJANGO_HOSTNAME=' + self.args.hostname
-            )
+
+        self._replace_in_file(
+            os.path.join(self.cwd, 'thunor-app.env'),
+            'DJANGO_HOSTNAME=localhost',
+            'DJANGO_HOSTNAME=' + self.args.hostname
+        )
 
         if docker_machine:
             self._run_cmd(['docker-machine', 'scp', '-r', '_state',
@@ -258,22 +290,7 @@ class ThunorCtl(ThunorCmdHelper):
         self._run_cmd(['docker-compose', 'up', '-d'])
 
         if not self.args.dry_run:
-            # Wait for postgres to start
-            pg_retry = 0
-            pg_max_retry = 40
-            pg_retry_delay = 5
-            while self._run_cmd(
-                    ['docker-compose', 'exec', 'postgres', 'pg_isready'],
-                    exit_on_error=False) != 0 and pg_retry < pg_max_retry:
-                print('Postgres not yet ready, sleeping {} seconds...'.format(
-                    pg_retry_delay
-                ))
-                pg_retry += 1
-                time.sleep(pg_retry_delay)
-
-            if pg_retry == pg_max_retry:
-                print('Postgres not responding, exiting...')
-                sys.exit(1)
+            self._wait_postgres()
 
         self.migrate()
 
@@ -291,7 +308,8 @@ class ThunorCtl(ThunorCmdHelper):
 
     def run_tests(self):
         if self.args.dev:
-            self._run_cmd(['python', 'manage.py', 'test'])
+            raise ValueError('For development environment tests, use '
+                             '"python thunorbld.py test"')
         else:
             self._run_cmd(['docker-compose', 'run', '--rm', 'app',
                            'python', 'manage.py', 'test'])
@@ -354,6 +372,12 @@ class ThunorCtl(ThunorCmdHelper):
 
         parser_deploy = subparsers.add_parser(
             'deploy', help='Generate example configuration and start Thunor Web'
+        )
+        parser_deploy.add_argument(
+            '--hostname',
+            help='Hostname for the server (defaults to "localhost", or the '
+                 'server\'s IP address on Docker Machine). If not specified, '
+                 'an interactive prompt will be used.'
         )
         parser_deploy.add_argument(
             '--thunorhome',

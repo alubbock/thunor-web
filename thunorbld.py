@@ -52,9 +52,12 @@ class ThunorBld(ThunorCmdHelper):
 
         if not self.args.dev:
             self._build_base_image()
-            self._mkdir('_state/thunor-static-build')
+            try:
+                self._mkdir('_state/thunor-static-build')
+            except FileExistsError:
+                pass
             self._copy('config-examples/502.html',
-                       '_state/thunor-static-build/502.html')
+                       '_state/thunor-static-build/502.html', overwrite=True)
             cmd = ['docker',
                    'run',
                    '--rm',
@@ -87,7 +90,46 @@ class ThunorBld(ThunorCmdHelper):
         if 'cleanup' in self.args and self.args.cleanup:
             self._rmdir('_state/thunor-static-build')
 
+    def _init_test_files(self):
+        self._prepare_deployment_common()
+        self._copy('config-examples/nginx.site-basic.conf',
+                   '_state/nginx-config/nginx.site.conf')
+        self._copy('config-examples/docker-compose.complete.yml',
+                   'docker-compose.test-deploy.yml')
+
+        self._replace_in_file('docker-compose.test-deploy.yml',
+                              'alubbock/thunorweb:latest',
+                              'alubbock/thunorweb:dev')
+        self._replace_in_file(
+            'docker-compose.test-deploy.yml',
+            '_state/postgres-data',
+            '_state/postgres-data-testdeploy'
+        )
+
+    def init_test(self):
+        """ Minimal init for unit testing/CI purposes """
+        self._init_test_files()
+        self.thunorweb_build()
+
+    def run_tests(self):
+        if self.args.dev:
+            self._run_cmd(['python', 'manage.py', 'test'])
+        else:
+            compose_file = 'docker-compose.test-deploy.yml'
+            base_cmd = [
+                'docker-compose', '-f',
+                os.path.join(self.cwd, compose_file)
+            ]
+            self._run_cmd(base_cmd + ['up', '-d', 'postgres', 'redis'])
+            self._wait_postgres(compose_file=compose_file)
+            try:
+                self._run_cmd(base_cmd + ['run', '--rm', 'app',
+                                          'python', 'manage.py', 'test'])
+            finally:
+                self._run_cmd(base_cmd + ['down'])
+
     def init_dev(self):
+        """ Initialise development environment """
         self._check_docker_compose()
 
         if os.path.exists(os.path.join(self.cwd, '_state')):
@@ -100,22 +142,13 @@ class ThunorBld(ThunorCmdHelper):
         self._generate_random_key('thunor-dev.env', '{{POSTGRES_PASSWORD}}')
         self._copy('config-examples/docker-compose.postgresonly.yml',
                    'docker-compose.yml')
-        if not self.args.dry_run:
-            self._replace_in_file(
-                os.path.join(self.cwd, 'docker-compose.yml'),
-                '- thunor-db.env',
-                '- thunor-dev.env'
-            )
 
-        self._prepare_deployment_common()
-        self._copy('config-examples/nginx.site-basic.conf',
-                   '_state/nginx-config/nginx.site.conf')
-        self._copy('config-examples/docker-compose.complete.yml',
-                   'docker-compose.test-deploy.yml')
-        if not self.args.dry_run:
-            self._replace_in_file('docker-compose.test-deploy.yml',
-                                  'alubbock/thunorweb:latest',
-                                  'alubbock/thunorweb:dev')
+        self._replace_in_file(
+            os.path.join(self.cwd, 'docker-compose.yml'),
+            '- thunor-db.env',
+            '- thunor-dev.env'
+        )
+        self._init_test_files()
 
         # Both
         self._mkdir('_state/postgres-data')
@@ -124,24 +157,6 @@ class ThunorBld(ThunorCmdHelper):
         self.make_static()
 
         self._run_cmd(['docker-compose', 'up', '-d', 'postgres'])
-
-        if not self.args.dry_run:
-            # Wait for postgres to start
-            pg_retry = 0
-            pg_max_retry = 40
-            pg_retry_delay = 5
-            while self._run_cmd(
-                    ['docker-compose', 'exec', 'postgres', 'pg_isready'],
-                    exit_on_error=False) != 0 and pg_retry < pg_max_retry:
-                print('Postgres not yet ready, sleeping {} seconds...'.format(
-                    pg_retry_delay
-                ))
-                pg_retry += 1
-                time.sleep(pg_retry_delay)
-
-            if pg_retry == pg_max_retry:
-                print('Postgres not responding, exiting...')
-                sys.exit(1)
 
         # Install Python reqs
         self._run_cmd(['pip', 'install', '-r', 'requirements-dev.txt'])
@@ -199,6 +214,18 @@ class ThunorBld(ThunorCmdHelper):
                          'development environment'
         )
         parser_init.set_defaults(func=self.init_dev)
+
+        parser_test_init = subparsers.add_parser(
+            'testinit', help='Generate an environment for testing only. '
+                             'Intended for continuous integration services.'
+        )
+        parser_test_init.set_defaults(func=self.init_test)
+
+        parser_tests = subparsers.add_parser(
+            'test', help='Run unit tests; use --dev flag to run outside of '
+                         'Docker, or build Docker container first'
+        )
+        parser_tests.set_defaults(func=self.run_tests)
 
         parser.add_argument('--version', action='version',
                             version=thunorweb_version)
