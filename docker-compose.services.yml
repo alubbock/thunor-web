@@ -23,7 +23,7 @@ services:
       - ./_state/postgres-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 30s
+      interval: 60s
       timeout: 30s
       retries: 6
   redis:
@@ -31,3 +31,8 @@ services:
     volumes:
       - ./_state/redis-data:/data
     command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli","ping"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
