@@ -51,6 +51,7 @@ if [ -z "$TRAVIS_TAG" ]; then
   sed -i 's/thunorweb:latest/thunorweb:dev/' config-examples/docker-compose.complete.yml
   echo "$TRAVIS_COMMIT" > .release
 else
+  sed -i "s/thunorweb:latest/thunorweb:$TRAVIS_TAG/" config-examples/docker-compose.complete.yml
   echo "$TRAVIS_TAG" > .release
 fi
 git add -A
@@ -60,8 +61,9 @@ if [[ $TRAVIS_TAG ]]; then
   git commit -m "Travis update: $TRAVIS_TAG"  
   git tag "$TRAVIS_TAG"
   git push --tags
-else
-  git commit -m "Travis update: $TRAVIS_COMMIT"
+  # Make another commit referencing "latest" at HEAD
+  sed -i "s/thunorweb:$TRAVIS_TAG/thunorweb:latest/" config-examples/docker-compose.complete.yml
 fi
 
+git commit -m "Travis update: $TRAVIS_COMMIT"
 git push
