@@ -39,8 +39,10 @@ fi
 
 # Copy files to quickstart repo and push
 cp ../thunorctl.py .
+cp ../docker-compose.services.yml .
 rm -rf config-examples
 cp -r ../config-examples .
+sed -i 's/thunorweb:latest/thunorweb:dev/' config-examples/docker-compose.complete.yml
 echo "$TRAVIS_COMMIT" > .release
 git add -A
 git status
