@@ -11,7 +11,8 @@ else
   echo "DOCKER_PASSWORD not set, skipping login"
 fi
 
-python thunorbld.py build || exit $?
+# sudo b/c docker runs with elevated permissions, and creates otherwise unwriteable directories
+sudo python thunorbld.py build || exit $?
 
 if [[ $TRAVIS_TAG ]]; then
   echo "Release build: $TRAVIS_TAG"
