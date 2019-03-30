@@ -115,6 +115,8 @@ class ThunorBld(ThunorCmdHelper):
         if self.args.dev:
             self._run_cmd(['python', 'manage.py', 'test'])
         else:
+            # Stop any existing instance
+            self._run_cmd(['docker-compose', 'down', '-v'])
             compose_file = 'docker-compose.test-deploy.yml'
             base_cmd = [
                 'docker-compose', '-f',
@@ -132,6 +134,7 @@ class ThunorBld(ThunorCmdHelper):
 
     def init_dev(self):
         """ Initialise development environment """
+        self.args.dev = True
         self._check_docker_compose()
 
         if os.path.exists(os.path.join(self.cwd, '_state')):
@@ -163,6 +166,7 @@ class ThunorBld(ThunorCmdHelper):
         # Install Python reqs
         self._run_cmd(['pip', 'install', '-r', 'requirements-dev.txt'])
 
+        self._wait_postgres()
         self._run_cmd(['python', 'manage.py', 'migrate'])
 
         self._run_cmd(['python', 'manage.py', 'createcachetable'])
