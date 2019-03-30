@@ -63,6 +63,7 @@ if [[ $TRAVIS_TAG ]]; then
   git push --tags
   # Make another commit referencing "latest" at HEAD
   sed -i "s/thunorweb:$TRAVIS_TAG/thunorweb:latest/" config-examples/docker-compose.complete.yml
+  git add config-examples/docker-compose.complete.yml
 fi
 
 git commit -m "Travis update: $TRAVIS_COMMIT"
