@@ -1,7 +1,12 @@
 #!/bin/bash
 set -ex
-if [ "$TRAVIS_BRANCH" != "master" ] || [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
-  echo "Not on branch master, or is a pull request. Skipping deploy."
+if [ "$TRAVIS_BRANCH" != "master" ] && [ -z "$TRAVIS_TAG" ]; then
+  echo "Not master branch or a tag. Skipping deploy."
+  exit 0
+fi
+
+if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
+  echo "Pull request. Skipping deploy."
   exit 0
 fi
 
@@ -28,8 +33,8 @@ if [[ $TRAVIS_TAG ]]; then
   echo "Release build: $TRAVIS_TAG"
   docker tag alubbock/thunorweb:dev alubbock/thunorweb:latest
   docker push alubbock/thunorweb:latest
-  docker tag alubbock/thunorweb:dev "alubbock/thunorweb:$THUNORWEB_VERSION"
-  docker push "alubbock/thunorweb:$THUNORWEB_VERSION"
+  docker tag alubbock/thunorweb:dev "alubbock/thunorweb:$TRAVIS_TAG"
+  docker push "alubbock/thunorweb:$TRAVIS_TAG"
   git checkout master
 else
   echo "Dev build"
@@ -42,8 +47,12 @@ cp ../thunorctl.py .
 cp ../docker-compose.services.yml .
 rm -rf config-examples
 cp -r ../config-examples .
-sed -i 's/thunorweb:latest/thunorweb:dev/' config-examples/docker-compose.complete.yml
-echo "$TRAVIS_COMMIT" > .release
+if [ -z "$TRAVIS_TAG" ]; then
+  sed -i 's/thunorweb:latest/thunorweb:dev/' config-examples/docker-compose.complete.yml
+  echo "$TRAVIS_COMMIT" > .release
+else
+  echo "$TRAVIS_TAG" > .release
+fi
 git add -A
 git status
 
