@@ -11,7 +11,7 @@ else
   echo "DOCKER_PASSWORD not set, skipping login"
 fi
 
-python thunorctl.py build || exit $?
+python thunorbld.py build || exit $?
 
 if [[ $TRAVIS_TAG ]]; then
   echo "Release build: $TRAVIS_TAG"

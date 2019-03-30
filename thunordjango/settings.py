@@ -29,26 +29,26 @@ STATE_DIR = os.path.join(BASE_DIR, '_state')
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.10/howto/deployment/checklist/
 
+# Load environment variables for .env file, if present
+env_file = os.path.join(BASE_DIR, 'thunor-dev.env')
+try:
+    with open(env_file, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith('#'):
+                continue
+            var_name, var_val = line.split('=', 1)
+            print('Setting {} from thunor-dev.env'.format(var_name))
+            os.environ[var_name] = var_val
+except FileNotFoundError:
+    pass
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ['DJANGO_DEBUG'].lower() == 'true'
 
 if DEBUG:
     # Add the thunor submodule to the path
     sys.path.insert(0, os.path.join(BASE_DIR, 'thunor'))
-
-    # Load environment variables for .env file, if present
-    env_file = os.path.join(BASE_DIR, 'thunor-dev.env')
-    try:
-        with open(env_file, 'r') as f:
-            for line in f:
-                line = line.strip()
-                if line.startswith('#'):
-                    continue
-                var_name, var_val = line.split('=', 1)
-                print('Setting {} from thunor-dev.env'.format(var_name))
-                os.environ[var_name] = var_val
-    except FileNotFoundError:
-        pass
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
