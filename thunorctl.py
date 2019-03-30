@@ -43,7 +43,8 @@ class ThunorCmdHelper(object):
 
     def _copy(self, fromfile, tofile, overwrite=False):
         fromfile = os.path.join(self.cwd, fromfile)
-        tofile = os.path.join(self.cwd, tofile)
+        if not tofile.startswith('/'):
+            tofile = os.path.join(self.cwd, tofile)
         self._log.info('Copy: ' + fromfile + ' to ' + tofile)
         if self.args.dry_run:
             return
@@ -53,7 +54,8 @@ class ThunorCmdHelper(object):
         shutil.copy2(fromfile, tofile)
 
     def _mkdir(self, dirname):
-        dirname = os.path.join(self.cwd, dirname)
+        if not dirname.startswith('/'):
+            dirname = os.path.join(self.cwd, dirname)
         self._log.info('Mkdir: ' + dirname)
         if self.args.dry_run:
             return
@@ -116,15 +118,19 @@ class ThunorCmdHelper(object):
         self._replace_in_file(os.path.join(self.cwd, filename),
                               keyname, key, log=False)
 
-    def _prepare_deployment_common(self):
-        self._copy('config-examples/thunor-db.env', 'thunor-db.env')
-        self._generate_random_key('thunor-db.env', '{{POSTGRES_PASSWORD}}')
+    def _prepare_deployment_common(self, subdir=''):
+        self._copy('config-examples/thunor-db.env',
+                   os.path.join(subdir, 'thunor-db.env'))
+        self._generate_random_key(
+            os.path.join(subdir, 'thunor-db.env'),
+            '{{POSTGRES_PASSWORD}}')
         self._copy('config-examples/thunor-app.env',
-                   'thunor-app.env')
-        self._generate_random_key('thunor-app.env', '{{DJANGO_SECRET_KEY}}')
-        self._mkdir('_state/nginx-config')
+                   os.path.join(subdir, 'thunor-app.env'))
+        self._generate_random_key(os.path.join(subdir, 'thunor-app.env'),
+                                  '{{DJANGO_SECRET_KEY}}')
+        self._mkdir(os.path.join(subdir, '_state/nginx-config'))
         self._copy('config-examples/nginx.base.conf',
-                   '_state/nginx-config/nginx.base.conf')
+                   os.path.join(subdir, '_state/nginx-config/nginx.base.conf'))
 
     def _wait_postgres(self, compose_file='docker-compose.yml'):
         # Wait for postgres to start

@@ -1,7 +1,5 @@
 import argparse
 import os
-import sys
-import time
 from thunorweb import __version__ as thunorweb_version
 from thunorctl import ThunorCmdHelper
 
@@ -10,6 +8,7 @@ class ThunorBld(ThunorCmdHelper):
     def __init__(self):
         super(ThunorBld, self).__init__()
         self.cwd = os.path.abspath(os.path.dirname(__file__))
+        self.deploy_dir = os.path.join(self.cwd, '_state/deploy-test')
 
     def _build_webpack(self):
         return self._run_cmd(['docker', 'build', '-t', 'thunorweb_webpack',
@@ -17,18 +16,24 @@ class ThunorBld(ThunorCmdHelper):
 
     @property
     def _volume_webpack_bundles(self):
-        return os.path.join(self.cwd, '_state/webpack-bundles') + \
-                            ':/thunor/_state/webpack-bundles'
+        return os.path.join(
+            self.cwd if self.args.dev else self.deploy_dir,
+            '_state/webpack-bundles'
+        ) + ':/thunor/_state/webpack-bundles'
 
     @property
     def _volume_webpack_static(self):
-        return os.path.join(self.cwd, '_state/thunor-static-build') + \
-                            ':/thunor/_state/thunor-static'
+        return os.path.join(
+            self.cwd if self.args.dev else self.deploy_dir,
+            '_state/thunor-static-build'
+        ) + ':/thunor/_state/thunor-static'
 
     @property
     def _volume_thunor_files(self):
-        return os.path.join(self.cwd, '_state/thunor-files') + \
-                            ':/thunor/_state/thunor-files'
+        return os.path.join(
+            self.cwd if self.args.dev else self.deploy_dir,
+            '_state/thunor-files'
+        ) + ':/thunor/_state/thunor-files'
 
     def generate_static(self):
         self._build_webpack()
@@ -52,12 +57,14 @@ class ThunorBld(ThunorCmdHelper):
 
         if not self.args.dev:
             self._build_base_image()
+            static_dir = os.path.join(self.deploy_dir,
+                                      '_state/thunor-static-build')
             try:
-                self._mkdir('_state/thunor-static-build')
+                self._mkdir(os.path.join(static_dir))
             except FileExistsError:
                 pass
             self._copy('config-examples/502.html',
-                       '_state/thunor-static-build/502.html', overwrite=True)
+                       os.path.join(static_dir, '502.html'), overwrite=True)
             cmd = ['docker',
                    'run',
                    '--rm',
@@ -91,20 +98,21 @@ class ThunorBld(ThunorCmdHelper):
             self._rmdir('_state/thunor-static-build')
 
     def _init_test_files(self):
-        self._prepare_deployment_common()
+        self._mkdir(self.deploy_dir)
+        self._prepare_deployment_common(self.deploy_dir)
         self._copy('config-examples/nginx.site-basic.conf',
-                   '_state/nginx-config/nginx.site.conf')
+                   os.path.join(self.deploy_dir,
+                                '_state/nginx-config/nginx.site.conf'))
         self._copy('config-examples/docker-compose.complete.yml',
-                   'docker-compose.test-deploy.yml')
-
-        self._replace_in_file('docker-compose.test-deploy.yml',
-                              'image: alubbock/thunorweb:latest',
-                              'build: .')
+                   os.path.join(self.deploy_dir,
+                                'docker-compose.yml'))
         self._replace_in_file(
-            'docker-compose.test-deploy.yml',
-            '_state/postgres-data',
-            '_state/postgres-data-testdeploy'
+            os.path.join(self.deploy_dir, 'docker-compose.yml'),
+            'image: alubbock/thunorweb:latest',
+            'image: alubbock/thunorweb:dev'
         )
+        self._copy('docker-compose.services.yml',
+                   os.path.join(self.deploy_dir, 'docker-compose.services.yml'))
 
     def init_test(self):
         """ Minimal init for unit testing/CI purposes """
@@ -115,13 +123,9 @@ class ThunorBld(ThunorCmdHelper):
         if self.args.dev:
             self._run_cmd(['python', 'manage.py', 'test'])
         else:
-            # Stop any existing instance
-            self._run_cmd(['docker-compose', 'down', '-v'])
-            compose_file = 'docker-compose.test-deploy.yml'
-            base_cmd = [
-                'docker-compose', '-f',
-                os.path.join(self.cwd, compose_file)
-            ]
+            compose_file = os.path.join(self.deploy_dir,
+                                        'docker-compose.yml')
+            base_cmd = ['docker-compose', '-f', compose_file]
             self._run_cmd(base_cmd + ['up', '-d', 'postgres', 'redis'])
             self._wait_postgres(compose_file=compose_file)
             try:
@@ -158,13 +162,13 @@ class ThunorBld(ThunorCmdHelper):
         # Both
         self._mkdir('_state/postgres-data')
 
-        # Build static files
-        self.make_static()
-
         self._run_cmd(['docker-compose', 'up', '-d', 'postgres'])
 
         # Install Python reqs
         self._run_cmd(['pip', 'install', '-r', 'requirements-dev.txt'])
+
+        # Build static files
+        self.make_static()
 
         self._wait_postgres()
         self._run_cmd(['python', 'manage.py', 'migrate'])
