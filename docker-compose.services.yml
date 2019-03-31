@@ -13,6 +13,7 @@ services:
       - ./_state/logs/nginx/:/var/log/nginx/
       - ./_state/thunor-files/:/srv/thunor-files/:ro
       - static-assets:/srv/thunor-static/:ro
+      - ./_state/.well-known/:/srv/thunor-static/.well-known/:ro
       - ./_state/certbot/:/etc/letsencrypt/:ro
     ports:
       - "80:80"

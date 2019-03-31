@@ -45,6 +45,7 @@ fi
 # Copy files to quickstart repo and push
 cp ../thunorctl.py .
 cp ../docker-compose.services.yml .
+cp ../docker-compose.certbot.yml .
 rm -rf config-examples
 cp -r ../config-examples .
 if [ -z "$TRAVIS_TAG" ]; then

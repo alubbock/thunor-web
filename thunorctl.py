@@ -210,8 +210,9 @@ class ThunorCtl(ThunorCmdHelper):
         )
 
     def _generate_certificate(self):
-        cmd = self._certbot_cmd + \
-            ['certbot', '--nginx'] + self.args.letsencrypt_args
+        cmd = self._certbot_cmd + [
+            'certbot', 'certonly', '--webroot', '--webroot-path',
+            '/thunor-static'] + self.args.letsencrypt_args
         return self._run_cmd(cmd)
 
     def generate_certificates(self):
@@ -235,15 +236,6 @@ class ThunorCtl(ThunorCmdHelper):
 
         self._check_docker_compose()
 
-        self._prepare_deployment_common()
-        self._copy('config-examples/docker-compose.complete.yml',
-                   'docker-compose.yml')
-
-        self._copy('config-examples/nginx.site-basic.conf',
-                   '_state/nginx-config/nginx.site.conf')
-
-        self._mkdir('_state/postgres-data')
-
         docker_machine = False
         docker_ip = None
         if 'DOCKER_MACHINE_NAME' in os.environ:
@@ -260,6 +252,12 @@ class ThunorCtl(ThunorCmdHelper):
                 decode('utf8')
             self._log.info('Docker Machine IP is ' + docker_ip)
 
+            self._replace_in_file(
+                os.path.join(self.cwd, '.env'),
+                'THUNORHOME=.',
+                'THUNORHOME={}'.format(self.args.thunorhome)
+            )
+
             self._run_cmd(['docker-machine', 'ssh', docker_machine,
                            'mkdir', '"' + self.args.thunorhome + '"'])
         elif self.args.thunorhome:
@@ -268,13 +266,22 @@ class ThunorCtl(ThunorCmdHelper):
                              'environment? If you\'re attempting a local '
                              'installation, this option is not needed.')
 
+        self._prepare_deployment_common()
+        self._copy('config-examples/docker-compose.complete.yml',
+                   'docker-compose.yml')
+
+        self._copy('config-examples/nginx.site-basic.conf',
+                   '_state/nginx-config/nginx.site.conf')
+
+        self._mkdir('_state/postgres-data')
+
         if not self.args.hostname:
             if docker_ip:
                 self.args.hostname = docker_ip
             else:
                 self.args.hostname = 'localhost'
 
-            new_hostname = input('Enter a hostname (default: {}) : '.format(
+            new_hostname = input('\nEnter a hostname (default: {}) : '.format(
                 self.args.hostname
             ))
             if new_hostname.strip():
@@ -294,12 +301,14 @@ class ThunorCtl(ThunorCmdHelper):
                            '{}:"{}"'.format(
                                docker_machine, self.args.thunorhome)])
 
-        self._run_cmd(['docker-compose', 'up', '-d'])
+        self._run_cmd(['docker-compose', 'up', '-d', 'postgres'])
 
         if not self.args.dry_run:
             self._wait_postgres()
 
         self.migrate()
+
+        self._run_cmd(['docker-compose', 'up', '-d'])
 
         print('\nDeploy complete! Next steps:')
 
@@ -341,10 +350,6 @@ class ThunorCtl(ThunorCmdHelper):
         parser.add_argument('--dry-run', action='store_true', default=False,
                             help='Dry run (don\'t execute any commands, '
                                  'just show them)')
-        parser.add_argument(
-            '--thunorhome', help=
-            'Path to Thunor Web on the target machine, or use environment '
-            'variable THUNORHOME. Not needed for local installations.')
         subparsers = parser.add_subparsers()
 
         parser_migrate = subparsers.add_parser(
