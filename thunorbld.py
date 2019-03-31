@@ -11,6 +11,7 @@ class ThunorBld(ThunorCmdHelper):
         self.deploy_dir = os.path.join(self.cwd, '_state/deploy-test')
 
     def _build_webpack(self):
+        self._log.info('Build webpack container')
         return self._run_cmd(['docker', 'build', '-t', 'thunorweb_webpack',
                               'thunorweb/webpack'])
 
@@ -41,9 +42,11 @@ class ThunorBld(ThunorCmdHelper):
         if self.args.dev:
             cmd += ['-e', 'DJANGO_DEBUG=True']
         cmd += ['-v', self._volume_webpack_bundles, 'thunorweb_webpack']
+        self._log.info('Generate static files')
         return self._run_cmd(cmd)
 
     def _build_base_image(self):
+        self._log.info('Build thunorweb_base image')
         return self._run_cmd(['docker', 'build', '-t', 'thunorweb_base',
                               '--build-arg',
                               'THUNORWEB_VERSION={}'.format(
@@ -79,6 +82,7 @@ class ThunorBld(ThunorCmdHelper):
                    '-e', 'POSTGRES_PASSWORD=',
                    'thunorweb_base'] + cmd
 
+        self._log.info('Collect static files')
         return self._run_cmd(cmd)
 
     def make_static(self):
@@ -90,6 +94,7 @@ class ThunorBld(ThunorCmdHelper):
             raise ValueError('Cannot build Docker container in dev mode')
 
         self.make_static()
+        self._log.info('Build master container')
         self._run_cmd(['docker',
                        'build',
                        '-t', 'alubbock/thunorweb:dev',
@@ -98,6 +103,7 @@ class ThunorBld(ThunorCmdHelper):
             self._rmdir('_state/thunor-static-build')
 
     def _init_test_files(self):
+        self._log.info('Initialize staging environment files')
         self._mkdir(self.deploy_dir)
         self._prepare_deployment_common(self.deploy_dir)
         self._copy('config-examples/nginx.site-basic.conf',
@@ -121,19 +127,23 @@ class ThunorBld(ThunorCmdHelper):
 
     def run_tests(self):
         if self.args.dev:
+            self._log.info('Run tests (dev environment)')
             self._run_cmd(['python', 'manage.py', 'test'])
         else:
             compose_file = os.path.join(self.deploy_dir,
                                         'docker-compose.yml')
             base_cmd = ['docker-compose', '-f', compose_file]
+            self._log.info('Start database (if not already up)')
             self._run_cmd(base_cmd + ['up', '-d', 'postgres', 'redis'])
             self._wait_postgres(compose_file=compose_file)
             try:
+                self._log.info('Run tests (staging environment)')
                 self._run_cmd(base_cmd + ['run', '--rm',
                                           '-e', 'THUNORHOME=/thunor',
                                           'app',
                                           'python', 'manage.py', 'test'])
             finally:
+                self._log.info('Shutdown and clean up containers')
                 self._run_cmd(base_cmd + ['down', '-v'])
 
     def init_dev(self):
@@ -145,6 +155,7 @@ class ThunorBld(ThunorCmdHelper):
             raise ValueError('_state directory already exists. Is Thunor Web '
                              'already installed?')
 
+        self._log.info('Initialize dev environment files')
         # Dev config
         self._copy('config-examples/thunor-dev.env', 'thunor-dev.env')
         self._generate_random_key('thunor-dev.env', '{{DJANGO_SECRET_KEY}}')
@@ -162,17 +173,22 @@ class ThunorBld(ThunorCmdHelper):
         # Both
         self._mkdir('_state/postgres-data')
 
+        self._log.info('Start database')
         self._run_cmd(['docker-compose', 'up', '-d', 'postgres'])
 
         # Install Python reqs
+        self._log.info('Install python requirements')
         self._run_cmd(['pip', 'install', '-r', 'requirements-dev.txt'])
 
         # Build static files
         self.make_static()
 
         self._wait_postgres()
+
+        self._log.info('Migrate database')
         self._run_cmd(['python', 'manage.py', 'migrate'])
 
+        self._log.info('Create database cache table')
         self._run_cmd(['python', 'manage.py', 'createcachetable'])
 
         print('\nQuickstart complete! Next steps:')
@@ -187,6 +203,8 @@ class ThunorBld(ThunorCmdHelper):
         parser = argparse.ArgumentParser(prog='thunorctl.py')
         parser.add_argument('--dev', action='store_true',
                             help='Developer mode (app runs outside of Docker)')
+        parser.add_argument('--debug', action='store_true', default=False,
+                            help='Debug mode (increase verbosity)')
         parser.add_argument('--dry-run', action='store_true', default=False,
                             help='Dry run (don\'t execute any commands, '
                                  'just show them)')
