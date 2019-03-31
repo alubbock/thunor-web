@@ -5,6 +5,7 @@ import sys
 import shutil
 import random
 import time
+import re
 import logging
 
 
@@ -209,15 +210,85 @@ class ThunorCtl(ThunorCmdHelper):
                                  '/etc/letsencrypt/dhparams.pem', '2048']
         )
 
-    def _generate_certificate(self):
+    def _generate_certificate(self, hostname=None):
         cmd = self._certbot_cmd + [
             'certbot', 'certonly', '--webroot', '--webroot-path',
-            '/thunor-static'] + self.args.letsencrypt_args
+            '/thunor-static']
+        if hostname:
+            cmd += ['-d', hostname]
+        if 'letsencrypt_args' in self.args:
+            cmd += self.args.letsencrypt_args
         return self._run_cmd(cmd)
 
-    def generate_certificates(self):
+    def _prompt_hostname(self, default='localhost'):
+        hostname = input('\nEnter a hostname (default: {}) : '.format(default)
+                         ).strip()
+        if not hostname:
+            hostname = default
+        return hostname
+
+    def _get_hostname(self):
+        # Try to extract hostname from thunor-app.env
+        try:
+            with open(os.path.join(self.cwd, 'thunor-app.env'), 'r') as f:
+                app_env = f.read()
+        except FileNotFoundError:
+            return self._prompt_hostname()
+
+        match = re.search('^DJANGO_HOSTNAME=(.*)$', app_env, flags=re.MULTILINE)
+        if not match:
+            return self._prompt_hostname()
+
+        return match.group(1)
+
+    def _deploy_tls_config(self, hostname):
+        # Proceed with TLS deployment
+        self._copy('config-examples/nginx.site-full.conf',
+                   '_state/nginx-config/nginx.site.conf',
+                   overwrite=True)
+        self._replace_in_file(
+            os.path.join(self.cwd, '_state/nginx-config/nginx.site.conf'),
+            '{{SERVER_NAME}}',
+            hostname
+        )
+        if 'DOCKER_MACHINE_NAME' in os.environ:
+            if not self.args.thunorhome:
+                raise ValueError('Docker Machine is active but '
+                                 '--thunorhome not set. '
+                                 'Either set --thunorhome option, or unset '
+                                 'Docker Machine environment variables '
+                                 '(docker-machine env --unset).')
+            self._run_cmd([
+                'docker-machine', 'scp',
+                '_state/nginx-config/nginx.site.conf',
+                '{}:{}/_state/nginx-config/nginx.site.conf'.format(
+                    os.environ['DOCKER_MACHINE_NAME'],
+                    self.args.thunorhome
+                )
+            ])
+        self._run_cmd(['docker-compose', 'exec', 'nginx', 'nginx', '-s',
+                       'reload'])
+
+    def generate_certificates(self, prompt=True):
+        hostname = self._get_hostname()
         self._generate_dhparams()
-        self._generate_certificate()
+        self._generate_certificate(hostname)
+        if prompt:
+            print('\nAutomatically update NGINX configuration (recommended)?')
+            print('This will overwrite your nginx.site.conf file')
+            print('That is not a problem unless you made manual changes to '
+                  'that file')
+            response = ''
+            while response not in ('y', 'n'):
+                response = input('\nContinue (Y/N)? ').lower()
+
+            if response == 'n':
+                print('Please manually update your nginx.site.conf file '
+                      'to enable TLS')
+                print('Use config-examples/nginx.site-full.conf as an example')
+                print('Then restart to load the new configuration')
+                return
+        self._deploy_tls_config(hostname)
 
     def renew_certificates(self):
         self._run_cmd(self._certbot_cmd +
@@ -252,6 +323,16 @@ class ThunorCtl(ThunorCmdHelper):
                 decode('utf8')
             self._log.info('Docker Machine IP is ' + docker_ip)
 
+        if not self.args.hostname:
+            self.args.hostname = self._prompt_hostname(
+                default=docker_ip if docker_ip else 'localhost')
+
+        if self.args.enable_tls and self.args.hostname in \
+                ('localhost', docker_ip):
+            raise ValueError('Cannot use --enable-tls without a web accessible '
+                             'hostname.')
+
+        if docker_machine:
             self._replace_in_file(
                 os.path.join(self.cwd, '.env'),
                 'THUNORHOME=.',
@@ -274,18 +355,6 @@ class ThunorCtl(ThunorCmdHelper):
                    '_state/nginx-config/nginx.site.conf')
 
         self._mkdir('_state/postgres-data')
-
-        if not self.args.hostname:
-            if docker_ip:
-                self.args.hostname = docker_ip
-            else:
-                self.args.hostname = 'localhost'
-
-            new_hostname = input('\nEnter a hostname (default: {}) : '.format(
-                self.args.hostname
-            ))
-            if new_hostname.strip():
-                self.args.hostname = new_hostname
 
         self._log.info('Set DJANGO_HOSTNAME in thunor-app.env to {}'.format(
             self.args.hostname))
@@ -310,10 +379,18 @@ class ThunorCtl(ThunorCmdHelper):
 
         self._run_cmd(['docker-compose', 'up', '-d'])
 
-        print('\nDeploy complete! Next steps:')
+        if self.args.enable_tls:
+            self.generate_certificates(prompt=False)
 
+        print('\nDeploy complete! Thunor should be available at http://{}\n'
+              .format(self.args.hostname))
+
+        print('Next steps:')
         print('* Create an admin account with '
               '"python thunorctl.py createsuperuser"')
+        if not self.args.enable_tls:
+            print('* Enable TLS encrypted connections with '
+                  '"python thunorctl.py generatecerts"')
 
     def createsuperuser(self):
         if self.args.dev:
@@ -358,7 +435,12 @@ class ThunorCtl(ThunorCmdHelper):
 
         parser_generate_certs = subparsers.add_parser(
             'generatecerts', help='Generate TLS certificates. Additional '
-                                  'arguments are passed onto letsencrypt.'
+                                  'arguments are passed onto certbot.'
+        )
+        parser_generate_certs.add_argument(
+            '--thunorhome',
+            help='(Docker Machine installs only) Installation directory for '
+                 'Thunor Web on the *remote* machine.'
         )
         parser_generate_certs.add_argument('letsencrypt_args',
                                            nargs=argparse.REMAINDER)
@@ -385,13 +467,18 @@ class ThunorCtl(ThunorCmdHelper):
         parser_renew_certs.set_defaults(func=self.renew_certificates)
 
         parser_deploy = subparsers.add_parser(
-            'deploy', help='Generate example configuration and start Thunor Web'
+            'deploy', help='Generate configuration files and start Thunor Web'
         )
         parser_deploy.add_argument(
             '--hostname',
             help='Hostname for the server (defaults to "localhost", or the '
                  'server\'s IP address on Docker Machine). If not specified, '
                  'an interactive prompt will be used.'
+        )
+        parser_deploy.add_argument(
+            '--enable-tls', action='store_true', default=False,
+            help='Generate TLS certificates to encrypt connections using '
+                 'certbot'
         )
         parser_deploy.add_argument(
             '--thunorhome',
