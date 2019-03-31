@@ -283,6 +283,14 @@ class ThunorCtl(ThunorCmdHelper):
                     self.args.thunorhome
                 )
             ])
+            self._run_cmd([
+                'docker-machine', 'scp',
+                'config-examples/renew-certs.sh',
+                '{}:{}/renew-certs.sh'.format(
+                    os.environ['DOCKER_MACHINE_NAME'],
+                    self.args.thunorhome
+                )
+            ])
         self._log.info('Trigger NGINX reload')
         self._run_cmd(['docker-compose', 'exec', 'nginx', 'nginx', '-s',
                        'reload'])
