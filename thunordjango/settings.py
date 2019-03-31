@@ -213,6 +213,8 @@ AUTHENTICATION_BACKENDS = (
     # Needed for per-object permissions
     'guardian.backends.ObjectPermissionBackend'
 )
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https' if os.environ.get(
+    'DJANGO_ACCOUNTS_TLS', 'false').lower() == 'true' else 'http'
 ACCOUNT_AUTHENTICATION_METHOD = 'email'
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_EMAIL_VERIFICATION = os.environ.get(

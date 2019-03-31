@@ -286,6 +286,14 @@ class ThunorCtl(ThunorCmdHelper):
         self._log.info('Trigger NGINX reload')
         self._run_cmd(['docker-compose', 'exec', 'nginx', 'nginx', '-s',
                        'reload'])
+        self._log.info('Set DJANGO_ACCOUNTS_TLS=True')
+        self._replace_in_file(
+            os.path.join(self.cwd, 'thunor-app.env'),
+            'DJANGO_ACCOUNTS_TLS=False',
+            'DJANGO_ACCOUNTS_TLS=True'
+        )
+        self._log.info('Restart app container')
+        self._run_cmd(['docker-compose', 'restart', 'app'])
 
     def generate_certificates(self, prompt=True):
         hostname = self._get_hostname()
