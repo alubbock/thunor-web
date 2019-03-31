@@ -215,9 +215,10 @@ AUTHENTICATION_BACKENDS = (
 )
 ACCOUNT_AUTHENTICATION_METHOD = 'email'
 ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
-if DEBUG and not _email_enabled:
-    ACCOUNT_EMAIL_VERIFICATION = 'none'
+ACCOUNT_EMAIL_VERIFICATION = os.environ.get(
+    'THUNOR_EMAIL_VERIFICATION',
+    'none' if DEBUG and not _email_enabled else 'mandatory'
+)
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_LOGIN_ON_PASSWORD_RESET = True
 ACCOUNT_FORMS = {'login': 'thunorweb.forms.CentredAuthForm',
