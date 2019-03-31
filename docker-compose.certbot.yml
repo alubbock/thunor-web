@@ -5,6 +5,6 @@ services:
     entrypoint: ""
     volumes:
       - $THUNORHOME/_state/certbot:/etc/letsencrypt
-      - $THUNORHOME/_state/thunor-static/.well-known:/thunor-static/.well-known
+      - $THUNORHOME/_state/.well-known:/thunor-static/.well-known
     environment:
       - TERM=xterm
