@@ -20,7 +20,7 @@ services:
       - $THUNORHOME/_state/nginx-config/nginx.site.conf:/etc/nginx/nginx.site.conf:ro
       - $THUNORHOME/_state/logs/nginx/:/var/log/nginx/
       - $THUNORHOME/_state/thunor-files/:/srv/thunor-files/:ro
-      - $THUNORHOME/_state/.well-known:/srv/.thunor-well-known/:ro
+      - $THUNORHOME/_state/.well-known/:/srv/.thunor-well-known/:ro
       - static-assets:/srv/thunor-static/:ro
       - $THUNORHOME/_state/certbot/:/etc/letsencrypt/:ro
     depends_on:
