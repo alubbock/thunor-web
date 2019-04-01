@@ -155,6 +155,20 @@ class ThunorCmdHelper(object):
             print('Postgres not responding, exiting...')
             sys.exit(1)
 
+    def _get_env(self, filename, key):
+        # Extract environment variable from .env file
+        with open(os.path.join(self.cwd, filename), 'r') as f:
+            app_env = f.read()
+
+        match = re.search('^{}=(.*)$'.format(key), app_env, flags=re.MULTILINE)
+        if not match:
+            raise KeyError('{} not found in {}'.format(key, filename))
+
+        value = match.group(1)
+        self._log.debug('{} set to: {}'.format(key, value))
+
+        return value
+
 
 class ThunorCtl(ThunorCmdHelper):
     def migrate(self):
@@ -240,23 +254,6 @@ class ThunorCtl(ThunorCmdHelper):
             hostname = default
         return hostname
 
-    def _get_hostname(self):
-        # Try to extract hostname from thunor-app.env
-        try:
-            with open(os.path.join(self.cwd, 'thunor-app.env'), 'r') as f:
-                app_env = f.read()
-        except FileNotFoundError:
-            return self._prompt_hostname()
-
-        match = re.search('^DJANGO_HOSTNAME=(.*)$', app_env, flags=re.MULTILINE)
-        if not match:
-            return self._prompt_hostname()
-
-        hostname = match.group(1)
-        self._log.debug('Hostname set to: {}'.format(hostname))
-
-        return hostname
-
     def _deploy_tls_config(self, hostname):
         # Proceed with TLS deployment
         self._log.info('Deploy TLS configuration to NGINX')
@@ -268,19 +265,14 @@ class ThunorCtl(ThunorCmdHelper):
             '{{SERVER_NAME}}',
             hostname
         )
+        thunorhome = self._get_env('.env', 'THUNORHOME')
         if 'DOCKER_MACHINE_NAME' in os.environ:
-            if not self.args.thunorhome:
-                raise ValueError('Docker Machine is active but '
-                                 '--thunorhome not set. '
-                                 'Either set --thunorhome option, or unset '
-                                 'Docker Machine environment variables '
-                                 '(docker-machine env --unset).')
             self._run_cmd([
                 'docker-machine', 'scp',
                 '_state/nginx-config/nginx.site.conf',
                 '{}:{}/_state/nginx-config/nginx.site.conf'.format(
                     os.environ['DOCKER_MACHINE_NAME'],
-                    self.args.thunorhome
+                    thunorhome
                 )
             ])
             self._run_cmd([
@@ -288,7 +280,7 @@ class ThunorCtl(ThunorCmdHelper):
                 'config-examples/renew-certs.sh',
                 '{}:{}/renew-certs.sh'.format(
                     os.environ['DOCKER_MACHINE_NAME'],
-                    self.args.thunorhome
+                    thunorhome
                 )
             ])
         self._log.info('Trigger NGINX reload')
@@ -304,7 +296,10 @@ class ThunorCtl(ThunorCmdHelper):
         self._run_cmd(['docker-compose', 'restart', 'app'])
 
     def generate_certificates(self, prompt=True):
-        hostname = self._get_hostname()
+        try:
+            hostname = self._get_env('thunor-app.env', 'DJANGO_HOSTNAME')
+        except (FileNotFoundError, KeyError):
+            hostname = self._prompt_hostname()
         if hostname == 'localhost':
             raise ValueError('Cannot generate TLS certificates for localhost.'
                              'Please use a publicly accessible DNS name.')
@@ -459,13 +454,15 @@ class ThunorCtl(ThunorCmdHelper):
         if self.args.dev:
             raise ValueError('Not available in dev mode. Use '
                              '"python manage.py runserver".')
-        self._log.info('Start Thunor Web')
+        if log:
+            self._log.info('Start Thunor Web')
         self._run_cmd(['docker-compose', 'up', '-d'])
 
     def stop(self, log=True):
         if self.args.dev:
             raise ValueError('Not available in dev mode.')
-        self._log.info('Stop Thunor Web')
+        if log:
+            self._log.info('Stop Thunor Web')
         self._run_cmd(['docker-compose', 'down', '-v'])
 
     def restart(self):
@@ -548,11 +545,6 @@ class ThunorCtl(ThunorCmdHelper):
         parser_generate_certs = subparsers.add_parser(
             'generatecerts', help='Generate TLS certificates. Additional '
                                   'arguments are passed onto certbot.'
-        )
-        parser_generate_certs.add_argument(
-            '--thunorhome',
-            help='(Docker Machine installs only) Installation directory for '
-                 'Thunor Web on the *remote* machine.'
         )
         parser_generate_certs.add_argument('letsencrypt_args',
                                            nargs=argparse.REMAINDER)
