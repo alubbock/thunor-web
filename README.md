@@ -17,6 +17,20 @@ pipelines.
 An online, read-only demo is available at
 [demo.thunor.net](https://demo.thunor.net).
 
+## Installation
+
+See the [installation instructions](https://docs.thunor.net/full-installation)
+for the typical installation procedure. This option is recommended for most users.
+
+If you're interested in modifying the source code or contributing to Thunor
+Web, see the [developer installation](https://docs.thunor.net/developer-installation).
+
+There's also an option for
+[remote deployment using Docker Machine](https://docs.thunor.net/remote-installation).
+
+The differences between these options are covered in
+[installation options](https://docs.thunor.net/installation-options).
+
 ## Documentation
 
 Further documentation and installation instructions are available at
@@ -24,7 +38,10 @@ Further documentation and installation instructions are available at
 
 ## Reporting issues and getting help
 
-If you have a question or suggestions for Thunor, please use our
+If you're having issues, please review the [documentation](https://docs.thunor.net),
+and the [frequently asked questions](https://docs.thunor.net/faq) in particular.
+
+If your question in not answered in the [FAQ](https://docs.thunor.net/faq), please use our
 [online chat](https://gitter.im/thunorweb/Lobby).
 
 If you've found a bug, please use Github issues to report it.
