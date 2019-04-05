@@ -14,7 +14,7 @@ class CentredAuthForm(allauth_forms.LoginForm):
         self.helper = FormHelper()
         self.helper.form_class = 'form-vertical'
         self.helper.add_input(Submit('submit', 'Log in',
-                                     css_class='form-control'))
+                                     css_class='btn-block'))
 
 
 class AddEmailForm(allauth_forms.AddEmailForm):
@@ -67,7 +67,8 @@ class SignUpForm(allauth_forms.SignupForm):
         super(SignUpForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_class = 'form-vertical'
-        self.helper.add_input(Submit('submit', 'Sign Up'))
+        self.helper.add_input(Submit('submit', 'Sign Up',
+                                     css_class='btn-block'))
 
 
 class GroupAdminForm(forms.ModelForm):
