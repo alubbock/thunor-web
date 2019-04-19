@@ -171,12 +171,16 @@ class ThunorCmdHelper(object):
 
 
 class ThunorCtl(ThunorCmdHelper):
+    MAIN_CONTAINER_IMAGE = 'alubbock/thunorweb:latest'
+    MAIN_CONTAINER_SERVICE = 'app'
+
     def migrate(self):
         self._log.info('Migrate database')
         if self.args.dev:
             return self._run_cmd(['python', 'manage.py', 'migrate'])
         else:
-            return self._run_cmd(['docker-compose', 'run', '--rm', 'app',
+            return self._run_cmd(['docker-compose', 'run', '--rm',
+                                  self.MAIN_CONTAINER_SERVICE,
                                   'python', 'manage.py', 'migrate'])
 
     def thunorweb_upgrade(self):
@@ -188,11 +192,22 @@ class ThunorCtl(ThunorCmdHelper):
             bld.make_static()
         else:
             if self.args.all:
-                self._log.info('Upgrade Thunor Web & all services')
+                self._log.info('Pull latest images for Thunor Web & services')
                 self._run_cmd(['docker-compose', 'pull'])
             else:
-                self._log.info('Upgrade Thunor Web')
-                self._run_cmd(['docker-compose', 'pull', 'app'])
+                self._log.info('Pull latest image for Thunor Web')
+                self._run_cmd(['docker-compose', 'pull',
+                               self.MAIN_CONTAINER_SERVICE])
+                active_image_hash = subprocess.check_output(
+                    ['docker-compose', 'images', '-q',
+                     self.MAIN_CONTAINER_SERVICE]).decode('utf8').strip()
+                latest_image_hash = subprocess.check_output(
+                    ['docker', 'images', '-q', self.MAIN_CONTAINER_IMAGE]
+                ).decode('utf8').strip()
+                if active_image_hash.find(latest_image_hash) == 0:
+                    self._log.info('Latest version is already running')
+                    return
+            raise
             self.restart()
         self.migrate()
 
@@ -208,7 +223,7 @@ class ThunorCtl(ThunorCmdHelper):
             cmd = ['docker-compose',
                    'run',
                    '--rm',
-                   'app'] + cmd
+                   self.MAIN_CONTAINER_SERVICE] + cmd
 
         return self._run_cmd(cmd)
 
@@ -293,7 +308,8 @@ class ThunorCtl(ThunorCmdHelper):
             'DJANGO_ACCOUNTS_TLS=True'
         )
         self._log.info('Restart app container')
-        self._run_cmd(['docker-compose', 'restart', 'app'])
+        self._run_cmd(['docker-compose', 'restart',
+                       self.MAIN_CONTAINER_SERVICE])
 
     def generate_certificates(self, prompt=True):
         try:
@@ -436,7 +452,8 @@ class ThunorCtl(ThunorCmdHelper):
         if self.args.dev:
             self._run_cmd(['python', 'manage.py', 'createsuperuser'])
         else:
-            self._run_cmd(['docker-compose', 'exec', 'app',
+            self._run_cmd(['docker-compose', 'exec',
+                           self.MAIN_CONTAINER_SERVICE,
                           'python', 'manage.py', 'createsuperuser'])
 
     def run_tests(self):
@@ -447,7 +464,7 @@ class ThunorCtl(ThunorCmdHelper):
             self._log.info('Run test suite')
             self._run_cmd(['docker-compose', 'run', '--rm',
                            '-e', 'THUNORHOME=/thunor',
-                           'app',
+                           self.MAIN_CONTAINER_SERVICE,
                            'python', 'manage.py', 'test'])
 
     def start(self, log=True):
@@ -476,7 +493,7 @@ class ThunorCtl(ThunorCmdHelper):
         if self.args.dev:
             return self._run_cmd(cmd)
 
-        cmd = ['docker-compose', 'exec', 'app'] + cmd
+        cmd = ['docker-compose', 'exec', self.MAIN_CONTAINER_SERVICE] + cmd
         if self._run_cmd(cmd, exit_on_error=False) != 0:
             raise RuntimeError('Command failed. Please check you\'ve started '
                                'Thunor Web with "python thunorctl.py start".')
