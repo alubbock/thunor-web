@@ -169,6 +169,19 @@ class ThunorCmdHelper(object):
 
         return value
 
+    def _append_env(self, env_var):
+        env_val = os.environ.get(env_var, '')
+        env_str = '{}={}'.format(env_var, env_val)
+
+        env_file = os.path.join(self.cwd, '.env')
+        self._log.debug('Append: "{}" to {}'.format(env_str, env_file))
+
+        if self.args.dry_run:
+            return
+
+        with open(env_file, 'a') as f:
+            f.write(env_str + '\n')
+
 
 class ThunorCtl(ThunorCmdHelper):
     MAIN_CONTAINER_IMAGE = 'alubbock/thunorweb:latest'
@@ -207,7 +220,6 @@ class ThunorCtl(ThunorCmdHelper):
                 if active_image_hash.find(latest_image_hash) == 0:
                     self._log.info('Latest version is already running')
                     return
-            raise
             self.restart()
         self.migrate()
 
@@ -390,6 +402,9 @@ class ThunorCtl(ThunorCmdHelper):
                 'THUNORHOME=.',
                 'THUNORHOME={}'.format(self.args.thunorhome)
             )
+            self._append_env('DOCKER_TLS_VERIFY')
+            self._append_env('DOCKER_HOST')
+            self._append_env('DOCKER_CERT_PATH')
 
             self._run_cmd(['docker-machine', 'ssh', docker_machine,
                            'mkdir', '"' + self.args.thunorhome + '"'])
