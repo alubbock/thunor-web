@@ -71,7 +71,7 @@ def precalculate_dip_rates(dataset_or_id, plate_ids=None):
 
     ctrl_dip_data, expt_dip_data = dip_rates(df_data)
 
-    if expt_dip_data.empty:
+    if expt_dip_data is None or expt_dip_data.empty:
         return
 
     expt_dip_data.reset_index('well_id', inplace=True)
