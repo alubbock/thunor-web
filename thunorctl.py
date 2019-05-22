@@ -222,6 +222,7 @@ class ThunorCtl(ThunorCmdHelper):
                     return
             self.restart()
         self.migrate()
+        self._log.info('Upgrade complete')
 
     def thunorweb_purge(self):
         self._log.info('Thunor Web purge')
