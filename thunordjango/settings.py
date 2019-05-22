@@ -81,10 +81,6 @@ MIGRATION_MODULES = {
     'sites': 'thunorweb.fixtures.sites_migrations',
 }
 
-if not DEBUG:
-    SESSION_COOKIE_SECURE = True
-    CRSF_COOKIE_SECURE = True
-
 MIDDLEWARE = []
 
 if DEBUG:
@@ -213,8 +209,9 @@ AUTHENTICATION_BACKENDS = (
     # Needed for per-object permissions
     'guardian.backends.ObjectPermissionBackend'
 )
-ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https' if os.environ.get(
-    'DJANGO_ACCOUNTS_TLS', 'false').lower() == 'true' else 'http'
+THUNOR_USE_TLS = os.environ.get(
+    'DJANGO_ACCOUNTS_TLS', 'false').lower() == 'true'
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https' if THUNOR_USE_TLS else 'http'
 ACCOUNT_AUTHENTICATION_METHOD = 'email'
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_EMAIL_VERIFICATION = os.environ.get(
@@ -233,6 +230,10 @@ ACCOUNT_FORMS = {'login': 'thunorweb.forms.CentredAuthForm',
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_EMAIL_SUBJECT_PREFIX = ''
+
+if not DEBUG and THUNOR_USE_TLS:
+    SESSION_COOKIE_SECURE = True
+    CRSF_COOKIE_SECURE = True
 
 LOGIN_REDIRECT_URL = 'thunorweb:home'
 
