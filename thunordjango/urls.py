@@ -19,9 +19,9 @@ from django.conf import settings
 from thunorweb.views import handler500, handler404
 
 urlpatterns = [
+    url(r'', include('thunorweb.urls')),
     url(r'^accounts/', include('allauth.urls')),
     url(r'^admin/', admin.site.urls),
-    url(r'', include('thunorweb.urls')),
     url(r'^invitations/', include('invitations.urls', namespace='invitations')),
 ]
 

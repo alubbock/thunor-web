@@ -128,7 +128,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'thunordjango.wsgi.application'
 
 EMAIL_USE_TLS = True
-_email_enabled = True
+EMAIL_ENABLED = True
 try:
     EMAIL_HOST = os.environ['DJANGO_EMAIL_HOST']
     EMAIL_PORT = os.environ['DJANGO_EMAIL_PORT']
@@ -138,7 +138,7 @@ try:
 except KeyError:
     if DEBUG:
         logger.warning('Email configuration missing; email sending disabled')
-        _email_enabled = False
+        EMAIL_ENABLED = False
     else:
         raise
 
@@ -216,7 +216,7 @@ ACCOUNT_AUTHENTICATION_METHOD = 'email'
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_EMAIL_VERIFICATION = os.environ.get(
     'THUNOR_EMAIL_VERIFICATION',
-    'none' if DEBUG and not _email_enabled else 'mandatory'
+    'none' if DEBUG and not EMAIL_ENABLED else 'mandatory'
 )
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_LOGIN_ON_PASSWORD_RESET = True

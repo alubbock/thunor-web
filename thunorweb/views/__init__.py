@@ -6,6 +6,7 @@ from django.conf import settings
 from guardian.shortcuts import ObjectPermissionChecker
 from thunorweb.models import HTSDataset
 from django.contrib import auth
+from allauth.account.views import password_reset
 
 
 def _assert_has_perm(request, dataset, perm_required):
@@ -58,6 +59,13 @@ def home(request):
 @login_required
 def my_account(request):
     return render(request, 'my_account.html')
+
+
+def reset_password(request):
+    if settings.EMAIL_ENABLED:
+        return password_reset(request)
+    else:
+        return render(request, 'password_reset_manually.html')
 
 
 def logout(request):

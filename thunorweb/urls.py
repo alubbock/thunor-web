@@ -10,6 +10,8 @@ app_name = 'thunorweb'
 urlpatterns = [
     url(r'^$', views.home, name='home'),
 
+    url('^accounts/password/reset/$', views.reset_password,
+        name='reset_password'),
     url('^accounts$', views.my_account, name='my_account'),
     url('^logout$', views.logout, name='logout'),
 
