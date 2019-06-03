@@ -260,6 +260,10 @@ def _drug_combination_heatmap(request, dataset, drug_id, cell_line_id):
         return HttpResponse('Please select only one drug combination '
                             'at a time', status=400)
 
+    if len(cell_line_id) != 1:
+        return HttpResponse('Please select a single cell line for drug '
+                            'combination plots', status=400)
+
     color_by = request.GET.get('colorBy', 'off')
     if color_by != 'off':
         return HttpResponse('Color overlay must be set to default for drug '
