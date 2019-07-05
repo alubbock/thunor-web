@@ -1922,6 +1922,9 @@ var plate_mapper = function () {
         }
 
         var file = e.target.files[0];
+        if (file === undefined) {
+            return;
+        }
         var reader = new FileReader();
         if(file.name.endsWith('.json')) {
             reader.onload = function(e) {
