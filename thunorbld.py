@@ -128,7 +128,7 @@ class ThunorBld(ThunorCmdHelper):
     def run_tests(self):
         if self.args.dev:
             self._log.info('Run tests (dev environment)')
-            self._run_cmd(['python', 'manage.py', 'test'])
+            self._run_cmd(['coverage', 'run', 'manage.py', 'test'])
         else:
             compose_file = os.path.join(self.deploy_dir,
                                         'docker-compose.yml')
