@@ -1,0 +1,7 @@
+[run]
+branch=True
+source=thunorweb
+
+[report]
+omit =
+    thunorweb/_version.py

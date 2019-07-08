@@ -17,8 +17,7 @@ install:
 script:
 - python thunorbld.py $DEVFLAG test
 after_success:
-- if [[ $DEVFLAG == "--dev" ]]; then pip install coveralls; fi
-- if [[ $DEVFLAG == "--dev" ]]; then coveralls; fi
+- if [[ $DEVFLAG == "--dev" ]]; then codecov; fi
 jobs:
   include:
   - stage: deploy
