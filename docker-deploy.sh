@@ -49,10 +49,10 @@ cp ../docker-compose.certbot.yml .
 rm -rf config-examples
 cp -r ../config-examples .
 if [ -z "$TRAVIS_TAG" ]; then
-  sed -i 's/thunorweb:latest/thunorweb:dev/' config-examples/docker-compose.complete.yml
+  sed -i 's/thunorweb:latest/thunorweb:dev/' docker-compose.services.yml
   echo "$TRAVIS_COMMIT" > .release
 else
-  sed -i "s/thunorweb:latest/thunorweb:$TRAVIS_TAG/" config-examples/docker-compose.complete.yml
+  sed -i "s/thunorweb:latest/thunorweb:$TRAVIS_TAG/" docker-compose.services.yml
   echo "$TRAVIS_TAG" > .release
 fi
 git add -A
@@ -63,8 +63,8 @@ if [[ $TRAVIS_TAG ]]; then
   git tag "$TRAVIS_TAG"
   git push --tags
   # Make another commit referencing "latest" at HEAD
-  sed -i "s/thunorweb:$TRAVIS_TAG/thunorweb:latest/" config-examples/docker-compose.complete.yml
-  git add config-examples/docker-compose.complete.yml
+  sed -i "s/thunorweb:$TRAVIS_TAG/thunorweb:latest/" docker-compose.services.yml
+  git add docker-compose.services.yml
 fi
 
 git commit -m "Travis update: $TRAVIS_COMMIT"

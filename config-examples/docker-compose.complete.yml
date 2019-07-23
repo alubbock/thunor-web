@@ -1,7 +1,9 @@
 version: '2.1'
 services:
   app:
-    image: alubbock/thunorweb:latest
+    extends:
+      file: docker-compose.services.yml
+      service: app
     env_file:
       - thunor-db.env
       - thunor-app.env
