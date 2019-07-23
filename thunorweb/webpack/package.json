@@ -11,8 +11,8 @@
   "dependencies": {
     "bootstrap-fileinput": "^4.4.8",
     "bootstrap-sass": "^3.3.7",
-    "bootstrap-select": "^1.13.6",
-    "bootstrap-switch": "^3.3.4",
+    "bootstrap-select": "^1.13.10",
+    "bootstrap-switch": "3.3.4",
     "datatables.net": "^1.10.19",
     "datatables.net-bs": "^1.10.19",
     "datatables.net-select": "^1.2.7",
