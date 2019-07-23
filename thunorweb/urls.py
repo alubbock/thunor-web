@@ -75,6 +75,8 @@ urlpatterns = [
         name='ajax_delete_dataset'),
     url(r'^ajax/dataset/rename$', datasets.ajax_rename_dataset,
         name='ajax_rename_dataset'),
+    url(r'^ajax/dataset/(?P<dataset_id>\d+)/accept-license$',
+        datasets.accept_license, name='accept_license'),
 
     url(r'^ajax/platefile/upload', datasets.ajax_upload_platefiles,
         name='ajax_upload_platefiles'),

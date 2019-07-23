@@ -21,6 +21,8 @@ class HTSDataset(models.Model):
     modified_date = models.DateTimeField(auto_now=True)
     deleted_date = models.DateTimeField(null=True, default=None,
                                         editable=False)
+    creator = models.TextField(null=True)
+    license_text = models.TextField(null=True)
 
     def __str__(self):
         return '%s (%d)' % (self.name, self.id)

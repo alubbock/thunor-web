@@ -9,6 +9,7 @@ import numpy as np
 from django.conf import settings
 import os
 from thunorweb.serve_file import serve_file
+from thunorweb.views.datasets import license_accepted, LICENSE_UNSIGNED
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 from thunorweb.views import login_required_unless_public, _assert_has_perm
 
@@ -56,6 +57,9 @@ def download_fit_params(request, dataset_id, stat_type):
                                'have permission to access it.')
 
     _assert_has_perm(request, dataset, 'download_data')
+    if not license_accepted(request, dataset):
+        return HttpResponse(LICENSE_UNSIGNED.format(dataset.name),
+                            status=400)
 
     file = _cached_file(dataset, file_type)
 
@@ -146,6 +150,9 @@ def download_dataset_hdf5(request, dataset_id):
         raise Http404()
 
     _assert_has_perm(request, dataset, 'download_data')
+    if not license_accepted(request, dataset):
+        return HttpResponse(LICENSE_UNSIGNED.format(dataset.name),
+                            status=400)
 
     try:
         full_path = _generate_dataset_hdf5(dataset)

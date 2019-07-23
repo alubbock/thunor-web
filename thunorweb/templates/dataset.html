@@ -62,6 +62,8 @@
           <span style="font-size:0.9em">Viability Parameters (TSV)</span>
         </a>
         {% endif %}
+      <input type="hidden" id="dataset-id" name="dataset-id" value=
+            "{{ dataset.id }}">
       {% if request.user.id == dataset.owner_id %}
       <h2>Admin operations</h2>
         <a href="{% url 'thunorweb:plate_upload' dataset.id %}" role="button"
@@ -71,8 +73,6 @@
         <a href="{% url 'thunorweb:view_dataset_permissions' dataset.id %}"
     role="button" class="btn btn-primary btn-lg">
         <i class="fa fa-lock fa-3x"></i><br>Manage<br>Permissions</a>
-        <input type="hidden" id="dataset-id" name="dataset-id" value=
-            "{{ dataset.id }}">
         <a role="button" id="btn-delete-dataset" class="btn btn-danger btn-lg">
             <i class="fa fa-trash fa-3x"></i><br>Delete<br>Dataset</a>
       {% endif %}
@@ -81,9 +81,11 @@
     </div>
     <div class="col-md-3">
         <h2 style="margin-top:5px">Metadata</h2>
+        {% if dataset.creator %}<p><strong>Created by</strong><br><span id="meta-creator">{{ dataset.creator }}</span></p>{% endif %}
+        {% if dataset.license_text %}<p><strong>Usage terms</strong><br><span id="meta-license">{{ dataset.license_text }}</span></p>{% endif %}
             <p><strong>Uploaded by</strong><br><a href="mailto
             :{{ dataset.owner.email }}">{{ dataset.owner.email }}</a></p>
-            <p><strong>Creation date</strong><br>{{ dataset.creation_date }}</p>
+            <p><strong>Uploaded date</strong><br>{{ dataset.creation_date }}</p>
             <p><strong>Most recent plate file upload</strong><br>
                 {{ dataset.last_upload }}</p>
             <p><strong>Most recent annotation</strong><br>
@@ -96,7 +98,7 @@
 <script>
 $(function () {
     'use strict';
-    pyHTS.views.dataset.activate();
+    pyHTS.views.dataset.activate({% if dataset.license_accepted %}false{% else %}true{% endif %});
 });
 </script>
 {% endblock %}

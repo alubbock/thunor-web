@@ -132,6 +132,7 @@ var ajax = (function () {
         "rename_dataset": "/ajax/dataset/rename",
         "delete_dataset": "/ajax/dataset/delete",
         "page_view_dataset": "/dataset/{ARG}",
+        "accept_license": "/ajax/dataset/{ARG}/accept-license",
         "create_cellline": "/ajax/cellline/create",
         "create_drug": "/ajax/drug/create",
         "load_plate": "/ajax/plate/load/{ARG}",

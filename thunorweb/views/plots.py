@@ -19,7 +19,8 @@ import collections
 from thunorweb.views import login_required_unless_public, _assert_has_perm
 from thunorweb.views.plate_mapper import ajax_load_plate
 from thunorweb.views.datasets import _get_celllinetag_permfilter, \
-    _get_drugtag_permfilter, dataset_groupings
+    _get_drugtag_permfilter, dataset_groupings, license_accepted, \
+    LICENSE_UNSIGNED
 from thunorweb.views.tags import TAG_EVERYTHING_ELSE
 import json
 
@@ -68,6 +69,9 @@ def ajax_get_plot(request, file_type='json'):
         raise Http404()
 
     _assert_has_perm(request, dataset, permission_required)
+    if not license_accepted(request, dataset):
+        return HttpResponse(LICENSE_UNSIGNED.format(dataset.name),
+                            status=400)
 
     if plot_type == 'tc':
         if len(drug_id) != 1 or len(cell_line_id) != 1:

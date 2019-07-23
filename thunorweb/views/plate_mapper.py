@@ -1,5 +1,5 @@
 from django.shortcuts import render, Http404
-from django.template.response import TemplateResponse
+from django.template.response import TemplateResponse, HttpResponse
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.db import transaction
 from django.db.models import Q, Count
@@ -16,6 +16,7 @@ from django.conf import settings
 from collections import defaultdict, namedtuple
 from thunorweb.helpers import AutoExtendList
 from thunorweb.views import login_required_unless_public, _assert_has_perm
+from thunorweb.views.datasets import license_accepted, LICENSE_UNSIGNED
 
 
 @login_required_unless_public
@@ -282,6 +283,9 @@ def ajax_load_plate(request, plate_id, extra_return_args=None,
         raise Http404()
 
     _assert_has_perm(request, p.dataset, 'view_plate_layout')
+    if not license_accepted(request, p.dataset):
+        return HttpResponse(LICENSE_UNSIGNED.format(p.dataset.name),
+                            status=400)
 
     field_ext = '__name' if use_names else '_id'
 

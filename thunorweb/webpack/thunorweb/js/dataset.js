@@ -19,7 +19,20 @@ var delete_dataset = function() {
             dataType: 'json'});
 };
 
-var dataset = function() {
+var accept_license = function() {
+    ui.loadingModal.show();
+    $.ajax({type: 'POST',
+            url: ajax.url("accept_license", $('#dataset-id').val()),
+            headers: { 'X-CSRFToken': ajax.getCsrfToken() },
+            error: ajax.ajaxErrorCallback,
+            complete: function() {
+                ui.loadingModal.hide();
+            },
+            dataType: 'json'});
+};
+
+
+var dataset = function(showLicense) {
     $('#dataset-name-edit').click(function() {
         var datasetName = $('.dataset-name').first().text();
         $('#dataset-name').hide();
@@ -78,6 +91,21 @@ var dataset = function() {
             okButtonClass: "btn-danger"
         });
     });
+
+    if (showLicense) {
+        var licenseText = $('#meta-license').text();
+        var owner = $('#meta-creator').text();
+        ui.okCancelModal( {
+            title: "Usage terms",
+            text:
+                "This dataset was created by <strong>" + owner +
+                "</strong>. They provide the following terms of usage:<br><br>" +
+                licenseText + "<br><br><strong>Do you accept these terms?</strong>",
+            okLabel: "Accept",
+            onOKHide: accept_license,
+            onCancelHide: function() { window.location = ajax.url("page_datasets"); }
+        });
+    }
 };
 
 module.exports = {

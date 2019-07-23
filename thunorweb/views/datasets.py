@@ -24,6 +24,17 @@ from thunorweb.views.tags import TAG_EVERYTHING_ELSE
 logger = logging.getLogger(__name__)
 
 
+LICENSE_UNSIGNED = 'The dataset "{}" has usage terms which much be accepted ' \
+                   'before it can be accessed. Please access the dataset ' \
+                   'from the home page first to see and accept the terms.'
+
+
+def license_accepted(request, dataset):
+    return dataset.license_text is None or \
+           dataset.owner_id == request.user.id or \
+           f'dataset_{dataset.id}_lics_agree' in request.session
+
+
 @login_required_unless_public
 def view_dataset(request, dataset_id):
     try:
@@ -47,6 +58,7 @@ def view_dataset(request, dataset_id):
             raise Http404()
 
     dataset.single_timepoint = dataset_groupings(dataset)['singleTimepoint']
+    dataset.license_accepted = license_accepted(request, dataset)
 
     response = render(request, 'dataset.html',
                       {'dataset': dataset, 'perms': perms,
@@ -80,6 +92,34 @@ def view_dataset_permissions(request, dataset_id):
          'group_perms': group_perms})
 
     return response
+
+
+@login_required_unless_public
+def accept_license(request, dataset_id):
+    try:
+        dataset = HTSDataset.objects.get(id=dataset_id,
+                                         deleted_date=None)
+    except HTSDataset.DoesNotExist:
+        raise Http404()
+
+    perms_base = dataset.view_dataset_permission_names()
+
+    if dataset.license_text is None or dataset.owner_id == request.user.id:
+        # No license, or owner has already accepted license
+        return JsonResponse({'success': True})
+    else:
+        if not settings.LOGIN_REQUIRED and not request.user.is_authenticated:
+            perms = get_perms(Group.objects.get(name='Public'), dataset)
+        else:
+            perms = get_perms(request.user, dataset)
+        if not (set(perms_base) & set(perms)):
+            raise Http404()
+
+    # Store the license acceptance
+    request.session[f'dataset_{dataset.id}_lics_agree'] = \
+        timezone.now().isoformat()
+
+    return JsonResponse({'success': True})
 
 
 @login_required
@@ -167,6 +207,9 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
 
     for dataset in datasets:
         _assert_has_perm(request, dataset, 'view_plots')
+        if not license_accepted(request, dataset):
+            return HttpResponse(LICENSE_UNSIGNED.format(dataset.name),
+                                status=400)
 
     if len(plates) == 0:
         return HttpResponse(
