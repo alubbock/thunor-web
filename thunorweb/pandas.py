@@ -325,7 +325,7 @@ def df_dip_rates(dataset_id, drug_id, cell_line_id,
             'drug', 'dataset', 'plate')
         )
 
-        if df_doses.isnull().values.all():
+        if df_doses['value'].isnull().values.all():
             raise NoDataException()
 
         df_doses[['dose', 'drug']] = \
@@ -370,7 +370,7 @@ def df_ctrl_dip_rates(dataset_id, plate_ids=None, cell_line_id=None,
                         'stat_name', 'value')
     )
 
-    if df_controls.isnull().values.all():
+    if df_controls['value'].isnull().values.all():
         df_controls = None
     else:
         df_controls = df_controls.pivot_table(
