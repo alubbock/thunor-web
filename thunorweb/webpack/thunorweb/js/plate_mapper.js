@@ -1800,7 +1800,8 @@ var plate_mapper = function () {
         var drugsToCreate = [];
         for(var i=0; i<numWells; i++) {
             var well = {};
-            wells.dipRate = pyHTS.state.plateMap.wells[i].dipRate;
+            well.dipRate = pyHTS.state.plateMap.wells[i].dipRate === undefined ? null :
+                pyHTS.state.plateMap.wells[i].dipRate;
             // Check cellLine
             var srcWell = json.wells[i];
             if(!srcWell.hasOwnProperty("cellLine") || (srcWell.cellLine !== null && !(typeof srcWell.cellLine === "string"))) {
