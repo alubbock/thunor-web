@@ -99,12 +99,18 @@ def download_fit_params(request, dataset_id, stat_type):
 
         fp.to_csv(full_path, sep='\t')
 
-        HTSDatasetFile.objects.create(
+        df, created = HTSDatasetFile.objects.get_or_create(
             dataset=dataset,
             file_type=file_type,
-            file_type_protocol=file_type_version,
-            file=full_path
+            defaults={
+                'file_type_protocol': file_type_version,
+                'file': full_path
+            }
         )
+        if not created:
+            df.file_type_protocol = file_type_version
+            df.file = full_path
+            df.save()
 
     output_filename = '{}_{}_params'.format(dataset.name, stat_type)
 
@@ -132,12 +138,19 @@ def _generate_dataset_hdf5(dataset, regenerate_cache=False):
 
         full_path = os.path.join(settings.DOWNLOADS_ROOT, file_name)
         write_hdf(df_data, full_path)
-        HTSDatasetFile.objects.create(
+        df, created = HTSDatasetFile.objects.get_or_create(
             dataset=dataset,
             file_type=file_type,
-            file_type_protocol=file_type_version,
-            file=full_path
+            defaults={
+                'file_type_protocol': file_type_version,
+                'file': full_path
+            }
         )
+        if not created:
+            df.file_type_protocol = file_type_version
+            df.file = full_path
+            df.save()
+
     return full_path
 
 
