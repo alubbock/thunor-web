@@ -14,6 +14,7 @@ from datetime import timedelta
 import pickle
 from thunor.curve_fit import HillCurveLL3u, HillCurveLL4
 from thunor.viability import viability
+from thunorweb.pandas import has_drug_combinations
 
 
 # Increment these versions to indicate a change in calculation protocols
@@ -399,9 +400,7 @@ def _dataset_groupings(dataset, regenerate_cache=False):
 
     timepoints = list(set(a['timepoint'] for a in assays_query))
 
-    has_drug_combos = WellDrug.objects.filter(
-        well__plate__dataset_id=dataset.id).annotate(
-        drug2=F('well__welldrug__drug')).exclude(drug=F('drug2')).exists()
+    has_drug_combos = has_drug_combinations(dataset.id, use_cache=False)
 
     # Get drug without combinations
     drug_objs = WellDrug.objects.filter(

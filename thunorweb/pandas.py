@@ -1,6 +1,7 @@
 import pandas as pd
 from .models import Well, WellDrug, WellMeasurement, WellStatistic, CurveFit
-from django.db.models import Count, Max, Sum
+from django.core.cache import cache
+from django.db.models import Count, Max, Sum, F
 from django.db.models.functions import Coalesce
 from collections import Iterable
 from thunor.io import HtsPandas
@@ -131,35 +132,67 @@ def _apply_control_filter(queryset, cell_line_id):
                                    cell_line_id)
 
 
-def _dataframe_wellinfo(dataset_id, drug_id, cell_line_id,
+def _dataframe_wellinfo(dataset, dataset_id, drug_id, cell_line_id,
                         use_dataset_names=False, for_export=False):
     well_info, drug_id, cell_line_id = _queryset_well_info(
         dataset_id, drug_id, cell_line_id)
 
-    well_info = well_info.prefetch_related('welldrug_set',
-                                           'welldrug_set__drug')
-    well_info = well_info.select_related('cell_line', 'plate')
-    if use_dataset_names:
-        well_info = well_info.select_related('plate__dataset')
+    multi_dataset = isinstance(dataset_id, Iterable)
+    index_keys = ['dataset', 'drug', 'cell_line', 'dose']
 
-    df_doses = pd.DataFrame({'dose': tuple(d.dose for d in
-                                       well.welldrug_set.all()),
-                             'well_id':  well.id,
-                             'well_num': well.well_num,
-                             'cell_line': well.cell_line.name,
-                             'drug': tuple(d.drug.name for d in
-                                      well.welldrug_set.all()),
-                             'plate': well.plate_id if not
-                                      for_export else well.plate.name,
-                             'dataset': dataset_id if (not isinstance(
-                                 dataset_id, Iterable) and not
-                                use_dataset_names)
-                             else (well.plate.dataset.name if
-                                   use_dataset_names else
-                             well.plate.dataset_id)} for well in well_info)
+    if has_drug_combinations(dataset_id):
+        # Drug-combos present (this needs further optimization)
+        well_info = well_info.select_related('cell_line')
+        if for_export or multi_dataset:
+            well_info = well_info.select_related('plate')
+        if use_dataset_names and multi_dataset:
+            well_info = well_info.select_related('plate__dataset')
+
+        well_info = well_info.prefetch_related('welldrug_set',
+                                               'welldrug_set__drug')
+
+        df_doses = pd.DataFrame((
+            {'dose': tuple(d.dose for d in
+                       well.welldrug_set.all()),
+             'well_id':  well.id,
+             'well_num': well.well_num,
+             'cell_line': well.cell_line.name,
+             'drug': tuple(d.drug.name for d in well.welldrug_set.all()),
+             'plate': well.plate.name if for_export else well.plate_id,
+             'dataset': (dataset.name if use_dataset_names else dataset_id)
+                if not isinstance(dataset_id, Iterable) else
+                (well.plate.dataset.name if use_dataset_names
+                 else well.plate.dataset_id)
+             } for well in well_info)
+        )
+    else:
+        # No drug combos in dataset, use more efficient query format
+        fetch_cols = ['welldrug__dose', 'id', 'well_num', 'cell_line__name',
+                      'welldrug__drug__name',
+                      'plate__name' if for_export else 'plate_id']
+        rename_cols = ['dose', 'well_id', 'well_num', 'cell_line', 'drug',
+                       'plate']
+        if multi_dataset:
+            fetch_cols += [('plate__dataset__name' if use_dataset_names
+                           else 'plate__dataset_id')]
+            rename_cols += ['dataset']
+        df_doses = pd.DataFrame.from_records(well_info.values(*fetch_cols))
+        if not multi_dataset:
+            df_doses['dataset'] = (dataset.name if use_dataset_names
+                                   else dataset_id)
+        df_doses.rename(columns=dict(zip(fetch_cols, rename_cols)),
+                        inplace=True)
+        if for_export:
+            # Use unstacked format
+            df_doses.rename(columns={'dose': 'dose1', 'drug': 'drug1'},
+                            inplace=True)
+            index_keys = ['dataset', 'drug1', 'cell_line', 'dose1']
+        else:
+            df_doses['dose'] = df_doses['dose'].transform(lambda x: (x, ))
+            df_doses['drug'] = df_doses['drug'].transform(lambda x: (x, ))
+
     if not df_doses.empty:
-        df_doses.set_index(keys=['dataset', 'drug', 'cell_line', 'dose'],
-                           inplace=True)
+        df_doses.set_index(keys=index_keys, inplace=True)
 
     return df_doses
 
@@ -174,7 +207,7 @@ def df_doses_assays_controls(dataset, drug_id, cell_line_id, assay,
     else:
         dataset_id = dataset.id
 
-    df_doses = _dataframe_wellinfo(dataset_id, drug_id, cell_line_id,
+    df_doses = _dataframe_wellinfo(dataset, dataset_id, drug_id, cell_line_id,
                                    for_export=for_export,
                                    use_dataset_names=use_dataset_names
                                    )
@@ -452,3 +485,22 @@ def queryset_to_dataframe(queryset, columns, index=None, rename_columns=None):
         columns=rename_columns or columns,
         index=index
     )
+
+
+def has_drug_combinations(dataset_ids, use_cache=True):
+    if not isinstance(dataset_ids, Iterable):
+        dataset_ids = (dataset_ids, )
+    for d in dataset_ids:
+        dataset_groupings = cache.get('dataset_{}_groupings'.format(d))
+        if dataset_groupings is None or not use_cache:
+            # Calculate from DB
+            if WellDrug.objects.filter(
+                    well__plate__dataset_id=d).annotate(
+                    drug2=F('well__welldrug__drug')).exclude(
+                    drug=F('drug2')).exists():
+                return True
+        elif any(isinstance(d['id'], Iterable)
+                 for d in dataset_groupings['drugs']):
+            return True
+
+    return False
