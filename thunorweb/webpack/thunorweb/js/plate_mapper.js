@@ -205,7 +205,7 @@ PlateMap.prototype = {
                    return util.filterObjectsAttr(drug, pyHTS.state.drugs, "id", "name").toString().replace(/^-1$/, "None");
                }).join("<br>"),
                $.map(this.wells[w].doses, util.doseFormatter).join("<br>"),
-               this.wells[w].dipRate === null ? null : this.wells[w].dipRate.toFixed(10)
+               this.wells[w].dipRate == null ? null : this.wells[w].dipRate.toFixed(10)
             ]);
         }
         return wells;
