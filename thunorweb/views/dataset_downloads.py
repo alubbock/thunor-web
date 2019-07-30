@@ -1,5 +1,6 @@
 from django.shortcuts import Http404
 from django.http import HttpResponse
+from django.utils import timezone
 from thunorweb.models import HTSDataset, HTSDatasetFile
 from thunor.curve_fit import fit_params_from_base
 from thunor.io import write_hdf
@@ -61,6 +62,7 @@ def download_fit_params(request, dataset_id, stat_type):
         return HttpResponse(LICENSE_UNSIGNED.format(dataset.name),
                             status=400)
 
+    mod_date = timezone.now()
     file = _cached_file(dataset, file_type)
 
     if file:
@@ -110,6 +112,7 @@ def download_fit_params(request, dataset_id, stat_type):
         if not created:
             df.file_type_protocol = file_type_version
             df.file = full_path
+            df.creation_date = mod_date
             df.save()
 
     output_filename = '{}_{}_params'.format(dataset.name, stat_type)
@@ -123,6 +126,7 @@ def _generate_dataset_hdf5(dataset, regenerate_cache=False):
     file_type = 'dataset_hdf5'
     file_type_version = 1
 
+    mod_date = timezone.now()
     file = _cached_file(dataset, file_type)
 
     if file and not regenerate_cache:
@@ -149,6 +153,7 @@ def _generate_dataset_hdf5(dataset, regenerate_cache=False):
         if not created:
             df.file_type_protocol = file_type_version
             df.file = full_path
+            df.creation_date = mod_date
             df.save()
 
     return full_path
