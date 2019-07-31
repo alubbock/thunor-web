@@ -1,5 +1,6 @@
 from django.shortcuts import render, Http404
 from django.template.loader import get_template
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.contrib.auth.models import Group
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponseBadRequest, HttpResponse
@@ -36,6 +37,7 @@ def license_accepted(request, dataset):
 
 
 @login_required_unless_public
+@ensure_csrf_cookie
 def view_dataset(request, dataset_id):
     try:
         dataset = HTSDataset.objects.filter(id=dataset_id, deleted_date=None)\
@@ -94,6 +96,7 @@ def view_dataset_permissions(request, dataset_id):
     return response
 
 
+@login_required_unless_public
 def accept_license(request, dataset_id):
     try:
         dataset = HTSDataset.objects.get(id=dataset_id,
