@@ -94,7 +94,6 @@ def view_dataset_permissions(request, dataset_id):
     return response
 
 
-@login_required_unless_public
 def accept_license(request, dataset_id):
     try:
         dataset = HTSDataset.objects.get(id=dataset_id,
