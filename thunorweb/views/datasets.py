@@ -98,6 +98,10 @@ def view_dataset_permissions(request, dataset_id):
 
 @login_required_unless_public
 def accept_license(request, dataset_id):
+    if request.method != 'POST':
+        return JsonResponse({'success': False,
+                             'message': 'HTTP POST request required'},
+                            status=400)
     try:
         dataset = HTSDataset.objects.get(id=dataset_id,
                                          deleted_date=None)
