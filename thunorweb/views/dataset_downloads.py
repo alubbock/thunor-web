@@ -59,11 +59,8 @@ def download_fit_params(request, dataset_id, stat_type):
 
     _assert_has_perm(request, dataset, 'download_data')
     if not license_accepted(request, dataset):
-        response = HttpResponse('You must accept the dataset license to '
-                                'download this file', content_type='text/plain')
-        response['Content-Disposition'] = 'attachment; filename=failed.txt'
-        response['Set-Cookie'] = 'fileDownload=true; path=/'
-        return response
+        return _plain_response('You must accept the dataset license to '
+                               'download this file')
 
     mod_date = timezone.now()
     file = _cached_file(dataset, file_type)
@@ -172,20 +169,13 @@ def download_dataset_hdf5(request, dataset_id):
 
     _assert_has_perm(request, dataset, 'download_data')
     if not license_accepted(request, dataset):
-        response = HttpResponse('You must accept the dataset license to '
-                                'download this file', content_type='text/plain')
-        response['Content-Disposition'] = 'attachment; filename=failed.txt'
-        response['Set-Cookie'] = 'fileDownload=true; path=/'
-        return response
+        return _plain_response('You must accept the dataset license to '
+                               'download this file')
 
     try:
         full_path = _generate_dataset_hdf5(dataset)
     except NoDataException:
-        response = HttpResponse('No data found for this request',
-                                content_type='text/plain')
-        response['Content-Disposition'] = 'attachment; filename=failed.txt'
-        response['Set-Cookie'] = 'fileDownload=true; path=/'
-        return response
+        return _plain_response('No data found for this request')
 
     output_filename = '{}.h5'.format(dataset.name)
 
