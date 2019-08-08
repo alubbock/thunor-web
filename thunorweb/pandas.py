@@ -187,7 +187,7 @@ def _dataframe_wellinfo(dataset, dataset_id, drug_id, cell_line_id,
             df_doses.rename(columns={'dose': 'dose1', 'drug': 'drug1'},
                             inplace=True)
             index_keys = ['dataset', 'drug1', 'cell_line', 'dose1']
-        else:
+        elif not df_doses.empty:
             df_doses['dose'] = df_doses['dose'].transform(lambda x: (x, ))
             df_doses['drug'] = df_doses['drug'].transform(lambda x: (x, ))
 

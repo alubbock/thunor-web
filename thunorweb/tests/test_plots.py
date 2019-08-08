@@ -7,6 +7,7 @@ import json
 
 
 HTTP_OK = 200
+HTTP_INVALID_REQUEST = 400
 
 
 class TestPlateMapper(TestCase):
@@ -87,6 +88,22 @@ class TestPlateMapper(TestCase):
              }
         )
         self.assertEquals(resp.status_code, HTTP_OK)
+
+    def test_time_course_invalid_cell_line(self):
+        self.client.force_login(self.user)
+        url = reverse('thunorweb:ajax_plot', args=['json'])
+        resp = self.client.get(
+            url,
+            {'plotType': 'tc',
+             'datasetId': self.d.id,
+             'c': 999999999999,
+             'd': self.groupings['drugs'][0]['id'],
+             'assay': self.groupings['dipAssay'],
+             'overlayDipFit': 'true',
+             'logTransform': 'log2'
+             }
+        )
+        self.assertEquals(resp.status_code, HTTP_INVALID_REQUEST)
 
     def test_single_drc_dip(self):
         self.client.force_login(self.user)
