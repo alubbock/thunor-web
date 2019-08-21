@@ -1807,7 +1807,13 @@ var plate_mapper = function () {
             if(!srcWell.hasOwnProperty("cellLine") || (srcWell.cellLine !== null && !(typeof srcWell.cellLine === "string"))) {
                 return upErr('Well '+i+' does not have "cellLine" property, or cellLine is not a string or null');
             }
+            if(srcWell.cellLine === "") {
+                srcWell.cellLine = null;
+            }
             if(srcWell.cellLine !== null) {
+                if(typeof srcWell.cellLine !== "string") {
+                    return upErr('Well '+i+' cell line is not a string or null');
+                }
                 var cl_id = util.filterObjectsAttr(srcWell.cellLine, pyHTS.state.cell_lines,
                     'name', 'id');
                 if (cl_id === -1) {
@@ -1827,11 +1833,16 @@ var plate_mapper = function () {
             if(!srcWell.hasOwnProperty("doses") || !(srcWell.doses instanceof Array)) {
                 return upErr('Well '+i+' does not have "doses" property, or is not an array');
             }
-            var drugs = [], doses = [], d;
+            var drugs = [], doses = [], d, nullDrugCount = 0, nullDoseCount=0;
             for(d=0; d<srcWell.drugs.length; d++) {
                 var currDrug = srcWell.drugs[d];
                 // process drug
-                if(currDrug !== null) {
+                if(currDrug === "") {
+                    currDrug = null;
+                }
+                if(currDrug === null) {
+                    nullDrugCount++;
+                } else {
                     if(typeof currDrug !== "string") {
                         return upErr('Well '+i+', drug '+d+' is not a string or null');
                     }
@@ -1850,16 +1861,22 @@ var plate_mapper = function () {
             }
             for(d=0; d<srcWell.doses.length; d++) {
                 var currDose = srcWell.doses[d];
+                if(currDose === "") {
+                    currDose = null;
+                }
                 // process dose
-                if(currDose !== null) {
+                if(currDose === null) {
+                    nullDoseCount++;
+                } else {
                     if(typeof currDose !== "number") {
                         return upErr('Well '+i+', dose '+d+' is not a number or null');
                     }
                 }
                 doses.push(currDose);
             }
-            well.drugs = drugs;
-            well.doses = doses;
+            well.drugs = drugs.length === nullDrugCount ? [] : drugs;
+            well.doses = doses.length === nullDoseCount ? [] : doses;
+            well.dipRate = null;
             wells.push(well);
         }
         if(cellLinesToCreate.length > 0) {
@@ -1875,6 +1892,7 @@ var plate_mapper = function () {
             pyHTS.state.plateMap.numCols,
             wells
         );
+        pyHTS.state.plateMap.unsaved_changes = true;
         refreshViewAll();
     };
 
