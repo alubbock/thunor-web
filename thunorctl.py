@@ -38,7 +38,9 @@ class ThunorCmdHelper(object):
             return 0
         env = os.environ.copy()
         env['COMPOSE_INTERACTIVE_NO_CLI'] = '1'
-        result = subprocess.call(cmd, cwd=self.cwd, env=env)
+        p = subprocess.Popen(cmd, cwd=self.cwd, env=env)
+        p.wait()
+        result = p.returncode
         if exit_on_error and result != 0:
             self._log.error(
                 'Process exited with status {}, '
