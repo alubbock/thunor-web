@@ -66,6 +66,7 @@ class SignUpForm(allauth_forms.SignupForm):
     def __init__(self, *args, **kwargs):
         super(SignUpForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper()
+        self.fields['email'].widget.attrs.update({'autofocus': 'autofocus'})
         self.helper.form_class = 'form-vertical'
         self.helper.add_input(Submit('submit', 'Sign Up',
                                      css_class='btn-block'))
