@@ -116,7 +116,7 @@ def download_fit_params(request, dataset_id, stat_type):
             df.creation_date = mod_date
             df.save()
 
-    output_filename = '{}_{}_params'.format(dataset.name, stat_type)
+    output_filename = '{}_{}_params.tsv'.format(dataset.name, stat_type)
 
     return serve_file(request, full_path, rename_to=output_filename,
                       content_type='text/tab-separated-values')
@@ -271,7 +271,7 @@ def download_dip_rates(request, dataset_id):
     except NoDataException:
         return _plain_response('No data found for this request')
 
-    output_filename = '{}_dip_rates.'.format(dataset.name)
+    output_filename = '{}_dip_rates.tsv'.format(dataset.name)
 
     return serve_file(request, full_path, rename_to=output_filename,
                       content_type='text/tab-separated-values')
