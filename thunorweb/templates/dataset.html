@@ -55,6 +55,10 @@
        role="button" class="btn btn-primary btn-lg attachment-download">
         <i class="fa fa-table fa-3x"></i><br>DIP Parameters<br>(TSV)
         </a>
+        <a href="{% url 'thunorweb:download_dip_rates' dataset.id %}"
+       role="button" class="btn btn-primary btn-lg attachment-download">
+        <i class="fa fa-table fa-3x"></i><br>DIP Rates<br>(TSV)
+        </a>
         {% endif %}
         <a href="{% url 'thunorweb:download_fit_params' dataset.id 'viability' %}"
        role="button" class="btn btn-primary btn-lg attachment-download">

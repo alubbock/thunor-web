@@ -60,6 +60,8 @@ urlpatterns = [
     url(r'^dataset/(?P<dataset_id>\d+)/download/fit_params_'
         r'(?P<stat_type>viability|dip)$',
         downloads.download_fit_params, name='download_fit_params'),
+    url(r'^dataset/(?P<dataset_id>\d+)/download/dip_rates$',
+        downloads.download_dip_rates, name='download_dip_rates'),
 
     url(r'^plots$', plots.plots, name='plots'),
 
