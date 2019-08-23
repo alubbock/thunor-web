@@ -267,8 +267,7 @@ def download_dip_rates(request, dataset_id):
                                'download this file')
 
     try:
-        # TODO: Remove regenerate cache
-        full_path = _generate_dip_rates(dataset, regenerate_cache=True)
+        full_path = _generate_dip_rates(dataset)
     except NoDataException:
         return _plain_response('No data found for this request')
 
