@@ -139,9 +139,12 @@ var util = (function() {
             }
         },
         filterObjectsAttr: function (name, dataSource,
-                                     searchAttribute, returnAttribute) {
+                                     searchAttribute, returnAttribute, caseInsensitive) {
+            if(caseInsensitive === true) {
+                name = name.toUpperCase();
+            }
             for (var i = 0, len = dataSource.length; i < len; i++) {
-                if (dataSource[i][searchAttribute] === name) {
+                if ((caseInsensitive ? dataSource[i][searchAttribute].toUpperCase() : dataSource[i][searchAttribute]) === name) {
                     return dataSource[i][returnAttribute];
                 }
             }

@@ -789,7 +789,7 @@ var plate_mapper = function () {
         };
         var cl = $cellLineTypeahead.typeahead('val');
         var cl_id = util.filterObjectsAttr(cl, pyHTS.state.cell_lines,
-                'name', 'id');
+                'name', 'id', true);
         if(cl !== '' && cl_id === -1) {
             ui.okCancelModal({
                 title: 'Create cell line',
@@ -812,13 +812,13 @@ var plate_mapper = function () {
         for(var i=0, len=$drugTypeaheads.length; i<len; i++) {
             var drug = $($drugTypeaheads[i]).typeahead('val');
             var dr_id = util.filterObjectsAttr(drug, pyHTS.state.drugs,
-                    'name', 'id');
+                    'name', 'id', true);
             drugIds.push(dr_id);
             if(drug !== '' && dr_id === -1) {
                 ui.okCancelModal({
                     title: 'Create drug',
                     text: 'Drug "' + drug + '" was not found. Create it?<br>' +
-                          '<br>If you meant to autocomplate a suggestion' +
+                          '<br>If you meant to autocomplete a suggestion' +
                           ' use <kbd>Tab</kbd> instead.',
                     onOKHidden: function () {
                         createDrug(drug, createEntityCallback);
@@ -842,7 +842,6 @@ var plate_mapper = function () {
             }
             for(var j=0; j<drugIdsLen; j++) {
                 if(drugIds[j] != -1) {
-                    console.log('setting '+drugIds[j]);
                     pyHTS.state.plateMap.wells[wellId].setDrug(drugIds[j], j);
                 }
                 if(doses[j] != null) {
@@ -1815,7 +1814,7 @@ var plate_mapper = function () {
                     return upErr('Well '+i+' cell line is not a string or null');
                 }
                 var cl_id = util.filterObjectsAttr(srcWell.cellLine, pyHTS.state.cell_lines,
-                    'name', 'id');
+                    'name', 'id', true);
                 if (cl_id === -1) {
                     // cell line does not exist in DB
                     if(pyHTS.state.plateMapperLocalOnly === true) {
@@ -1846,7 +1845,7 @@ var plate_mapper = function () {
                     if(typeof currDrug !== "string") {
                         return upErr('Well '+i+', drug '+d+' is not a string or null');
                     }
-                    var dr_id = util.filterObjectsAttr(currDrug, pyHTS.state.drugs, 'name', 'id');
+                    var dr_id = util.filterObjectsAttr(currDrug, pyHTS.state.drugs, 'name', 'id', true);
                     if (dr_id === -1) {
                         // cell line does not exist in DB
                         if(pyHTS.state.plateMapperLocalOnly === true) {

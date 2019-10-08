@@ -76,7 +76,10 @@ def ajax_create_cellline(request):
     name = request.POST.get('name')
     if not name:
         return HttpResponseBadRequest()
-    CellLine.objects.get_or_create(name=name)
+    CellLine.objects.get_or_create(
+        name__iexact=name,
+        defaults={'name': name}
+    )
     cell_lines = CellLine.objects.order_by('name').values('id', 'name')
     return JsonResponse({'cellLines': list(cell_lines)})
 
@@ -88,7 +91,10 @@ def ajax_create_drug(request):
     name = request.POST.get('name')
     if not name:
         return HttpResponseBadRequest()
-    Drug.objects.get_or_create(name=name)
+    Drug.objects.get_or_create(
+        name__iexact=name,
+        defaults={'name': name}
+    )
     drugs = Drug.objects.order_by('name').values('id', 'name')
     return JsonResponse({'drugs': list(drugs)})
 
