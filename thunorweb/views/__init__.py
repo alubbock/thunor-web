@@ -33,7 +33,7 @@ def login_required_unless_public(func):
     return wrap
 
 
-def handler404(request):
+def handler404(request, exception):
     if request.is_ajax():
         return JsonResponse({}, status=404)
     else:

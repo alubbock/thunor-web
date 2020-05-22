@@ -10,7 +10,7 @@ HTTP_OK = 200
 HTTP_INVALID_REQUEST = 400
 
 
-class TestPlateMapper(TestCase):
+class TestPlots(TestCase):
     @classmethod
     def setUpTestData(cls):
         UserModel = get_user_model()
@@ -82,7 +82,7 @@ class TestPlateMapper(TestCase):
              'datasetId': self.d.id,
              'c': self.groupings['cellLines'][0]['id'],
              'd': self.groupings['drugs'][0]['id'],
-             'assay': self.groupings['dipAssay'],
+             'assay': self.groupings['dipAssay'] or '',
              'overlayDipFit': 'true',
              'logTransform': 'log2'
              }
@@ -98,7 +98,7 @@ class TestPlateMapper(TestCase):
              'datasetId': self.d.id,
              'c': 999999999999,
              'd': self.groupings['drugs'][0]['id'],
-             'assay': self.groupings['dipAssay'],
+             'assay': self.groupings['dipAssay'] or '',
              'overlayDipFit': 'true',
              'logTransform': 'log2'
              }
@@ -114,7 +114,7 @@ class TestPlateMapper(TestCase):
              'datasetId': self.d.id,
              'c': self.groupings['cellLines'][0]['id'],
              'd': self.groupings['drugs'][0]['id'],
-             'assay': self.groupings['dipAssay'],
+             'assay': self.groupings['dipAssay'] or '',
              'drMetric': 'dip'
              }
         )
@@ -129,7 +129,7 @@ class TestPlateMapper(TestCase):
              'datasetId': self.d.id,
              'c': self.groupings['cellLines'][0]['id'],
              'd': self.groupings['drugs'][0]['id'],
-             'assay': self.groupings['dipAssay'],
+             'assay': self.groupings['dipAssay'] or '',
              'drMetric': 'viability'
              }
         )

@@ -7,6 +7,7 @@ from thunor.plots import plot_time_course, plot_drc, \
     plot_drug_combination_heatmap, plot_drc_params, \
     plot_ctrl_dip_by_plate, plot_plate_map, CannotPlotError, \
     IC_REGEX, EC_REGEX, E_REGEX, E_REL_REGEX
+from thunor.config import plotly_template as default_plotly_template
 from thunor.curve_fit import AAFitWarning, fit_params_from_base
 from thunor.viability import viability
 from thunor.helpers import plotly_to_dataframe
@@ -27,6 +28,7 @@ import json
 
 MAX_COLOR_GROUPS = 10
 TAG_EVERYTHING_ELSE_LABEL = 'Everything else'
+ALLOWED_TEMPLATES = ('none', 'plotly_white', 'plotly_dark', 'presentation')
 
 
 @login_required_unless_public
@@ -38,6 +40,9 @@ def ajax_get_plot(request, file_type='json'):
 
     try:
         plot_type = request.GET['plotType']
+        template = request.GET.get('theme', default_plotly_template)
+        if template not in ALLOWED_TEMPLATES:
+            return HttpResponse('Please select an allowed template', status=400)
 
         dataset_id = int(request.GET['datasetId'])
         dataset2_id = request.GET.get('dataset2Id', None)
@@ -103,13 +108,14 @@ def ajax_get_plot(request, file_type='json'):
             log_yaxis=yaxis == 'log2',
             assay_name=assay,
             show_dip_fit=overlay_dip_fit,
-            subtitle=dataset.name
+            subtitle=dataset.name,
+            template=template
         )
     elif plot_type in ('drc', 'drpar'):
         if all(isinstance(d, int) for d in drug_id):
             plot_fig = _dose_response_plot(request, dataset, dataset2_id,
                                            permission_required, drug_id,
-                                           cell_line_id, plot_type)
+                                           cell_line_id, plot_type, template)
         else:
             if dataset2_id is not None:
                 return HttpResponse(
@@ -117,7 +123,8 @@ def ajax_get_plot(request, file_type='json'):
                     'combination heat plots', status=400)
 
             plot_fig = _drug_combination_heatmap(request, dataset,
-                                                 drug_id, cell_line_id)
+                                                 drug_id, cell_line_id,
+                                                 template)
 
         if isinstance(plot_fig, HttpResponse):
             return plot_fig
@@ -129,7 +136,7 @@ def ajax_get_plot(request, file_type='json'):
                 return HttpResponse('No control wells with DIP rates '
                                     'available were detected in this '
                                     'dataset.', status=400)
-            plot_fig = plot_ctrl_dip_by_plate(ctrl_dip_data)
+            plot_fig = plot_ctrl_dip_by_plate(ctrl_dip_data, template=template)
         elif qc_view == 'dipplatemap':
             plate_id = request.GET.get('plateId', None)
             try:
@@ -139,7 +146,8 @@ def ajax_get_plot(request, file_type='json'):
             pl_data = ajax_load_plate(request, plate_id,
                                       return_as_platedata=True,
                                       use_names=True)
-            plot_fig = plot_plate_map(pl_data, color_by='dip_rates')
+            plot_fig = plot_plate_map(pl_data, color_by='dip_rates',
+                                      template=template)
         else:
             return HttpResponse('Unimplemented QC view: {}'.format(qc_view),
                                 status=400)
@@ -254,7 +262,8 @@ def _make_tags_unique(tags):
     return new_tags
 
 
-def _drug_combination_heatmap(request, dataset, drug_id, cell_line_id):
+def _drug_combination_heatmap(request, dataset, drug_id, cell_line_id,
+                              template):
     if not all(isinstance(d, collections.Sequence) for d in drug_id):
         return HttpResponse(
             'Please select either one or more individual drugs, or a '
@@ -296,13 +305,13 @@ def _drug_combination_heatmap(request, dataset, drug_id, cell_line_id):
             'drug/cell line/assay combination may not exist.', status=400)
 
     return plot_drug_combination_heatmap(
-        ctrl_resp_data, expt_resp_data
+        ctrl_resp_data, expt_resp_data, template=template
     )
 
 
 def _dose_response_plot(request, dataset, dataset2_id,
                         permission_required, drug_id, cell_line_id,
-                        plot_type):
+                        plot_type, template=default_plotly_template):
     if dataset2_id is not None:
         try:
             dataset2 = HTSDataset.objects.get(pk=dataset2_id)
@@ -591,7 +600,8 @@ def _dose_response_plot(request, dataset, dataset2_id,
                 aggregate_drugs=aggregate_drugs,
                 color_by=color_by,
                 color_groups=color_groups,
-                multi_dataset=dataset2_id is not None
+                multi_dataset=dataset2_id is not None,
+                template=template
             )
         except CannotPlotError as e:
             return HttpResponse(e, status=400)
@@ -601,7 +611,8 @@ def _dose_response_plot(request, dataset, dataset2_id,
             fit_params,
             is_absolute=dip_absolute,
             color_by=color_by,
-            color_groups=color_groups
+            color_groups=color_groups,
+            template=template
         )
 
     return plot_fig
