@@ -1,4 +1,4 @@
-FROM node:alpine
+FROM node:lts-alpine3.11
 ENV BUILD_DIR=/node-build
 
 RUN mkdir $BUILD_DIR
