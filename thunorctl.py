@@ -32,13 +32,17 @@ class ThunorCmdHelper(object):
         if self.args.dry_run:
             self._log.warning('DRY RUN (no commands will be executed)')
 
-    def _run_cmd(self, cmd, exit_on_error=True):
+    def _run_cmd(self, cmd, exit_on_error=True, capture_output=False):
         self._log.debug('Command: ' + (' '.join(cmd)))
         if self.args.dry_run:
             return 0
         env = os.environ.copy()
         env['COMPOSE_INTERACTIVE_NO_CLI'] = '1'
-        p = subprocess.Popen(cmd, cwd=self.cwd, env=env)
+        p = subprocess.Popen(
+            cmd, cwd=self.cwd, env=env,
+            stdout=subprocess.PIPE if capture_output else None,
+            stderr=subprocess.PIPE if capture_output else None
+        )
         p.wait()
         result = p.returncode
         if exit_on_error and result != 0:
@@ -92,6 +96,25 @@ class ThunorCmdHelper(object):
                 msg += 'See https://docs.docker.com/compose/install/'
             self._log.error(msg)
             sys.exit(1)
+
+    def _check_docker_running(self):
+        try:
+            res = self._run_cmd(['docker', 'ps', '-q'], exit_on_error=False,
+                                capture_output=True)
+        except FileNotFoundError:
+            self._log.error(
+                '"docker" command not found. Check that Docker is '
+                'installed and available on the system path.'
+            )
+            sys.exit(1)
+        if not res:
+            return
+        self._log.error(
+            '"docker ps -q" returned an error (exit code: {}). Is Docker '
+            'running?'.format(res)
+        )
+        sys.exit(1)
+
 
     @staticmethod
     def _random_string(length=50):
@@ -372,9 +395,12 @@ class ThunorCtl(ThunorCmdHelper):
 
         if os.path.exists(os.path.join(self.cwd, '_state')):
             raise ValueError('_state directory already exists. Is Thunor Web '
-                             'already installed?')
+                             'already installed, or did a previous installation'
+                             ' fail? Remove the _state directory to re-deploy '
+                             'Thunor Web (warning - data loss!)')
 
         self._check_docker_compose()
+        self._check_docker_running()
 
         docker_machine = False
         docker_ip = None
