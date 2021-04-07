@@ -1,7 +1,7 @@
 from django.shortcuts import Http404
 from django.http import HttpResponse
 from django.utils import timezone
-from thunorweb.models import HTSDataset, HTSDatasetFile, Well
+from thunorweb.models import HTSDataset, HTSDatasetFile, Well, CurveFitSet
 from thunor.curve_fit import fit_params_from_base
 from thunor.io import write_hdf, _unstack_doses
 from thunorweb.pandas import df_doses_assays_controls, df_curve_fits, \
@@ -16,11 +16,12 @@ from django.views.decorators.clickjacking import xframe_options_sameorigin
 from thunorweb.views import login_required_unless_public, _assert_has_perm
 
 
-def _cached_file(dataset, file_type):
+def _cached_file(dataset, file_type, protocol):
     try:
         file = HTSDatasetFile.objects.get(
             dataset_id=dataset.id,
-            file_type=file_type
+            file_type=file_type,
+            file_type_protocol=protocol
         )
     except HTSDatasetFile.DoesNotExist:
         return None
@@ -45,11 +46,12 @@ def _plain_response(response_text):
 def download_fit_params(request, dataset_id, stat_type):
     file_type = 'fit_params_{}_tsv'.format(stat_type)
     file_name = 'fit_params_{}_{}.tsv'.format(stat_type, dataset_id)
-    file_type_version = 1
+    file_type_protocol = 1
     param_names = {
-        'dip': ('aa', 'emax', 'emax_rel', 'emax_obs', 'emax_obs_rel',
+        'dip': ('aa', 'aa_obs', 'emax', 'emax_rel', 'emax_obs', 'emax_obs_rel',
                 'einf', 'ec50', 'ic50', 'hill'),
-        'viability': ('aa', 'emax', 'emax_obs', 'einf', 'ec50', 'ic50', 'hill')
+        'viability': ('aa', 'aa_obs', 'emax', 'emax_obs', 'einf', 'ec50',
+                      'ic50', 'hill')
     }
 
     try:
@@ -64,7 +66,15 @@ def download_fit_params(request, dataset_id, stat_type):
                                'download this file')
 
     mod_date = timezone.now()
-    file = _cached_file(dataset, file_type)
+    file = _cached_file(dataset, file_type, file_type_protocol)
+
+    # Additional cache invalidation: curve fits were generated after the
+    # cached file
+    if file:
+        if file.creation_date < CurveFitSet.objects.get(
+                    dataset_id=dataset_id, stat_type=stat_type
+                ).calculation_end:
+            file = None
 
     if file:
         full_path = file.file.name
@@ -106,12 +116,12 @@ def download_fit_params(request, dataset_id, stat_type):
             dataset=dataset,
             file_type=file_type,
             defaults={
-                'file_type_protocol': file_type_version,
+                'file_type_protocol': file_type_protocol,
                 'file': full_path
             }
         )
         if not created:
-            df.file_type_protocol = file_type_version
+            df.file_type_protocol = file_type_protocol
             df.file = full_path
             df.creation_date = mod_date
             df.save()
@@ -125,10 +135,10 @@ def download_fit_params(request, dataset_id, stat_type):
 def _generate_dataset_hdf5(dataset, regenerate_cache=False):
     file_name = 'dataset_{}.h5'.format(dataset.id)
     file_type = 'dataset_hdf5'
-    file_type_version = 1
+    file_type_protocol = 1
 
     mod_date = timezone.now()
-    file = _cached_file(dataset, file_type)
+    file = _cached_file(dataset, file_type, file_type_protocol)
 
     if file and not regenerate_cache:
         full_path = file.file.name
@@ -147,12 +157,12 @@ def _generate_dataset_hdf5(dataset, regenerate_cache=False):
             dataset=dataset,
             file_type=file_type,
             defaults={
-                'file_type_protocol': file_type_version,
+                'file_type_protocol': file_type_protocol,
                 'file': full_path
             }
         )
         if not created:
-            df.file_type_protocol = file_type_version
+            df.file_type_protocol = file_type_protocol
             df.file = full_path
             df.creation_date = mod_date
             df.save()
@@ -187,10 +197,10 @@ def download_dataset_hdf5(request, dataset_id):
 def _generate_dip_rates(dataset, regenerate_cache=False):
     file_name = 'dip_rates_{}.h5'.format(dataset.id)
     file_type = 'dip_rates'
-    file_type_version = 1
+    file_type_protocol = 1
 
     mod_date = timezone.now()
-    file = _cached_file(dataset, file_type)
+    file = _cached_file(dataset, file_type, file_type_protocol)
 
     if file and not regenerate_cache:
         full_path = file.file.name
@@ -240,12 +250,12 @@ def _generate_dip_rates(dataset, regenerate_cache=False):
             dataset=dataset,
             file_type=file_type,
             defaults={
-                'file_type_protocol': file_type_version,
+                'file_type_protocol': file_type_protocol,
                 'file': full_path
             }
         )
         if not created:
-            df.file_type_protocol = file_type_version
+            df.file_type_protocol = file_type_protocol
             df.file = full_path
             df.creation_date = mod_date
             df.save()
