@@ -54,7 +54,7 @@
                   <li><a href="{% url 'thunorweb:plate_mapper' 1536 %}">1536 Well Plate Map</a></li>
                 </ul>
               </li>
-              <li><a href="https://docs.thunor.net/{% block helppage %}{% endblock %}" id="help-link" target="_blank" class="tt" data-toggle="tooltip" data-placement="bottom" title="Pop-up Help">
+              <li><a href="https://docs.thunor.net/{% block helppage %}{% endblock %}" target="_blank" class="tt help-link" data-toggle="tooltip" data-placement="bottom" title="Pop-up Help">
                 <i class="fa fa-question-circle fa-fw"></i>
                 <span class="visible-xs-inline">Help</span></a></li>
               <li class="dropdown">
@@ -123,7 +123,7 @@
 
 {% render_bundle 'vendor' 'js' %}
 <script>$('.tt').tooltip();
-$('#help-link').click(function(e) {
+$('.help-link').click(function(e) {
     var $target = $(e.currentTarget);
     window.open($target.attr('href'), '_blank', 'location=yes,' +
         'height=570,width=520,scrollbars=yes,status=yes');
