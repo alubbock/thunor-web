@@ -170,7 +170,7 @@ class ThunorCmdHelper(object):
         pg_retry_delay = 5
         while self._run_cmd(
                 ['docker-compose', '-f', compose_file,
-                 'exec', 'postgres', 'pg_isready'],
+                 'exec', '-T', 'postgres', 'pg_isready'],
                 exit_on_error=False) != 0 and pg_retry < pg_max_retry:
             print('Postgres not yet ready, sleeping {} seconds...'.format(
                 pg_retry_delay
