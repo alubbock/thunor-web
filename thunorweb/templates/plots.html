@@ -82,7 +82,7 @@
 
 
         <div class="plot-header-ctrl">
-          <label>Second Dataset</label>
+          <label>Dual Dataset Plot</label>
           <form>
             <input type="checkbox" name="secondDataset" autocomplete="off"
                class="form-control-inline" {% if second_dataset %}checked{% endif %}>
@@ -109,9 +109,12 @@
         <li>Select a dataset at any time using the <span class="label
         label-default"><i class="fa
         fa-database"></i></span> button on the toolbar above</li>
-        <li>Changing the dataset only affects the <span class="label
+        <li>Dual Dataset Plot allows two datasets to be compared in the same plot (certain plot types
+            only)</li>
+        <li>Changing the dataset or Dual Dataset Plot setting only affects the <span class="label
         label-success"><i class="fa fa-plus"></i> Add Plot</span>
-          button&mdash;already loaded plots are not affected</li>
+          button&mdash;already loaded plots are not affected (i.e. you can sequentially load plots from multiple
+          datasets)</li>
       </ul>
     <strong>Add a plot</strong>
       <ul>
