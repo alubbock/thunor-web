@@ -245,6 +245,26 @@
     </div>
 </div>
 <div class="row">
+    <div class="col-sm-12">
+    <div class="form-group hidden-tc hidden-drc hidden-drpar">
+        <label for="hts-qc-view">Quality Control View</label>
+        <div class="hts-qc-view btn-group btn-group-3 btn-group-responsive"
+             data-toggle="buttons">
+          <label class="btn btn-primary active">
+            <input type="radio" name="qcView" value="ctrldipbox"
+                   autocomplete="off" checked> Control DIP Box Plot
+          </label>
+          <label class="btn btn-primary">
+            <input type="radio" name="qcView" value="dipplatemap"
+                   autocomplete="off"> DIP Rate Plate Map
+          </label>
+          <label class="btn btn-primary">
+            <input type="radio" name="qcView" value="ctrlcellbox" data-viability="true"
+                   autocomplete="off" checked> Control Cell Count Box Plot
+          </label>
+        </div>
+    </div>
+    </div>
     <div class="col-sm-6">
     <input type="hidden" name="datasetId">
     <input type="hidden" name="dataset2Id">
@@ -355,19 +375,13 @@
                 title="Loading..." disabled>
         </select>
     </div>
-    <div class="form-group hidden-tc hidden-drc hidden-drpar">
-        <label for="hts-qc-view">Quality Control View</label>
-        <div class="hts-qc-view btn-group btn-group-2 btn-group-responsive"
-             data-toggle="buttons">
-          <label class="btn btn-primary active">
-            <input type="radio" name="qcView" value="ctrldipbox"
-                   autocomplete="off" checked> Control DIP Box Plot
-          </label>
-          <label class="btn btn-primary">
-            <input type="radio" name="qcView" value="dipplatemap"
-                   autocomplete="off"> DIP Rate Plate Map
-          </label>
-        </div>
+    <div class="hidden-tc hidden-drc hidden-drpar">
+      <div class="form-group" style="display:none">
+        <label for="hts-change-plate">Plate</label>
+        <select name="plateId" class="hts-change-plate form-control"
+                title="Loading...">
+        </select>
+      </div>
     </div>
     </div>
     <div class="col-sm-6">
@@ -459,14 +473,6 @@
                    autocomplete="off"> Absolute
           </label>
         </div>
-      </div>
-    </div>
-    <div class="hidden-tc hidden-drc hidden-drpar">
-      <div class="form-group" style="display:none">
-        <label for="hts-change-plate">Plate</label>
-        <select name="plateId" class="hts-change-plate form-control"
-                title="Loading...">
-        </select>
       </div>
     </div>
     </div>

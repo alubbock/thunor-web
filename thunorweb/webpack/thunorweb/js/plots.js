@@ -564,8 +564,9 @@ var plots = function() {
         $drMetric.filter('[value=viability]').prop('checked', true).trigger('change').closest('.form-group').hide();
         $vaxis.filter('[value=None]').prop('checked', true).closest('.form-group').hide();
 
-        $dataPanel.find('input[name=qcView]').prop('disabled', true)
+        $dataPanel.find('input[name=qcView][data-viability!=true]').prop('checked', false).prop('disabled', true)
             .closest('label').addClass('disabled');
+        $dataPanel.find('input[name=qcView][data-viability=true]').first().prop('checked', true).click();
 
         $dataPanel.find('.hts-drc-type').closest('.form-group').remove();
         $dataPanel.find(".hts-show-dip-fit").closest('.form-group').remove();

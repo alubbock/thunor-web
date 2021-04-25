@@ -283,6 +283,40 @@ def df_doses_assays_controls(dataset, drug_id, cell_line_id, assay,
     return HtsPandas(df_doses, df_vals, df_controls)
 
 
+def df_control_wells(dataset_id, assay=None):
+    controls = WellMeasurement.objects.filter(
+        well__plate__dataset_id=dataset_id)
+
+    controls = controls.order_by(
+        'well__cell_line')
+
+    if assay:
+        controls = controls.filter(assay=assay)
+
+    controls = _apply_control_filter(controls, None)
+
+    ctrl_cols = ['assay',
+                 'well__cell_line__name',
+                 'well__plate__name',
+                 'value']
+    ctrl_rename_cols = ['assay',
+                        'cell_line',
+                        'plate',
+                        'value']
+    ctrl_indexes = ['assay',
+                    'cell_line',
+                    'plate']
+
+    df_controls = queryset_to_dataframe(controls,
+                                        columns=ctrl_cols,
+                                        rename_columns=ctrl_rename_cols,
+                                        index=ctrl_indexes)
+    if df_controls.isnull().values.all():
+        raise NoDataException()
+
+    return df_controls
+
+
 def is_multi_drug_query(drug_id):
     # If drug ID is None, we assume the dataset may contain drug combos
     return drug_id is None or (

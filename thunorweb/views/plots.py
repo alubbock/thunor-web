@@ -2,10 +2,11 @@ from django.shortcuts import render, Http404
 from django.http import JsonResponse, HttpResponse
 from django.utils.html import strip_tags
 from django.views.decorators.csrf import ensure_csrf_cookie
+from django.core.cache import cache
 from thunorweb.models import HTSDataset, CellLineTag, DrugTag, CellLine, Drug
 from thunor.plots import plot_time_course, plot_drc, \
     plot_drug_combination_heatmap, plot_drc_params, \
-    plot_ctrl_dip_by_plate, plot_plate_map, CannotPlotError, \
+    plot_ctrl_dip_by_plate, plot_ctrl_cell_counts_by_plate, plot_plate_map, CannotPlotError, \
     IC_REGEX, EC_REGEX, E_REGEX, E_REL_REGEX
 from thunor.config import plotly_template as default_plotly_template
 from thunor.curve_fit import AAFitWarning, fit_params_from_base
@@ -14,7 +15,7 @@ from thunor.helpers import plotly_to_dataframe
 from plotly.utils import PlotlyJSONEncoder
 from plotly.offline.offline import get_plotlyjs
 from thunorweb.pandas import df_doses_assays_controls, df_dip_rates, \
-    df_ctrl_dip_rates, NoDataException, df_curve_fits
+    df_ctrl_dip_rates, NoDataException, df_curve_fits, df_control_wells
 import warnings
 import collections
 from thunorweb.views import login_required_unless_public, _assert_has_perm
@@ -137,6 +138,39 @@ def ajax_get_plot(request, file_type='json'):
                                     'available were detected in this '
                                     'dataset.', status=400)
             plot_fig = plot_ctrl_dip_by_plate(ctrl_dip_data, template=template)
+        elif qc_view == 'ctrlcellbox':
+            # Try to fetch from cache
+            cache_key = f'dataset_{dataset_id}_plot_ctrlcellbox'
+            cur_plotver = 1
+            plot_cached = cache.get(cache_key)
+            if plot_cached:
+                plot_fig = plot_cached['plot_fig']
+            if plot_cached is None or plot_cached['dataset_last_modified'] < dataset.modified_date or \
+                    plot_cached['plot_version'] < cur_plotver:
+                # Create plot
+                groupings = dataset_groupings(dataset)
+                if not groupings['singleTimepoint']:
+                    return HttpResponse('This plot type is only available for '
+                                        'single time-point datasets', status=400)
+                try:
+                    df_data = df_control_wells(
+                        dataset_id=dataset,
+                        assay=assay
+                    )
+                except NoDataException:
+                    return HttpResponse('No data found for this request.',
+                                        status=400)
+                if (df_data['value'] == 100.0).all():
+                    return HttpResponse('The raw data for this dataset is given as relative viability, so no control '
+                                        'wells are available', status=400)
+
+                plot_fig = plot_ctrl_cell_counts_by_plate(df_data, subtitle=dataset.name, template=template)
+
+                # Push to cache
+                cache.set(cache_key, {'dataset_last_modified': dataset.modified_date,
+                                      'plot_version': cur_plotver,
+                                      'plot_fig': plot_fig})
+
         elif qc_view == 'dipplatemap':
             plate_id = request.GET.get('plateId', None)
             try:
