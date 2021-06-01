@@ -36,6 +36,12 @@ The differences between these options are covered in
 Further documentation and installation instructions are available at
 [docs.thunor.net](https://docs.thunor.net).
 
+## Citation
+
+Lubbock A.L.R., Harris L.A., Quaranta V., Tyson D.R., Lopez C.F.
+[Thunor: visualization and analysis of high-throughput dose–response datasets](https://doi.org/10.1093/nar/gkab424)
+Nucleic Acids Research (2021), gkab424.
+
 ## Reporting issues and getting help
 
 If you're having issues, please review the [documentation](https://docs.thunor.net),
