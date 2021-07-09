@@ -1,0 +1,127 @@
+name: Test and deploy
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - v*
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dev: [--dev,]
+    env:
+      DEVFLAG: ${{ matrix.dev }}
+    steps:
+      - name: Print Docker Compose version
+        run: |
+          docker --version
+          docker-compose --version
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+      - name: Run thunorbld.py init/testinit
+        run: |
+          if [[ $DEVFLAG == "--dev" ]]; then python thunorbld.py init; fi
+          if [[ $DEVFLAG == "" ]]; then python thunorbld.py testinit; fi
+      - name: Test suite
+        run: python thunorbld.py $DEVFLAG test
+      - name: Upload coverage
+        if: ${{ matrix.dev == '--dev' }}
+        run: codecov
+      - name: Store build image as artifact for deploy stage
+        if: ${{ matrix.dev == '' }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: thunor-web-container
+          image: alubbock/thunorweb:latest
+          retention-days: 1
+  deploy:
+    needs: build
+    if: |
+      (startsWith(github.ref, 'refs/heads/master') ||
+       startsWith(github.ref, 'refs/tags/v')) &&
+      github.eventName == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set release or dev mode
+        id: release_mode
+        run: |
+          if ["$REF" == 'refs/heads/master']
+          then
+            echo "::set-output name=qs_branch::dev
+          else
+            echo "::set-output name=qs_branch::master
+          fi
+      - name: Download build image artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: thunor-web-container
+      - uses: actions/checkout@v2
+        with:
+          repository: alubbock/thunor-web-quickstart
+          ref: ${{ steps.release_mode.outputs.qs_branch }}
+          token: $secrets.GITHUB_API_TOKEN
+      - name: Update and push quickstart repo
+        run: |
+          if ["$GITHUB_REF" != 'refs/heads/master']
+          then
+            GITHUB_TAG=${GITHUB_REF/refs\/tags\//}
+            echo "GitHub Tag: $GITHUB_TAG"
+          fi
+          echo "$DOCKERHUB_TOKEN" | docker login -u alubbock --password-stdin
+          cp ../thunorctl.py .
+          cp ../docker-compose.services.yml .
+          cp ../docker-compose.certbot.yml .
+          rm -rf config-examples
+          cp -r ../config-examples .
+          if [ -z "$GITHUB_TAG" ]; then
+            sed -i 's/thunorweb:latest/thunorweb:dev/' docker-compose.services.yml
+            echo "$GITHUB_SHA" > .release
+          else
+            sed -i "s/thunorweb:latest/thunorweb:$GITHUB_TAG/" docker-compose.services.yml
+            echo "$GITHUB_TAG" > .release
+          fi
+          git add -A
+          git status
+
+          if [[ $GITHUB_TAG ]]; then
+            git commit -m "CI update: $GITHUB_TAG"
+            git tag "$GITHUB_TAG"
+            git push --tags
+            # Make another commit referencing "latest" at HEAD
+            sed -i "s/thunorweb:$GITHUB_TAG/thunorweb:latest/" docker-compose.services.yml
+            git add docker-compose.services.yml
+          fi
+
+          git commit -m "CI update: $GITHUB_SHA"
+          git push
+        env:
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Tag and push dev image build
+        if: ${{ steps.release_mode.outputs.qs_branch == 'dev' }}
+        run: |
+          docker tag alubbock/thunorweb:latest alubbock/thunorweb:dev
+          docker push alubbock/thunorweb:dev
+      - name: Tag and push live image build
+        if: ${{ steps.release_mode.outputs.qs_branch != 'dev' }}
+        run: |
+          docker tag alubbock/thunorweb:latest alubbock/thunorweb:${{ steps.release_mode.output.version }}
+          docker push alubbock/thunorweb:${{ steps.release_mode.output.version }}
+          docker push alubbock/thunorweb:latest
+
+  cleanup:
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete build image artifact
+        uses: geekyeggo/delete-artifact@v1
+        with:
+          name: thunor-web-container
