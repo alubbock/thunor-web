@@ -112,13 +112,13 @@ class ThunorBld(ThunorCmdHelper):
         self._copy('config-examples/docker-compose.complete.yml',
                    os.path.join(self.deploy_dir,
                                 'docker-compose.yml'))
+        self._copy('docker-compose.services.yml',
+                   os.path.join(self.deploy_dir, 'docker-compose.services.yml'))
         self._replace_in_file(
-            os.path.join(self.deploy_dir, 'docker-compose.yml'),
+            os.path.join(self.deploy_dir, 'docker-compose.services.yml'),
             'image: alubbock/thunorweb:latest',
             'image: alubbock/thunorweb:dev'
         )
-        self._copy('docker-compose.services.yml',
-                   os.path.join(self.deploy_dir, 'docker-compose.services.yml'))
 
     def init_test(self):
         """ Minimal init for unit testing/CI purposes """

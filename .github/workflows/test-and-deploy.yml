@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dev: [--dev,]
+        dev: ['--dev','']
     env:
       DEVFLAG: ${{ matrix.dev }}
     steps:
@@ -36,47 +36,53 @@ jobs:
       - name: Upload coverage
         if: ${{ matrix.dev == '--dev' }}
         run: codecov
+      - name: Export Docker image
+        if: ${{ matrix.dev == '' && github.event_name == 'push' }}
+        run: docker save alubbock/thunorweb:dev | gzip > thunorweb-image.tar.gz
       - name: Store build image as artifact for deploy stage
-        if: ${{ matrix.dev == '' }}
+        if: ${{ matrix.dev == '' && github.event_name == 'push' }}
         uses: actions/upload-artifact@v2
         with:
           name: thunor-web-container
-          image: alubbock/thunorweb:latest
+          path: thunorweb-image.tar.gz
           retention-days: 1
   deploy:
     needs: build
-    if: |
-      (startsWith(github.ref, 'refs/heads/master') ||
-       startsWith(github.ref, 'refs/tags/v')) &&
-      github.eventName == 'push'
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Set release or dev mode
         id: release_mode
         run: |
-          if ["$REF" == 'refs/heads/master']
-          then
-            echo "::set-output name=qs_branch::dev
+          if [ "$GITHUB_REF" == "refs/heads/master" ]; then
+            echo "::set-output name=qs_branch::dev"
           else
-            echo "::set-output name=qs_branch::master
+            echo "::set-output name=qs_branch::master"
           fi
       - name: Download build image artifact
         uses: actions/download-artifact@v2
         with:
           name: thunor-web-container
-      - uses: actions/checkout@v2
+      - name: Load build image into Docker
+        run: docker load < thunorweb-image.tar.gz
+      - name: Checkout Thunor Web
+        uses: actions/checkout@v2
+      - name: Checkout Quickstart Repo
+        uses: actions/checkout@v2
         with:
           repository: alubbock/thunor-web-quickstart
           ref: ${{ steps.release_mode.outputs.qs_branch }}
-          token: $secrets.GITHUB_API_TOKEN
+          token: ${{ secrets.API_TOKEN_GITHUB }}
+          path: thunor-web-quickstart
       - name: Update and push quickstart repo
         run: |
-          if ["$GITHUB_REF" != 'refs/heads/master']
-          then
+          set -e
+          if [ "$GITHUB_REF" != "refs/heads/master" ]; then
             GITHUB_TAG=${GITHUB_REF/refs\/tags\//}
             echo "GitHub Tag: $GITHUB_TAG"
           fi
           echo "$DOCKERHUB_TOKEN" | docker login -u alubbock --password-stdin
+          cd thunor-web-quickstart
           cp ../thunorctl.py .
           cp ../docker-compose.services.yml .
           cp ../docker-compose.certbot.yml .
@@ -89,8 +95,12 @@ jobs:
             sed -i "s/thunorweb:latest/thunorweb:$GITHUB_TAG/" docker-compose.services.yml
             echo "$GITHUB_TAG" > .release
           fi
+          echo "Contents of .release: $(cat .release)"
           git add -A
           git status
+
+          git config user.email "ci@alexlubbock.com"
+          git config user.name "GitHub Actions CI"
 
           if [[ $GITHUB_TAG ]]; then
             git commit -m "CI update: $GITHUB_TAG"
@@ -108,17 +118,18 @@ jobs:
       - name: Tag and push dev image build
         if: ${{ steps.release_mode.outputs.qs_branch == 'dev' }}
         run: |
-          docker tag alubbock/thunorweb:latest alubbock/thunorweb:dev
           docker push alubbock/thunorweb:dev
       - name: Tag and push live image build
         if: ${{ steps.release_mode.outputs.qs_branch != 'dev' }}
         run: |
-          docker tag alubbock/thunorweb:latest alubbock/thunorweb:${{ steps.release_mode.output.version }}
+          docker tag alubbock/thunorweb:dev alubbock/thunorweb:latest
+          docker tag alubbock/thunorweb:dev alubbock/thunorweb:${{ steps.release_mode.output.version }}
           docker push alubbock/thunorweb:${{ steps.release_mode.output.version }}
           docker push alubbock/thunorweb:latest
 
   cleanup:
-    if: always()
+    needs: deploy
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Delete build image artifact
