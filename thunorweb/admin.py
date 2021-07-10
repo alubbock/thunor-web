@@ -72,7 +72,10 @@ class BaseHTSDatasetAdmin(admin.ModelAdmin):
 
     def get_actions(self, request):
         actions = super(BaseHTSDatasetAdmin, self).get_actions(request)
-        del actions['delete_selected']
+        try:
+            del actions['delete_selected']
+        except KeyError:
+            pass
         return actions
 
 
