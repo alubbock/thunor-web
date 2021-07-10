@@ -1,18 +1,25 @@
-FROM python:3.8
+FROM ubuntu:20.04
 MAINTAINER Alex Lubbock <code@alexlubbock.com>
 ENV PYTHONUNBUFFERED 1
 ENV THUNOR_HOME=/thunor
+
+RUN apt update && apt install -y \
+    python-is-python3 \
+    python3 \
+    python3-pip \
+    libpq-dev \
+  && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir $THUNOR_HOME
 WORKDIR $THUNOR_HOME
 
 ADD requirements.txt $THUNOR_HOME
 ADD thunor $THUNOR_HOME/thunor
-RUN pip install -r requirements.txt
+RUN pip3 install --no-cache-dir -r requirements.txt
 CMD ["uwsgi", "--master", "--socket", ":8000", "--module", "thunordjango.wsgi", "--uid", "www-data", "--gid", "www-data", "--enable-threads"]
 ADD manage.py $THUNOR_HOME
 ADD thunordjango $THUNOR_HOME/thunordjango
-RUN cd $THUNOR_HOME/thunor && python setup.py install
+RUN cd $THUNOR_HOME/thunor && python3 setup.py install
 ADD thunorweb $THUNOR_HOME/thunorweb
 ARG THUNORWEB_VERSION=unknown
 RUN printf "def get_versions():\n    return {'version': '$THUNORWEB_VERSION'}\n" > $THUNOR_HOME/thunorweb/_version.py
