@@ -58,6 +58,7 @@ jobs:
             echo "::set-output name=qs_branch::dev"
           else
             echo "::set-output name=qs_branch::master"
+            echo "::set-output name=version::${GITHUB_REF/refs\/tags\//}"
           fi
       - name: Download build image artifact
         uses: actions/download-artifact@v2
@@ -123,9 +124,11 @@ jobs:
         if: ${{ steps.release_mode.outputs.qs_branch != 'dev' }}
         run: |
           docker tag alubbock/thunorweb:dev alubbock/thunorweb:latest
-          docker tag alubbock/thunorweb:dev alubbock/thunorweb:${{ steps.release_mode.output.version }}
-          docker push alubbock/thunorweb:${{ steps.release_mode.output.version }}
+          docker tag alubbock/thunorweb:dev alubbock/thunorweb:$GITHUB_TAG
+          docker push alubbock/thunorweb:$GITHUB_TAG
           docker push alubbock/thunorweb:latest
+        env:
+          GITHUB_TAG: ${{ steps.release_mode.outputs.version }}
 
   cleanup:
     needs: deploy
