@@ -322,6 +322,12 @@ DATASET_RETENTION_DAYS = 30
 NON_DATASET_UPLOAD_RETENTION_DAYS = 7
 
 try:
+    os.makedirs(MEDIA_ROOT)
+except OSError as exc:
+    if exc.errno != errno.EEXIST:
+        raise
+
+try:
     os.makedirs(DOWNLOADS_ROOT)
 except OSError as exc:
     if exc.errno != errno.EEXIST:
