@@ -321,8 +321,9 @@ DATASET_RETENTION_DAYS = 30
 # (i.e. for debugging purposes)
 NON_DATASET_UPLOAD_RETENTION_DAYS = 7
 
+# Create plate-files dir to ensure it has correct permissions
 try:
-    os.makedirs(MEDIA_ROOT)
+    os.makedirs(os.path.join(MEDIA_ROOT, 'plate-files'))
 except OSError as exc:
     if exc.errno != errno.EEXIST:
         raise
