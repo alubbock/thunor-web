@@ -5,7 +5,7 @@ RUN mkdir $BUILD_DIR
 WORKDIR $BUILD_DIR
 
 RUN apk update
-RUN apk add git
+RUN apk add git python make g++
 
 COPY package.json $BUILD_DIR
 RUN npm install
