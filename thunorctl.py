@@ -456,6 +456,14 @@ class ThunorCtl(ThunorCmdHelper):
 
         self._mkdir('_state/postgres-data')
 
+        # Make data directories
+        self._mkdir('_state/thunor-files/plate-files')
+        self._mkdir('_state/thunor-files/downloads')
+        # Ensure directories are writable by container
+        if os.name == 'posix':
+            os.chmod('_state/thunor-files/plate-files', 0o777)
+            os.chmod('_state/thunor-files/downloads', 0o777)
+
         self._log.debug('Set DJANGO_HOSTNAME in thunor-app.env to {}'.format(
             self.args.hostname))
 
