@@ -147,7 +147,7 @@ class ThunorCmdHelper(object):
         key = self._random_string()
 
         self._replace_in_file(os.path.join(self.cwd, filename),
-                              keyname, key, log=False)
+                              keyname, f'"{key}"', log=False)
 
     def _prepare_deployment_common(self, subdir=''):
         self._copy('config-examples/thunor-db.env',
@@ -431,7 +431,7 @@ class ThunorCtl(ThunorCmdHelper):
             self._replace_in_file(
                 os.path.join(self.cwd, '.env'),
                 'THUNORHOME=.',
-                'THUNORHOME={}'.format(self.args.thunorhome)
+                'THUNORHOME="{}"'.format(self.args.thunorhome)
             )
             self._append_env('DOCKER_TLS_VERIFY')
             self._append_env('DOCKER_HOST')
