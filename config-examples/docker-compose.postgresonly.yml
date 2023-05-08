@@ -3,7 +3,7 @@ services:
   postgres:
     extends:
       file: docker-compose.services.yml
-      service: postgres10
+      service: postgres15
     env_file:
       - thunor-db.env
     volumes:
