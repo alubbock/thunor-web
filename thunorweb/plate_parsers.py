@@ -9,6 +9,7 @@ from django.db import IntegrityError, transaction
 import xlrd
 import magic
 import collections
+import collections.abc
 from thunor.io import _read_hdf_unstacked, read_vanderbilt_hts, read_incucyte, \
     PlateMap, STANDARD_PLATE_SIZES, PlateFileParseException
 import pandas as pd
@@ -57,7 +58,7 @@ class PlateFileParser(object):
     def __init__(self, plate_files, dataset):
         if isinstance(plate_files, File):
             self.all_plate_files = [plate_files, ]
-        elif isinstance(plate_files, collections.Iterable):
+        elif isinstance(plate_files, collections.abc.Iterable):
             self.all_plate_files = plate_files
         else:
             raise PlateFileParseException('Cannot (yet) parse object of type: '

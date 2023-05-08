@@ -13,23 +13,23 @@ Including another URLconf
     1. Import the include() function: from django.conf.urls import url, include
     2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
 """
-from django.conf.urls import include, url
+from django.urls import include, path
 from django.contrib import admin
 from django.conf import settings
 from thunorweb.views import handler500, handler404
 
 urlpatterns = [
-    url(r'', include('thunorweb.urls')),
-    url(r'^accounts/', include('allauth.urls')),
-    url(r'^admin/', admin.site.urls),
-    url(r'^invitations/', include('invitations.urls', namespace='invitations')),
+    path('', include('thunorweb.urls')),
+    path('accounts/', include('allauth.urls')),
+    path('admin/', admin.site.urls),
+    path('invitations/', include('invitations.urls', namespace='invitations')),
 ]
 
 if settings.DEBUG:
     try:
         import debug_toolbar
         urlpatterns += [
-            url(r'^__debug__/', include(debug_toolbar.urls)),
+            path(r'__debug__/', include(debug_toolbar.urls)),
         ]
     except ImportError:
         pass

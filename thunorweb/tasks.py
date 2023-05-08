@@ -6,7 +6,8 @@ from thunor.curve_fit import fit_params_minimal
 import itertools
 from django.db import transaction
 from django.db.models import Count, F
-from collections import defaultdict, Sequence
+from collections import defaultdict
+from collections.abc import Sequence
 from django.core.cache import cache
 from django.utils import timezone
 from django.conf import settings

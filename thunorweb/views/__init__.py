@@ -9,6 +9,10 @@ from django.contrib import auth
 from allauth.account.views import password_reset
 
 
+def is_ajax(request):
+    return request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest'
+
+
 def _assert_has_perm(request, dataset, perm_required):
     if dataset.deleted_date is not None:
         raise Http404()
@@ -34,14 +38,14 @@ def login_required_unless_public(func):
 
 
 def handler404(request, exception):
-    if request.is_ajax():
+    if is_ajax(request):
         return JsonResponse({}, status=404)
     else:
         return render(request, 'error404.html', status=404)
 
 
 def handler500(request):
-    if request.is_ajax():
+    if is_ajax(request):
         return JsonResponse({'error': 'Internal server error'}, status=500)
     else:
         return render(request, 'error500.html', status=500)

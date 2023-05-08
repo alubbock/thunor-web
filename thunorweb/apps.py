@@ -8,6 +8,7 @@ from django.db.utils import ProgrammingError, OperationalError, DatabaseError
 
 class ThunorConfig(AppConfig):
     name = 'thunorweb'
+    default_auto_field = 'django.db.models.AutoField'
 
     def ready(self):
         # Set the site name now so we don't have to hit the DB on every view

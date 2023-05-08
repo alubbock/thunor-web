@@ -27,6 +27,7 @@ from thunorweb.views.tags import TAG_EVERYTHING_ELSE
 import json
 
 
+SECONDS_TO_HOURS = 3600
 MAX_COLOR_GROUPS = 10
 TAG_EVERYTHING_ELSE_LABEL = 'Everything else'
 ALLOWED_TEMPLATES = ('none', 'plotly_white', 'plotly_dark', 'presentation')
@@ -569,7 +570,7 @@ def _dose_response_plot(request, dataset, dataset2_id,
                         datasets,
                         drug_id,
                         cell_line_id,
-                        viability_time=base_params[0]._viability_time
+                        viability_time=base_params[0]._viability_time.total_seconds() / SECONDS_TO_HOURS
                     )
             except NoDataException:
                 return HttpResponse(

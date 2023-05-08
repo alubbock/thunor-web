@@ -3,7 +3,7 @@ from .models import Well, WellDrug, WellMeasurement, WellStatistic, CurveFit
 from django.core.cache import cache
 from django.db.models import Count, Max, Sum, F
 from django.db.models.functions import Coalesce
-from collections import Iterable
+from collections.abc import Iterable
 from thunor.io import HtsPandas
 from datetime import timedelta
 import pickle
@@ -126,7 +126,7 @@ def _queryset_well_info(dataset_id, drug_id, cell_line_id,
 
 def _apply_control_filter(queryset, cell_line_id):
     queryset = queryset.annotate(max_dose=Coalesce(Max(
-        'well__welldrug__dose'), 0)).filter(max_dose=0)
+        'well__welldrug__dose'), 0.0)).filter(max_dose=0)
 
     return _add_int_or_list_filter(queryset, 'well__cell_line_id',
                                    cell_line_id)
@@ -490,8 +490,7 @@ def df_curve_fits(dataset_ids, stat_type,
         viability_times = base_params['fit_set__viability_time'].unique()
         assert len(viability_times) == 1
         if viability_times[0] is not None:
-            viability_time = viability_times[0].astype(
-                'timedelta64[h]').item().total_seconds() / SECONDS_IN_HOUR
+            viability_time = viability_times[0].as_unit('s') / SECONDS_IN_HOUR
         base_params.drop(columns='fit_set__viability_time', inplace=True)
 
     base_params['fit_obj'] = base_params.apply(_row_to_curve_fit, axis=1)
