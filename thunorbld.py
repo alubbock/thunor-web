@@ -94,7 +94,7 @@ class ThunorBld(ThunorCmdHelper):
             raise ValueError('Cannot build Docker container in dev mode')
 
         self.make_static()
-        self._log.info('Build master container')
+        self._log.info('Build main container')
         self._run_cmd(['docker',
                        'build',
                        '-t', 'alubbock/thunorweb:dev',

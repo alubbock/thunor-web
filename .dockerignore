@@ -1,6 +1,7 @@
 **/__pycache__
 **/*.pyc
 thunorweb/static
+thunorweb/webpack
 _state/
 !_state/deploy-test/_state/thunor-static-build
 _conf/

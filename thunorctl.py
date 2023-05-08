@@ -147,7 +147,7 @@ class ThunorCmdHelper(object):
         key = self._random_string()
 
         self._replace_in_file(os.path.join(self.cwd, filename),
-                              keyname, f'"{key}"', log=False)
+                              keyname, f"'{key}'", log=False)
 
     def _prepare_deployment_common(self, subdir=''):
         self._copy('config-examples/thunor-db.env',
