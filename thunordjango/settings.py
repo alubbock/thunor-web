@@ -35,6 +35,9 @@ try:
             if line.startswith('#'):
                 continue
             var_name, var_val = line.split('=', 1)
+            if (var_val[0] == "'" and var_val[-1] == "'") or \
+                    (var_val[0] == '"' and var_val[-1] == '"'):
+                var_val = var_val[1:-1]
             print('Setting {} from thunor-dev.env'.format(var_name))
             os.environ[var_name] = var_val
 except FileNotFoundError:
