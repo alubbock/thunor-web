@@ -471,7 +471,7 @@ var plate_mapper = function () {
     var createCellLine = function(name, successCallback) {
         if(pyHTS.state.plateMapperLocalOnly === true) {
             var ids = util.getAttributeFromObjects(pyHTS.state.cell_lines, "id");
-            var newId = Math.max.apply(null, ids) + 1;
+            var newId = ids.length ? (Math.max.apply(null, ids) + 1) : 0;
             pyHTS.state.cell_lines.push({'id': newId, 'name': name});
             $('#cellline-typeahead').data('ttTypeahead').menu
                         .datasets[0].source =
@@ -506,7 +506,7 @@ var plate_mapper = function () {
     var createDrug = function(name, successCallback) {
         if(pyHTS.state.plateMapperLocalOnly === true) {
             var ids = util.getAttributeFromObjects(pyHTS.state.drugs, "id");
-            var newId = Math.max.apply(null, ids) + 1;
+            var newId = ids.length ? (Math.max.apply(null, ids) + 1) : 0;
             pyHTS.state.drugs.push({'id': newId, 'name': name});
             $('.hts-drug-typeahead.tt-input').data('ttTypeahead')
                         .menu.datasets[0].source =
