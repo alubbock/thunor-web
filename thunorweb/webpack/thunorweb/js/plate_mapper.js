@@ -503,17 +503,24 @@ var plate_mapper = function () {
         }
     };
 
+    var updateDrugTypeAheads = function() {
+        $('.hts-drug-typeahead.tt-input').not('.tt-hint').each(function () {
+            $(this).data('ttTypeahead')
+                    .menu.datasets[0].source =
+                    util.substringMatcher(
+                        util.getAttributeFromObjects(
+                            pyHTS.state.drugs, 'name'
+                        )
+                    );
+        });
+    };
+
     var createDrug = function(name, successCallback) {
         if(pyHTS.state.plateMapperLocalOnly === true) {
             var ids = util.getAttributeFromObjects(pyHTS.state.drugs, "id");
             var newId = ids.length ? (Math.max.apply(null, ids) + 1) : 0;
             pyHTS.state.drugs.push({'id': newId, 'name': name});
-            $('.hts-drug-typeahead.tt-input').data('ttTypeahead')
-                        .menu.datasets[0].source =
-                        util.substringMatcher(
-                            util.getAttributeFromObjects(
-                                pyHTS.state.drugs, 'name'
-                            ));
+            updateDrugTypeAheads();
             successCallback();
         } else {
             $.ajax({
@@ -523,12 +530,7 @@ var plate_mapper = function () {
                 data: {'name': name},
                 success: function (data) {
                     pyHTS.state.drugs = data.drugs;
-                    $('.hts-drug-typeahead.tt-input').data('ttTypeahead')
-                        .menu.datasets[0].source =
-                        util.substringMatcher(
-                            util.getAttributeFromObjects(
-                                pyHTS.state.drugs, 'name'
-                            ));
+                    updateDrugTypeAheads();
                     successCallback();
                 },
                 error: ajax.ajaxErrorCallback,
@@ -1847,7 +1849,7 @@ var plate_mapper = function () {
                     }
                     var dr_id = util.filterObjectsAttr(currDrug, pyHTS.state.drugs, 'name', 'id', true);
                     if (dr_id === -1) {
-                        // cell line does not exist in DB
+                        // drug does not exist in DB
                         if(pyHTS.state.plateMapperLocalOnly === true) {
                             dr_id = createDrug(currDrug, function(){});
                         } else {
