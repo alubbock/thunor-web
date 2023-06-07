@@ -1849,7 +1849,7 @@ var plate_mapper = function () {
                     if (dr_id === -1) {
                         // cell line does not exist in DB
                         if(pyHTS.state.plateMapperLocalOnly === true) {
-                            dr_id = createCellLine(currDrug, function(){});
+                            dr_id = createDrug(currDrug, function(){});
                         } else {
                             drugsToCreate.push(currDrug);
                         }
