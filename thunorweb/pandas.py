@@ -14,7 +14,6 @@ class NoDataException(Exception):
     pass
 
 
-SECONDS_IN_HOUR = 3600
 DIP_STATS = ('dip_rate', 'dip_fit_std_err')
 
 
@@ -490,7 +489,7 @@ def df_curve_fits(dataset_ids, stat_type,
         viability_times = base_params['fit_set__viability_time'].unique()
         assert len(viability_times) == 1
         if viability_times[0] is not None:
-            viability_time = viability_times[0].as_unit('s') / SECONDS_IN_HOUR
+            viability_time = viability_times[0]
         base_params.drop(columns='fit_set__viability_time', inplace=True)
 
     base_params['fit_obj'] = base_params.apply(_row_to_curve_fit, axis=1)
