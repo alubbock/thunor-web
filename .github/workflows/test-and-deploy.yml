@@ -3,7 +3,7 @@ name: Test and deploy
 on:
   push:
     branches:
-      - master
+      - main
     tags:
       - v*
   pull_request: {}
@@ -55,10 +55,10 @@ jobs:
       - name: Set release or dev mode
         id: release_mode
         run: |
-          if [ "$GITHUB_REF" == "refs/heads/master" ]; then
+          if [ "$GITHUB_REF" == "refs/heads/main" ]; then
             echo "::set-output name=qs_branch::dev"
           else
-            echo "::set-output name=qs_branch::master"
+            echo "::set-output name=qs_branch::main"
             echo "::set-output name=version::${GITHUB_REF/refs\/tags\//}"
           fi
       - name: Download build image artifact
@@ -79,7 +79,7 @@ jobs:
       - name: Update and push quickstart repo
         run: |
           set -e
-          if [ "$GITHUB_REF" != "refs/heads/master" ]; then
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
             GITHUB_TAG=${GITHUB_REF/refs\/tags\//}
             echo "GitHub Tag: $GITHUB_TAG"
           fi
