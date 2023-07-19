@@ -522,6 +522,7 @@ var plate_mapper = function () {
             pyHTS.state.drugs.push({'id': newId, 'name': name});
             updateDrugTypeAheads();
             successCallback();
+            return newId;
         } else {
             $.ajax({
                 type: 'POST',
