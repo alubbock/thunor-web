@@ -57,6 +57,8 @@ jobs:
         uses: docker/setup-buildx-action@v3
       - name: Checkout Thunor Web
         uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Checkout Quickstart Repo
         uses: actions/checkout@v2
         with:
