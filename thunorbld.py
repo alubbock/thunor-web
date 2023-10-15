@@ -45,14 +45,33 @@ class ThunorBld(ThunorCmdHelper):
         self._log.info('Generate static files')
         return self._run_cmd(cmd)
 
+    # def _init_buildx(self):
+    #     self._log.info("Init docker buildx")
+    #     return self._run_cmd([
+    #         'docker', 'buildx', 'create', '--name', 'thunorbuild', '--use', '--append'
+    #     ])
+
+    # def _deinit_buildx(self):
+    #     self._log.info("Deinit docker buildx")
+    #     return self._run_cmd([
+    #         'docker', 'buildx', 'rm', 'thunorbuild'
+    #     ])
+
     def _build_base_image(self):
         self._log.info('Build thunorweb_base image')
-        return self._run_cmd(['docker', 'build', '-t', 'thunorweb_base',
+        base_cmd = ['docker']
+        if self.args.use_buildx:
+            base_cmd += ['buildx', 'build', '--platform=linux/amd64,linux/arm64']
+        else:
+            base_cmd += ['build']
+        return self._run_cmd(base_cmd +
+                             ['-t',
+                              'thunorweb_base',
+                              '--target',
+                              'thunorweb_base',
                               '--build-arg',
                               'THUNORWEB_VERSION={}'.format(
                                   thunorweb_version),
-                              '-f',
-                              os.path.join(self.cwd, 'Dockerfile.base'),
                               self.cwd])
 
     def collect_static(self):
@@ -95,8 +114,13 @@ class ThunorBld(ThunorCmdHelper):
 
         self.make_static()
         self._log.info('Build main container')
-        self._run_cmd(['docker',
-                       'build',
+        base_cmd = ['docker']
+        if self.args.use_buildx:
+            base_cmd += ['buildx', 'build', '--platform=linux/amd64,linux/arm64']
+        else:
+            base_cmd += ['build']
+        self._run_cmd(base_cmd +
+                      ['--platform=linux/amd64,linux/arm64',
                        '-t', 'alubbock/thunorweb:dev',
                        self.cwd])
         if 'cleanup' in self.args and self.args.cleanup:
@@ -208,6 +232,8 @@ class ThunorBld(ThunorCmdHelper):
         parser.add_argument('--dry-run', action='store_true', default=False,
                             help='Dry run (don\'t execute any commands, '
                                  'just show them)')
+        parser.add_argument('--use-buildx', action='store_true', default=False,
+                            help='Use docker buildx for cross-platform builds')
 
         subparsers = parser.add_subparsers()
 
@@ -266,5 +292,8 @@ if __name__ == '__main__':
     parser = thunorbld._parser()
     parser_args = parser.parse_args()
     thunorbld._set_args(parser_args)
-    if hasattr(parser_args, 'func'):
-        parser_args.func()
+    try:
+        if hasattr(parser_args, 'func'):
+            parser_args.func()
+    finally:
+        pass

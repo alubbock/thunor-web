@@ -37,18 +37,8 @@ jobs:
       - name: Upload coverage
         if: ${{ matrix.dev == '--dev' }}
         run: codecov
-      - name: Export Docker image
-        if: ${{ matrix.dev == '' && github.event_name == 'push' }}
-        run: docker save alubbock/thunorweb:dev | gzip > thunorweb-image.tar.gz
-      - name: Store build image as artifact for deploy stage
-        if: ${{ matrix.dev == '' && github.event_name == 'push' }}
-        uses: actions/upload-artifact@v2
-        with:
-          name: thunor-web-container
-          path: thunorweb-image.tar.gz
-          retention-days: 1
   deploy:
-    needs: build
+    # needs: build
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
@@ -61,12 +51,10 @@ jobs:
             echo "::set-output name=qs_branch::main"
             echo "::set-output name=version::${GITHUB_REF/refs\/tags\//}"
           fi
-      - name: Download build image artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: thunor-web-container
-      - name: Load build image into Docker
-        run: docker load < thunorweb-image.tar.gz
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       - name: Checkout Thunor Web
         uses: actions/checkout@v2
       - name: Checkout Quickstart Repo
@@ -76,6 +64,8 @@ jobs:
           ref: ${{ steps.release_mode.outputs.qs_branch }}
           token: ${{ secrets.API_TOKEN_GITHUB }}
           path: thunor-web-quickstart
+      - name: Build containers
+        run: python thunorbld.py --use-buildx build
       - name: Update and push quickstart repo
         run: |
           set -e
