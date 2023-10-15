@@ -68,6 +68,11 @@ jobs:
           ref: ${{ steps.release_mode.outputs.qs_branch }}
           token: ${{ secrets.API_TOKEN_GITHUB }}
           path: thunor-web-quickstart
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: alubbock
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Build containers and push
         run: python thunorbld.py build --use-buildx --tags=${{ steps.release_mode.outputs.build_tags }} --push
       - name: Update and push quickstart repo
@@ -77,7 +82,6 @@ jobs:
             GITHUB_TAG=${GITHUB_REF/refs\/tags\//}
             echo "GitHub Tag: $GITHUB_TAG"
           fi
-          echo "$DOCKERHUB_TOKEN" | docker login -u alubbock --password-stdin
           cd thunor-web-quickstart
           cp ../thunorctl.py .
           cp ../docker-compose.services.yml .
@@ -109,8 +113,6 @@ jobs:
 
           git commit -m "CI update: $GITHUB_SHA"
           git push
-        env:
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
   cleanup:
     needs: deploy
