@@ -47,9 +47,11 @@ jobs:
         run: |
           if [ "$GITHUB_REF" == "refs/heads/main" ]; then
             echo "::set-output name=qs_branch::dev"
+            echo "::set-output name=build_tags::alubbock/thunorweb:dev"
           else
             echo "::set-output name=qs_branch::main"
             echo "::set-output name=version::${GITHUB_REF/refs\/tags\//}"
+            echo "::set-output name=build_tags::alubbock/thunorweb:dev,alubbock/thunorweb:latest,alubbock/thunorweb:${GITHUB_REF/refs\/tags\//}"
           fi
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -66,8 +68,8 @@ jobs:
           ref: ${{ steps.release_mode.outputs.qs_branch }}
           token: ${{ secrets.API_TOKEN_GITHUB }}
           path: thunor-web-quickstart
-      - name: Build containers
-        run: python thunorbld.py --use-buildx build
+      - name: Build containers and push
+        run: python thunorbld.py build --use-buildx --tags=${{ steps.release_mode.outputs.qs_branch }} --push
       - name: Update and push quickstart repo
         run: |
           set -e
@@ -109,19 +111,6 @@ jobs:
           git push
         env:
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Tag and push dev image build
-        if: ${{ steps.release_mode.outputs.qs_branch == 'dev' }}
-        run: |
-          docker push alubbock/thunorweb:dev
-      - name: Tag and push live image build
-        if: ${{ steps.release_mode.outputs.qs_branch != 'dev' }}
-        run: |
-          docker tag alubbock/thunorweb:dev alubbock/thunorweb:latest
-          docker tag alubbock/thunorweb:dev alubbock/thunorweb:$GITHUB_TAG
-          docker push alubbock/thunorweb:$GITHUB_TAG
-          docker push alubbock/thunorweb:latest
-        env:
-          GITHUB_TAG: ${{ steps.release_mode.outputs.version }}
 
   cleanup:
     needs: deploy

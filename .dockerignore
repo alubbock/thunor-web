@@ -4,6 +4,7 @@ thunorweb/static
 thunorweb/webpack
 _state/
 !_state/deploy-test/_state/thunor-static-build
+!_state/deploy-test/_state/webpack-bundles
 _conf/
 *.yml
 *.env

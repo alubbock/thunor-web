@@ -9,6 +9,7 @@ class ThunorBld(ThunorCmdHelper):
         super(ThunorBld, self).__init__()
         self.cwd = os.path.abspath(os.path.dirname(__file__))
         self.deploy_dir = os.path.join(self.cwd, '_state/deploy-test')
+        self.buildx_archs = 'linux/amd64,linux/arm64'
 
     def _build_webpack(self):
         self._log.info('Build webpack container')
@@ -61,7 +62,7 @@ class ThunorBld(ThunorCmdHelper):
         self._log.info('Build thunorweb_base image')
         base_cmd = ['docker']
         if self.args.use_buildx:
-            base_cmd += ['buildx', 'build', '--platform=linux/amd64,linux/arm64']
+            base_cmd += ['buildx', 'build', '--platform=' + self.buildx_archs]
         else:
             base_cmd += ['build']
         return self._run_cmd(base_cmd +
@@ -78,28 +79,8 @@ class ThunorBld(ThunorCmdHelper):
         cmd = ['python', 'manage.py', 'collectstatic', '--no-input']
 
         if not self.args.dev:
-            self._build_base_image()
-            static_dir = os.path.join(self.deploy_dir,
-                                      '_state/thunor-static-build')
-            try:
-                self._mkdir(os.path.join(static_dir))
-            except FileExistsError:
-                pass
-            self._copy('config-examples/502.html',
-                       os.path.join(static_dir, '502.html'), overwrite=True)
-            cmd = ['docker',
-                   'run',
-                   '--rm',
-                   '-v', self._volume_webpack_bundles,
-                   '-v', self._volume_webpack_static,
-                   '-e', 'DJANGO_DEBUG=False',
-                   '-e', 'DJANGO_SECRET_KEY=not_needed',
-                   '-e', 'DJANGO_EMAIL_HOST=',
-                   '-e', 'DJANGO_EMAIL_PORT=',
-                   '-e', 'DJANGO_EMAIL_USER=',
-                   '-e', 'DJANGO_EMAIL_PASSWORD=',
-                   '-e', 'POSTGRES_PASSWORD=',
-                   'thunorweb_base'] + cmd
+            self._log.debug('Collect static not used in non-dev mode')
+            return True
 
         self._log.info('Collect static files')
         return self._run_cmd(cmd)
@@ -112,16 +93,22 @@ class ThunorBld(ThunorCmdHelper):
         if self.args.dev:
             raise ValueError('Cannot build Docker container in dev mode')
 
-        self.make_static()
+        # self.make_static()
+        self.generate_static()
         self._log.info('Build main container')
         base_cmd = ['docker']
         if self.args.use_buildx:
-            base_cmd += ['buildx', 'build', '--platform=linux/amd64,linux/arm64']
+            base_cmd += ['buildx', 'build', '--platform=' + self.buildx_archs]
         else:
             base_cmd += ['build']
+        if self.args.push:
+            base_cmd += ['--push']
+        for tag in self.args.tags.split(','):
+            base_cmd += ['-t', tag]
         self._run_cmd(base_cmd +
-                      ['--platform=linux/amd64,linux/arm64',
-                       '-t', 'alubbock/thunorweb:dev',
+                      ['--build-arg',
+                       'THUNORWEB_VERSION={}'.format(
+                            thunorweb_version),
                        self.cwd])
         if 'cleanup' in self.args and self.args.cleanup:
             self._rmdir('_state/thunor-static-build')
@@ -232,8 +219,6 @@ class ThunorBld(ThunorCmdHelper):
         parser.add_argument('--dry-run', action='store_true', default=False,
                             help='Dry run (don\'t execute any commands, '
                                  'just show them)')
-        parser.add_argument('--use-buildx', action='store_true', default=False,
-                            help='Use docker buildx for cross-platform builds')
 
         subparsers = parser.add_subparsers()
 
@@ -261,6 +246,12 @@ class ThunorBld(ThunorCmdHelper):
             '--cleanup', action='store_true', default=False,
             help='Cleanup intermediate build files'
         )
+        parser_build.add_argument('--use-buildx', action='store_true', default=False,
+                            help='Use docker buildx for cross-platform builds')
+        parser_build.add_argument('---push', action='store_true', default=False,
+                            help='Push to repo after build')
+        parser_build.add_argument('--tags', default='alubbock/thunorweb:dev',
+                            help='Tags to use when building container (comma separated)')
         parser_build.set_defaults(func=self.thunorweb_build)
 
         parser_init = subparsers.add_parser(
