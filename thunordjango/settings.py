@@ -296,7 +296,11 @@ DATETIME_FORMAT = SHORT_DATETIME_FORMAT
 # https://docs.djangoproject.com/en/1.10/howto/static-files/
 
 STATIC_URL = os.environ.get('DJANGO_STATIC_URL', '/static/')
-STATIC_ROOT = os.path.join(STATE_DIR, 'thunor-static')
+CONTAINER_STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+if os.path.exists(CONTAINER_STATIC_ROOT):
+    STATIC_ROOT = CONTAINER_STATIC_ROOT
+else:
+    STATIC_ROOT = os.path.join(STATE_DIR, 'thunor-static')
 STATICFILES_DIRS = (os.path.join(STATE_DIR, 'webpack-bundles'), )
 WEBPACK_LOADER = {
     'DEFAULT': {

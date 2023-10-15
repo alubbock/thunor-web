@@ -29,4 +29,4 @@ RUN DJANGO_DEBUG=False DJANGO_SECRET_KEY= DJANGO_EMAIL_HOST= DJANGO_EMAIL_PORT= 
 
 FROM thunorweb_base
 
-COPY --from=thunorweb_static_build $THUNOR_HOME/_state/thunor-static $THUNOR_HOME/_state/thunor-static
+COPY --from=thunorweb_static_build $THUNOR_HOME/_state/thunor-static $THUNOR_HOME/static
