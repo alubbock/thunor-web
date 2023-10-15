@@ -138,7 +138,7 @@ class ThunorBld(ThunorCmdHelper):
         self._init_test_files()
         self.args.use_buildx = False
         self.args.tags = self._DEFAULT_TAGS
-        self.push = False
+        self.args.push = False
         self.thunorweb_build()
 
     def run_tests(self):
