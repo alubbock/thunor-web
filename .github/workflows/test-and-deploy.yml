@@ -69,7 +69,7 @@ jobs:
           token: ${{ secrets.API_TOKEN_GITHUB }}
           path: thunor-web-quickstart
       - name: Build containers and push
-        run: python thunorbld.py build --use-buildx --tags=${{ steps.release_mode.outputs.qs_branch }} --push
+        run: python thunorbld.py build --use-buildx --tags=${{ steps.release_mode.outputs.build_tags }} --push
       - name: Update and push quickstart repo
         run: |
           set -e
