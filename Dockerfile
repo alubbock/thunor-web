@@ -24,7 +24,6 @@ RUN printf "def get_versions():\n    return {'version': '$THUNORWEB_VERSION'}\n"
 FROM thunorweb_base AS thunorweb_static_build
 
 COPY _state/deploy-test/_state/webpack-bundles $THUNOR_HOME/_state/webpack-bundles
-COPY _state/deploy-test/_state/thunor-static-build $THUNOR_HOME/_state/thunor-static
 RUN DJANGO_DEBUG=False DJANGO_SECRET_KEY= DJANGO_EMAIL_HOST= DJANGO_EMAIL_PORT= DJANGO_EMAIL_USER= \
     DJANGO_EMAIL_PASSWORD= POSTGRES_PASSWORD= python manage.py collectstatic --no-input
 

@@ -5,6 +5,8 @@ from thunorctl import ThunorCmdHelper
 
 
 class ThunorBld(ThunorCmdHelper):
+    _DEFAULT_TAGS = 'alubbock/thunorweb:dev'
+
     def __init__(self):
         super(ThunorBld, self).__init__()
         self.cwd = os.path.abspath(os.path.dirname(__file__))
@@ -134,6 +136,9 @@ class ThunorBld(ThunorCmdHelper):
     def init_test(self):
         """ Minimal init for unit testing/CI purposes """
         self._init_test_files()
+        self.args.use_buildx = False
+        self.args.tags = self._DEFAULT_TAGS
+        self.push = False
         self.thunorweb_build()
 
     def run_tests(self):
@@ -250,7 +255,7 @@ class ThunorBld(ThunorCmdHelper):
                             help='Use docker buildx for cross-platform builds')
         parser_build.add_argument('--push', action='store_true', default=False,
                             help='Push to repo after build')
-        parser_build.add_argument('--tags', default='alubbock/thunorweb:dev',
+        parser_build.add_argument('--tags', default=ThunorBld._DEFAULT_TAGS,
                             help='Tags to use when building container (comma separated)')
         parser_build.set_defaults(func=self.thunorweb_build)
 
