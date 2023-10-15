@@ -3,7 +3,7 @@ MAINTAINER Alex Lubbock <code@alexlubbock.com>
 ENV PYTHONUNBUFFERED 1
 ENV THUNOR_HOME=/thunor
 
-RUN apt update && apt install -y libpq-dev gcc libmagic1 libpcre3-dev \
+RUN apt update && apt install -y libpq-dev gcc libmagic1 libpcre3-dev media-types \
   && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir $THUNOR_HOME
