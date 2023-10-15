@@ -3,7 +3,7 @@ MAINTAINER Alex Lubbock <code@alexlubbock.com>
 ENV PYTHONUNBUFFERED 1
 ENV THUNOR_HOME=/thunor
 
-RUN apt update && apt install -y libpq-dev gcc libmagic1 \
+RUN apt update && apt install -y libpq-dev gcc libmagic1 libpcre3-dev \
   && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir $THUNOR_HOME
@@ -12,7 +12,7 @@ WORKDIR $THUNOR_HOME
 ADD requirements.txt $THUNOR_HOME
 ADD thunor $THUNOR_HOME/thunor
 RUN pip3 install --no-cache-dir -r requirements.txt
-RUN dpkg --purge gcc
+RUN dpkg --purge gcc libpcre3-dev
 CMD ["uwsgi", "--master", "--socket", ":8000", "--module", "thunordjango.wsgi", "--uid", "www-data", "--gid", "www-data", "--enable-threads"]
 ADD manage.py $THUNOR_HOME
 ADD thunordjango $THUNOR_HOME/thunordjango
