@@ -248,7 +248,7 @@ class ThunorBld(ThunorCmdHelper):
         )
         parser_build.add_argument('--use-buildx', action='store_true', default=False,
                             help='Use docker buildx for cross-platform builds')
-        parser_build.add_argument('---push', action='store_true', default=False,
+        parser_build.add_argument('--push', action='store_true', default=False,
                             help='Push to repo after build')
         parser_build.add_argument('--tags', default='alubbock/thunorweb:dev',
                             help='Tags to use when building container (comma separated)')
