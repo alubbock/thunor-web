@@ -20,7 +20,7 @@ def serve_file(request, full_file_name, rename_to=None, content_type=None):
     -------
 
     """
-    if settings.DEBUG:
+    if settings.DEBUG or settings.DJANGO_SERVE_FILES_DIRECTLY:
         response = serve(request, os.path.basename(full_file_name),
                          os.path.dirname(full_file_name))
     else:

@@ -322,6 +322,8 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = int(os.environ.get(
 # These DOWNLOADS_* settings need to match nginx config
 DOWNLOADS_ROOT = os.path.join(MEDIA_ROOT, 'downloads')
 DOWNLOADS_URL = '/_thunor_downloads/'
+# Serve static files directly rather than through nginx
+DJANGO_SERVE_FILES_DIRECTLY = os.environ.get('DJANGO_SERVE_FILES_DIRECTLY', 'false').lower() == 'true'
 # Time to retain datasets after they've been marked for deletion
 DATASET_RETENTION_DAYS = 30
 # Time to retain uploaded datasets if they're not attached to a dataset
