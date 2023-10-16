@@ -38,7 +38,7 @@ jobs:
         if: ${{ matrix.dev == '--dev' }}
         run: codecov
   deploy:
-    # needs: build
+    needs: build
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
