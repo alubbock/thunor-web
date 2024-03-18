@@ -1,5 +1,5 @@
 -r thunor/requirements.txt
-Django==4.2.3
+Django==4.2.11
 django-allauth==0.52.0
 django-crispy-forms==1.14.0
 django-custom-user==1.1
