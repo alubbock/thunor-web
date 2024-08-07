@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dev: ['--dev','']
+        dev: ['--dev']  # Running non-dev takes hours
     env:
       DEVFLAG: ${{ matrix.dev }}
     steps:
