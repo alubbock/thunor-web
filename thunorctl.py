@@ -82,7 +82,7 @@ class ThunorCmdHelper(object):
 
     def _check_docker_compose(self):
         try:
-            self._run_cmd(['docker-compose', '--version'])
+            self._run_cmd(['docker', 'compose', 'version'])
         except FileNotFoundError:
             msg = '\ndocker-compose not found. '
             if sys.platform == 'darwin':
@@ -169,7 +169,7 @@ class ThunorCmdHelper(object):
         pg_max_retry = 40
         pg_retry_delay = 5
         while self._run_cmd(
-                ['docker-compose', '-f', compose_file,
+                ['docker', 'compose', '-f', compose_file,
                  'exec', '-T', 'postgres', 'pg_isready'],
                 exit_on_error=False) != 0 and pg_retry < pg_max_retry:
             print('Postgres not yet ready, sleeping {} seconds...'.format(
@@ -219,7 +219,7 @@ class ThunorCtl(ThunorCmdHelper):
         if self.args.dev:
             return self._run_cmd(['python', 'manage.py', 'migrate'])
         else:
-            return self._run_cmd(['docker-compose', 'run', '--rm',
+            return self._run_cmd(['docker', 'compose', 'run', '--rm',
                                   self.MAIN_CONTAINER_SERVICE,
                                   'python', 'manage.py', 'migrate'])
 
@@ -233,13 +233,13 @@ class ThunorCtl(ThunorCmdHelper):
         else:
             if self.args.all:
                 self._log.info('Pull latest images for Thunor Web & services')
-                self._run_cmd(['docker-compose', 'pull'])
+                self._run_cmd(['docker', 'compose', 'pull'])
             else:
                 self._log.info('Pull latest image for Thunor Web')
-                self._run_cmd(['docker-compose', 'pull',
+                self._run_cmd(['docker', 'compose', 'pull',
                                self.MAIN_CONTAINER_SERVICE])
                 active_image_hash = subprocess.check_output(
-                    ['docker-compose', 'images', '-q',
+                    ['docker', 'compose', 'images', '-q',
                      self.MAIN_CONTAINER_SERVICE]).decode('utf8').strip()
                 latest_image_hash = subprocess.check_output(
                     ['docker', 'images', '-q', self.MAIN_CONTAINER_IMAGE]
@@ -260,7 +260,7 @@ class ThunorCtl(ThunorCmdHelper):
             cmd += ['--dry-run']
 
         if not self.args.dev:
-            cmd = ['docker-compose',
+            cmd = ['docker', 'compose',
                    'run',
                    '--rm',
                    self.MAIN_CONTAINER_SERVICE] + cmd
@@ -269,7 +269,7 @@ class ThunorCtl(ThunorCmdHelper):
 
     @property
     def _certbot_cmd(self):
-        return ['docker-compose', '-f',
+        return ['docker', 'compose', '-f',
                 os.path.join(self.cwd, 'docker-compose.certbot.yml'),
                 'run', '--rm', 'certbot']
 
@@ -339,7 +339,7 @@ class ThunorCtl(ThunorCmdHelper):
                 )
             ])
         self._log.info('Trigger NGINX reload')
-        self._run_cmd(['docker-compose', 'exec', 'nginx', 'nginx', '-s',
+        self._run_cmd(['docker', 'compose', 'exec', 'nginx', 'nginx', '-s',
                        'reload'])
         self._log.info('Set DJANGO_ACCOUNTS_TLS=True')
         self._replace_in_file(
@@ -348,7 +348,7 @@ class ThunorCtl(ThunorCmdHelper):
             'DJANGO_ACCOUNTS_TLS=True'
         )
         self._log.info('Restart app container')
-        self._run_cmd(['docker-compose', 'restart',
+        self._run_cmd(['docker', 'compose', 'restart',
                        self.MAIN_CONTAINER_SERVICE])
 
     def generate_certificates(self, prompt=True):
@@ -385,7 +385,7 @@ class ThunorCtl(ThunorCmdHelper):
                       ['certbot', 'renew', '--non-interactive'])
 
         self._log.info('Trigger NGINX reload')
-        self._run_cmd(['docker-compose', 'exec', 'nginx', 'nginx',
+        self._run_cmd(['docker', 'compose', 'exec', 'nginx', 'nginx',
                        '-s', 'reload'])
 
     def deploy(self):
@@ -479,7 +479,7 @@ class ThunorCtl(ThunorCmdHelper):
                                docker_machine, self.args.thunorhome)])
 
         self._log.info('Starting database')
-        self._run_cmd(['docker-compose', 'up', '-d', 'postgres'])
+        self._run_cmd(['docker', 'compose', 'up', '-d', 'postgres'])
 
         if not self.args.dry_run:
             self._wait_postgres()
@@ -506,7 +506,7 @@ class ThunorCtl(ThunorCmdHelper):
         if self.args.dev:
             self._run_cmd(['python', 'manage.py', 'createsuperuser'])
         else:
-            self._run_cmd(['docker-compose', 'exec',
+            self._run_cmd(['docker', 'compose', 'exec',
                            self.MAIN_CONTAINER_SERVICE,
                           'python', 'manage.py', 'createsuperuser'])
 
@@ -516,7 +516,7 @@ class ThunorCtl(ThunorCmdHelper):
                              '"python thunorbld.py test"')
         else:
             self._log.info('Run test suite')
-            self._run_cmd(['docker-compose', 'run', '--rm',
+            self._run_cmd(['docker', 'compose', 'run', '--rm',
                            '-e', 'THUNORHOME=/thunor',
                            self.MAIN_CONTAINER_SERVICE,
                            'python', 'manage.py', 'test'])
@@ -527,14 +527,14 @@ class ThunorCtl(ThunorCmdHelper):
                              '"python manage.py runserver".')
         if log:
             self._log.info('Start Thunor Web')
-        self._run_cmd(['docker-compose', 'up', '-d'])
+        self._run_cmd(['docker', 'compose', 'up', '-d'])
 
     def stop(self, log=True):
         if self.args.dev:
             raise ValueError('Not available in dev mode.')
         if log:
             self._log.info('Stop Thunor Web')
-        self._run_cmd(['docker-compose', 'down', '-v'])
+        self._run_cmd(['docker', 'compose', 'down', '-v'])
 
     def restart(self):
         self._log.info('Restart Thunor Web')
@@ -547,7 +547,7 @@ class ThunorCtl(ThunorCmdHelper):
         if self.args.dev:
             return self._run_cmd(cmd)
 
-        cmd = ['docker-compose', 'exec', self.MAIN_CONTAINER_SERVICE] + cmd
+        cmd = ['docker', 'compose', 'exec', self.MAIN_CONTAINER_SERVICE] + cmd
         if self._run_cmd(cmd, exit_on_error=False) != 0:
             raise RuntimeError('Command failed. Please check you\'ve started '
                                'Thunor Web with "python thunorctl.py start".')

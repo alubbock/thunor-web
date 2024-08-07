@@ -148,7 +148,7 @@ class ThunorBld(ThunorCmdHelper):
         else:
             compose_file = os.path.join(self.deploy_dir,
                                         'docker-compose.yml')
-            base_cmd = ['docker-compose', '-f', compose_file]
+            base_cmd = ['docker', 'compose', '-f', compose_file]
             self._log.info('Start database (if not already up)')
             self._run_cmd(base_cmd + ['up', '-d', 'postgres', 'redis'])
             self._wait_postgres(compose_file=compose_file)
@@ -190,7 +190,7 @@ class ThunorBld(ThunorCmdHelper):
         self._mkdir('_state/postgres-data')
 
         self._log.info('Start database')
-        self._run_cmd(['docker-compose', 'up', '-d', 'postgres'])
+        self._run_cmd(['docker', 'compose', 'up', '-d', 'postgres'])
 
         # Install Python reqs
         self._log.info('Install python requirements')

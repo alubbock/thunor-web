@@ -20,7 +20,7 @@ jobs:
       - name: Print Docker Compose version
         run: |
           docker --version
-          docker-compose --version
+          docker compose version
       - uses: actions/checkout@v2
         with:
           submodules: true
