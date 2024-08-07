@@ -25,9 +25,6 @@ for the typical installation procedure. This option is recommended for most user
 If you're interested in modifying the source code or contributing to Thunor
 Web, see the [developer installation](https://docs.thunor.net/developer-installation).
 
-There's also an option for
-[remote deployment using Docker Machine](https://docs.thunor.net/remote-installation).
-
 The differences between these options are covered in
 [installation options](https://docs.thunor.net/installation-options).
 
