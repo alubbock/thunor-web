@@ -36,7 +36,7 @@ class TestPlateMapper(TestCase):
         self.client.force_login(self.user)
         resp = self.client.get(reverse('thunorweb:ajax_load_plate',
                                        args=[plate_id]))
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
 
         content = json.loads(resp.content)
 
@@ -50,13 +50,13 @@ class TestPlateMapper(TestCase):
             json.dumps(plate_data),
             content_type='application/json'
         )
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
 
     def test_create_cell_line(self):
         self.client.force_login(self.user)
         resp = self.client.post(reverse('thunorweb:ajax_create_cellline'),
                                 {'name': 'test_cell_line'})
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
 
         self.assertTrue(CellLine.objects.filter(
             name='test_cell_line').exists())
@@ -65,7 +65,7 @@ class TestPlateMapper(TestCase):
         self.client.force_login(self.user)
         resp = self.client.post(reverse('thunorweb:ajax_create_drug'),
                                 {'name': 'test_drug'})
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
 
         self.assertTrue(Drug.objects.filter(name='test_drug').exists())
 
@@ -73,12 +73,12 @@ class TestPlateMapper(TestCase):
         self.client.force_login(self.user)
         resp = self.client.get(reverse('thunorweb:plate_mapper_dataset',
                                        args=[self.d.id]))
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
 
     def test_plate_mapper_no_dataset(self):
         self.client.force_login(self.user)
         resp = self.client.get(reverse('thunorweb:plate_mapper'))
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
 
         resp = self.client.get(reverse('thunorweb:plate_mapper', args=[384]))
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)

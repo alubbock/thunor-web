@@ -115,7 +115,7 @@
 {% load webpack_loader %}{% get_files 'raven' 'js' as raven_js %}
 <script src="{{ raven_js.0.url }}" crossorigin="anonymous"></script>
 
-<script>{% load raven %}{% load thunorweb_tags %}Raven.config('{% sentry_public_dsn %}', {
+<script>{% load thunorweb_tags %}Raven.config('{% sentry_public_dsn %}', {
     environment: '{% sentry_environment %}', release: '{% thunorweb_version %}'
 }).install();
 {% if user.is_authenticated %}Raven.setUserContext({email: '{{ user.email }}',

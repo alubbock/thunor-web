@@ -5,6 +5,7 @@ from django.db.models.query import QuerySet
 import json
 from django.utils.safestring import mark_safe
 from django.conf import settings
+from sentry_sdk import Hub
 
 register = template.Library()
 
@@ -18,7 +19,12 @@ def jsonify(obj):
 
 @register.simple_tag
 def sentry_environment():
-    return settings.RAVEN_CONFIG['environment']
+    return Hub.current.client.options['environment']
+
+
+@register.simple_tag
+def sentry_public_dsn():
+    return Hub.current.client.options['dsn']
 
 
 @register.simple_tag
