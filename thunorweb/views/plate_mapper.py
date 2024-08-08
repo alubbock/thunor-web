@@ -192,7 +192,7 @@ def ajax_save_plate(request):
         wells_to_insert = []
         for plate in plate_ids:
             for well_num, cell_line_id in enumerate(cell_line_ids):
-                if not (plate, well_num) in existing_wells:
+                if (plate, well_num) not in existing_wells:
                     wells_to_insert.append(Well(
                         well_num=well_num,
                         plate_id=plate,

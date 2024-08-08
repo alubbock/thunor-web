@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from django.db import transaction
 from django.db.models import Q
 from thunorweb.models import CellLine, Drug, CellLineTag, DrugTag
-from thunorweb.views import login_required_unless_public, login_required
+from thunorweb.views import login_required_unless_public
 import logging
 import pandas as pd
 from django.db.utils import IntegrityError

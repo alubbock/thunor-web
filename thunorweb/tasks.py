@@ -431,7 +431,7 @@ def _dataset_groupings(dataset, regenerate_cache=False):
     missing_combos = []
     for cl in cell_line_ids:
         for dr in drug_ids:
-            if not (cl, dr) in combos:
+            if (cl, dr) not in combos:
                 missing_combos.append((str(cl), (str(dr), )))
 
     if has_drug_combos:

@@ -11,7 +11,7 @@ import pandas as pd
 from django.conf import settings
 import os
 from thunorweb.serve_file import serve_file
-from thunorweb.views.datasets import license_accepted, LICENSE_UNSIGNED
+from thunorweb.views.datasets import license_accepted
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 from thunorweb.views import login_required_unless_public, _assert_has_perm
 

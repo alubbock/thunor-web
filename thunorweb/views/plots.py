@@ -1,5 +1,5 @@
 from django.shortcuts import render, Http404
-from django.http import JsonResponse, HttpResponse
+from django.http import HttpResponse
 from django.utils.html import strip_tags
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.core.cache import cache
