@@ -71,7 +71,7 @@ class TestPlots(TestCase):
         self.client.force_login(self.user)
         resp = self.client.get(reverse('thunorweb:plots'),
                                {'dataset': self.d.id})
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
 
     def test_time_course(self):
         self.client.force_login(self.user)
@@ -87,7 +87,7 @@ class TestPlots(TestCase):
              'logTransform': 'log2'
              }
         )
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
 
     def test_time_course_invalid_cell_line(self):
         self.client.force_login(self.user)
@@ -103,7 +103,7 @@ class TestPlots(TestCase):
              'logTransform': 'log2'
              }
         )
-        self.assertEquals(resp.status_code, HTTP_INVALID_REQUEST)
+        self.assertEqual(resp.status_code, HTTP_INVALID_REQUEST)
 
     def test_single_drc_dip(self):
         self.client.force_login(self.user)
@@ -118,7 +118,7 @@ class TestPlots(TestCase):
              'drMetric': 'dip'
              }
         )
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
 
     def test_single_drc_viability(self):
         self.client.force_login(self.user)
@@ -133,7 +133,7 @@ class TestPlots(TestCase):
              'drMetric': 'viability'
              }
         )
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
 
     def test_ic50_bar_plot_all_cell_lines(self):
         self.client.force_login(self.user)
@@ -150,7 +150,7 @@ class TestPlots(TestCase):
             url,
             argdict
         )
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
 
     def test_ic50_ec50_scatter_plot_all_cell_lines(self):
         self.client.force_login(self.user)
@@ -169,7 +169,7 @@ class TestPlots(TestCase):
             url,
             argdict
         )
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
 
     def test_ic50_ec50_box_plot_tags(self):
         self.client.force_login(self.user)
@@ -188,7 +188,7 @@ class TestPlots(TestCase):
             url,
             argdict
         )
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
 
     def test_qc_dip_boxplot(self):
         self.client.force_login(self.user)
@@ -200,7 +200,7 @@ class TestPlots(TestCase):
              'datasetId': self.d.id
              }
         )
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
 
     def test_qc_dip_plate_map(self):
         self.client.force_login(self.user)
@@ -213,4 +213,4 @@ class TestPlots(TestCase):
              'plateId': self.d.plate_set.first().id
              }
         )
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)

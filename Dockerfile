@@ -1,5 +1,5 @@
-FROM python:3.11-slim-bullseye AS thunorweb_base
-MAINTAINER Alex Lubbock <code@alexlubbock.com>
+FROM python:3.12-slim-bullseye AS thunorweb_base
+LABEL org.opencontainers.image.authors="code@alexlubbock.com"
 ENV PYTHONUNBUFFERED 1
 ENV THUNOR_HOME=/thunor
 

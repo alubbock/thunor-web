@@ -8,7 +8,6 @@ https://docs.djangoproject.com/en/1.10/howto/deployment/wsgi/
 """
 
 import os
-from raven.contrib.django.raven_compat.middleware.wsgi import Sentry
 from django.core.wsgi import get_wsgi_application
 try:
     from uwsgidecorators import postfork
@@ -18,7 +17,7 @@ except:
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "thunordjango.settings")
 
-application = Sentry(get_wsgi_application())
+application = get_wsgi_application()
 
 @postfork
 def initialise():

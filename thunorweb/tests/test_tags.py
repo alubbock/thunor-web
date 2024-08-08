@@ -26,13 +26,13 @@ class TestTags(TestCase):
         self.client.force_login(self.user)
         resp = self.client.get(reverse('thunorweb:tag_editor',
                                        args=['cell_lines']))
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
 
     def test_tag_editor_drugs(self):
         self.client.force_login(self.user)
         resp = self.client.get(reverse('thunorweb:tag_editor',
                                        args=['drugs']))
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
 
     def test_cell_line_tag_crud(self):
         self.client.force_login(self.user)
@@ -44,7 +44,7 @@ class TestTags(TestCase):
                                 {'tagsName': 'testTag',
                                  'tagCategory': '',
                                  'tagType': 'cl'})
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
         resp_json = json.loads(resp.content)
         tag_id = resp_json['tagId']
 
@@ -55,8 +55,8 @@ class TestTags(TestCase):
                                 {'tagId': tag_id,
                                  'tagType': 'cl',
                                  'entityId': [cl.id]})
-        self.assertEquals(resp.status_code, HTTP_OK)
-        self.assertEquals(
+        self.assertEqual(resp.status_code, HTTP_OK)
+        self.assertEqual(
             list(CellLineTag.objects.get(id=tag_id).cell_lines.all()),
             [cl]
         )
@@ -71,25 +71,25 @@ class TestTags(TestCase):
              'state': True
              }
         )
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
 
         # Get
         resp = self.client.get(
             reverse('thunorweb:ajax_get_tags',
                     args=['cell_lines', 'public'])
         )
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
         resp_data = json.loads(resp.content)
-        self.assertEquals(len(resp_data['data']), 1)
+        self.assertEqual(len(resp_data['data']), 1)
 
         # Get targets
         resp = self.client.get(
             reverse('thunorweb:ajax_get_tag_targets',
                     args=['cell_lines', tag_id])
         )
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
         resp_data = json.loads(resp.content)
-        self.assertEquals(len(resp_data['targets']), 1)
+        self.assertEqual(len(resp_data['targets']), 1)
 
         # Rename
         resp = self.client.post(reverse('thunorweb:ajax_rename_tag'),
@@ -97,7 +97,7 @@ class TestTags(TestCase):
                                  'tagType': 'cl',
                                  'tagCategory': '',
                                  'tagsName': 'testTagNew'})
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
         self.assertTrue(CellLineTag.objects.filter(
             tag_name='testTagNew', tag_category='', id=tag_id).exists())
 
@@ -105,7 +105,7 @@ class TestTags(TestCase):
         resp = self.client.post(reverse('thunorweb:ajax_delete_tag'),
                                 {'tagId': tag_id,
                                  'tagType': 'cl'})
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
         self.assertFalse(CellLineTag.objects.filter(id=tag_id).exists())
 
     def test_drug_tag_crud(self):
@@ -118,7 +118,7 @@ class TestTags(TestCase):
                                 {'tagsName': 'testTag',
                                  'tagCategory': '',
                                  'tagType': 'drug'})
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
         resp_json = json.loads(resp.content)
         tag_id = resp_json['tagId']
 
@@ -129,8 +129,8 @@ class TestTags(TestCase):
                                 {'tagId': tag_id,
                                  'tagType': 'drug',
                                  'entityId': [dr.id]})
-        self.assertEquals(resp.status_code, HTTP_OK)
-        self.assertEquals(
+        self.assertEqual(resp.status_code, HTTP_OK)
+        self.assertEqual(
             list(DrugTag.objects.get(id=tag_id).drugs.all()),
             [dr]
         )
@@ -145,25 +145,25 @@ class TestTags(TestCase):
              'state': True
              }
         )
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
 
         # Get
         resp = self.client.get(
             reverse('thunorweb:ajax_get_tags',
                     args=['drugs', 'public'])
         )
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
         resp_data = json.loads(resp.content)
-        self.assertEquals(len(resp_data['data']), 1)
+        self.assertEqual(len(resp_data['data']), 1)
 
         # Get targets
         resp = self.client.get(
             reverse('thunorweb:ajax_get_tag_targets',
                     args=['drugs', tag_id])
         )
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
         resp_data = json.loads(resp.content)
-        self.assertEquals(len(resp_data['targets']), 1)
+        self.assertEqual(len(resp_data['targets']), 1)
 
         # Rename
         resp = self.client.post(reverse('thunorweb:ajax_rename_tag'),
@@ -171,7 +171,7 @@ class TestTags(TestCase):
                                  'tagType': 'drug',
                                  'tagCategory': '',
                                  'tagsName': 'testTagNew'})
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
         self.assertTrue(DrugTag.objects.filter(
             tag_name='testTagNew', tag_category='', id=tag_id).exists())
 
@@ -179,7 +179,7 @@ class TestTags(TestCase):
         resp = self.client.post(reverse('thunorweb:ajax_delete_tag'),
                                 {'tagId': tag_id,
                                  'tagType': 'drug'})
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
         self.assertFalse(DrugTag.objects.filter(id=tag_id).exists())
 
     def test_upload_cell_line_tags(self):
@@ -192,8 +192,8 @@ class TestTags(TestCase):
         response = self.client.post(reverse('thunorweb:ajax_upload_tagfile',
                                             args=['cell_lines']),
                                     {'tagfiles[]': csv_bytes})
-        self.assertEquals(response.status_code, HTTP_OK)
-        self.assertEquals(CellLineTag.objects.filter(
+        self.assertEqual(response.status_code, HTTP_OK)
+        self.assertEqual(CellLineTag.objects.filter(
             tag_category='tagcat').count(), 1)
 
     def test_upload_drug_tags(self):
@@ -206,8 +206,8 @@ class TestTags(TestCase):
         response = self.client.post(reverse('thunorweb:ajax_upload_tagfile',
                                             args=['drugs']),
                                     {'tagfiles[]': csv_bytes})
-        self.assertEquals(response.status_code, HTTP_OK)
-        self.assertEquals(DrugTag.objects.filter(
+        self.assertEqual(response.status_code, HTTP_OK)
+        self.assertEqual(DrugTag.objects.filter(
             tag_category='tagcat').count(), 1)
 
     def test_get_own_tags(self):
@@ -215,19 +215,19 @@ class TestTags(TestCase):
 
         resp = self.client.get(reverse('thunorweb:ajax_get_tags',
                                        args=['cell_lines']))
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
 
         resp = self.client.get(reverse('thunorweb:ajax_get_tags',
                                        args=['drugs']))
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
 
     def test_get_public_tags(self):
         self.client.force_login(self.user)
 
         resp = self.client.get(reverse('thunorweb:ajax_get_tags',
                                        args=['cell_lines', 'public']))
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
 
         resp = self.client.get(reverse('thunorweb:ajax_get_tags',
                                        args=['drugs', 'public']))
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)

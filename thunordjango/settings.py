@@ -11,20 +11,15 @@ https://docs.djangoproject.com/en/1.10/ref/settings/
 """
 
 import os
+import sentry_sdk
 import sys
 import thunorweb
 from django.contrib import messages
 import errno
 import logging
 
-logger = logging.getLogger(__name__)
-
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-# This is where state-specific files are stored, like uploads/downloads and
-# the SQLite database, if applicable
-STATE_DIR = os.path.join(BASE_DIR, '_state')
 
 # Load environment variables for .env file, if present
 env_file = os.path.join(BASE_DIR, 'thunor-dev.env')
@@ -45,6 +40,28 @@ except FileNotFoundError:
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ['DJANGO_DEBUG'].lower() == 'true'
+
+# Initialise sentry error handler
+sentry_sdk.init(
+    dsn=os.environ.get('DJANGO_SENTRY_DSN', None),
+    environment=os.environ.get('DJANGO_SENTRY_ENVIRONMENT',
+                               'development' if DEBUG else 'production'),
+    release=thunorweb.__version__,
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for tracing.
+    traces_sample_rate=1.0,
+    # Set profiles_sample_rate to 1.0 to profile 100%
+    # of sampled transactions.
+    # We recommend adjusting this value in production.
+    profiles_sample_rate=1.0,
+)
+
+
+logger = logging.getLogger(__name__)
+
+# This is where state-specific files are stored, like uploads/downloads and
+# the SQLite database, if applicable
+STATE_DIR = os.path.join(BASE_DIR, '_state')
 
 if DEBUG:
     # Add the thunor submodule to the path
@@ -68,7 +85,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.sites',
     'django.contrib.staticfiles',
-    'raven.contrib.django.raven_compat',
     'thunorweb.apps.ThunorConfig',
     'custom_user',
     'allauth',
@@ -99,6 +115,7 @@ if DEBUG:
     # MIDDLEWARE += ['debug_panel.middleware.DebugPanelMiddleware']
 
 MIDDLEWARE += [
+    'allauth.account.middleware.AccountMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.http.ConditionalGetMiddleware',
@@ -191,16 +208,6 @@ else:
     CACHES['default'] = {
         'BACKEND': 'django.core.cache.backends.dummy.DummyCache'
     }
-
-
-RAVEN_CONFIG = {
-    'dsn': os.environ.get('DJANGO_SENTRY_DSN', None),
-    # If you are using git, you can also automatically configure the
-    # release based on the git info.
-    'environment': os.environ.get('DJANGO_SENTRY_ENVIRONMENT',
-                                  'development' if DEBUG else 'production'),
-    'release': thunorweb.__version__,
-}
 
 
 AUTH_USER_MODEL = 'custom_user.EmailUser'
@@ -358,12 +365,6 @@ LOGGING = {
         },
     },
     'handlers': {
-        'sentry': {
-            'level': 'DEBUG' if DEBUG else 'INFO',
-            'filters': ['require_debug_false'],
-            'class': 'raven.contrib.django.raven_compat.handlers.SentryHandler',
-            'tags': {},
-        },
         'console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
@@ -373,20 +374,10 @@ LOGGING = {
     'loggers': {
         'root': {
             'level': 'DEBUG' if DEBUG else 'INFO',
-            'handlers': ['sentry'],
+            'handlers': [],
         },
         'django.db.backends': {
             'level': 'ERROR',
-            'handlers': ['console'],
-            'propagate': False,
-        },
-        'raven': {
-            'level': 'DEBUG',
-            'handlers': ['console'],
-            'propagate': False,
-        },
-        'sentry.errors': {
-            'level': 'DEBUG',
             'handlers': ['console'],
             'propagate': False,
         },

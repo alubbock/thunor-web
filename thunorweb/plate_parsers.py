@@ -478,7 +478,7 @@ class PlateFileParser(object):
             plate = self._plate_objects.get(plate_name, None)
 
             # Each plate can have multiple assays
-            assays = re.split('\n\s*\n', barcode_and_rest[1])
+            assays = re.split(r'\n\s*\n', barcode_and_rest[1])
 
             for a in assays:
                 a_strp = a.strip()

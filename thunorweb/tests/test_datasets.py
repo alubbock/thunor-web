@@ -46,10 +46,10 @@ class TestDatasetViews(TestCase):
 
         resp = self.client.post(reverse('thunorweb:ajax_rename_dataset'),
                                 {'datasetId': d.id, 'datasetName': 'test456'})
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
 
         d.refresh_from_db()
-        self.assertEquals(d.name, 'test456')
+        self.assertEqual(d.name, 'test456')
 
     def test_delete_dataset(self):
         self.client.force_login(self.user)
@@ -57,7 +57,7 @@ class TestDatasetViews(TestCase):
 
         resp = self.client.post(reverse('thunorweb:ajax_delete_dataset'),
                                 {'dataset_id': d.id})
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
 
         self.assertIsNotNone(HTSDataset.objects.get(pk=d.id).deleted_date)
 
@@ -66,21 +66,21 @@ class TestDatasetViews(TestCase):
         self.client.force_login(self.user)
         resp = self.client.post(reverse('thunorweb:ajax_delete_platefile'),
                                 {'key': platefile_id})
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
 
     def test_dataset_upload_page(self):
         self.client.force_login(self.user)
         resp = self.client.get(reverse('thunorweb:plate_upload',
                                        args=[self.d.id]))
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
 
     def test_download_hdf(self):
         self.client.force_login(self.user)
         resp = self.client.get(reverse('thunorweb:download_dataset_hdf5',
                                   args=[self.d.id]))
 
-        self.assertEquals(resp.status_code, HTTP_OK)
-        self.assertEquals(resp['Content-Type'], 'application/x-hdf5')
+        self.assertEqual(resp.status_code, HTTP_OK)
+        self.assertEqual(resp['Content-Type'], 'application/x-hdf5')
 
     def test_download_hdf_access(self):
         self.check_view_access_status(
@@ -91,16 +91,16 @@ class TestDatasetViews(TestCase):
         resp = self.client.get(reverse('thunorweb:download_fit_params',
                                        args=[self.d.id, 'dip']))
 
-        self.assertEquals(resp.status_code, HTTP_OK)
-        self.assertEquals(resp['Content-Type'], 'text/tab-separated-values')
+        self.assertEqual(resp.status_code, HTTP_OK)
+        self.assertEqual(resp['Content-Type'], 'text/tab-separated-values')
 
     def test_download_viability_params_tsv(self):
         self.client.force_login(self.user)
         resp = self.client.get(reverse('thunorweb:download_fit_params',
                                        args=[self.d.id, 'viability']))
 
-        self.assertEquals(resp.status_code, HTTP_OK)
-        self.assertEquals(resp['Content-Type'], 'text/tab-separated-values')
+        self.assertEqual(resp.status_code, HTTP_OK)
+        self.assertEqual(resp['Content-Type'], 'text/tab-separated-values')
 
     def test_download_params_tsv_access(self):
         for stat_type in ('dip', 'viability'):
@@ -123,10 +123,10 @@ class TestDatasetViews(TestCase):
 
     def test_get_datasets_ajax(self):
         url = reverse('thunorweb:ajax_get_datasets')
-        self.assertEquals(self.client.get(url).status_code, HTTP_UNAUTHORIZED)
+        self.assertEqual(self.client.get(url).status_code, HTTP_UNAUTHORIZED)
 
         self.client.force_login(self.user)
-        self.assertEquals(self.client.get(url).status_code, HTTP_OK)
+        self.assertEqual(self.client.get(url).status_code, HTTP_OK)
 
     def test_assign_group(self):
         """ Make dataset public and check access"""
@@ -140,13 +140,13 @@ class TestDatasetViews(TestCase):
              'state': 'true'
              }
         )
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
 
         # Log in as other user and check dataset access
         self.client.force_login(self.other_user)
         resp = self.client.get(reverse('thunorweb:view_dataset',
                                        args=[self.d.id]))
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
 
         # Dataset should be visible in the public datasets list
         resp = self.client.get(reverse(
@@ -164,7 +164,7 @@ class TestDatasetViews(TestCase):
              'state': 'false'
              }
         )
-        self.assertEquals(resp.status_code, HTTP_NOT_FOUND)
+        self.assertEqual(resp.status_code, HTTP_NOT_FOUND)
 
         # Revoke permission
         self.client.force_login(self.user)
@@ -176,13 +176,13 @@ class TestDatasetViews(TestCase):
              'state': 'false'
              }
         )
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
 
         # Check permission revoked as other user
         self.client.force_login(self.other_user)
         resp = self.client.get(reverse('thunorweb:view_dataset',
                                        args=[self.d.id]))
-        self.assertEquals(resp.status_code, HTTP_NOT_FOUND)
+        self.assertEqual(resp.status_code, HTTP_NOT_FOUND)
 
         resp = self.client.get(reverse(
             'thunorweb:ajax_get_datasets_by_group', args=['Public']))
@@ -191,13 +191,13 @@ class TestDatasetViews(TestCase):
 
     def check_view_access_status(self, url):
         resp = self.client.get(url)
-        self.assertEquals(resp.status_code, HTTP_REDIRECT)
+        self.assertEqual(resp.status_code, HTTP_REDIRECT)
 
         self.client.force_login(self.user)
         resp = self.client.get(url)
-        self.assertEquals(resp.status_code, HTTP_OK)
+        self.assertEqual(resp.status_code, HTTP_OK)
 
         self.client.force_login(self.other_user)
         resp = self.client.get(url)
-        self.assertEquals(resp.status_code, HTTP_NOT_FOUND)
+        self.assertEqual(resp.status_code, HTTP_NOT_FOUND)
         self.client.logout()
