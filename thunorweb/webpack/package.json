@@ -30,7 +30,7 @@
     "d3-dsv": "^1.0.8"
   },
   "devDependencies": {
-    "bootstrap-loader": "^3.0.2",
+    "bootstrap-loader": "^4.0.0",
     "compression-webpack-plugin": "^2.0.0",
     "css-loader": "^2.1.0",
     "expose-loader": "^0.7.5",
