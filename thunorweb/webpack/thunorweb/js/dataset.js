@@ -75,8 +75,8 @@ var dataset = function(showLicense) {
             },
             failCallback: function () {
                 ui.loadingModal.hide();
-                Raven.captureMessage("Error downloading file");
-                Raven.showReportDialog();
+                Sentry.captureMessage("Error downloading file");
+                Sentry.showReportDialog();
             }
         });
         return false;

@@ -22,7 +22,7 @@
 {% block tailscript %}
 {% if request.sentry.id %}
   <script>
-    Raven.showReportDialog({
+    Sentry.showReportDialog({
       eventId: '{{ request.sentry.id }}'
     });
   </script>

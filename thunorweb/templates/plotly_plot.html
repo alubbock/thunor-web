@@ -12,12 +12,13 @@
 </div>
 <div class="powered-by"><i class="fa fa-bolt"></i> Thunor</div>
 
-{% load webpack_loader %}{% get_files 'raven' 'js' as raven_js %}
-<script src="{{ raven_js.0.url }}" crossorigin="anonymous"></script>
-<script>{% load raven %}{% load thunorweb_tags %}Raven.config('{% sentry_public_dsn %}', {
+{% load webpack_loader %}{% get_files 'sentry' 'js' as sentry_js %}
+<script src="{{ sentry_js.0.url }}" crossorigin="anonymous"></script>
+<script>{% load sentry %}{% load thunorweb_tags %}Sentry.init({
+    dsn: '{% sentry_public_dsn %}',
     environment: '{% sentry_environment %}', release: '{% thunorweb_version %}'
-}).install();
-{% if user.is_authenticated %}Raven.setUserContext({email: '{{ user.email }}',
+});
+{% if user.is_authenticated %}Sentry.setUser({email: '{{ user.email }}',
     id: '{{ user.id }}'});{% endif %}</script>
 {% render_bundle 'vendor' 'js' %}
 {% render_bundle 'app' 'js' %}
