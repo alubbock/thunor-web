@@ -6,7 +6,7 @@ django-custom-user==1.1
 django-guardian==2.4.0
 django-invitations==2.1.0
 django-redis==5.4.0
-django-webpack-loader==0.6.0
+django-webpack-loader==0.7.0
 psycopg2==2.9.9
 sentry-sdk[django]==2.12.0
 uwsgi==2.0.26
