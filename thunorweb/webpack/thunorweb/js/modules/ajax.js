@@ -106,8 +106,8 @@ var ajax = (function () {
                 if (jqXHR.status == 409 && ajax409Handler(jqXHR)) return;
                 if (jqXHR.status == 502 && ajax502Handler(jqXHR)) return;
             }
-            if (Raven != null) {
-                Raven.captureMessage(thrownError || jqXHR.statusText, {
+            if (Sentry != null) {
+                Sentry.captureMessage(thrownError || jqXHR.statusText, {
                     extra: {
                         type: this.type,
                         url: this.url,
@@ -122,7 +122,7 @@ var ajax = (function () {
             message = "An unknown error occurred with the " +
                 "server and has been logged. Please bear" +
                 " with us while we look into it.<br><br>"
-                + "Reference number: " + Raven.lastEventId();
+                + "Reference number: " + Sentry.lastEventId();
             ui.okModal({title: subject, text: message});
         }
     };

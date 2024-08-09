@@ -20,7 +20,7 @@ var config = {
 
         //TODO: Compile more modules from source, removing unneeded components
         plots:  ["expose-loader?Plotly!./plotly"],
-        raven:  ["expose-loader?Raven!raven-js"],
+        sentry: ["expose-loader?Sentry!@sentry/browser"],
         vendor: ["expose-loader?jQuery!expose-loader?$!jquery",      // sitewide
                  // "bootstrap/dist/js/bootstrap",
                  // "bootstrap/dist/css/bootstrap.css",
