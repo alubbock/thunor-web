@@ -60,6 +60,7 @@ var config = {
     },
 
     output: {
+        publicPath: "",
         path: path.resolve("/thunor/_state/webpack-bundles/"),
         filename: "[name]-[chunkhash].js"
     },
@@ -76,12 +77,6 @@ var config = {
 
     module: {
         rules: [
-            {
-                // required by plotly
-                test: /node_modules/,
-                include: [/node_modules\/(plotly|glsl-|gl-|cwise)/],
-                use: ["ify-loader", "transform-loader?plotly.js/tasks/compress_attributes.js"]
-            },
             {
                 test: /\.css$/,
                 use: [{
@@ -111,10 +106,10 @@ var config = {
                     }
                 ]
             },
-            {test: /\.(woff|woff2)(\?v=\d+\.\d+\.\d+)?$/, loader: "url-loader?limit=10000&mimetype=application/font-woff&name=font/[name]-[hash].[ext]"},
-            {test: /\.ttf(\?v=\d+\.\d+\.\d+)?$/, loader: "url-loader?limit=10000&mimetype=application/octet-stream&name=font/[name]-[hash].[ext]"},
-            {test: /\.eot(\?v=\d+\.\d+\.\d+)?$/, loader: "file-loader?name=font/[name]-[hash].[ext]"},
-            {test: /\.svg(\?v=\d+\.\d+\.\d+)?$/, loader: "url-loader?limit=10000&mimetype=image/svg+xml&name=font/[name]-[hash].[ext]"},
+            {test: /\.(woff|woff2)(\?v=\d+\.\d+\.\d+)?$/, loader: "url-loader", options: {limit: 10000, mimetype: "application/font-woff", name: "font/[name]-[hash].[ext]"}},
+            {test: /\.ttf(\?v=\d+\.\d+\.\d+)?$/, loader: "url-loader", options: {limit: 10000, mimetype: "application/octet-stream", name: "font/[name]-[hash].[ext]"}},
+            {test: /\.eot(\?v=\d+\.\d+\.\d+)?$/, loader: "file-loader", options: {name: "font/[name]-[hash].[ext]"}},
+            {test: /\.svg(\?v=\d+\.\d+\.\d+)?$/, loader: "url-loader", options: {limit: 10000, mimetype: "image/svg+xml&name=font/[name]-[hash].[ext]"}},
             // Load existing source maps, if desired (disabled by default)
             //{test:  /\.js$/, use: ["source-map-loader"], enforce: "pre"}
         ]
