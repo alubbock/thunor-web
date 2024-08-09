@@ -21,7 +21,7 @@ jobs:
         run: |
           docker --version
           docker compose version
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           submodules: true
       - name: Set up Python
@@ -58,11 +58,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Checkout Thunor Web
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           submodules: true
       - name: Checkout Quickstart Repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           repository: alubbock/thunor-web-quickstart
           ref: ${{ steps.release_mode.outputs.qs_branch }}
