@@ -14,14 +14,14 @@ var config = {
 
     entry: {
         favicons: glob.sync("./thunor/favicons/*"),
-        app:    ["expose-loader?pyHTS!./thunor/js/pyhts",
+        app:    ["expose-loader?exposes=pyHTS!./thunor/js/pyhts",
                  "./thunor/css/fonts.css",
                  "./thunor/css/pyhts.css"],
 
         //TODO: Compile more modules from source, removing unneeded components
-        plots:  ["expose-loader?Plotly!./plotly"],
-        sentry: ["expose-loader?Sentry!@sentry/browser"],
-        vendor: ["expose-loader?jQuery!expose-loader?$!jquery",      // sitewide
+        plots:  ["expose-loader?exposes=Plotly!./plotly"],
+        sentry: ["expose-loader?exposes=Sentry!@sentry/browser"],
+        vendor: ["expose-loader?exposes=jQuery!expose-loader?exposes=$!jquery",      // sitewide
                  // "bootstrap/dist/js/bootstrap",
                  // "bootstrap/dist/css/bootstrap.css",
                  "bootstrap-loader",
@@ -31,7 +31,7 @@ var config = {
                  "bootstrap-switch/dist/css/bootstrap3/bootstrap-switch.css",
 
                  // file downloads
-                 "expose-loader?FileSaver!file-saver",
+                 "expose-loader?exposes=FileSaver!file-saver",
 
                 // TSV parser
                 "d3-dsv",
