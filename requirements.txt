@@ -2,6 +2,7 @@
 numpy==1.26.4
 pandas==2.2.2
 plotly==5.23.0
+xlrd
 Django==4.2.15
 django-allauth==64.0.0
 django-crispy-forms==1.14.0
