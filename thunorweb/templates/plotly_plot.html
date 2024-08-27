@@ -14,7 +14,7 @@
 
 {% load webpack_loader %}{% get_files 'sentry' 'js' as sentry_js %}
 <script src="{{ sentry_js.0.url }}" crossorigin="anonymous"></script>
-<script>{% load sentry %}{% load thunorweb_tags %}Sentry.init({
+<script>{% load thunorweb_tags %}Sentry.init({
     dsn: '{% sentry_public_dsn %}',
     environment: '{% sentry_environment %}', release: '{% thunorweb_version %}'
 });
