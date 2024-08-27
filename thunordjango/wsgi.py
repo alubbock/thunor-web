@@ -9,16 +9,19 @@ https://docs.djangoproject.com/en/1.10/howto/deployment/wsgi/
 
 import os
 from django.core.wsgi import get_wsgi_application
+from django.conf import settings
 try:
     from uwsgidecorators import postfork
     from django.test.client import Client
-except:
-    postfork = lambda func: func
+except ImportError:
+    def postfork(*args, **kwargs):
+        pass
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "thunordjango.settings")
 
 application = get_wsgi_application()
 
+
 @postfork
 def initialise():
-    Client().get('/')
+    Client(HTTP_HOST=settings.HOSTNAME).get('/')
