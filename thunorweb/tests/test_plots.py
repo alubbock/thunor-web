@@ -89,6 +89,55 @@ class TestPlots(TestCase):
         )
         self.assertEqual(resp.status_code, HTTP_OK)
 
+    def test_time_course_csv(self):
+        self.client.force_login(self.user)
+        url = reverse('thunorweb:ajax_plot', args=['csv'])
+        resp = self.client.get(
+            url,
+            {'plotType': 'tc',
+             'datasetId': self.d.id,
+             'c': self.groupings['cellLines'][0]['id'],
+             'd': self.groupings['drugs'][0]['id'],
+             'assay': self.groupings['dipAssay'] or '',
+             'overlayDipFit': 'true',
+             'logTransform': 'log2'
+             }
+        )
+        self.assertEqual(resp.status_code, HTTP_OK)
+
+    def test_time_course_html(self):
+        self.client.force_login(self.user)
+        url = reverse('thunorweb:ajax_plot', args=['html'])
+        resp = self.client.get(
+            url,
+            {'plotType': 'tc',
+             'datasetId': self.d.id,
+             'c': self.groupings['cellLines'][0]['id'],
+             'd': self.groupings['drugs'][0]['id'],
+             'assay': self.groupings['dipAssay'] or '',
+             'overlayDipFit': 'true',
+             'logTransform': 'log2'
+             }
+        )
+        self.assertEqual(resp.status_code, HTTP_OK)
+
+    def test_time_course_html_standalone(self):
+        self.client.force_login(self.user)
+        url = reverse('thunorweb:ajax_plot', args=['html'])
+        resp = self.client.get(
+            url,
+            {'plotType': 'tc',
+             'datasetId': self.d.id,
+             'c': self.groupings['cellLines'][0]['id'],
+             'd': self.groupings['drugs'][0]['id'],
+             'assay': self.groupings['dipAssay'] or '',
+             'overlayDipFit': 'true',
+             'logTransform': 'log2',
+             'download': '1'
+             }
+        )
+        self.assertEqual(resp.status_code, HTTP_OK)
+
     def test_time_course_invalid_cell_line(self):
         self.client.force_login(self.user)
         url = reverse('thunorweb:ajax_plot', args=['json'])
