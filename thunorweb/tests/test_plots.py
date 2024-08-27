@@ -138,6 +138,20 @@ class TestPlots(TestCase):
         )
         self.assertEqual(resp.status_code, HTTP_OK)
 
+    def test_invalid_format(self):
+        self.client.force_login(self.user)
+        url = reverse('thunorweb:ajax_plot', args=['pdf'])
+        resp = self.client.get(
+            url,
+            {'plotType': 'tc',
+             'datasetId': self.d.id,
+             'c': self.groupings['cellLines'][0]['id'],
+             'd': self.groupings['drugs'][0]['id'],
+             'assay': self.groupings['dipAssay'] or ''
+             }
+        )
+        self.assertEqual(resp.status_code, HTTP_INVALID_REQUEST)
+
     def test_time_course_invalid_cell_line(self):
         self.client.force_login(self.user)
         url = reverse('thunorweb:ajax_plot', args=['json'])
