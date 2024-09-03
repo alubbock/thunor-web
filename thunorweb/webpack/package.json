@@ -38,7 +38,7 @@
     "file-loader": "^3.0.1",
     "ignore-unchanged-webpack-plugin": "^1.0.3",
     "optimize-css-assets-webpack-plugin": "^5.0.1",
-    "resolve-url-loader": "^3.0.0",
+    "resolve-url-loader": "^5.0.0",
     "sass": "^1.33.0",
     "sass-loader": "^7.1.0",
     "style-loader": "^0.23.1",
