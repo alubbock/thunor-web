@@ -1,11 +1,11 @@
-FROM node:lts-alpine3.10
+FROM node:14-alpine
 ENV BUILD_DIR=/node-build
 
 RUN mkdir $BUILD_DIR
 WORKDIR $BUILD_DIR
 
 RUN apk update
-RUN apk add git python make g++
+RUN apk add git python3 py3-setuptools make g++
 
 COPY package.json $BUILD_DIR
 RUN npm install
