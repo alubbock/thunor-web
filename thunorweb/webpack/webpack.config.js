@@ -4,7 +4,6 @@ const UglifyJsPlugin = require("uglifyjs-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const OptimizeCSSAssetsPlugin = require("optimize-css-assets-webpack-plugin");
 const glob = require("glob");
-const IgnoreUnchangedFilesPlugin = require("ignore-unchanged-webpack-plugin");
 const isDebug = (process.env.DJANGO_DEBUG === undefined ? false : process.env.DJANGO_DEBUG.toLowerCase() === "true");
 
 var config = {
@@ -71,8 +70,7 @@ var config = {
         new MiniCssExtractPlugin({
           filename: "[name]-[chunkhash].css",
           chunkFilename: "[id]-[chunkhash].css"
-        }),
-        new IgnoreUnchangedFilesPlugin()
+        })
     ],
 
     module: {
