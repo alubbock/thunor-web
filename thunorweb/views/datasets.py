@@ -14,6 +14,7 @@ from thunorweb.tasks import precalculate_dip_rates, precalculate_viability, \
     dataset_groupings, precalculate_dip_curves, rename_dataset_in_cache
 from thunorweb.plate_parsers import PlateFileParser
 from django.utils import timezone
+from django.utils.html import escape
 from django.conf import settings
 from guardian.shortcuts import get_objects_for_group, get_perms, \
     get_groups_with_perms, assign_perm, remove_perm
@@ -214,7 +215,7 @@ def ajax_get_dataset_groupings(request, dataset_id, dataset2_id=None):
     for dataset in datasets:
         _assert_has_perm(request, dataset, 'view_plots')
         if not license_accepted(request, dataset):
-            return HttpResponse(LICENSE_UNSIGNED.format(dataset.name),
+            return HttpResponse(LICENSE_UNSIGNED.format(escape(dataset.name)),
                                 status=400)
 
     if len(plates) == 0:

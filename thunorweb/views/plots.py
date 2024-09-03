@@ -1,6 +1,6 @@
 from django.shortcuts import render, Http404
 from django.http import HttpResponse
-from django.utils.html import strip_tags
+from django.utils.html import strip_tags, escape
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.core.cache import cache
 from thunorweb.models import HTSDataset, CellLineTag, DrugTag, CellLine, Drug
@@ -77,7 +77,7 @@ def ajax_get_plot(request, file_type='json'):
 
     _assert_has_perm(request, dataset, permission_required)
     if not license_accepted(request, dataset):
-        return HttpResponse(LICENSE_UNSIGNED.format(dataset.name),
+        return HttpResponse(LICENSE_UNSIGNED.format(escape(dataset.name)),
                             status=400)
 
     if plot_type == 'tc':
@@ -184,10 +184,11 @@ def ajax_get_plot(request, file_type='json'):
             plot_fig = plot_plate_map(pl_data, color_by='dip_rates',
                                       template=template)
         else:
-            return HttpResponse('Unimplemented QC view: {}'.format(qc_view),
-                                status=400)
+            return HttpResponse('Unimplemented QC view: {}'.format(
+                escape(qc_view)), status=400)
     else:
-        return HttpResponse('Unimplemented plot type: %s' % plot_type,
+        return HttpResponse('Unimplemented plot type: %s' %
+                            escape(plot_type),
                             status=400)
 
     as_attachment = request.GET.get('download', '0') == '1'
@@ -209,7 +210,7 @@ def ajax_get_plot(request, file_type='json'):
             context['plotlyjs'] = get_plotlyjs()
         response = render(request, template, context)
     else:
-        return HttpResponse('Unknown file type: %s' % file_type, status=400)
+        return HttpResponse('Unknown file type: %s' % escape(file_type), status=400)
 
     if as_attachment:
         try:
