@@ -89,27 +89,19 @@ var config = {
                 include: [
                     path.resolve(__dirname, "thunor/favicons"),
                 ],
-                use: [
-                    {
-                        loader: 'file-loader',
-                        options: {name: 'favicon/[name].[ext]'}
-                    }
-                ]
+                type: "asset/resource",
+                generator: {filename: 'favicon/[name][ext]'}
             },
             {
                 test: /\.(png|jpg|gif|ico)$/,
                 exclude: /\/favicons\//,
-                use: [
-                    {
-                        loader: 'file-loader',
-                        options: {name: 'img/[name]-[hash].[ext]'}
-                    }
-                ]
+                type: "asset/resource",
+                generator: {filename: 'img/[name]-[hash][ext]'}
             },
-            {test: /\.(woff|woff2)(\?v=\d+\.\d+\.\d+)?$/, loader: "url-loader", options: {limit: 10000, mimetype: "application/font-woff", name: "font/[name]-[hash].[ext]"}},
-            {test: /\.ttf(\?v=\d+\.\d+\.\d+)?$/, loader: "url-loader", options: {limit: 10000, mimetype: "application/octet-stream", name: "font/[name]-[hash].[ext]"}},
-            {test: /\.eot(\?v=\d+\.\d+\.\d+)?$/, loader: "file-loader", options: {name: "font/[name]-[hash].[ext]"}},
-            {test: /\.svg(\?v=\d+\.\d+\.\d+)?$/, loader: "url-loader", options: {limit: 10000, mimetype: "image/svg+xml&name=font/[name]-[hash].[ext]"}},
+            {test: /\.(woff|woff2)(\?v=\d+\.\d+\.\d+)?$/, type: "asset", generator: {filename: "font/[name]-[hash][ext][query]"}},
+            {test: /\.ttf(\?v=\d+\.\d+\.\d+)?$/, type: "asset", generator: {filename: "font/[name]-[hash][ext][query]"}},
+            {test: /\.eot(\?v=\d+\.\d+\.\d+)?$/, type: "asset/resource", generator: {filename: "font/[name]-[hash][ext][query]"}},
+            {test: /\.svg(\?v=\d+\.\d+\.\d+)?$/, type: "asset", generator: {filename: "font/[name]-[hash][ext][query]"}},
             // Load existing source maps, if desired (disabled by default)
             //{test:  /\.js$/, use: ["source-map-loader"], enforce: "pre"}
         ]
