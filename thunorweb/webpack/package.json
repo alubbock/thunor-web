@@ -9,7 +9,7 @@
   },
   "author": "",
   "dependencies": {
-    "bootstrap-fileinput": "^4.4.8",
+    "bootstrap-fileinput": "^5.0.0",
     "bootstrap-sass": "^3.3.7",
     "bootstrap-select": "^1.13.10",
     "bootstrap-switch": "3.4.0",
