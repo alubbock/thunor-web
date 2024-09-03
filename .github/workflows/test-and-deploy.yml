@@ -120,6 +120,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Delete build image artifact
-        uses: geekyeggo/delete-artifact@v1
+        uses: geekyeggo/delete-artifact@v5
         with:
           name: thunor-web-container
