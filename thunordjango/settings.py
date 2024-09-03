@@ -92,8 +92,14 @@ INSTALLED_APPS = [
     'invitations',
     'guardian',
     'crispy_forms',
+    'crispy_bootstrap3',
     'webpack_loader'
 ]
+
+
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap3"
+
+CRISPY_TEMPLATE_PACK = "bootstrap3"
 
 SITE_ID = 1
 MIGRATION_MODULES = {
@@ -293,8 +299,6 @@ USE_I18N = False
 USE_L10N = False
 
 USE_TZ = True
-
-CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
 SHORT_DATETIME_FORMAT = 'Y-m-d H:i:s T'
 DATETIME_FORMAT = SHORT_DATETIME_FORMAT
