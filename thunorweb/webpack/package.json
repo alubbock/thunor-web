@@ -4,7 +4,7 @@
   "description": "Python/Django High Throughput Screening (HTS) web app",
   "main": "index.js",
   "scripts": {
-    "build": "webpack --config webpack.config.js --progress --colors",
+    "build": "webpack --config webpack.config.js --progress",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
