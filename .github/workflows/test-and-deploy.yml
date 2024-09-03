@@ -114,12 +114,3 @@ jobs:
           git commit -m "CI update: $GITHUB_SHA"
           git push
 
-  cleanup:
-    needs: deploy
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Delete build image artifact
-        uses: geekyeggo/delete-artifact@v1
-        with:
-          name: thunor-web-container
