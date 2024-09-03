@@ -640,7 +640,7 @@ def _dose_response_plot(request, dataset, dataset2_id,
                 template=template
             )
         except CannotPlotError as e:
-            return HttpResponse(e, status=400)
+            return HttpResponse(str(e), status=400)
     else:
         dip_absolute = request.GET.get('drcType', 'rel') == 'abs'
         plot_fig = plot_drc(
@@ -674,7 +674,7 @@ def _get_viability_scores(datasets, drug_id, cell_line_id, viability_time):
             include_controls=True
         )
     except NotImplementedError as e:
-        return HttpResponse(e, status=400)
+        return HttpResponse(str(e), status=400)
     if expt_resp_data['viability'].isnull().values.all():
         return HttpResponse('No viability for this time point. The '
                             'nearest time point to the time entered '
