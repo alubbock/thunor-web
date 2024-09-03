@@ -40,7 +40,7 @@
     "optimize-css-assets-webpack-plugin": "^5.0.1",
     "resolve-url-loader": "^5.0.0",
     "sass": "^1.33.0",
-    "sass-loader": "^7.1.0",
+    "sass-loader": "^16.0.0",
     "style-loader": "^0.23.1",
     "uglifyjs-webpack-plugin": "^2.1.1",
     "url-loader": "^1.1.2",
