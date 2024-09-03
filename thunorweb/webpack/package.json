@@ -32,7 +32,7 @@
   "devDependencies": {
     "bootstrap-loader": "^4.0.0",
     "compression-webpack-plugin": "^11.0.0",
-    "css-loader": "^2.1.0",
+    "css-loader": "^7.0.0",
     "expose-loader": "^1.0.0",
     "mini-css-extract-plugin": "^2.0.0",
     "file-loader": "^3.0.1",
