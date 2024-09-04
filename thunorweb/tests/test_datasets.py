@@ -29,13 +29,10 @@ class TestDatasetViews(TestCase):
         dataset_id = resp_json['id']
         cls.d = HTSDataset.objects.get(pk=dataset_id)
 
-        hts007 = get_thunor_test_file('testdata/hts007.h5')
-        try:
+        with open(get_thunor_test_file('testdata/hts007.h5'), 'rb') as hts007:
             response = c.post(reverse('thunorweb:ajax_upload_platefiles'),
-                                  {'file_field[]': hts007, 'dataset_id':
-                                      cls.d.id})
-        finally:
-            hts007.close()
+                              {'file_field[]': hts007,
+                               'dataset_id': cls.d.id})
 
         assert response.status_code == HTTP_OK
         assert cls.d.plate_set.count() == 16

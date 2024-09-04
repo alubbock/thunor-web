@@ -11,31 +11,20 @@ HTTP_INVALID_REQUEST = 400
 
 
 class TestPlots(TestCase):
+    fixtures = ['testing-hts007-hcc1143.json']
+
     @classmethod
     def setUpTestData(cls):
         UserModel = get_user_model()
-        cls.user = UserModel.objects.create_user(
-            email='test@example.com', password='test')
+        cls.user = UserModel.objects.get(
+            email='test@example.com')
         cls.other_user = UserModel.objects.create_user(
             email='test2@example.com', password='test')
+
         c = Client()
         c.force_login(cls.user)
 
-        resp = c.post(reverse('thunorweb:ajax_create_dataset'),
-                      {'name': 'test'})
-        resp_json = json.loads(resp.content)
-        dataset_id = resp_json['id']
-        cls.d = HTSDataset.objects.get(pk=dataset_id)
-
-        hts007 = get_thunor_test_file('testdata/hts007.h5')
-        try:
-            response = c.post(reverse('thunorweb:ajax_upload_platefiles'),
-                                  {'file_field[]': hts007, 'dataset_id':
-                                      cls.d.id})
-        finally:
-            hts007.close()
-
-        assert response.status_code == HTTP_OK
+        cls.d = HTSDataset.objects.get()
 
         # Create some cell line and drug tags
         entities_per_tag = 3
@@ -58,7 +47,7 @@ class TestPlots(TestCase):
         for tag_num in range(num_tags):
             idx = range(tag_num * entities_per_tag,
                         tag_num * (entities_per_tag + 1))
-            cltags[tag_num].cell_lines.set([cell_lines[i] for i in idx])
+            cltags[tag_num].cell_lines.set([cell_lines[0]])
             drtags[tag_num].drugs.set([drugs[i] for i in idx])
 
         # Get the dataset groupings
