@@ -1,6 +1,6 @@
 FROM python:3.12-slim-bullseye AS thunorweb_base
 LABEL org.opencontainers.image.authors="code@alexlubbock.com"
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONUNBUFFERED=1
 ENV THUNOR_HOME=/thunor
 
 RUN apt update && apt install -y libpq-dev gcc libmagic1 libpcre3-dev media-types \
@@ -10,13 +10,12 @@ RUN mkdir $THUNOR_HOME
 WORKDIR $THUNOR_HOME
 
 ADD requirements.txt $THUNOR_HOME
-ADD thunor $THUNOR_HOME/thunor
+ADD thunorcore $THUNOR_HOME/thunorcore
 RUN pip3 install --no-cache-dir -r requirements.txt
 RUN dpkg --purge gcc libpcre3-dev
 CMD ["uwsgi", "--master", "--socket", ":8000", "--module", "thunordjango.wsgi", "--uid", "www-data", "--gid", "www-data", "--enable-threads"]
 ADD manage.py $THUNOR_HOME
 ADD thunordjango $THUNOR_HOME/thunordjango
-RUN cd $THUNOR_HOME/thunor && python3 setup.py install
 ADD thunorweb $THUNOR_HOME/thunorweb
 ARG THUNORWEB_VERSION=unknown
 RUN printf "def get_versions():\n    return {'version': '$THUNORWEB_VERSION'}\n" > $THUNOR_HOME/thunorweb/_version.py
