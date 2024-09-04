@@ -1,9 +1,7 @@
-"use strict";
+import { ui } from './modules/ui'
+import { ajax } from './modules/ajax'
 
-var ui = require("./modules/ui"),
-    ajax = require("./modules/ajax");
-
-var plate_upload = function () {
+const activate = function () {
     var ajaxSettings = {
         headers: {"X-CSRFToken": ajax.getCsrfToken()}
     };
@@ -111,6 +109,6 @@ var plate_upload = function () {
     }
 };
 
-module.exports = {
-    activate: plate_upload
+export const plate_upload = {
+    activate: activate
 };

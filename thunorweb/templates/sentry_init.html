@@ -1,0 +1,10 @@
+{% load webpack_loader %}
+{% get_files 'sentry' 'js' as sentry_js %}
+<script src="{{ sentry_js.0.url }}" crossorigin="anonymous"></script>
+
+<script>{% load thunorweb_tags %}Sentry.init({
+    dsn: '{% sentry_public_dsn %}',
+    environment: '{% sentry_environment %}', release: '{% thunorweb_version %}'
+});
+{% if user.is_authenticated %}Sentry.setUser({email: '{{ user.email }}',
+ id: '{{ user.id }}'});{% endif %}</script>

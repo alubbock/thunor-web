@@ -1,8 +1,8 @@
-var ajax = require("./modules/ajax");
-var ui = require("./modules/ui");
-var datasetTable = require("./modules/dataset_table");
+import { ajax } from './modules/ajax'
+import { ui } from './modules/ui'
+import { initDatasetTable } from './modules/dataset_table'
 
-var getQueryStrings = function() {
+const getQueryStrings = function() {
     var sPageURL = window.location.search.substring(1),
         sURLVariables = sPageURL.split('&'),
         sParameterName,
@@ -30,7 +30,7 @@ var getQueryStrings = function() {
     return {plotStrings: plotStrings, colsLg: colsLg, colsMd: colsMd};
 };
 
-var updateURL = function() {
+const updateURL = function() {
     if (!window.history.replaceState) return;
 
     var $newPlotBtn = $(".new-plot-btn");
@@ -63,11 +63,11 @@ var updateURL = function() {
     );
 };
 
-var isDataset2active = function() {
+const isDataset2active = function() {
     return $("input[name=secondDataset]").is(":checked");
 };
 
-var downloadImage = function(gd, fmt) {
+const downloadImage = function(gd, fmt) {
     var $gd = $(gd);
     var filename = $gd.find(".gtitle").text();
     var width = $gd.width();
@@ -80,7 +80,7 @@ var downloadImage = function(gd, fmt) {
                              });
 };
 
-var selectPickerOptionsMultiple = {
+const selectPickerOptionsMultiple = {
   countSelectedText: function(n, N) {
     return n + " of " + N + " selected";
   },
@@ -88,12 +88,12 @@ var selectPickerOptionsMultiple = {
   maxOptions: false
 };
 
-var selectPickerOptionsSingle = {
+const selectPickerOptionsSingle = {
   actionsBox: true,
   maxOptions: 1
 };
 
-var selectPickerTagOptions = {
+const selectPickerTagOptions = {
   title: "Please select a tag",
   countSelectedText: function(n, N) {
     return n + " of " + N + " tags selected";
@@ -102,7 +102,7 @@ var selectPickerTagOptions = {
   actionsBox: true
 };
 
-var plots = function() {
+const activate = function() {
     var plotOptionsCache = {};
 
     var truncateDatasetName = function(datasetName) {
@@ -119,7 +119,7 @@ var plots = function() {
         $target.data("datasetChanged", false);
         if (!$target.data("initialised")) {
             $target.data("initialised", true);
-            datasetTable.initDatasetTable(function (data, type, full, meta) {
+            initDatasetTable(function (data, type, full, meta) {
                     return "<a class=\"select-dataset\" data-dataset-id=\""
                         + full.id + "\" data-dataset-name=\"" + full.name +
                         "\" href=\"\">" + full.name + "</a>";
@@ -1211,6 +1211,7 @@ var plots = function() {
         $("#quickstart").show();
     }
 };
-module.exports = {
-    activate: plots
-};
+
+export const plots = {
+    activate: activate
+}

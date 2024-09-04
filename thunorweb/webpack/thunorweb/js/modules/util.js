@@ -1,6 +1,4 @@
-"use strict";
-
-var util = (function() {
+export const util = (function() {
     var onlyUnique = function (value, index, self) {
         return self.indexOf(value) === index;
     };
@@ -197,4 +195,3 @@ var util = (function() {
         }
     }
 })();
-module.exports = util;

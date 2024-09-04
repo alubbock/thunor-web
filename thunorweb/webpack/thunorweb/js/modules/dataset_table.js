@@ -1,11 +1,11 @@
-var ajax = require("./ajax"),
-    util = require("./util");
+import { ajax } from './ajax'
+import { util } from './util'
 
-var formatISODate = function(data) {
+const formatISODate = function(data) {
     return data.replace('T', ' ').slice(0, -5) + ' UTC';
 };
 
-var initDatasetTable = function(tableRowCallbackFn, loadingCompleteCallbackFn) {
+export const initDatasetTable = function(tableRowCallbackFn, loadingCompleteCallbackFn) {
     var $tabContent = $(".tab-content");
     $tabContent.loadingOverlay("show");
 
@@ -62,8 +62,4 @@ var initDatasetTable = function(tableRowCallbackFn, loadingCompleteCallbackFn) {
         $datasetTabs.find("li").removeClass("active");
         $this.addClass("active");
     });
-};
-
-module.exports = {
-    initDatasetTable: initDatasetTable
 };

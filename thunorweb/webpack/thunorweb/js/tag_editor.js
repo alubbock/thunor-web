@@ -1,8 +1,8 @@
-var ui = require("./modules/ui"),
-    ajax = require("./modules/ajax"),
-    util = require("./modules/util");
+import { ui } from './modules/ui'
+import { ajax } from './modules/ajax'
+import { util } from './modules/util'
 
-var activateSelect = function($select, $modal) {
+const activateSelect = function($select, $modal) {
   $select.selectpicker({actionsBox: true, iconBase: "fa", tickIcon: "fa-check"});
   $select.on("show.bs.select", function() {
       // disable automatic modal closing when pressing ESC/clicking on background
@@ -16,7 +16,7 @@ var activateSelect = function($select, $modal) {
   });
 };
 
-var set_tag_group_permission = function(tag_id, group_id, state, $caller) {
+const set_tag_group_permission = function(tag_id, group_id, state, $caller) {
     $.ajax({type: 'POST',
             url: ajax.url("set_tag_group_permission"),
             headers: { 'X-CSRFToken': ajax.getCsrfToken() },
@@ -35,14 +35,14 @@ var set_tag_group_permission = function(tag_id, group_id, state, $caller) {
             dataType: 'json'});
 };
 
-var clearTagNameChange = function() {
+const clearTagNameChange = function() {
     $(".rename-tag-btn").show();
     $(".rename-tag-div").addClass("hidden");
     $(".tag-header").show();
     $("form.delete-tag").show();
 };
 
-var activate = function() {
+const activate = function() {
     var entityType = $('#entity-type').val();
     var $tabContent = $(".tab-content");
     $tabContent.loadingOverlay("show");
@@ -97,13 +97,13 @@ var activate = function() {
                     for (var t=0;t<numTags;t++) {
                         ajaxUrl += 'tagId=' + tagIds[t] + '&';
                     }
-                   var $modal = ui.okModal({
+                var $modal = ui.okModal({
                         title: 'Set tag permissions',
                         text: 'Loading...',
                         okLabel: 'Close'
                     });
 
-                     $.ajax({
+                    $.ajax({
                         type: "GET",
                         url: ajaxUrl,
                         success: function (data) {
@@ -255,8 +255,8 @@ var activate = function() {
         "drawCallback": function () {
             $('.tt').tooltip();
             $("#tag-table").find("a").unbind('click').click(function(e){
-               e.preventDefault();
-               editTag($(this).data('id'));
+                e.preventDefault();
+                editTag($(this).data('id'));
             });
         }
     });
@@ -288,7 +288,7 @@ var activate = function() {
             }
         });
 
-         $.ajax({
+        $.ajax({
             type: "GET",
             url: ajax.url("get_tag_targets", entityType) + tagId,
             success: function (data) {
@@ -388,9 +388,9 @@ var activate = function() {
         });
     });
     $("form.rename-tag-form").submit(function(e) {
-       e.preventDefault();
-       var $form = $(this);
-       var tagName = $form.find("input[name=tagsName]").val();
+    e.preventDefault();
+    var $form = $(this);
+    var tagName = $form.find("input[name=tagsName]").val();
         if (tagName === "") {
             ui.okModal({
                 title: "Tag name empty",
@@ -418,11 +418,11 @@ var activate = function() {
         });
     });
     $(".rename-tag-btn").click(function(e) {
-       e.preventDefault();
-       $(".rename-tag-btn").hide();
-       $(".rename-tag-div").removeClass("hidden");
-       $(".tag-header").hide();
-       $("form.delete-tag").hide();
+        e.preventDefault();
+        $(".rename-tag-btn").hide();
+        $(".rename-tag-div").removeClass("hidden");
+        $(".tag-header").hide();
+        $("form.delete-tag").hide();
     });
     $("form.set-tag-targets").submit(function (e) {
         e.preventDefault();
@@ -519,6 +519,6 @@ var activate = function() {
     });
 };
 
-module.exports = {
-  activate: activate
-};
+export const tag_editor = {
+    activate: activate
+}
