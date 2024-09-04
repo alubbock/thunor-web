@@ -17,18 +17,14 @@ class TestPlateParsers(TestCase):
     # HDF parsing is tested elsewhere
 
     def test_parse_vanderbilt_csv(self):
-        hts007 = get_thunor_test_file('testdata/hts007.h5')
-
         with io.StringIO() as csv_buffer:
             # convert HDF to CSV in memory
-            try:
+            with open(get_thunor_test_file('testdata/hts007.h5'), 'rb') as hts007:
                 thunor.io.write_vanderbilt_hts(
                     df_data=thunor.io.read_hdf(hts007),
                     filename=csv_buffer,
                     sep=','
                 )
-            finally:
-                hts007.close()
 
             csv_buffer.seek(0)
 
@@ -41,12 +37,10 @@ class TestPlateParsers(TestCase):
         assert results[0]['file_format'] == 'Vanderbilt HTS Core'
 
     def test_parse_incucyte(self):
-        testfile = get_thunor_test_file('testdata/test_incucyte_minimal.txt')
-
-        try:
+        with open(get_thunor_test_file('testdata/test_incucyte_minimal.txt'),
+                  'rb') as testfile:
             filedata = io.BytesIO(testfile.read())
-        finally:
-            testfile.close()
+
         pfp = PlateFileParser(File(filedata, name='test.txt'),
                               dataset=self.d)
         results = pfp.parse_all()

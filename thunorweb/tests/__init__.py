@@ -1,15 +1,14 @@
-import pkg_resources
+import importlib.resources
 import os
-import thunor
 
 
 def get_thunor_test_file(filename):
     try:
-        return pkg_resources.resource_stream('thunor', filename)
+        return importlib.resources.files('thunor').joinpath(filename)
     except OSError:
         # Provide a method to load from filesystem within Docker container
-        fn = os.path.join('thunor/thunor', filename)
+        fn = os.path.join('thunorcore/thunor', filename)
         if os.path.exists(fn) and os.path.isfile(fn):
-            return open(fn, 'rb')
+            return fn
 
         raise
