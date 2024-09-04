@@ -1,5 +1,4 @@
-"use strict";
-var ui = (function() {
+export const ui = (function() {
     var modalBase = $(
         '<div class="modal fade" tabindex="-1" role="dialog"' +
         ' aria-hidden="true" data-success="false">' +
@@ -160,4 +159,3 @@ var ui = (function() {
         loadingModal: loadingModal
     }
 })();
-module.exports = ui;

@@ -1,9 +1,7 @@
-"use strict";
+import { ajax } from './modules/ajax'
+import { ui } from './modules/ui'
 
-var ui = require("./modules/ui"),
-    ajax = require("./modules/ajax");
-
-var set_dataset_group_permission = function(dataset_id, group_id, perm_id,
+const set_dataset_group_permission = function(dataset_id, group_id, perm_id,
                                             state, $caller) {
     ui.loadingModal.show();
     $.ajax({type: 'POST',
@@ -27,7 +25,7 @@ var set_dataset_group_permission = function(dataset_id, group_id, perm_id,
             dataType: 'json'});
 };
 
-var dataset_permissions = function() {
+export const dataset_permissions = function() {
     $("input[type=checkbox]").bootstrapSwitch({
         'onSwitchChange': function(event, state) {
             var $target = $(event.currentTarget);
@@ -40,8 +38,4 @@ var dataset_permissions = function() {
             );
         }
     });
-};
-
-module.exports = {
-    activate: dataset_permissions
 };
