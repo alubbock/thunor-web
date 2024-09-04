@@ -1,8 +1,7 @@
-"use strict";
-
-var ui = require('./modules/ui'),
-    util = require('./modules/util'),
-    ajax = require('./modules/ajax');
+import { ui } from './modules/ui'
+import { util } from './modules/util'
+import { ajax } from './modules/ajax'
+import { tsvParse } from 'd3-dsv'
 
 var Well = function(well) {
     if(well === undefined) {
@@ -372,13 +371,15 @@ PlateMap.prototype = {
     }
 };
 
-var check_loading = function() {
+export { PlateMap }
+
+export const checkLoading = function() {
     if(pyHTS.state.plates.length > 0 && pyHTS.state.plates[0] !== "MASTER") {
         ui.loadingModal.show();
     }
 };
 
-var plate_mapper = function () {
+const activate = function () {
     var setWellSizes = function() {
         var numWells = pyHTS.state.plateMap.wells.length;
         var $plate = $('#hts-well-plate-inner');
@@ -1728,8 +1729,7 @@ var plate_mapper = function () {
     });
 
     var tsvToJson = function(tsv) {
-        var d3 = require("d3-dsv");
-        var rows = d3.tsvParse(tsv);
+        var rows = tsvParse(tsv);
         var rLen = rows.length;
         if(rLen !== pyHTS.state.plateMap.wells.length) {
             return upErr('File has '+rLen+' wells, but current plate map has '+pyHTS.state.plateMap.wells.length+' wells');
@@ -1980,8 +1980,10 @@ var plate_mapper = function () {
         }
     }
 };
-module.exports = {
-    activate: plate_mapper,
-    checkLoading: check_loading,
+
+export const plate_mapper = {
+    activate: activate,
+    checkLoading: checkLoading,
     PlateMap: PlateMap
-};
+}
+

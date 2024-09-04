@@ -1,9 +1,7 @@
-"use strict";
+import { ajax } from './modules/ajax'
+import { ui } from './modules/ui'
 
-var ui = require("./modules/ui"),
-    ajax = require("./modules/ajax");
-
-var delete_dataset = function() {
+const delete_dataset = function() {
     ui.loadingModal.show();
     $.ajax({type: 'POST',
             url: ajax.url("delete_dataset"),
@@ -19,7 +17,7 @@ var delete_dataset = function() {
             dataType: 'json'});
 };
 
-var accept_license = function() {
+const accept_license = function() {
     ui.loadingModal.show();
     $.ajax({type: 'POST',
             url: ajax.url("accept_license", $('#dataset-id').val()),
@@ -32,7 +30,7 @@ var accept_license = function() {
 };
 
 
-var dataset = function(showLicense) {
+const activate = function(showLicense) {
     $('#dataset-name-edit').click(function() {
         var datasetName = $('.dataset-name').first().text();
         $('#dataset-name').hide();
@@ -40,15 +38,15 @@ var dataset = function(showLicense) {
     });
 
     $('#dataset-rename-cancel').click(function() {
-       $('#dataset-rename').hide();
-       $('#dataset-name').show();
+    $('#dataset-rename').hide();
+    $('#dataset-name').show();
     });
 
     $('#dataset-rename-form').submit(function(e) {
-       e.preventDefault();
-       ui.loadingModal.show();
+    e.preventDefault();
+    ui.loadingModal.show();
 
-       $.ajax({type: 'POST',
+    $.ajax({type: 'POST',
         url: ajax.url("rename_dataset"),
         headers: { 'X-CSRFToken': ajax.getCsrfToken() },
         data: $(this).serialize(),
@@ -108,6 +106,6 @@ var dataset = function(showLicense) {
     }
 };
 
-module.exports = {
-    activate: dataset
-};
+export const dataset = {
+    activate: activate
+}

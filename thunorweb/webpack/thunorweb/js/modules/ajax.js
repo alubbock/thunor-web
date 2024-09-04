@@ -1,8 +1,6 @@
-"use strict";
+import { ui } from "./ui"
 
-var ui = require("./ui");
-
-var ajax = (function () {
+export const ajax = (function () {
     var csrfToken = null;
 
     var getCookie = function (name) {
@@ -174,4 +172,3 @@ var ajax = (function () {
         url: url
     }
 })();
-module.exports = ajax;
