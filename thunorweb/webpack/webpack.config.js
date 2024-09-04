@@ -1,10 +1,11 @@
 const path = require("path");
+const fs = require('fs');
 const BundleTracker = require("webpack-bundle-tracker");
-const UglifyJsPlugin = require("uglifyjs-webpack-plugin");
+const TerserPlugin = require("terser-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
-const glob = require("glob");
 const isDebug = (process.env.DJANGO_DEBUG === undefined ? false : process.env.DJANGO_DEBUG.toLowerCase() === "true");
+const faviconRoot = './thunor/favicons/'
 
 var config = {
     context: __dirname,
@@ -12,7 +13,9 @@ var config = {
     mode: isDebug ? 'development' : 'production',
 
     entry: {
-        favicons: glob.sync("./thunor/favicons/*"),
+        favions: fs.readdirSync(faviconRoot, {withFileTypes: true})
+                    .filter(item => !item.isDirectory())
+                    .map(item => faviconRoot + item.name),
         app:    ["expose-loader?exposes=pyHTS!./thunor/js/pyhts",
                  "./thunor/css/fonts.css",
                  "./thunor/css/pyhts.css"],
@@ -116,12 +119,9 @@ var config = {
     },
 
     optimization: {
+      minimize: !isDebug,
       minimizer: [
-        new UglifyJsPlugin({
-          cache: true,
-          parallel: true,
-          sourceMap: true // set to true if you want JS source maps
-        }),
+        new TerserPlugin(),
         new CssMinimizerPlugin({})
       ]
     }
