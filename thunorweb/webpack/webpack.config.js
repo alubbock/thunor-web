@@ -2,7 +2,7 @@ const path = require("path");
 const BundleTracker = require("webpack-bundle-tracker");
 const UglifyJsPlugin = require("uglifyjs-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
-const OptimizeCSSAssetsPlugin = require("optimize-css-assets-webpack-plugin");
+const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 const glob = require("glob");
 const isDebug = (process.env.DJANGO_DEBUG === undefined ? false : process.env.DJANGO_DEBUG.toLowerCase() === "true");
 
@@ -122,7 +122,7 @@ var config = {
           parallel: true,
           sourceMap: true // set to true if you want JS source maps
         }),
-        new OptimizeCSSAssetsPlugin({})
+        new CssMinimizerPlugin({})
       ]
     }
 };
