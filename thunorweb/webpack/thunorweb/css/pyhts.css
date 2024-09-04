@@ -95,8 +95,11 @@ table.dataTable thead .sorting:after {
   color: rgba(50, 50, 50, 0.5);
 }
 /** Tag editor datatable **/
-#tag-table_length { float: left; }
-.dt-buttons { float: left; margin-left: 10px;}
+.dt-length { float: left; }
+.dt-buttons { float: left; margin-left: 10px;margin-bottom:10px;}
+.dt-search { float: right; }
+.dt-paging {text-align: right;}
+.dt-info { padding-top: 8px; }
 @media (min-width: 768px) {
     .jumbotron {
         border-radius: 6px;
