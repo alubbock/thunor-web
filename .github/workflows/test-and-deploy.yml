@@ -46,12 +46,12 @@ jobs:
         id: release_mode
         run: |
           if [ "$GITHUB_REF" == "refs/heads/main" ]; then
-            echo "::set-output name=qs_branch::dev"
-            echo "::set-output name=build_tags::alubbock/thunorweb:dev"
+            echo "qs_branch=dev" >> $GITHUB_OUTPUT
+            echo "build_tags=alubbock/thunorweb:dev" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=qs_branch::main"
-            echo "::set-output name=version::${GITHUB_REF/refs\/tags\//}"
-            echo "::set-output name=build_tags::alubbock/thunorweb:dev,alubbock/thunorweb:latest,alubbock/thunorweb:${GITHUB_REF/refs\/tags\//}"
+            echo "qs_branch=main" >> $GITHUB_OUTPUT
+            echo "version=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
+            echo "build_tags=alubbock/thunorweb:dev,alubbock/thunorweb:latest,alubbock/thunorweb:${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
           fi
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
