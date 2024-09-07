@@ -37,7 +37,6 @@ def _plain_response(response_text):
     response = HttpResponse(response_text, content_type='text/plain')
     response['Content-Disposition'] = \
         'attachment; filename="download_failed.txt"'
-    response['Set-Cookie'] = 'fileDownload=true; path=/'
     return response
 
 

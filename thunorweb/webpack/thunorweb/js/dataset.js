@@ -29,7 +29,6 @@ const accept_license = function() {
             dataType: 'json'});
 };
 
-
 const activate = function(showLicense) {
     $('#dataset-name-edit').click(function() {
         var datasetName = $('.dataset-name').first().text();
@@ -67,16 +66,38 @@ const activate = function(showLicense) {
         e.preventDefault();
         ui.loadingModal.show();
         var $this = $(e.currentTarget);
-        $.fileDownload($this.attr("href"), {
-            successCallback: function () {
-                ui.loadingModal.hide();
-            },
-            failCallback: function () {
-                ui.loadingModal.hide();
-                Sentry.captureMessage("Error downloading file");
-                Sentry.showReportDialog();
+
+        fetch($this.attr("href"))
+        .then(resp => {
+            let filename = $this.attr("href").replace(/\/$/, '');
+            filename = filename.substring(filename.lastIndexOf('/') + 1);
+            let disposition = resp.headers.get('content-disposition');
+            if (disposition && disposition.indexOf('attachment') !== -1) {
+                let filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                let matches = filenameRegex.exec(disposition);
+                if (matches != null && matches[1]) {
+                  filename = matches[1].replace(/['"]/g, '');
+                }
             }
-        });
+            resp.blob().then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                // the filename you want
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+            });
+        })
+        // fallback method
+        .catch((e) => {
+            Sentry.captureException(e);
+            window.open($this.attr("href"), '_blank');
+        })
+        .finally(() => ui.loadingModal.hide());
+
         return false;
     });
 
