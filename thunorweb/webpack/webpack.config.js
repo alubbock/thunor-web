@@ -57,8 +57,7 @@ var config = {
                  "datatables.net-select-bs",
                  "datatables.net-select-bs/css/select.bootstrap.css",
                  "datatables.net-buttons-bs",
-                 "datatables.net-buttons-bs/css/buttons.bootstrap.css",
-                 "jquery-file-download"]
+                 "datatables.net-buttons-bs/css/buttons.bootstrap.css"]
     },
 
     output: {

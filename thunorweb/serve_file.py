@@ -28,8 +28,6 @@ def serve_file(request, full_file_name, rename_to=None, content_type=None):
                                rename_to=rename_to,
                                content_type=content_type)
 
-    # Cookie needed for jquery-file-download plugin
-    response['Set-Cookie'] = 'fileDownload=true; path=/'
     return response
 
 
