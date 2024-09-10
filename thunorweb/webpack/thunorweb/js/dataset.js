@@ -69,8 +69,7 @@ const activate = function(showLicense) {
 
         fetch($this.attr("href"))
         .then(resp => {
-            let filename = $this.attr("href").replace(/\/$/, '');
-            filename = filename.substring(filename.lastIndexOf('/') + 1);
+            let filename = resp.url.split('#')[0].split('?')[0].split('/').pop();
             let disposition = resp.headers.get('content-disposition');
             if (disposition && disposition.indexOf('attachment') !== -1) {
                 let filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
