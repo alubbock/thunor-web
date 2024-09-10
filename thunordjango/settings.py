@@ -27,7 +27,7 @@ try:
     with open(env_file, 'r') as f:
         for line in f:
             line = line.strip()
-            if line.startswith('#'):
+            if line.startswith('#') or not line:
                 continue
             var_name, var_val = line.split('=', 1)
             if (var_val[0] == "'" and var_val[-1] == "'") or \
@@ -215,6 +215,22 @@ else:
         'BACKEND': 'django.core.cache.backends.dummy.DummyCache'
     }
 
+if 'AWS_S3_SECRET_ACCESS_KEY' in os.environ:
+    logger.debug('Enabling S3 storage')
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3.S3Storage",
+            "OPTIONS": {
+                "bucket_name": os.environ["AWS_S3_BUCKET_NAME"],
+                "region_name": os.environ.get("AWS_S3_REGION_NAME"),
+                "endpoint_url": os.environ.get("AWS_S3_ENDPOINT_URL")
+            }
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        }
+    }
+
 
 AUTH_USER_MODEL = 'custom_user.EmailUser'
 AUTHENTICATION_BACKENDS = (
@@ -320,7 +336,7 @@ WEBPACK_LOADER = {
         'STATS_FILE': os.path.join(STATIC_ROOT, 'webpack-stats.json'),
         'POLL_INTERVAL': 0.1,
         'TIMEOUT': None,
-        'IGNORE': ['.+\.map']
+        'IGNORE': [r'.+\.map']
     }
 }
 
@@ -330,8 +346,8 @@ MEDIA_URL = os.environ.get('DJANGO_MEDIA_URL', '/_state/thunor-files/')
 DATA_UPLOAD_MAX_NUMBER_FIELDS = int(os.environ.get(
     'DJANGO_UPLOAD_MAX_NUMBER_FIELDS', 1000))
 
-# These DOWNLOADS_* settings need to match nginx config
-DOWNLOADS_ROOT = os.path.join(MEDIA_ROOT, 'downloads')
+# These DOWNLOADS_* settings need to match nginx config unless using S3
+DOWNLOADS_PREFIX = 'downloads'
 DOWNLOADS_URL = '/_thunor_downloads/'
 # Serve static files directly rather than through nginx
 DJANGO_SERVE_FILES_DIRECTLY = os.environ.get('DJANGO_SERVE_FILES_DIRECTLY', 'false').lower() == 'true'
@@ -340,19 +356,6 @@ DATASET_RETENTION_DAYS = 30
 # Time to retain uploaded datasets if they're not attached to a dataset
 # (i.e. for debugging purposes)
 NON_DATASET_UPLOAD_RETENTION_DAYS = 7
-
-# Create plate-files dir to ensure it has correct permissions
-try:
-    os.makedirs(os.path.join(MEDIA_ROOT, 'plate-files'))
-except OSError as exc:
-    if exc.errno != errno.EEXIST:
-        raise
-
-try:
-    os.makedirs(DOWNLOADS_ROOT)
-except OSError as exc:
-    if exc.errno != errno.EEXIST:
-        raise
 
 LOGGING = {
     'version': 1,

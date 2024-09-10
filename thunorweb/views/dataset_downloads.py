@@ -1,6 +1,9 @@
-from django.shortcuts import Http404
+from django.shortcuts import Http404, redirect
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from django.http import HttpResponse
 from django.utils import timezone
+from io import BytesIO
 from thunorweb.models import HTSDataset, HTSDatasetFile, Well, CurveFitSet
 from thunor.curve_fit import fit_params_from_base
 from thunor.io import write_hdf, _unstack_doses
@@ -76,7 +79,7 @@ def download_fit_params(request, dataset_id, stat_type):
             file = None
 
     if file:
-        full_path = file.file.name
+        df = file
     else:
         try:
             # Fetch the DIP rates from the DB
@@ -107,24 +110,30 @@ def download_fit_params(request, dataset_id, stat_type):
         # Filter for the default list of parameters only
         fp = fp.filter(items=param_names[stat_type])
 
-        full_path = os.path.join(settings.DOWNLOADS_ROOT, file_name)
-
-        fp.to_csv(full_path, sep='\t')
+        buf = BytesIO()
+        fp.to_csv(buf, sep='\t')
+        buf.seek(0)
+        fn_prefixed = os.path.join(settings.DOWNLOADS_PREFIX, file_name)
+        stored_file = default_storage.save(fn_prefixed, ContentFile(buf.read()))
 
         df, created = HTSDatasetFile.objects.get_or_create(
             dataset=dataset,
             file_type=file_type,
             defaults={
                 'file_type_protocol': file_type_protocol,
-                'file': full_path
+                'file': stored_file
             }
         )
         if not created:
             df.file_type_protocol = file_type_protocol
-            df.file = full_path
+            df.file = stored_file
             df.creation_date = mod_date
             df.save()
 
+    if default_storage.__class__.__name__ == "S3Storage":
+        return redirect(df.file.url)
+
+    full_path = os.path.join(settings.MEDIA_ROOT, df.file.name)
     output_filename = '{}_{}_params.tsv'.format(dataset.name, stat_type)
 
     return serve_file(request, full_path, rename_to=output_filename,
@@ -140,7 +149,7 @@ def _generate_dataset_hdf5(dataset, regenerate_cache=False):
     file = _cached_file(dataset, file_type, file_type_protocol)
 
     if file and not regenerate_cache:
-        full_path = file.file.name
+        df = file
     else:
         df_data = df_doses_assays_controls(
             dataset=dataset,
@@ -150,23 +159,26 @@ def _generate_dataset_hdf5(dataset, regenerate_cache=False):
             for_export=True
         )
 
-        full_path = os.path.join(settings.DOWNLOADS_ROOT, file_name)
-        write_hdf(df_data, full_path)
+        buf = BytesIO()
+        write_hdf(df_data, buf)
+        buf.seek(0)
+        fn_prefixed = os.path.join(settings.DOWNLOADS_PREFIX, file_name)
+        stored_file = default_storage.save(fn_prefixed, ContentFile(buf.read()))
         df, created = HTSDatasetFile.objects.get_or_create(
             dataset=dataset,
             file_type=file_type,
             defaults={
                 'file_type_protocol': file_type_protocol,
-                'file': full_path
+                'file': stored_file
             }
         )
         if not created:
             df.file_type_protocol = file_type_protocol
-            df.file = full_path
+            df.file = stored_file
             df.creation_date = mod_date
             df.save()
 
-    return full_path
+    return df
 
 
 @login_required_unless_public
@@ -183,10 +195,14 @@ def download_dataset_hdf5(request, dataset_id):
                                'download this file')
 
     try:
-        full_path = _generate_dataset_hdf5(dataset)
+        df = _generate_dataset_hdf5(dataset)
     except NoDataException:
         return _plain_response('No data found for this request')
 
+    if default_storage.__class__.__name__ == "S3Storage":
+        return redirect(df.file.url)
+
+    full_path = os.path.join(settings.MEDIA_ROOT, df.file.name)
     output_filename = '{}.h5'.format(dataset.name)
 
     return serve_file(request, full_path, rename_to=output_filename,
@@ -194,7 +210,7 @@ def download_dataset_hdf5(request, dataset_id):
 
 
 def _generate_dip_rates(dataset, regenerate_cache=False):
-    file_name = 'dip_rates_{}.h5'.format(dataset.id)
+    file_name = 'dip_rates_{}.tsv'.format(dataset.id)
     file_type = 'dip_rates'
     file_type_protocol = 1
 
@@ -202,7 +218,7 @@ def _generate_dip_rates(dataset, regenerate_cache=False):
     file = _cached_file(dataset, file_type, file_type_protocol)
 
     if file and not regenerate_cache:
-        full_path = file.file.name
+        df = file
     else:
         ctrl, expt = df_dip_rates(dataset, cell_line_id=None, drug_id=None)
 
@@ -243,23 +259,27 @@ def _generate_dip_rates(dataset, regenerate_cache=False):
             ['dip_rate', 'dip_fit_std_err']
         df_data = df_data[columns]
 
-        full_path = os.path.join(settings.DOWNLOADS_ROOT, file_name)
-        df_data.to_csv(full_path, sep='\t', index=False)
+        buf = BytesIO()
+        df_data.to_csv(buf, sep='\t', index=False)
+        buf.seek(0)
+        fn_prefixed = os.path.join(settings.DOWNLOADS_PREFIX, file_name)
+        stored_file = default_storage.save(fn_prefixed, ContentFile(buf.read()))
+
         df, created = HTSDatasetFile.objects.get_or_create(
             dataset=dataset,
             file_type=file_type,
             defaults={
                 'file_type_protocol': file_type_protocol,
-                'file': full_path
+                'file': stored_file
             }
         )
         if not created:
             df.file_type_protocol = file_type_protocol
-            df.file = full_path
+            df.file = stored_file
             df.creation_date = mod_date
             df.save()
 
-    return full_path
+    return df
 
 
 @login_required_unless_public
@@ -276,10 +296,14 @@ def download_dip_rates(request, dataset_id):
                                'download this file')
 
     try:
-        full_path = _generate_dip_rates(dataset)
+        df = _generate_dip_rates(dataset)
     except NoDataException:
         return _plain_response('No data found for this request')
 
+    if default_storage.__class__.__name__ == "S3Storage":
+        return redirect(df.file.url)
+
+    full_path = os.path.join(settings.MEDIA_ROOT, df.file.name)
     output_filename = '{}_dip_rates.tsv'.format(dataset.name)
 
     return serve_file(request, full_path, rename_to=output_filename,

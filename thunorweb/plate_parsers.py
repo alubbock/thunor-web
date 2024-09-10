@@ -725,5 +725,6 @@ class PlateFileParser(object):
                                       })
             except PlateFileParseException as e:
                 self._results.append({'success': False, 'error': e})
+                self.plate_file.delete()
 
         return self._results
