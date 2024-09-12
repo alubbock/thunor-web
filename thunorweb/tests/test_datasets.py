@@ -83,6 +83,14 @@ class TestDatasetViews(TestCase):
         self.check_view_access_status(
                reverse('thunorweb:download_dataset_hdf5', args=[self.d.id]))
 
+    def test_download_dip_rates(self):
+        self.client.force_login(self.user)
+        resp = self.client.get(reverse('thunorweb:download_dip_rates',
+                                       args=[self.d.id]))
+
+        self.assertEqual(resp.status_code, HTTP_OK)
+        self.assertEqual(resp['Content-Type'], 'text/tab-separated-values')
+
     def test_download_dip_params_tsv(self):
         self.client.force_login(self.user)
         resp = self.client.get(reverse('thunorweb:download_fit_params',
