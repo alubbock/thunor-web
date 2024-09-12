@@ -87,8 +87,7 @@
         <h2 style="margin-top:5px">Metadata</h2>
         {% if dataset.creator %}<p><strong>Created by</strong><br><span id="meta-creator">{{ dataset.creator }}</span></p>{% endif %}
         {% if dataset.license_text %}<p><strong>Usage terms</strong><br><span id="meta-license">{{ dataset.license_text }}</span></p>{% endif %}
-            <p><strong>Uploaded by</strong><br><a href="mailto
-            :{{ dataset.owner.email }}">{{ dataset.owner.email }}</a></p>
+        {% if request.user.is_authenticated %}<p><strong>Uploaded by</strong><br><a href="mailto:{{ dataset.owner.email }}">{{ dataset.owner.email }}</a></p>{% endif %}
             <p><strong>Uploaded date</strong><br>{{ dataset.creation_date }}</p>
             <p><strong>Most recent plate file upload</strong><br>
                 {{ dataset.last_upload }}</p>
