@@ -1,4 +1,4 @@
-FROM python:3.12-slim-bullseye AS thunorweb_base
+FROM python:3.13-slim-bullseye AS thunorweb_base
 LABEL org.opencontainers.image.authors="code@alexlubbock.com"
 ENV PYTHONUNBUFFERED=1
 ENV THUNOR_HOME=/thunor
