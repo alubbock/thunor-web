@@ -12,7 +12,7 @@ WORKDIR $THUNOR_HOME
 ADD requirements.txt $THUNOR_HOME
 ADD thunorcore $THUNOR_HOME/thunorcore
 RUN pip3 install --no-cache-dir -r requirements.txt
-RUN dpkg --purge gcc libpcre3-dev
+RUN dpkg --purge gcc g++ libhdf5-dev libpcre3-dev
 CMD ["uwsgi", "--master", "--socket", ":8000", "--module", "thunordjango.wsgi", "--uid", "www-data", "--gid", "www-data", "--enable-threads"]
 ADD manage.py $THUNOR_HOME
 ADD thunordjango $THUNOR_HOME/thunordjango
