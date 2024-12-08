@@ -3,7 +3,7 @@ LABEL org.opencontainers.image.authors="code@alexlubbock.com"
 ENV PYTHONUNBUFFERED=1
 ENV THUNOR_HOME=/thunor
 
-RUN apt update && apt install -y libpq-dev gcc libmagic1 libpcre3-dev media-types \
+RUN apt update && apt install -y libpq-dev gcc g++ libmagic1 libpcre3-dev media-types libhdf5-dev \
   && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir $THUNOR_HOME
