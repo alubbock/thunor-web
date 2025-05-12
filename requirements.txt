@@ -6,7 +6,7 @@ xlrd
 python-magic
 Django==5.1.9
 django-allauth==65.3.0
-django-crispy-forms==2.3.0
+django-crispy-forms==2.4
 crispy-bootstrap3==2024.1
 django-custom-user==1.1
 django-guardian==2.4.0
