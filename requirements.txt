@@ -1,5 +1,5 @@
 -e ./thunorcore[test]
-numpy==2.2.5
+numpy==2.2.6
 pandas==2.2.3
 plotly==6.1.2
 xlrd
