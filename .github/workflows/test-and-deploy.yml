@@ -83,6 +83,7 @@ jobs:
             echo "GitHub Tag: $GITHUB_TAG"
           fi
           cd thunor-web-quickstart
+          git pull
           cp ../thunorctl.py .
           cp ../docker-compose.services.yml .
           cp ../docker-compose.certbot.yml .
