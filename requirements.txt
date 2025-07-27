@@ -9,7 +9,7 @@ django-allauth==65.9.0
 django-crispy-forms==2.4
 crispy-bootstrap3==2024.1
 django-custom-user==1.1
-django-guardian==3.0.0
+django-guardian==3.0.3
 django-invitations==2.1.0
 django-redis==6.0.0
 django-webpack-loader==3.2.0
