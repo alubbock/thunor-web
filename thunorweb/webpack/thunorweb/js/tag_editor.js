@@ -229,8 +229,8 @@ const activate = function() {
             }
         ],
         "columnDefs": [
-            {"targets": 0, className: "select-checkbox", width: "20px", orderable: false, defaultContent: '', data: null},
-            {"targets": 1, "data": "tag", "width": "1px", "className": "text-center", "render": {
+            {"targets": 0, className: "select-checkbox", width: "28px", orderable: false, defaultContent: '', data: null},
+            {"targets": 1, "data": "tag", "width": "28px", "className": "text-center", "render": {
                 "display": function(data) {return util.userIcon(data.ownerEmail);},
                 "sort": function(data) {return data.ownerEmail;}}
             },

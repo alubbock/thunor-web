@@ -26,7 +26,7 @@ export const initDatasetTable = function(tableRowCallbackFn, loadingCompleteCall
                 "targets": 0,
                 "data": "ownerEmail",
                 "className": "text-center",
-                "width": "1px",
+                "width": "28px",
                 "render": {"display": util.userIcon}
             },
             {
