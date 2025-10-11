@@ -15,5 +15,5 @@ django-redis==6.0.0
 django-webpack-loader==3.2.1
 psycopg2==2.9.11
 sentry-sdk[django]==2.41.0
-uwsgi==2.0.30
+uwsgi==2.0.31
 django-storages[s3]==1.14.6
