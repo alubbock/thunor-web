@@ -1,7 +1,7 @@
 -e ./thunorcore[test]
 numpy==2.3.5
 pandas==2.3.3
-plotly==6.5.0
+plotly==6.5.1
 xlrd
 python-magic
 Django==5.2.10
