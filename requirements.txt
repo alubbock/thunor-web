@@ -5,7 +5,7 @@ plotly==6.5.2
 xlrd
 python-magic
 Django==5.2.10
-django-allauth==65.13.1
+django-allauth==65.14.0
 django-crispy-forms==2.5
 crispy-bootstrap3==2024.1
 django-custom-user==1.1
