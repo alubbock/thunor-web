@@ -4,7 +4,7 @@ pandas==2.3.3
 plotly==6.5.2
 xlrd
 python-magic
-Django==5.2.11
+Django==6.0.2
 django-allauth==65.14.3
 django-crispy-forms==2.5
 crispy-bootstrap3==2024.1
