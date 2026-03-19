@@ -1,5 +1,6 @@
 from django.shortcuts import render, Http404
 from django.template.response import TemplateResponse, HttpResponse
+from django.utils.html import escape
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.db import transaction
 from django.db.models import Q, Count
@@ -290,7 +291,7 @@ def ajax_load_plate(request, plate_id, extra_return_args=None,
 
     _assert_has_perm(request, p.dataset, 'view_plate_layout')
     if not license_accepted(request, p.dataset):
-        return HttpResponse(LICENSE_UNSIGNED.format(p.dataset.name),
+        return HttpResponse(LICENSE_UNSIGNED.format(escape(p.dataset.name)),
                             status=400)
 
     field_ext = '__name' if use_names else '_id'
