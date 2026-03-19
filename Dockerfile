@@ -1,9 +1,9 @@
-FROM python:3.14-slim-bullseye AS thunorweb_base
+FROM python:3.14-slim-trixie AS thunorweb_base
 LABEL org.opencontainers.image.authors="code@alexlubbock.com"
 ENV PYTHONUNBUFFERED=1
 ENV THUNOR_HOME=/thunor
 
-RUN apt update && apt install -y libpq-dev gcc g++ libmagic1 libpcre3-dev media-types libhdf5-dev \
+RUN apt update && apt install -y libpq-dev gcc g++ libmagic1 libpcre2-dev media-types libhdf5-dev \
   && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir $THUNOR_HOME
@@ -12,7 +12,7 @@ WORKDIR $THUNOR_HOME
 ADD requirements.txt $THUNOR_HOME
 ADD thunorcore $THUNOR_HOME/thunorcore
 RUN pip3 install --no-cache-dir -r requirements.txt
-RUN dpkg --purge gcc g++ libhdf5-dev libpcre3-dev
+RUN dpkg --purge gcc g++ libhdf5-dev libpcre2-dev
 CMD ["uwsgi", "--master", "--socket", ":8000", "--module", "thunordjango.wsgi", "--uid", "www-data", "--gid", "www-data", "--enable-threads"]
 ADD manage.py $THUNOR_HOME
 ADD thunordjango $THUNOR_HOME/thunordjango
