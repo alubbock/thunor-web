@@ -449,7 +449,7 @@ def df_ctrl_dip_rates(dataset_id, plate_ids=None, cell_line_id=None,
 def _row_to_curve_fit(row):
     class_name = row['curve_fit_class']
 
-    if class_name is None:
+    if pd.isna(class_name):
         return None
     else:
         curve_class = getattr(thunor.curve_fit, class_name)
