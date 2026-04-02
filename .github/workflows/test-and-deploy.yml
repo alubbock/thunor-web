@@ -8,6 +8,9 @@ on:
       - v*
   pull_request: {}
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -21,11 +24,11 @@ jobs:
         run: |
           docker --version
           docker compose version
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           submodules: true
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: '3.14'
       - name: Run thunorbld.py init/testinit
@@ -54,27 +57,29 @@ jobs:
             echo "build_tags=alubbock/thunorweb:dev,alubbock/thunorweb:latest,alubbock/thunorweb:${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
           fi
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
       - name: Checkout Thunor Web
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           submodules: true
       - name: Checkout Quickstart Repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           repository: alubbock/thunor-web-quickstart
           ref: ${{ steps.release_mode.outputs.qs_branch }}
           token: ${{ secrets.API_TOKEN_GITHUB }}
           path: thunor-web-quickstart
       - name: Login to Docker Hub
-        uses: docker/login-action@v4
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
         with:
           username: alubbock
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Build containers and push
-        run: python thunorbld.py build --use-buildx --tags=${{ steps.release_mode.outputs.build_tags }} --push
+        env:
+          BUILD_TAGS: ${{ steps.release_mode.outputs.build_tags }}
+        run: python thunorbld.py build --use-buildx --tags=$BUILD_TAGS --push
       - name: Update and push quickstart repo
         run: |
           set -e
@@ -114,4 +119,3 @@ jobs:
 
           git commit -m "CI update: $GITHUB_SHA"
           git push
-
