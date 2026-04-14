@@ -32,3 +32,7 @@ dev = [
 
 [tool.uv]
 package = false
+
+[tool.coverage.run]
+source = ["thunorweb", "thunordjango"]
+omit = ["*/migrations/*", "thunorweb/_version.py"]
