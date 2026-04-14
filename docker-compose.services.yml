@@ -1,4 +1,3 @@
-version: '2.1'
 services:
   app:
     image: alubbock/thunorweb:latest
