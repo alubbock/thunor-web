@@ -210,19 +210,6 @@ class ThunorCmdHelper(object):
 
         return value
 
-    def _append_env(self, env_var):
-        env_val = os.environ.get(env_var, '')
-        env_str = '{}={}'.format(env_var, env_val)
-
-        env_file = os.path.join(self.cwd, '.env')
-        self._log.debug('Append: "{}" to {}'.format(env_str, env_file))
-
-        if self.args.dry_run:
-            return
-
-        with open(env_file, 'a') as f:
-            f.write(env_str + '\n')
-
 
 class ThunorCtl(ThunorCmdHelper):
     MAIN_CONTAINER_IMAGE = 'alubbock/thunorweb:latest'
@@ -334,24 +321,6 @@ class ThunorCtl(ThunorCmdHelper):
             '{{SERVER_NAME}}',
             hostname
         )
-        thunorhome = self._get_env('.env', 'THUNORHOME')
-        if 'DOCKER_MACHINE_NAME' in os.environ:
-            self._run_cmd([
-                'docker-machine', 'scp',
-                '_state/nginx-config/nginx.site.conf',
-                '{}:{}/_state/nginx-config/nginx.site.conf'.format(
-                    os.environ['DOCKER_MACHINE_NAME'],
-                    thunorhome
-                )
-            ])
-            self._run_cmd([
-                'docker-machine', 'scp',
-                'config-examples/renew-certs.sh',
-                '{}:{}/renew-certs.sh'.format(
-                    os.environ['DOCKER_MACHINE_NAME'],
-                    thunorhome
-                )
-            ])
         self._log.info('Trigger NGINX reload')
         self._run_cmd(['docker', 'compose', 'exec', 'nginx', 'nginx', '-s',
                        'reload'])
@@ -416,48 +385,12 @@ class ThunorCtl(ThunorCmdHelper):
         self._check_docker_compose()
         self._check_docker_running()
 
-        docker_machine = False
-        docker_ip = None
-        if 'DOCKER_MACHINE_NAME' in os.environ:
-            if not self.args.thunorhome:
-                raise ValueError('Docker Machine is active but '
-                                 '--thunorhome not set. '
-                                 'Either set --thunorhome option, or unset '
-                                 'Docker Machine environment variables '
-                                 '(docker-machine env --unset).')
-            docker_machine = os.environ['DOCKER_MACHINE_NAME']
-
-            docker_ip = subprocess.check_output(['docker-machine', 'ip',
-                                                 docker_machine]).strip().\
-                decode('utf8')
-            self._log.info('Docker Machine IP is ' + docker_ip)
-
         if not self.args.hostname:
-            self.args.hostname = self._prompt_hostname(
-                default=docker_ip if docker_ip else 'localhost')
+            self.args.hostname = self._prompt_hostname()
 
-        if self.args.enable_tls and self.args.hostname in \
-                ('localhost', docker_ip):
+        if self.args.enable_tls and self.args.hostname == 'localhost':
             raise ValueError('Cannot use --enable-tls without a web accessible '
                              'hostname.')
-
-        if docker_machine:
-            self._replace_in_file(
-                os.path.join(self.cwd, '.env'),
-                'THUNORHOME=.',
-                'THUNORHOME="{}"'.format(self.args.thunorhome)
-            )
-            self._append_env('DOCKER_TLS_VERIFY')
-            self._append_env('DOCKER_HOST')
-            self._append_env('DOCKER_CERT_PATH')
-
-            self._run_cmd(['docker-machine', 'ssh', docker_machine,
-                           'mkdir', '"' + self.args.thunorhome + '"'])
-        elif self.args.thunorhome:
-            raise ValueError('--thunorhome set, but Docker Machine is '
-                             'not active. Have you activated the machine\'s '
-                             'environment? If you\'re attempting a local '
-                             'installation, this option is not needed.')
 
         self._log.info('Deploying configuration files')
 
@@ -486,11 +419,6 @@ class ThunorCtl(ThunorCmdHelper):
             'DJANGO_HOSTNAME=localhost',
             'DJANGO_HOSTNAME=' + self.args.hostname
         )
-
-        if docker_machine:
-            self._run_cmd(['docker-machine', 'scp', '-r', '_state',
-                           '{}:"{}"'.format(
-                               docker_machine, self.args.thunorhome)])
 
         self._log.info('Starting database')
         self._run_cmd(['docker', 'compose', 'up', '-d', 'postgres'])
@@ -591,11 +519,6 @@ class ThunorCtl(ThunorCmdHelper):
             '--enable-tls', action='store_true', default=False,
             help='Generate TLS certificates to encrypt connections using '
                  'certbot'
-        )
-        parser_deploy.add_argument(
-            '--thunorhome',
-            help='(Docker Machine installs only) Installation directory for '
-                 'Thunor Web on the *remote* machine.'
         )
         parser_deploy.set_defaults(func=self.deploy)
 
