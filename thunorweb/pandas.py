@@ -503,10 +503,10 @@ def df_curve_fits(dataset_ids, stat_type,
     }, inplace=True)
     base_params.set_index(['dataset_id', 'cell_line', 'drug'], inplace=True)
 
-    base_params._drmetric = stat_type
+    base_params.attrs['drmetric'] = stat_type
     if stat_type == 'viability':
-        base_params._viability_time = viability_time
-        base_params._viability_assay = 'default'
+        base_params.attrs['viability_time'] = viability_time
+        base_params.attrs['viability_assay'] = 'default'
 
     return base_params
 
