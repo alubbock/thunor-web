@@ -12,7 +12,6 @@ class ThunorBld(ThunorCmdHelper):
         super(ThunorBld, self).__init__()
         self.cwd = os.path.abspath(os.path.dirname(__file__))
         self.deploy_dir = os.path.join(self.cwd, '_state/deploy-test')
-        self.buildx_archs = 'linux/amd64,linux/arm64'
 
     def _build_webpack(self):
         self._log.info('Build webpack container')
@@ -49,35 +48,6 @@ class ThunorBld(ThunorCmdHelper):
         self._log.info('Generate static files')
         return self._run_cmd(cmd)
 
-    # def _init_buildx(self):
-    #     self._log.info("Init docker buildx")
-    #     return self._run_cmd([
-    #         'docker', 'buildx', 'create', '--name', 'thunorbuild', '--use', '--append'
-    #     ])
-
-    # def _deinit_buildx(self):
-    #     self._log.info("Deinit docker buildx")
-    #     return self._run_cmd([
-    #         'docker', 'buildx', 'rm', 'thunorbuild'
-    #     ])
-
-    def _build_base_image(self):
-        self._log.info('Build thunorweb_base image')
-        base_cmd = ['docker']
-        if self.args.use_buildx:
-            base_cmd += ['buildx', 'build', '--platform=' + self.buildx_archs]
-        else:
-            base_cmd += ['build']
-        return self._run_cmd(base_cmd +
-                             ['-t',
-                              'thunorweb_base',
-                              '--target',
-                              'thunorweb_base',
-                              '--build-arg',
-                              'THUNORWEB_VERSION={}'.format(
-                                  thunorweb_version),
-                              self.cwd])
-
     def collect_static(self):
         if not self.args.dev:
             self._log.debug('Collect static not used in non-dev mode')
@@ -95,14 +65,11 @@ class ThunorBld(ThunorCmdHelper):
         if self.args.dev:
             raise ValueError('Cannot build Docker container in dev mode')
 
-        # self.make_static()
         self.generate_static()
         self._log.info('Build main container')
-        base_cmd = ['docker']
-        if self.args.use_buildx:
-            base_cmd += ['buildx', 'build', '--platform=' + self.buildx_archs]
-        else:
-            base_cmd += ['build']
+        base_cmd = ['docker', 'buildx', 'build']
+        if self.args.platform:
+            base_cmd += ['--platform=' + self.args.platform]
         if self.args.push:
             base_cmd += ['--push']
         for tag in self.args.tags.split(','):
@@ -136,7 +103,7 @@ class ThunorBld(ThunorCmdHelper):
     def init_test(self):
         """ Minimal init for unit testing/CI purposes """
         self._init_test_files()
-        self.args.use_buildx = False
+        self.args.platform = None
         self.args.tags = self._DEFAULT_TAGS
         self.args.push = False
         self.thunorweb_build()
@@ -252,8 +219,10 @@ class ThunorBld(ThunorCmdHelper):
             '--cleanup', action='store_true', default=False,
             help='Cleanup intermediate build files'
         )
-        parser_build.add_argument('--use-buildx', action='store_true', default=False,
-                            help='Use docker buildx for cross-platform builds')
+        parser_build.add_argument(
+            '--platform', default=None,
+            help='Target platform (e.g. linux/amd64). Defaults to host platform.'
+        )
         parser_build.add_argument('--push', action='store_true', default=False,
                             help='Push to repo after build')
         parser_build.add_argument('--tags', default=ThunorBld._DEFAULT_TAGS,
