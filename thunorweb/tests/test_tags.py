@@ -1,11 +1,12 @@
-from django.test import TestCase
-from thunorweb.models import CellLine, Drug, CellLineTag, DrugTag
+import io
+import json
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
+from django.test import TestCase
 from django.urls import reverse
-import json
-import io
 
+from thunorweb.models import CellLine, CellLineTag, Drug, DrugTag
 
 HTTP_OK = 200
 

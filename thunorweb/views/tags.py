@@ -1,16 +1,22 @@
-from django.shortcuts import render
-from django.http import JsonResponse
+import collections
+import logging
+
+import pandas as pd
+from django.contrib.auth.models import Group
 from django.db import transaction
 from django.db.models import Q
-from thunorweb.models import CellLine, Drug, CellLineTag, DrugTag
-from thunorweb.views import login_required_unless_public
-import logging
-import pandas as pd
 from django.db.utils import IntegrityError
-from guardian.shortcuts import assign_perm, remove_perm, \
-    get_groups_with_perms, get_objects_for_user
-from django.contrib.auth.models import Group
-import collections
+from django.http import JsonResponse
+from django.shortcuts import render
+from guardian.shortcuts import (
+    assign_perm,
+    get_groups_with_perms,
+    get_objects_for_user,
+    remove_perm,
+)
+
+from thunorweb.models import CellLine, CellLineTag, Drug, DrugTag
+from thunorweb.views import login_required_unless_public
 
 logger = logging.getLogger(__name__)
 TAG_EVERYTHING_ELSE = -1
@@ -318,7 +324,7 @@ def ajax_upload_tagfile(request, tag_type):
 
         try:
             csv = pd.read_csv(file, sep=sep)
-        except:
+        except Exception:
             transaction.set_rollback(True)
             return JsonResponse({
                 'error': 'Could not read file. Please ensure file is comma '

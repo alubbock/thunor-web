@@ -1,12 +1,12 @@
 import argparse
-import subprocess
-import os
-import sys
-import shutil
-import random
-import time
-import re
 import logging
+import os
+import random
+import re
+import shutil
+import subprocess
+import sys
+import time
 from pathlib import Path
 
 

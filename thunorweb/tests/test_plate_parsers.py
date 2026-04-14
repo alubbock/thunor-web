@@ -1,11 +1,13 @@
-from django.test import TestCase
+import io
+
+import thunor.io
 from django.contrib.auth import get_user_model
 from django.core.files import File
-import thunor.io
+from django.test import TestCase
+
 from thunorweb.models import HTSDataset
 from thunorweb.plate_parsers import PlateFileParser
 from thunorweb.tests import get_thunor_test_file
-import io
 
 
 class TestPlateParsers(TestCase):

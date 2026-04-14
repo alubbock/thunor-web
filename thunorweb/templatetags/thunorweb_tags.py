@@ -1,11 +1,12 @@
+import json
+
 from django import template
-import thunorweb
 from django.core.serializers import serialize
 from django.db.models.query import QuerySet
-import json
 from django.utils.safestring import mark_safe
-from django.conf import settings
 from sentry_sdk import Hub
+
+import thunorweb
 
 register = template.Library()
 

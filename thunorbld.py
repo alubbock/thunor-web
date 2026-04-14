@@ -1,8 +1,8 @@
 import argparse
 import os
-import sys
-from thunorweb import __version__ as thunorweb_version
+
 from thunorctl import ThunorCmdHelper
+from thunorweb import __version__ as thunorweb_version
 
 
 class ThunorBld(ThunorCmdHelper):
@@ -226,7 +226,8 @@ class ThunorBld(ThunorCmdHelper):
         parser_build.add_argument('--push', action='store_true', default=False,
                             help='Push to repo after build')
         parser_build.add_argument('--tags', default=ThunorBld._DEFAULT_TAGS,
-                            help='Tags to use when building container (comma separated)')
+                            help='Tags to use when building container '
+                                 '(comma separated)')
         parser_build.set_defaults(func=self.thunorweb_build)
 
         parser_init = subparsers.add_parser(

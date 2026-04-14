@@ -1,12 +1,13 @@
-from django.shortcuts import render, redirect, Http404
-from django.contrib.auth.models import Group
-from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
-from django.conf import settings
-from guardian.shortcuts import ObjectPermissionChecker
-from thunorweb.models import HTSDataset
-from django.contrib import auth
 from allauth.account.views import password_reset
+from django.conf import settings
+from django.contrib import auth
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import Group
+from django.http import JsonResponse
+from django.shortcuts import Http404, redirect, render
+from guardian.shortcuts import ObjectPermissionChecker
+
+from thunorweb.models import HTSDataset
 
 
 def is_ajax(request):

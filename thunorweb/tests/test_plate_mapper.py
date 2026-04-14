@@ -1,9 +1,10 @@
-from django.test import TestCase
-from thunorweb.models import HTSDataset, CellLine, Drug
-from django.contrib.auth import get_user_model
-from django.urls import reverse
 import json
 
+from django.contrib.auth import get_user_model
+from django.test import TestCase
+from django.urls import reverse
+
+from thunorweb.models import CellLine, Drug, HTSDataset
 
 HTTP_OK = 200
 

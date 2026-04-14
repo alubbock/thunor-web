@@ -1,8 +1,9 @@
 from __future__ import unicode_literals
-from django.db import models
+
 from django.conf import settings
+from django.db import models
+from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from thunor.io import PlateMap
-from guardian.models import UserObjectPermissionBase, GroupObjectPermissionBase
 
 
 class HTSDataset(models.Model):
@@ -39,8 +40,9 @@ class HTSDataset(models.Model):
         return dict(cls._meta.permissions)
 
     def add_platefile(self, filename):
-        from thunorweb.plate_parsers import PlateFileParser
         from django.core.files import File
+
+        from thunorweb.plate_parsers import PlateFileParser
         with open(filename, 'rb') as f:
             pfp = PlateFileParser(File(f), dataset=self)
             pfp.parse_all()

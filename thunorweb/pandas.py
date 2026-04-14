@@ -1,13 +1,15 @@
-import pandas as pd
-from .models import Well, WellDrug, WellMeasurement, WellStatistic, CurveFit
-from django.core.cache import cache
-from django.db.models import Count, Max, Sum, F
-from django.db.models.functions import Coalesce
-from collections.abc import Iterable
-from thunor.io import HtsPandas
-from datetime import timedelta
 import pickle
+from collections.abc import Iterable
+from datetime import timedelta
+
+import pandas as pd
 import thunor.curve_fit
+from django.core.cache import cache
+from django.db.models import Count, F, Max, Sum
+from django.db.models.functions import Coalesce
+from thunor.io import HtsPandas
+
+from .models import CurveFit, Well, WellDrug, WellMeasurement, WellStatistic
 
 
 class NoDataException(Exception):

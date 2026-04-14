@@ -1,9 +1,9 @@
+from allauth.account import forms as allauth_forms
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
-from allauth.account import forms as allauth_forms
-from django import forms, VERSION
-from django.contrib.auth import get_user_model
+from django import forms
 from django.contrib.admin.widgets import FilteredSelectMultiple
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 
 

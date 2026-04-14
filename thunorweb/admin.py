@@ -1,9 +1,10 @@
-from .forms import GroupAdminForm
 from django.contrib import admin
 from django.contrib.auth.models import Group
 from django.core.exceptions import PermissionDenied
-from .models import HTSDataset
 from django.utils import timezone
+
+from .forms import GroupAdminForm
+from .models import HTSDataset
 
 admin.site.site_header = 'Thunor Administration'
 admin.site.site_title = 'Thunor Admin'

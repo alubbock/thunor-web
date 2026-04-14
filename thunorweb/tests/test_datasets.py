@@ -1,9 +1,11 @@
-from django.urls import reverse
-from django.test import Client, TestCase
+import json
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
+from django.test import Client, TestCase
+from django.urls import reverse
+
 from thunorweb.models import HTSDataset
-import json
 from thunorweb.tests import get_thunor_test_file
 
 HTTP_OK = 200

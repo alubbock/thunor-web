@@ -1,5 +1,4 @@
-from django.test import RequestFactory
-from django.test import TestCase
+from django.test import RequestFactory, TestCase
 
 from thunordjango.wsgi import application
 

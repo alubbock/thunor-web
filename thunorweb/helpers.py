@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from django.utils.cache import get_conditional_response
 from calendar import timegm
+
+from django.utils.cache import get_conditional_response
 
 
 def not_modified(request, etag=None, last_modified=None):

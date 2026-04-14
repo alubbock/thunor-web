@@ -1,10 +1,10 @@
-from django.test import TestCase, Client
-from thunorweb.models import HTSDataset, CellLine, CellLineTag, Drug, DrugTag
-from thunorweb.tests import get_thunor_test_file
-from django.contrib.auth import get_user_model
-from django.urls import reverse
 import json
 
+from django.contrib.auth import get_user_model
+from django.test import Client, TestCase
+from django.urls import reverse
+
+from thunorweb.models import CellLine, CellLineTag, Drug, DrugTag, HTSDataset
 
 HTTP_OK = 200
 HTTP_INVALID_REQUEST = 400

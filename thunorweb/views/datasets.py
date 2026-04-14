@@ -1,26 +1,37 @@
-from django.shortcuts import render, Http404
-from django.template.loader import get_template
-from django.views.decorators.csrf import ensure_csrf_cookie
-from django.contrib.auth.models import Group
-from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, HttpResponseBadRequest, HttpResponse
+import logging
+
+from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import Group
+from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
-from django.db.models import Q, Max
-from thunorweb.models import HTSDataset, PlateFile, Plate, \
-    CellLineTag, DrugTag
+from django.db.models import Max, Q
+from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
+from django.shortcuts import Http404, render
+from django.template.loader import get_template
 from django.urls import reverse
-from thunorweb.tasks import precalculate_dip_rates, precalculate_viability, \
-    dataset_groupings, precalculate_dip_curves, rename_dataset_in_cache
-from thunorweb.plate_parsers import PlateFileParser
 from django.utils import timezone
 from django.utils.html import escape
-from django.conf import settings
-from guardian.shortcuts import get_objects_for_group, get_perms, \
-    get_groups_with_perms, assign_perm, remove_perm
-from django.contrib.contenttypes.models import ContentType
-from thunorweb.views import login_required_unless_public, _assert_has_perm
-import logging
+from django.views.decorators.csrf import ensure_csrf_cookie
+from guardian.shortcuts import (
+    assign_perm,
+    get_groups_with_perms,
+    get_objects_for_group,
+    get_perms,
+    remove_perm,
+)
+
+from thunorweb.models import CellLineTag, DrugTag, HTSDataset, Plate, PlateFile
+from thunorweb.plate_parsers import PlateFileParser
+from thunorweb.tasks import (
+    dataset_groupings,
+    precalculate_dip_curves,
+    precalculate_dip_rates,
+    precalculate_viability,
+    rename_dataset_in_cache,
+)
+from thunorweb.views import _assert_has_perm, login_required_unless_public
 from thunorweb.views.tags import TAG_EVERYTHING_ELSE
 
 logger = logging.getLogger(__name__)

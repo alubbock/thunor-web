@@ -1,5 +1,6 @@
-from django.http import HttpResponse
 import json
+
+from django.http import HttpResponse
 
 
 class NonHtmlDebugToolbarMiddleware(object):

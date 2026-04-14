@@ -1,4 +1,4 @@
-from django.test import TestCase, Client, override_settings
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 HTTP_OK = 200

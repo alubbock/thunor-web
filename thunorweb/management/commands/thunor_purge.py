@@ -1,16 +1,18 @@
-from django.core.management.base import BaseCommand
-from django.contrib.contenttypes.models import ContentType
-from django.contrib.auth import get_user_model
-from django.utils import timezone
-from datetime import timedelta
-from thunorweb.models import HTSDataset, PlateFile
-from django.conf import settings
-from django.contrib.admin.models import LogEntry, DELETION
-import logging
-import os
 import datetime
 import json
+import logging
+import os
 import sys
+from datetime import timedelta
+
+from django.conf import settings
+from django.contrib.admin.models import DELETION, LogEntry
+from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.models import ContentType
+from django.core.management.base import BaseCommand
+from django.utils import timezone
+
+from thunorweb.models import HTSDataset, PlateFile
 
 logger = logging.getLogger(__name__)
 
