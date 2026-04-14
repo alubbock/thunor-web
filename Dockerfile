@@ -3,7 +3,7 @@ LABEL org.opencontainers.image.authors="code@alexlubbock.com"
 ENV PYTHONUNBUFFERED=1
 ENV THUNOR_HOME=/thunor
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.11.6@sha256:b1e699368d24c57cda93c338a57a8c5a119009ba809305cc8e86986d4a006754 /uv /bin/uv
 
 RUN apt update && apt install -y libpq-dev gcc g++ libmagic1 libpcre2-dev media-types libhdf5-dev \
   && rm -rf /var/lib/apt/lists/*
@@ -12,11 +12,13 @@ RUN mkdir $THUNOR_HOME
 WORKDIR $THUNOR_HOME
 
 ADD pyproject.toml uv.lock $THUNOR_HOME/
-RUN uv sync --frozen --no-dev
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev
 RUN dpkg --purge gcc g++ libhdf5-dev libpcre2-dev
 
 ENV PATH="/thunor/.venv/bin:$PATH"
 
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD python -c "import socket; s=socket.socket(); s.settimeout(5); s.connect(('127.0.0.1', 8000)); s.close()"
 CMD ["uwsgi", "--master", "--socket", ":8000", "--module", "thunordjango.wsgi", "--uid", "www-data", "--gid", "www-data", "--enable-threads"]
 ADD manage.py $THUNOR_HOME
 ADD thunordjango $THUNOR_HOME/thunordjango

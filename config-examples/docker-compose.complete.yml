@@ -25,7 +25,8 @@ services:
       - static-assets:/srv/thunor-static/:ro
       - $THUNORHOME/_state/certbot/:/etc/letsencrypt/:ro
     depends_on:
-      - app
+      app:
+        condition: service_healthy
   postgres:
     extends:
       file: docker-compose.services.yml
