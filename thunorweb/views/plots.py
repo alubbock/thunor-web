@@ -571,7 +571,7 @@ def _dose_response_plot(request, dataset, dataset2_id,
                         datasets,
                         drug_id,
                         cell_line_id,
-                        viability_time=base_params[0]._viability_time.total_seconds() / SECONDS_TO_HOURS
+                        viability_time=base_params[0].attrs['viability_time'].total_seconds() / SECONDS_TO_HOURS
                     )
             except NoDataException:
                 return HttpResponse(
@@ -585,8 +585,8 @@ def _dose_response_plot(request, dataset, dataset2_id,
     with warnings.catch_warnings(record=True) as w:
         fit_params = [fit_params_from_base(
             base_param_set,
-            ctrl_resp_data=ctrl_resp_data,
-            expt_resp_data=expt_resp_data,
+            ctrl_data=ctrl_resp_data,
+            expt_data=expt_resp_data,
             include_response_values=include_response_values,
             custom_ic_concentrations=ic_concentrations,
             custom_ec_concentrations=ec_concentrations,
@@ -615,8 +615,8 @@ def _dose_response_plot(request, dataset, dataset2_id,
         fit_params.columns = ['label',
                               'dip__{}'.format(dr_par),
                               'viability__{}'.format(dr_par)]
-        fit_params._viability_time = base_params[1]._viability_time
-        fit_params._drmetric = 'compare'
+        fit_params.attrs['viability_time'] = base_params[1].attrs['viability_time']
+        fit_params.attrs['drmetric'] = 'compare'
         dr_par, dr_par_two = fit_params.columns[1:]
     else:
         fit_params = fit_params[0]
