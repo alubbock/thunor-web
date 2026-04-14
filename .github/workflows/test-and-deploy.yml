@@ -35,6 +35,9 @@ jobs:
           if [[ $DEVFLAG == "" ]]; then python thunorbld.py testinit; fi
       - name: Test suite
         run: python thunorbld.py $DEVFLAG test
+      - name: Generate coverage XML
+        if: ${{ matrix.dev == '--dev' }}
+        run: uv run coverage xml
       - name: Upload coverage
         if: ${{ matrix.dev == '--dev' }}
         uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
