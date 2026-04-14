@@ -106,6 +106,8 @@ jobs:
           docker buildx imagetools create $TAGS \
             alubbock/thunorweb:dev-amd64 \
             alubbock/thunorweb:dev-arm64
+      - name: Checkout Thunor Web
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - name: Checkout Quickstart Repo
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
