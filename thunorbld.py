@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 from thunorweb import __version__ as thunorweb_version
 from thunorctl import ThunorCmdHelper
 
@@ -78,14 +79,13 @@ class ThunorBld(ThunorCmdHelper):
                               self.cwd])
 
     def collect_static(self):
-        cmd = ['python', 'manage.py', 'collectstatic', '--no-input']
-
         if not self.args.dev:
             self._log.debug('Collect static not used in non-dev mode')
             return True
 
         self._log.info('Collect static files')
-        return self._run_cmd(cmd)
+        return self._run_cmd([self._python, 'manage.py', 'collectstatic',
+                              '--no-input'])
 
     def make_static(self):
         self.generate_static()
@@ -144,7 +144,8 @@ class ThunorBld(ThunorCmdHelper):
     def run_tests(self):
         if self.args.dev:
             self._log.info('Run tests (dev environment)')
-            self._run_cmd(['coverage', 'run', 'manage.py', 'test'])
+            self._run_cmd([self._python, '-m', 'coverage', 'run',
+                           'manage.py', 'test'])
         else:
             compose_file = os.path.join(self.deploy_dir,
                                         'docker-compose.yml')
@@ -193,8 +194,8 @@ class ThunorBld(ThunorCmdHelper):
         self._run_cmd(['docker', 'compose', 'up', '-d', 'postgres'])
 
         # Install Python reqs
-        self._log.info('Install python requirements')
-        self._run_cmd(['pip', 'install', '-r', 'requirements-dev.txt'])
+        self._log.info('Sync Python dependencies')
+        self._run_cmd(['uv', 'sync', '--frozen'])
 
         # Build static files
         self.make_static()
@@ -202,10 +203,10 @@ class ThunorBld(ThunorCmdHelper):
         self._wait_postgres()
 
         self._log.info('Migrate database')
-        self._run_cmd(['python', 'manage.py', 'migrate'])
+        self._run_cmd([self._python, 'manage.py', 'migrate'])
 
         self._log.info('Create database cache table')
-        self._run_cmd(['python', 'manage.py', 'createcachetable'])
+        self._run_cmd([self._python, 'manage.py', 'createcachetable'])
 
         print('\nQuickstart complete! Next steps:')
 
