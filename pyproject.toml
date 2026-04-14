@@ -28,7 +28,22 @@ dependencies = [
 dev = [
     "django-debug-toolbar",
     "coverage",
+    "ruff",
 ]
 
 [tool.uv]
 package = false
+
+[tool.ruff]
+line-length = 88
+exclude = ["*/migrations/*", "*/fixtures/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+
+[tool.ruff.lint.per-file-ignores]
+"manage.py" = ["F401"]
+"thunordjango/settings.py" = ["F401"]
+
+[tool.ruff.format]
+quote-style = "single"

@@ -1,31 +1,52 @@
-from django.shortcuts import render, Http404
-from django.http import HttpResponse
-from django.utils.html import strip_tags, escape
-from django.views.decorators.csrf import ensure_csrf_cookie
+import collections
+import json
+import warnings
+
 from django.core.cache import cache
-from thunorweb.models import HTSDataset, CellLineTag, DrugTag, CellLine, Drug
-from thunor.plots import plot_time_course, plot_drc, \
-    plot_drug_combination_heatmap, plot_drc_params, \
-    plot_ctrl_dip_by_plate, plot_ctrl_cell_counts_by_plate, plot_plate_map, CannotPlotError, \
-    IC_REGEX, EC_REGEX, E_REGEX, E_REL_REGEX
+from django.http import HttpResponse
+from django.shortcuts import Http404, render
+from django.utils.html import escape, strip_tags
+from django.views.decorators.csrf import ensure_csrf_cookie
+from plotly.offline.offline import get_plotlyjs
+from plotly.utils import PlotlyJSONEncoder
 from thunor.config import plotly_template as default_plotly_template
 from thunor.curve_fit import AAFitWarning, fit_params_from_base
-from thunor.viability import viability
 from thunor.helpers import plotly_to_dataframe
-from plotly.utils import PlotlyJSONEncoder
-from plotly.offline.offline import get_plotlyjs
-from thunorweb.pandas import df_doses_assays_controls, df_dip_rates, \
-    df_ctrl_dip_rates, NoDataException, df_curve_fits, df_control_wells
-import warnings
-import collections
-from thunorweb.views import login_required_unless_public, _assert_has_perm
-from thunorweb.views.plate_mapper import ajax_load_plate
-from thunorweb.views.datasets import _get_celllinetag_permfilter, \
-    _get_drugtag_permfilter, dataset_groupings, license_accepted, \
-    LICENSE_UNSIGNED
-from thunorweb.views.tags import TAG_EVERYTHING_ELSE
-import json
+from thunor.plots import (
+    E_REGEX,
+    E_REL_REGEX,
+    EC_REGEX,
+    IC_REGEX,
+    CannotPlotError,
+    plot_ctrl_cell_counts_by_plate,
+    plot_ctrl_dip_by_plate,
+    plot_drc,
+    plot_drc_params,
+    plot_drug_combination_heatmap,
+    plot_plate_map,
+    plot_time_course,
+)
+from thunor.viability import viability
 
+from thunorweb.models import CellLine, CellLineTag, Drug, DrugTag, HTSDataset
+from thunorweb.pandas import (
+    NoDataException,
+    df_control_wells,
+    df_ctrl_dip_rates,
+    df_curve_fits,
+    df_dip_rates,
+    df_doses_assays_controls,
+)
+from thunorweb.views import _assert_has_perm, login_required_unless_public
+from thunorweb.views.datasets import (
+    LICENSE_UNSIGNED,
+    _get_celllinetag_permfilter,
+    _get_drugtag_permfilter,
+    dataset_groupings,
+    license_accepted,
+)
+from thunorweb.views.plate_mapper import ajax_load_plate
+from thunorweb.views.tags import TAG_EVERYTHING_ELSE
 
 SECONDS_TO_HOURS = 3600
 MAX_COLOR_GROUPS = 10
@@ -146,8 +167,12 @@ def ajax_get_plot(request, file_type='json'):
             plot_cached = cache.get(cache_key)
             if plot_cached:
                 plot_fig = plot_cached['plot_fig']
-            if plot_cached is None or plot_cached['dataset_last_modified'] < dataset.modified_date or \
-                    plot_cached['plot_version'] < cur_plotver:
+            cache_stale = (
+                plot_cached is None
+                or plot_cached['dataset_last_modified'] < dataset.modified_date
+                or plot_cached['plot_version'] < cur_plotver
+            )
+            if cache_stale:
                 # Create plot
                 groupings = dataset_groupings(dataset)
                 if not groupings['singleTimepoint']:
@@ -162,10 +187,13 @@ def ajax_get_plot(request, file_type='json'):
                     return HttpResponse('No data found for this request.',
                                         status=400)
                 if (df_data['value'] == 100.0).all():
-                    return HttpResponse('The raw data for this dataset is given as relative viability, so no control '
-                                        'wells are available', status=400)
+                    return HttpResponse(
+                        'The raw data for this dataset is given as relative '
+                        'viability, so no control wells are available',
+                        status=400)
 
-                plot_fig = plot_ctrl_cell_counts_by_plate(df_data, subtitle=dataset.name, template=template)
+                plot_fig = plot_ctrl_cell_counts_by_plate(
+                    df_data, subtitle=dataset.name, template=template)
 
                 # Push to cache
                 cache.set(cache_key, {'dataset_last_modified': dataset.modified_date,
@@ -571,7 +599,8 @@ def _dose_response_plot(request, dataset, dataset2_id,
                         datasets,
                         drug_id,
                         cell_line_id,
-                        viability_time=base_params[0].attrs['viability_time'].total_seconds() / SECONDS_TO_HOURS
+                        viability_time=base_params[0].attrs[
+                            'viability_time'].total_seconds() / SECONDS_TO_HOURS
                     )
             except NoDataException:
                 return HttpResponse(

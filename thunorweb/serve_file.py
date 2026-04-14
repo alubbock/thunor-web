@@ -1,7 +1,8 @@
 import os
+
 import magic
-from django.http import HttpResponse
 from django.conf import settings
+from django.http import HttpResponse
 from django.views.static import serve
 
 

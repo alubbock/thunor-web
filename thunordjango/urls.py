@@ -13,10 +13,9 @@ Including another URLconf
     1. Import the include() function: from django.conf.urls import url, include
     2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
 """
-from django.urls import include, path
-from django.contrib import admin
 from django.conf import settings
-from thunorweb.views import handler500, handler404
+from django.contrib import admin
+from django.urls import include, path
 
 urlpatterns = [
     path('', include('thunorweb.urls')),

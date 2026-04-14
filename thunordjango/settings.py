@@ -10,13 +10,14 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.10/ref/settings/
 """
 
-import os
-import sentry_sdk
-import sys
-import thunorweb
-from django.contrib import messages
-import errno
 import logging
+import os
+import sys
+
+import sentry_sdk
+from django.contrib import messages
+
+import thunorweb
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -282,7 +283,7 @@ MESSAGE_TAGS = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',  # noqa: E501
     },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
@@ -350,7 +351,9 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = int(os.environ.get(
 DOWNLOADS_PREFIX = 'downloads'
 DOWNLOADS_URL = '/_thunor_downloads/'
 # Serve static files directly rather than through nginx
-DJANGO_SERVE_FILES_DIRECTLY = os.environ.get('DJANGO_SERVE_FILES_DIRECTLY', 'false').lower() == 'true'
+DJANGO_SERVE_FILES_DIRECTLY = (
+    os.environ.get('DJANGO_SERVE_FILES_DIRECTLY', 'false').lower() == 'true'
+)
 # Time to retain datasets after they've been marked for deletion
 DATASET_RETENTION_DAYS = 30
 # Time to retain uploaded datasets if they're not attached to a dataset

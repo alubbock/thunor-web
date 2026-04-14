@@ -1,10 +1,11 @@
 from django.urls import path, re_path
+
 import thunorweb.views as views
-import thunorweb.views.tags as tags
-import thunorweb.views.plate_mapper as plate_mapper
-import thunorweb.views.datasets as datasets
 import thunorweb.views.dataset_downloads as downloads
+import thunorweb.views.datasets as datasets
+import thunorweb.views.plate_mapper as plate_mapper
 import thunorweb.views.plots as plots
+import thunorweb.views.tags as tags
 
 app_name = 'thunorweb'
 urlpatterns = [

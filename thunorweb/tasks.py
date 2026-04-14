@@ -1,22 +1,32 @@
-from .models import HTSDataset, WellMeasurement, WellStatistic, CellLine, \
-    Drug, WellDrug, Well, CurveFit, CurveFitSet
-from .pandas import df_doses_assays_controls, NoDataException, df_dip_rates
-from thunor.dip import dip_rates, _choose_dip_assay
-from thunor.curve_fit import fit_params_minimal
 import itertools
-from django.db import transaction
-from django.db.models import Count, F
+import pickle
 from collections import defaultdict
 from collections.abc import Sequence
-from django.core.cache import cache
-from django.utils import timezone
-from django.conf import settings
 from datetime import timedelta
-import pickle
-from thunor.curve_fit import HillCurveLL3u, HillCurveLL4
+
+from django.conf import settings
+from django.core.cache import cache
+from django.db import transaction
+from django.db.models import Count, F
+from django.utils import timezone
+from thunor.curve_fit import HillCurveLL3u, HillCurveLL4, fit_params_minimal
+from thunor.dip import _choose_dip_assay, dip_rates
 from thunor.viability import viability
+
 from thunorweb.pandas import has_drug_combinations
 
+from .models import (
+    CellLine,
+    CurveFit,
+    CurveFitSet,
+    Drug,
+    HTSDataset,
+    Well,
+    WellDrug,
+    WellMeasurement,
+    WellStatistic,
+)
+from .pandas import NoDataException, df_dip_rates, df_doses_assays_controls
 
 # Increment these versions to indicate a change in calculation protocols
 DIP_PROTOCOL_VER = 1
@@ -370,8 +380,9 @@ def _combine_id_name_dicts(dicts):
             del combined[k]
 
     try:
-        return sorted(combined.values(), key=lambda e: e['name'].lower() if not isinstance(e['name'], tuple)
-                                             else e['name'])
+        def sort_key(e):
+            return e['name'].lower() if not isinstance(e['name'], tuple) else e['name']
+        return sorted(combined.values(), key=sort_key)
     except TypeError:
         # Dataset contains single drugs and combinations, sort them separately
         return sorted((e for e in combined.values()

@@ -1,19 +1,34 @@
-import re
-from django.core.files import File
-from django.utils import timezone
-from datetime import timedelta
-from django.conf import settings
-from .models import PlateFile, Plate, Well, WellMeasurement, CellLine, Drug,\
-    WellDrug
-from django.db import IntegrityError, transaction
-import xlrd
-import magic
 import collections
 import collections.abc
-from thunor.io import _read_hdf_unstacked, read_vanderbilt_hts, read_incucyte, \
-    PlateMap, STANDARD_PLATE_SIZES, PlateFileParseException
-import pandas as pd
 import itertools
+import re
+from datetime import timedelta
+
+import magic
+import pandas as pd
+import xlrd
+from django.conf import settings
+from django.core.files import File
+from django.db import IntegrityError, transaction
+from django.utils import timezone
+from thunor.io import (
+    STANDARD_PLATE_SIZES,
+    PlateFileParseException,
+    PlateMap,
+    _read_hdf_unstacked,
+    read_incucyte,
+    read_vanderbilt_hts,
+)
+
+from .models import (
+    CellLine,
+    Drug,
+    Plate,
+    PlateFile,
+    Well,
+    WellDrug,
+    WellMeasurement,
+)
 
 
 class PlateFileUnknownFormat(PlateFileParseException):

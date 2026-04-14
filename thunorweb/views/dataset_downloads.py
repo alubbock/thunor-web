@@ -1,22 +1,28 @@
-from django.shortcuts import Http404, redirect
-from django.core.files.base import ContentFile
-from django.core.files.storage import default_storage
-from django.http import HttpResponse
-from django.utils import timezone
+import os
 from io import BytesIO
-from thunorweb.models import HTSDataset, HTSDatasetFile, Well, CurveFitSet
-from thunor.curve_fit import fit_params_from_base
-from thunor.io import write_hdf, _unstack_doses
-from thunorweb.pandas import df_doses_assays_controls, df_curve_fits, \
-    NoDataException, df_dip_rates
+
 import numpy as np
 import pandas as pd
 from django.conf import settings
-import os
-from thunorweb.serve_file import serve_file
-from thunorweb.views.datasets import license_accepted
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
+from django.http import HttpResponse
+from django.shortcuts import Http404, redirect
+from django.utils import timezone
 from django.views.decorators.clickjacking import xframe_options_sameorigin
-from thunorweb.views import login_required_unless_public, _assert_has_perm
+from thunor.curve_fit import fit_params_from_base
+from thunor.io import _unstack_doses, write_hdf
+
+from thunorweb.models import CurveFitSet, HTSDataset, HTSDatasetFile, Well
+from thunorweb.pandas import (
+    NoDataException,
+    df_curve_fits,
+    df_dip_rates,
+    df_doses_assays_controls,
+)
+from thunorweb.serve_file import serve_file
+from thunorweb.views import _assert_has_perm, login_required_unless_public
+from thunorweb.views.datasets import license_accepted
 
 
 def _cached_file(dataset, file_type, protocol):

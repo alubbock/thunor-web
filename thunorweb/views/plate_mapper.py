@@ -1,23 +1,36 @@
-from django.shortcuts import render, Http404
-from django.template.response import TemplateResponse, HttpResponse
-from django.utils.html import escape
-from django.http import JsonResponse, HttpResponseBadRequest
-from django.db import transaction
-from django.db.models import Q, Count
-from thunorweb.models import HTSDataset, Plate, CellLine, Drug, \
-    Well, WellDrug, WellStatistic
 import json
-from thunor.io import PlateData, STANDARD_PLATE_SIZES, PlateMap
-from thunorweb.tasks import precalculate_viability, \
-    dataset_groupings, precalculate_dip_curves, precalculate_dip_rates
-import numpy as np
 import math
-from django.utils import timezone
-from django.conf import settings
 from collections import defaultdict, namedtuple
+
+import numpy as np
+from django.conf import settings
+from django.db import transaction
+from django.db.models import Count, Q
+from django.http import HttpResponseBadRequest, JsonResponse
+from django.shortcuts import Http404, render
+from django.template.response import HttpResponse, TemplateResponse
+from django.utils import timezone
+from django.utils.html import escape
+from thunor.io import STANDARD_PLATE_SIZES, PlateData, PlateMap
+
 from thunorweb.helpers import AutoExtendList
-from thunorweb.views import login_required_unless_public, _assert_has_perm
-from thunorweb.views.datasets import license_accepted, LICENSE_UNSIGNED
+from thunorweb.models import (
+    CellLine,
+    Drug,
+    HTSDataset,
+    Plate,
+    Well,
+    WellDrug,
+    WellStatistic,
+)
+from thunorweb.tasks import (
+    dataset_groupings,
+    precalculate_dip_curves,
+    precalculate_dip_rates,
+    precalculate_viability,
+)
+from thunorweb.views import _assert_has_perm, login_required_unless_public
+from thunorweb.views.datasets import LICENSE_UNSIGNED, license_accepted
 
 
 @login_required_unless_public
