@@ -51,7 +51,6 @@ class ThunorCmdHelper(object):
         if self.args.dry_run:
             return 0
         env = os.environ.copy()
-        env['COMPOSE_INTERACTIVE_NO_CLI'] = '1'
         p = subprocess.Popen(
             cmd, cwd=self.cwd, env=env,
             stdout=subprocess.PIPE if capture_output else None,
