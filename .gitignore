@@ -11,3 +11,4 @@ docker-compose*
 /thunor-db.env
 /thunor-dev.env
 .DS_Store
+.venv

@@ -7,11 +7,25 @@ import random
 import time
 import re
 import logging
+from pathlib import Path
 
 
 class ThunorCmdHelper(object):
     def __init__(self):
         self.cwd = os.path.abspath(os.path.dirname(__file__))
+
+    @property
+    def _python(self):
+        """Return the Python interpreter to use for subprocesses.
+
+        In dev mode, prefers the project venv; falls back to the running
+        interpreter so callers never need to reference uv directly.
+        """
+        if getattr(self.args, 'dev', False):
+            venv_python = Path(self.cwd) / '.venv' / 'bin' / 'python'
+            if venv_python.exists():
+                return str(venv_python)
+        return sys.executable
 
     def _set_args(self, args):
         self.args = args
@@ -217,7 +231,7 @@ class ThunorCtl(ThunorCmdHelper):
     def migrate(self):
         self._log.info('Migrate database')
         if self.args.dev:
-            return self._run_cmd(['python', 'manage.py', 'migrate'])
+            return self._run_cmd([self._python, 'manage.py', 'migrate'])
         else:
             return self._run_cmd(['docker', 'compose', 'run', '--rm',
                                   self.MAIN_CONTAINER_SERVICE,
@@ -504,7 +518,7 @@ class ThunorCtl(ThunorCmdHelper):
     def createsuperuser(self):
         self._log.info('Create superuser')
         if self.args.dev:
-            self._run_cmd(['python', 'manage.py', 'createsuperuser'])
+            self._run_cmd([self._python, 'manage.py', 'createsuperuser'])
         else:
             self._run_cmd(['docker', 'compose', 'exec',
                            self.MAIN_CONTAINER_SERVICE,
@@ -542,7 +556,7 @@ class ThunorCtl(ThunorCmdHelper):
         self.start(log=False)
 
     def thunorweb_version(self):
-        cmd = ['python', '-c',
+        cmd = [self._python, '-c',
                'from thunorweb import __version__;print(__version__)']
         if self.args.dev:
             return self._run_cmd(cmd)

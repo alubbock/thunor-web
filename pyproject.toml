@@ -1,0 +1,34 @@
+[project]
+name = "thunor-web"
+version = "0.0.0"
+requires-python = ">=3.12"
+dependencies = [
+    "thunor>=1.0,<2",
+    "numpy==2.4.4",
+    "pandas==3.0.2",
+    "plotly==6.7.0",
+    "xlrd",
+    "python-magic",
+    "Django==6.0.4",
+    "django-allauth==65.16.0",
+    "django-crispy-forms==2.6",
+    "crispy-bootstrap3==2024.1",
+    "django-custom-user==1.1",
+    "django-guardian==3.3.1",
+    "django-invitations==2.1.0",
+    "django-redis==6.0.0",
+    "django-webpack-loader==3.2.3",
+    "psycopg2==2.9.11",
+    "sentry-sdk[django]==2.58.0",
+    "uwsgi==2.0.31",
+    "django-storages[s3]==1.14.6",
+]
+
+[dependency-groups]
+dev = [
+    "django-debug-toolbar",
+    "coverage",
+]
+
+[tool.uv]
+package = false
