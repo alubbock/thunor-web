@@ -18,7 +18,7 @@ dependencies = [
     "django-invitations==2.1.0",
     "django-redis==6.0.0",
     "django-webpack-loader==3.2.3",
-    "psycopg2==2.9.11",
+    "psycopg2==2.9.12",
     "sentry-sdk[django]==2.58.0",
     "uwsgi==2.0.31",
     "django-storages[s3]==1.14.6",
