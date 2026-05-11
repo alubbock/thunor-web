@@ -5,9 +5,11 @@
   ],
   "packageRules": [
     {
-      "matchPackagePatterns": ["postgres"],
       "matchManagers": ["docker-compose"],
-      "enabled": false
+      "enabled": false,
+      "matchPackageNames": [
+        "/postgres/"
+      ]
     },
     {
       "matchUpdateTypes": ["minor", "patch"],
