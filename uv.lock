@@ -457,11 +457,11 @@ s3 = [
 
 [[package]]
 name = "django-webpack-loader"
-version = "3.2.3"
+version = "3.2.4"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/cd/4a/83aa8a9729d5c85e928e96fe42b2cde5db8f636e05de57f5f0235a52a64b/django_webpack_loader-3.2.3.tar.gz", hash = "sha256:81092499af8e0c9b3a0bad21324aca6e2ad786133b19248dae213eb9661a17f7", size = 17991, upload-time = "2025-12-09T16:59:52.871Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f9/37/fca035c6366f57fb620e2c070943393850a4ab9500da9d3e05025ac78ec6/django_webpack_loader-3.2.4.tar.gz", hash = "sha256:0a253113ea6b150403cd2de802e732872c1d5e3185f0ad4a7fac673c00ae5af2", size = 18098, upload-time = "2026-05-13T13:19:47.777Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6b/73/79ca8f2fa733a75e3feb21dc7bc67868d9a0156761ee99ac041aef268739/django_webpack_loader-3.2.3-py2.py3-none-any.whl", hash = "sha256:d070bfe8ea5bd6ed48810a8d247204bb7f672573bdb6a7b589f6b75998a45993", size = 20940, upload-time = "2025-12-09T16:59:51.313Z" },
+    { url = "https://files.pythonhosted.org/packages/35/88/0614ce4bdfce18697ef438acf2e1c68bcc37b4a5011f5c18b5670bf66c2c/django_webpack_loader-3.2.4-py2.py3-none-any.whl", hash = "sha256:a9d345746ae4d0700b9a86a7f0683ab8282c56a3a32736070f27ad658a9bfcb2", size = 20997, upload-time = "2026-05-13T13:19:46.177Z" },
 ]
 
 [[package]]
@@ -1327,7 +1327,7 @@ requires-dist = [
     { name = "django-invitations", specifier = "==2.1.0" },
     { name = "django-redis", specifier = "==6.0.0" },
     { name = "django-storages", extras = ["s3"], specifier = "==1.14.6" },
-    { name = "django-webpack-loader", specifier = "==3.2.3" },
+    { name = "django-webpack-loader", specifier = "==3.2.4" },
     { name = "numpy", specifier = "==2.4.4" },
     { name = "pandas", specifier = "==3.0.3" },
     { name = "plotly", specifier = "==6.7.0" },
