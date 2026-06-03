@@ -6,7 +6,7 @@ dependencies = [
     "thunor>=1.0,<2",
     "numpy==2.4.6",
     "pandas==3.0.3",
-    "plotly==6.7.0",
+    "plotly==6.8.0",
     "xlrd",
     "python-magic",
     "Django==6.0.6",
