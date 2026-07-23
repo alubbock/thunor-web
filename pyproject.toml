@@ -5,7 +5,7 @@ requires-python = ">=3.12"
 dependencies = [
     "thunor>=1.0,<2",
     "numpy==2.5.1",
-    "pandas==3.0.3",
+    "pandas==3.0.5",
     "plotly==6.9.0",
     "xlrd",
     "python-magic",
