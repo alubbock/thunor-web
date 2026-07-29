@@ -11,7 +11,7 @@ dependencies = [
     "python-magic",
     "Django==6.0.7",
     "django-allauth==65.18.0",
-    "django-crispy-forms==2.6",
+    "django-crispy-forms==2.7",
     "crispy-bootstrap3==2024.1",
     "django-custom-user==1.1",
     "django-guardian==3.3.3",
