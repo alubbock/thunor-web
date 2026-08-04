@@ -9,7 +9,7 @@ dependencies = [
     "plotly==6.9.0",
     "xlrd",
     "python-magic",
-    "Django==6.0.7",
+    "Django==6.0.8",
     "django-allauth==65.18.0",
     "django-crispy-forms==2.7",
     "crispy-bootstrap3==2024.1",
