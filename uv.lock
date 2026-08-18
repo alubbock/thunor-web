@@ -1275,7 +1275,7 @@ wheels = [
 
 [[package]]
 name = "thunor"
-version = "1.0.0"
+version = "1.0.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
@@ -1285,9 +1285,9 @@ dependencies = [
     { name = "seaborn" },
     { name = "tables" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/6a/86/5328be2d57484a749ebe55a8ddc8d275d3bf1d46c9dee44e35046b1a8fe4/thunor-1.0.0.tar.gz", hash = "sha256:96287a54a07fe7812a7a5532ca5ea3e8174ae2399202b5d601914e57549144dd", size = 421254, upload-time = "2026-04-14T13:19:55.293Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/59/53/3298055a7fa737b184e6cc9ca1b44600e0fe10ac562af6f972a0c7b0a40a/thunor-1.0.1.tar.gz", hash = "sha256:f52449969811ff1a0acd642bc98605778508a0edaf384fdaca65a16d66c42ac2", size = 455243, upload-time = "2026-08-18T17:37:58.505Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9c/3b/f0967a9fe58d1fe1e96bb788db0c273e5e252cc6a70f40aeac430269074b/thunor-1.0.0-py3-none-any.whl", hash = "sha256:072a6b21ad1af073f3bc88b1cd8d6bc6dc3d26ef765db2133893b116f2397eb3", size = 259061, upload-time = "2026-04-14T13:19:53.837Z" },
+    { url = "https://files.pythonhosted.org/packages/90/f1/89ba89f26a577a43ec7d26470abde05f2d3f0dc0e34e87ae59a01f2d4121/thunor-1.0.1-py3-none-any.whl", hash = "sha256:c22e7ac6eac748dbd740d9e8b4071fe7950cc49501c69aaf6e10d8406c91deee", size = 259068, upload-time = "2026-08-18T17:37:56.755Z" },
 ]
 
 [[package]]
