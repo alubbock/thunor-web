@@ -402,15 +402,15 @@ wheels = [
 
 [[package]]
 name = "django-guardian"
-version = "3.3.4"
+version = "3.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
     { name = "typing-extensions", marker = "python_full_version < '3.13'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5e/d9/8bdd4a82192aee2a600b48fa7206b285a8119a0154564f0880bd099b2b4b/django_guardian-3.3.4.tar.gz", hash = "sha256:287c881d7076594166411dad9e58a5ac0e887899c4b07d2ee4e13aaccba6d8f6", size = 111445, upload-time = "2026-08-27T00:04:54.677Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/89/c7/0a2cea15a432bd97fffa50b0a01be6018e30b9cdb9775ce33c41f6994fb5/django_guardian-3.4.0.tar.gz", hash = "sha256:f7bd2d673c018e28970c6f98a5bdeeaaf294b9ca7726586695cff01f15db7ef0", size = 111700, upload-time = "2026-08-28T10:04:07.701Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/54/0e/eda59b64d41e0201fbcc3d7eb063c9bde4bfb429289451ca2a72b5780d25/django_guardian-3.3.4-py3-none-any.whl", hash = "sha256:cc0d3944a1b8d121b05f0deaf99e54caa5c44463516102e4bdfea81982621d86", size = 147809, upload-time = "2026-08-27T00:04:53.054Z" },
+    { url = "https://files.pythonhosted.org/packages/32/6d/518729624af9e29a7ea7f4b429ddca56fd6af3462c835b0e42b494680474/django_guardian-3.4.0-py3-none-any.whl", hash = "sha256:73380fcf6815b1de15dea9cbfc931d20afdae30852228c9be2f286e0e84950c8", size = 148072, upload-time = "2026-08-28T10:04:06.056Z" },
 ]
 
 [[package]]
@@ -1330,7 +1330,7 @@ requires-dist = [
     { name = "django-allauth", specifier = "==65.19.1" },
     { name = "django-crispy-forms", specifier = "==2.7" },
     { name = "django-custom-user", specifier = "==1.1" },
-    { name = "django-guardian", specifier = "==3.3.4" },
+    { name = "django-guardian", specifier = "==3.4.0" },
     { name = "django-invitations", specifier = "==2.1.0" },
     { name = "django-redis", specifier = "==7.0.0" },
     { name = "django-storages", extras = ["s3"], specifier = "==1.14.6" },
