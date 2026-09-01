@@ -10,7 +10,7 @@ dependencies = [
     "xlrd",
     "python-magic",
     "Django==6.1",
-    "django-allauth==65.19.1",
+    "django-allauth==65.19.2",
     "django-crispy-forms==2.7",
     "crispy-bootstrap3==2024.1",
     "django-custom-user==1.1",
