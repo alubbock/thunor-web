@@ -3,6 +3,10 @@
   "extends": [
     "config:recommended"
   ],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 4am on monday"]
+  },
   "packageRules": [
     {
       "matchManagers": ["docker-compose"],
