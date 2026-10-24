@@ -19,7 +19,7 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
-          python-version: '3.14'
+          python-version: '3.15'
       - name: Lint with ruff
         run: uv run --group dev ruff check .
   build:
@@ -33,7 +33,7 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
-          python-version: '3.14'
+          python-version: '3.15'
       - name: Run thunorbld.py init
         run: python thunorbld.py init
       - name: Test suite
