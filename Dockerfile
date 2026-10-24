@@ -3,7 +3,7 @@ LABEL org.opencontainers.image.authors="code@alexlubbock.com"
 ENV PYTHONUNBUFFERED=1
 ENV THUNOR_HOME=/thunor
 
-COPY --from=ghcr.io/astral-sh/uv:0.13.3@sha256:bee0a2a458fd956c5df7b8b4c5fed2257b0af34866e3da7b51db0be3acb375d1 /uv /bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.13.5@sha256:32a7bb39b496babbd997b0a39a4d66c126bdaf5661b302bf6f06abda8deca6ff /uv /bin/uv
 
 RUN apt update && apt install -y libpq-dev gcc g++ libmagic1 libpcre2-dev media-types libhdf5-dev \
   && rm -rf /var/lib/apt/lists/*
